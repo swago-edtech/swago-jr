@@ -1,47 +1,84 @@
 "use client";
 
-import { useCart } from "../../context/CartContext";
+import { useState, useEffect } from "react";
 
 export default function CheckoutPage() {
-  const { cart, removeFromCart, clearCart } = useCart();
+  const [user, setUser] = useState<any>(null);
+  const [name, setName] = useState("");
+  const [age, setAge] = useState("");
+  const [address, setAddress] = useState("");
+  const [status, setStatus] = useState("");
 
-  const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  // Fetch logged-in user (for now mock it from /api/me later)
+  useEffect(() => {
+    const fetchUser = async () => {
+      const res = await fetch("/api/me");
+      const data = await res.json();
+      if (data.user) {
+        setUser(data.user);
+        setName(data.user.name || "");
+        setAge(data.user.age || "");
+        setAddress(data.user.address || "");
+      }
+    };
+    fetchUser();
+  }, []);
 
-  if (cart.length === 0) {
-    return <p className="text-center mt-10 text-lg">Your cart is empty 🛒</p>;
+  const handleSubmit = async () => {
+    const res = await fetch("/api/save-checkout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, age, address }),
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      setStatus("✅ Order placed successfully!");
+    } else {
+      setStatus("❌ Failed: " + data.error);
+    }
+  };
+
+  if (!user) {
+    return (
+      <div className="max-w-md mx-auto mt-10">
+        <h2 className="text-xl font-bold">Please log in first</h2>
+        <a href="/login" className="text-blue-500 underline">
+          Go to Login
+        </a>
+      </div>
+    );
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">Checkout</h1>
-      <ul className="space-y-4">
-        {cart.map((item) => (
-          <li key={item.id} className="flex justify-between items-center border-b pb-2">
-            <div>
-              <h2 className="font-semibold">{item.name}</h2>
-              <p className="text-sm text-gray-600">
-                Qty: {item.quantity} × ₹{item.price}
-              </p>
-            </div>
-            <button
-              onClick={() => removeFromCart(item.id)}
-              className="text-red-500 hover:underline"
-            >
-              Remove
-            </button>
-          </li>
-        ))}
-      </ul>
-      <div className="mt-6 flex justify-between font-bold text-lg">
-        <span>Total:</span>
-        <span>₹{total}</span>
-      </div>
+    <div className="max-w-md mx-auto mt-10">
+      <h1 className="text-2xl font-bold mb-4">Checkout</h1>
+      <input
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        placeholder="Full Name"
+        className="w-full border p-2 mb-2 rounded"
+      />
+      <input
+        value={age}
+        onChange={(e) => setAge(e.target.value)}
+        placeholder="Child's Age"
+        className="w-full border p-2 mb-2 rounded"
+      />
+      <textarea
+        value={address}
+        onChange={(e) => setAddress(e.target.value)}
+        placeholder="Delivery Address"
+        className="w-full border p-2 mb-2 rounded"
+      />
       <button
-        onClick={clearCart}
-        className="mt-6 w-full bg-green-500 text-white py-2 rounded hover:bg-green-600"
+        onClick={handleSubmit}
+        className="w-full bg-green-500 text-white py-2 rounded"
       >
         Place Order
       </button>
+
+      {status && <p className="mt-4 text-center">{status}</p>}
     </div>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCart } from "../context/CartContext";
+import { useCart } from "@/context/CartContext";
 
 export default function Navbar() {
   const { cart } = useCart();
@@ -15,8 +15,8 @@ export default function Navbar() {
       </Link>
       <div className="space-x-4 flex items-center">
         <Link href="/products">Products</Link>
-        <Link href="/checkout">
-          Checkout {itemCount > 0 && <span>({itemCount})</span>}
+        <Link href="/cart">
+          Cart {itemCount > 0 && <span>({itemCount})</span>}
         </Link>
         <Link href="/login">Login</Link>
       </div>
