@@ -1,21 +1,18 @@
 "use client";
 
-import { useCart } from "../context/CartContext";
-
-type Product = {
-  id: number;
-  name: string;
-  description: string;
-  price: number;
-  image: string;
-};
+import React from "react";
+import { Product, useCart } from "@/context/CartContext";
 
 export default function ProductCard({ product }: { product: Product }) {
   const { addToCart } = useCart();
 
   return (
     <div className="border rounded-lg p-4 shadow hover:shadow-lg transition">
-      <img src={product.image} alt={product.name} className="w-full h-40 object-cover rounded" />
+      <img
+        src={product.image}
+        alt={product.name}
+        className="w-full h-40 object-cover rounded"
+      />
       <h3 className="text-lg font-semibold mt-2">{product.name}</h3>
       <p className="text-sm text-gray-600">{product.description}</p>
       <p className="mt-2 font-bold">₹{product.price}</p>

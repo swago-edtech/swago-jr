@@ -1,20 +1,14 @@
-import mongoose, { Schema, model, models } from "mongoose";
+import mongoose from "mongoose";
 
-const OrderSchema = new Schema(
+const OrderSchema = new mongoose.Schema(
   {
-    user: { type: Schema.Types.ObjectId, ref: "User", required: true },
-    items: [
-      {
-        productId: String,
-        name: String,
-        price: Number,
-        quantity: Number,
-      },
-    ],
+    phone: { type: String, required: true },
+    name: { type: String, required: true },
+    age: { type: String, required: true },
+    address: { type: String, required: true },
     status: { type: String, default: "Pending" },
   },
   { timestamps: true }
 );
 
-const Order = models.Order || model("Order", OrderSchema);
-export default Order;
+export default mongoose.models.Order || mongoose.model("Order", OrderSchema);

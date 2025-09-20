@@ -1,92 +1,83 @@
 "use client";
-
 import { useState } from "react";
 
 export default function LoginPage() {
   const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
   const [step, setStep] = useState<"number" | "otp">("number");
-  const [status, setStatus] = useState("");
+  const [message, setMessage] = useState("");
 
-  // Send OTP
   const sendOtp = async () => {
     const res = await fetch("/api/send-otp", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ phone }),
     });
-    const data = await res.json();
-    if (data.success) {
+
+    if (res.ok) {
       setStep("otp");
-      setStatus("📲 OTP sent to your phone");
+      setMessage("OTP sent to your phone");
     } else {
-      setStatus("❌ Failed to send OTP");
+      setMessage("Failed to send OTP");
     }
   };
 
-  // Verify OTP
   const verifyOtp = async () => {
     const res = await fetch("/api/verify-otp", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ phone, code }),
     });
-    const data = await res.json();
 
-    if (data.success) {
-      setStatus("✅ Login successful!");
-
-      if (data.needsDetails) {
-        // User missing info → send to checkout form
-        window.location.href = "/checkout";
-      } else {
-        // User already has info → send to cart
-        window.location.href = "/cart";
-      }
+    if (res.ok) {
+      setMessage("✅ Logged in successfully!");
+      window.location.href = "/"; // redirect to home
     } else {
-      setStatus("❌ Invalid OTP, try again");
+      setMessage("❌ Invalid OTP");
     }
   };
 
   return (
-    <div className="max-w-md mx-auto mt-10">
-      <h1 className="text-2xl font-bold mb-4">Login</h1>
+    <div className="p-6 max-w-md mx-auto">
+      <h1 className="text-xl font-bold mb-4">Login with Phone</h1>
 
-      {step === "number" ? (
+      {step === "number" && (
         <>
           <input
             type="tel"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             placeholder="Enter phone number"
-            className="w-full border p-2 rounded mb-2"
+            className="border p-2 w-full mb-2"
           />
           <button
             onClick={sendOtp}
-            className="w-full bg-blue-500 text-white py-2 rounded"
+            className="bg-blue-500 text-white px-4 py-2 rounded"
           >
             Send OTP
           </button>
         </>
-      ) : (
+      )}
+
+      {step === "otp" && (
         <>
           <input
             type="text"
             value={code}
             onChange={(e) => setCode(e.target.value)}
             placeholder="Enter OTP"
-            className="w-full border p-2 rounded mb-2"
+            className="border p-2 w-full mb-2"
           />
           <button
             onClick={verifyOtp}
-            className="w-full bg-green-500 text-white py-2 rounded"
+            className="bg-green-500 text-white px-4 py-2 rounded"
           >
             Verify OTP
           </button>
         </>
       )}
 
-      {status && <p className="mt-4 text-center">{status}</p>}
+      {message && <p className="mt-4 text-sm">{message}</p>}
     </div>
   );
 }

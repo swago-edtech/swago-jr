@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-let isConnected = false; // track connection
+let isConnected = false;
 
 export async function connectDB() {
   if (isConnected) return;
@@ -11,6 +11,5 @@ export async function connectDB() {
     console.log("✅ MongoDB connected");
   } catch (error) {
     console.error("❌ MongoDB connection error:", error);
-    throw new Error("Failed to connect to MongoDB");
   }
 }

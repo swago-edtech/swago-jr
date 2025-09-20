@@ -1,84 +1,100 @@
 "use client";
-
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export default function CheckoutPage() {
   const [user, setUser] = useState<any>(null);
-  const [name, setName] = useState("");
-  const [age, setAge] = useState("");
-  const [address, setAddress] = useState("");
-  const [status, setStatus] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [form, setForm] = useState({
+    name: "",
+    age: "",
+    address: "",
+  });
+  const [message, setMessage] = useState("");
 
-  // Fetch logged-in user (for now mock it from /api/me later)
+  // ✅ Check if logged in
   useEffect(() => {
-    const fetchUser = async () => {
+    async function checkUser() {
       const res = await fetch("/api/me");
-      const data = await res.json();
-      if (data.user) {
-        setUser(data.user);
-        setName(data.user.name || "");
-        setAge(data.user.age || "");
-        setAddress(data.user.address || "");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.loggedIn) {
+          setUser(data.user);
+        } else {
+          window.location.href = "/login"; // redirect if not logged in
+        }
+      } else {
+        window.location.href = "/login";
       }
-    };
-    fetchUser();
+      setLoading(false);
+    }
+    checkUser();
   }, []);
 
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
   const handleSubmit = async () => {
-    const res = await fetch("/api/save-checkout", {
+    const res = await fetch("/api/orders", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, age, address }),
+      body: JSON.stringify({ ...form }),
     });
-    const data = await res.json();
 
-    if (data.success) {
-      setStatus("✅ Order placed successfully!");
+    if (res.ok) {
+      setMessage("✅ Order placed successfully!");
     } else {
-      setStatus("❌ Failed: " + data.error);
+      setMessage("❌ Failed to place order");
     }
   };
 
-  if (!user) {
-    return (
-      <div className="max-w-md mx-auto mt-10">
-        <h2 className="text-xl font-bold">Please log in first</h2>
-        <a href="/login" className="text-blue-500 underline">
-          Go to Login
-        </a>
-      </div>
-    );
-  }
+  if (loading) return <p className="p-6">Checking login...</p>;
 
   return (
-    <div className="max-w-md mx-auto mt-10">
-      <h1 className="text-2xl font-bold mb-4">Checkout</h1>
-      <input
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        placeholder="Full Name"
-        className="w-full border p-2 mb-2 rounded"
-      />
-      <input
-        value={age}
-        onChange={(e) => setAge(e.target.value)}
-        placeholder="Child's Age"
-        className="w-full border p-2 mb-2 rounded"
-      />
-      <textarea
-        value={address}
-        onChange={(e) => setAddress(e.target.value)}
-        placeholder="Delivery Address"
-        className="w-full border p-2 mb-2 rounded"
-      />
-      <button
-        onClick={handleSubmit}
-        className="w-full bg-green-500 text-white py-2 rounded"
-      >
-        Place Order
-      </button>
+    <div className="p-6 max-w-md mx-auto">
+      <h1 className="text-xl font-bold mb-4">Checkout</h1>
 
-      {status && <p className="mt-4 text-center">{status}</p>}
+      {user && (
+        <>
+          <p className="mb-2">Phone: {user.phone}</p>
+
+          <input
+            type="text"
+            name="name"
+            value={form.name}
+            onChange={handleChange}
+            placeholder="Your Name"
+            className="border p-2 w-full mb-2"
+          />
+
+          <input
+            type="text"
+            name="age"
+            value={form.age}
+            onChange={handleChange}
+            placeholder="Kid's Age"
+            className="border p-2 w-full mb-2"
+          />
+
+          <input
+            type="text"
+            name="address"
+            value={form.address}
+            onChange={handleChange}
+            placeholder="Delivery Address"
+            className="border p-2 w-full mb-2"
+          />
+
+          <button
+            onClick={handleSubmit}
+            className="bg-green-500 text-white px-4 py-2 rounded"
+          >
+            Place Order
+          </button>
+        </>
+      )}
+
+      {message && <p className="mt-4">{message}</p>}
     </div>
   );
 }
