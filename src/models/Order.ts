@@ -7,6 +7,15 @@ const OrderSchema = new mongoose.Schema(
     age: { type: String, required: true },
     address: { type: String, required: true },
     status: { type: String, default: "Pending" },
+    // New: Add a field to store the cart items
+    items: [
+      {
+        name: String,
+        price: Number,
+        quantity: Number,
+        image: String,
+      },
+    ],
   },
   { timestamps: true }
 );

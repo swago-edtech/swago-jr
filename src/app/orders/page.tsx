@@ -54,7 +54,8 @@ export default function OrdersPage() {
               {new Date(order.createdAt).toLocaleString()}
             </p>
             <ul className="mt-2 ml-4 list-disc">
-              {order.items.map((item: any, idx: number) => (
+              {/* This line is now safer and won't crash */}
+              {order.items?.map((item: any, idx: number) => (
                 <li key={idx}>
                   {item.name} — {item.quantity} × ₹{item.price}
                 </li>
