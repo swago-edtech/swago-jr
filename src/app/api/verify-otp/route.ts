@@ -1,8 +1,15 @@
 import { NextResponse } from "next/server";
 import { SignJWT } from "jose";
 import twilio from "twilio";
-import connectDB from "@/lib/db"; // Corrected: Use default import
+import connectDB from "@/lib/db";
 import User from "@/models/User";
+import { z } from "zod"; // Import Zod
+
+// Define a schema for both phone and code
+const verifySchema = z.object({
+  phone: z.string().min(10, { message: "Phone number must be at least 10 digits." }),
+  code: z.string().min(4, { message: "Code must be at least 4 digits." }),
+});
 
 const secret = new TextEncoder().encode(
   process.env.JWT_SECRET || "supersecret_superlong_key_123456"
@@ -10,27 +17,24 @@ const secret = new TextEncoder().encode(
 const cookieName = "session";
 
 export async function POST(req: Request) {
-  const { phone, code } = await req.json();
-
-  if (!phone || !code) {
-    return NextResponse.json(
-      { success: false, error: "Phone and code are required." },
-      { status: 400 }
-    );
-  }
-
-  const client = twilio(process.env.TWILIO_ACCOUNT_SID!, process.env.TWILIO_AUTH_TOKEN!);
-
   try {
+    const body = await req.json();
+
+    // Validate the incoming data
+    const validation = verifySchema.safeParse(body);
+    if (!validation.success) {
+      return NextResponse.json({ error: validation.error.format() }, { status: 400 });
+    }
+
+    const { phone, code } = validation.data;
+    const client = twilio(process.env.TWILIO_ACCOUNT_SID!, process.env.TWILIO_AUTH_TOKEN!);
+
     const verification_check = await client.verify.v2
       .services(process.env.TWILIO_VERIFY_SID!)
       .verificationChecks.create({ to: `+91${phone}`, code });
 
     if (verification_check.status !== "approved") {
-      return NextResponse.json(
-        { success: false, error: "Invalid OTP" },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: "Invalid OTP" }, { status: 400 });
     }
 
     await connectDB();
@@ -45,7 +49,6 @@ export async function POST(req: Request) {
       .sign(secret);
 
     const response = NextResponse.json({ success: true, user: user });
-
     response.cookies.set(cookieName, token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -55,10 +58,7 @@ export async function POST(req: Request) {
 
     return response;
   } catch (err: any) {
-    console.error("Twilio verify error:", err);
-    return NextResponse.json(
-      { success: false, error: "Failed to verify OTP." },
-      { status: 500 }
-    );
+    console.error("OTP verification error:", err);
+    return NextResponse.json({ success: false, error: "Failed to verify OTP." }, { status: 500 });
   }
 }
