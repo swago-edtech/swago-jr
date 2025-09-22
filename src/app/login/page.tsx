@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { useSharedContext } from "@/context/SharedContext"; // Updated import
+import { useRouter, useSearchParams } from "next/navigation";
+import { useSharedContext } from "@/context/SharedContext";
 
 export default function LoginPage() {
   const [phone, setPhone] = useState("");
@@ -9,10 +9,13 @@ export default function LoginPage() {
   const [step, setStep] = useState<"number" | "otp">("number");
   const [message, setMessage] = useState("");
   const router = useRouter();
-  const { setUser } = useSharedContext(); // Get the setUser function from context
+  const { setUser } = useSharedContext();
+
+  // New: Read URL query parameters
+  const searchParams = useSearchParams();
+  const redirectUrl = searchParams.get("redirect");
 
   const sendOtp = async () => {
-    // ... same as before
     const res = await fetch("/api/send-otp", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -35,8 +38,9 @@ export default function LoginPage() {
 
     if (res.ok) {
       const data = await res.json();
-      setUser(data.user); // Update the global state with the user data from the API
-      router.push("/");   // Redirect to home
+      setUser(data.user);
+      // Updated: Redirect to the stored URL, or fallback to homepage
+      router.push(redirectUrl || "/");
     } else {
       setMessage("❌ Invalid OTP");
     }

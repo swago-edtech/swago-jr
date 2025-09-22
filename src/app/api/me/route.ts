@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server";
 import { getLoginSession } from "@/lib/auth";
-import { connectDB } from "@/lib/db";
+import connectDB from "@/lib/db"; // Use the new default export
 import User from "@/models/User";
-import Order from "@/models/Order"; // This import prevents the MissingSchemaError
 
 export async function GET() {
   try {
-    await connectDB();
+    await connectDB(); // This now guarantees all models are registered
     const session = await getLoginSession();
 
     if (!session) {
@@ -16,7 +15,6 @@ export async function GET() {
       );
     }
 
-    // The permanent fix: Use .populate() now that the Order model is registered.
     const user = await User.findOne({ phone: session.phone }).populate("orders");
 
     if (!user) {

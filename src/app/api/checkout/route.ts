@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { connectDB } from "@/lib/db";
+import connectDB from "@/lib/db"; // Corrected: Use default import
 import Order from "@/models/Order";
 import User from "@/models/User";
 

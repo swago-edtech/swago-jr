@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getLoginSession } from "@/lib/auth";
-import { connectDB } from "@/lib/db";
+import connectDB from "@/lib/db"; // The only change is here
 import Order from "@/models/Order";
 import User from "@/models/User";
 
@@ -11,7 +11,6 @@ export async function POST(req: Request) {
   }
 
   await connectDB();
-  // Updated: Destructure cart from the request body
   const { name, age, address, cart } = await req.json();
 
   const user = await User.findOne({ phone: session.phone });
@@ -25,7 +24,7 @@ export async function POST(req: Request) {
     age,
     address,
     status: "Pending",
-    items: cart, // New: Save the cart items to the order
+    items: cart,
   });
 
   user.orders.push(order._id);

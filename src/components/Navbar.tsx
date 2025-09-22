@@ -1,17 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useSharedContext } from "@/context/SharedContext"; // Updated import
+import { useSharedContext } from "@/context/SharedContext";
 
 export default function Navbar() {
-  // Get user and cart state directly from the central context
   const { user, cart } = useSharedContext();
-
   const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   const handleLogout = async () => {
     await fetch("/api/logout", { method: "POST" });
-    // A full refresh on logout is okay to ensure all state is cleared.
     window.location.href = "/";
   };
 
@@ -27,6 +24,10 @@ export default function Navbar() {
         </Link>
         {user ? (
           <>
+            {/* New: My Orders button */}
+            <Link href="/orders" className="hover:text-gray-200">
+              My Orders
+            </Link>
             <span className="text-sm">Hi, {user.phone}</span>
             <button onClick={handleLogout} className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-md transition-colors">
               Logout

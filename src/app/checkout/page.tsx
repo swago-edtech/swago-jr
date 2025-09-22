@@ -1,21 +1,19 @@
 "use client";
 import { useEffect, useState } from "react";
-import { useSharedContext } from "@/context/SharedContext"; // Updated import
+import { useSharedContext } from "@/context/SharedContext";
 import { useRouter } from "next/navigation";
+
 export default function CheckoutPage() {
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({ name: "", age: "", address: "" });
   const [message, setMessage] = useState("");
-  // Updated hook
   const { cart, clearCart, user } = useSharedContext();
   const router = useRouter();
-
-  // This useEffect can be removed now, as the user state is handled globally in the context
-  // useEffect(() => { ... });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
+
   const handleSubmit = async () => {
     setMessage("");
     const res = await fetch("/api/orders", {
@@ -30,16 +28,21 @@ export default function CheckoutPage() {
       setMessage("❌ Failed to place order");
     }
   };
-  // We can also simplify the loading/redirect logic
+
   useEffect(() => {
+    // If the context is still loading user data, do nothing yet.
+    if (user === undefined) return;
+
     if (!user) {
-      router.push("/login");
+      // Updated: Add a redirect query parameter
+      router.push("/login?redirect=/checkout");
     } else {
       setLoading(false);
     }
   }, [user, router]);
 
-  if (loading || !user) return <p className="p-6">Checking login...</p>;
+  if (loading || !user) return <p className="p-6">Checking your login status...</p>;
+
   return (
     <div className="p-6 max-w-md mx-auto">
       <h1 className="text-xl font-bold mb-4">Checkout</h1>
