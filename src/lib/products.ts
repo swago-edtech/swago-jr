@@ -34,4 +34,12 @@ export const products = [
     price: 999,
     image: "/science-kit.jpg"
   },
+  // New product for testing live payments
+  {
+    id: 6,
+    name: "Senku Stone World Kit",
+    description: "A special kit for Dr.Stone Fans. Revive the world and build the Kingdom of Science !",
+    price: 1,
+    image: "/science-kit.jpg" // Using a placeholder image
+  },
 ];
