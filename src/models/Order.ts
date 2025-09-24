@@ -3,11 +3,11 @@ import mongoose from "mongoose";
 const OrderSchema = new mongoose.Schema(
   {
     phone: { type: String, required: true },
+    email: { type: String, required: true }, // New: Required field for the buyer's email
     name: { type: String, required: true },
     age: { type: String, required: true },
     address: { type: String, required: true },
     status: { type: String, default: "Pending" },
-    // New: Add a field to store the cart items
     items: [
       {
         name: String,
@@ -16,6 +16,7 @@ const OrderSchema = new mongoose.Schema(
         image: String,
       },
     ],
+    razorpay_payment_id: { type: String }, // Added for reference
   },
   { timestamps: true }
 );

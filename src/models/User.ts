@@ -4,11 +4,14 @@ const UserSchema = new Schema(
   {
     name: { type: String },
     phone: { type: String, required: true, unique: true },
-    // New: Add the isAdmin flag
+    email: { type: String }, // New: Field for the user's email
     isAdmin: {
       type: Boolean,
       default: false,
     },
+    wishlist: [{
+      type: Number,
+    }],
     age: { type: Number },
     address: { type: String },
     orders: [{ type: Schema.Types.ObjectId, ref: "Order" }],

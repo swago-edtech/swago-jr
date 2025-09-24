@@ -11,7 +11,8 @@ declare global {
 
 export default function CheckoutPage() {
   const [loading, setLoading] = useState(true);
-  const [form, setForm] = useState({ name: "", age: "", address: "" });
+  // 1. Add 'email' to the form state
+  const [form, setForm] = useState({ name: "", age: "", address: "", email: "" });
   const [message, setMessage] = useState("");
   const { cart, clearCart, user, total } = useSharedContext();
   const router = useRouter();
@@ -44,7 +45,6 @@ export default function CheckoutPage() {
       description: "Learning Kits Purchase",
       order_id: razorpayOrder.id,
       handler: async function (response: any) {
-        // --- This handler is now updated ---
         const verificationRes = await fetch('/api/payment/verify', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -52,22 +52,20 @@ export default function CheckoutPage() {
             razorpay_payment_id: response.razorpay_payment_id,
             razorpay_order_id: response.razorpay_order_id,
             razorpay_signature: response.razorpay_signature,
-            orderDetails: {
-              ...form,
-              cart,
-            }
+            orderDetails: { ...form, cart }
           }),
         });
         
         if (verificationRes.ok) {
           clearCart();
-          router.push('/orders'); // Redirect to orders page on success
+          router.push('/orders');
         } else {
           setMessage("❌ Payment verification failed. Please contact support.");
         }
       },
       prefill: {
         name: form.name,
+        email: form.email, // 2. Prefill the email for Razorpay
         contact: user?.phone,
       },
       notes: {
@@ -103,9 +101,13 @@ export default function CheckoutPage() {
       <p className="mb-2"><strong>Phone:</strong> {user.phone}</p>
       <p className="mb-4 font-semibold"><strong>Total Amount: ₹{total.toFixed(2)}</strong></p>
 
-      <input type="text" name="name" value={form.name} onChange={handleChange} placeholder="Your Full Name" className="border p-2 w-full mb-2" />
-      <input type="text" name="age" value={form.age} onChange={handleChange} placeholder="Kid's Age" className="border p-2 w-full mb-2" />
-      <input type="text" name="address" value={form.address} onChange={handleChange} placeholder="Full Delivery Address" className="border p-2 w-full mb-2" />
+      <input type="text" name="name" value={form.name} onChange={handleChange} placeholder="Your Full Name" className="border p-2 w-full mb-2" required />
+      
+      {/* 3. Add the new email input field */}
+      <input type="email" name="email" value={form.email} onChange={handleChange} placeholder="Your Email Address" className="border p-2 w-full mb-2" required />
+      
+      <input type="text" name="age" value={form.age} onChange={handleChange} placeholder="Kid's Age" className="border p-2 w-full mb-2" required />
+      <input type="text" name="address" value={form.address} onChange={handleChange} placeholder="Full Delivery Address" className="border p-2 w-full mb-2" required />
       
       <button onClick={handlePayment} className="w-full bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
         Proceed to Pay
