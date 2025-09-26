@@ -4,12 +4,20 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 
 // --- Types ---
+// Define a type for populated orders to avoid using 'any'
+type PopulatedOrder = {
+  _id: string;
+  status: string;
+  createdAt: string;
+  items: { name: string; quantity: number; price: number; }[];
+};
+
 export type Product = {
   id: number;
   name: string;
   description: string;
   price: number;
-  images: string[]; // Corrected: from image to images
+  images: string[];
   age_category: string;
   core_elements: string[];
 };
@@ -22,7 +30,7 @@ export type User = {
   name?: string;
   age?: number;
   address?: string;
-  orders: any[];
+  orders: PopulatedOrder[]; // Fixed: Use the defined type
   wishlist: number[];
   email?: string;
 };
@@ -82,7 +90,8 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
           setUser(null);
           setWishlist([]);
         }
-      } catch (error) { 
+      } catch (error: unknown) { // Fixed: Changed any to unknown
+        console.error("Failed to check user:", error);
         setUser(null);
         setWishlist([]);
       }

@@ -22,7 +22,6 @@ interface OrderConfirmationEmailProps {
   }[];
 }
 
-// Using 'export default function' is a cleaner pattern
 export default function OrderConfirmationEmail({
   customerName,
   orderId,
@@ -37,8 +36,9 @@ export default function OrderConfirmationEmail({
       <Body style={main}>
         <Container style={container}>
           <Heading style={h1}>Thank you for your order!</Heading>
+          {/* Fixed: Replaced ' with &apos; */}
           <Text style={text}>
-            Hi {customerName}, we're getting your order ready. We will notify you once it has been shipped.
+            Hi {customerName}, we&apos;re getting your order ready. We will notify you once it has been shipped.
           </Text>
           <Hr style={hr} />
           <Heading as="h2" style={h2}>Order Details</Heading>
@@ -74,7 +74,7 @@ const container = {
   margin: '0 auto',
   padding: '20px 0 48px',
   marginBottom: '64px',
-  border: '1px solid #f0f0fयो',
+  border: '1px solid #f0f0f0',
   borderRadius: '4px',
 };
 const h1 = {

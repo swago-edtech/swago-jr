@@ -1,8 +1,9 @@
 "use client";
 import { useEffect, useState } from "react";
-import { useSharedContext } from "@/context/SharedContext";
+import { useSharedContext, User } from "@/context/SharedContext"; // Import User type
 import { useRouter } from "next/navigation";
 
+// 'any' is acceptable here for external library definitions
 declare global {
   interface Window {
     Razorpay: any;
@@ -20,14 +21,7 @@ export default function CheckoutPage() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-
-    if (!form.name || !form.email || !form.address || !form.age) {
-      setMessage("❌ Please fill out all required details.");
-      return;
-    }
-    
+  const handlePayment = async () => {
     setMessage("Processing payment...");
     
     const res = await fetch("/api/payment/create", {
@@ -43,7 +37,6 @@ export default function CheckoutPage() {
 
     const razorpayOrder = await res.json();
 
-    // This is the full, correct options object
     const options = {
       key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
       amount: razorpayOrder.amount,
@@ -51,7 +44,7 @@ export default function CheckoutPage() {
       name: "Swago Junior",
       description: "Learning Kits Purchase",
       order_id: razorpayOrder.id,
-      handler: async function (response: any) {
+      handler: async function (response: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string; }) { // Typed the response
         const verificationRes = await fetch('/api/payment/verify', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -86,7 +79,7 @@ export default function CheckoutPage() {
     const paymentObject = new window.Razorpay(options);
     paymentObject.open();
 
-    paymentObject.on('payment.failed', function (response: any){
+    paymentObject.on('payment.failed', function (response: { error: { description: string } }){ // Typed the response
         setMessage(`❌ Payment failed. Error: ${response.error.description}`);
     });
   };
@@ -101,32 +94,31 @@ export default function CheckoutPage() {
   }, [user, router]);
 
   if (loading || !user) return <p className="p-6">Checking your login status...</p>;
-  
+
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold text-center mb-8">Complete Your Purchase</h1>
-      <form onSubmit={handleSubmit} className="max-w-2xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12">
-        <div className="bg-white p-8 rounded-xl shadow-lg border">
-          <div className="space-y-4">
-            <input type="text" name="name" value={form.name} onChange={handleChange} placeholder="Your Full Name" className="w-full border-slate-300 rounded-md p-3" required />
-            <input type="email" name="email" value={form.email} onChange={handleChange} placeholder="Your Email Address" className="w-full border-slate-300 rounded-md p-3" required />
-            <input type="text" name="age" value={form.age} onChange={handleChange} placeholder="Kid's Age" className="w-full border-slate-300 rounded-md p-3" required />
-            <input type="text" name="address" value={form.address} onChange={handleChange} placeholder="Full Delivery Address" className="w-full border-slate-300 rounded-md p-3" required />
-          </div>
+        <h1 className="text-3xl font-bold text-center mb-8">Complete Your Purchase</h1>
+        <div className="max-w-2xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12">
+            <div className="bg-white p-8 rounded-xl shadow-lg border">
+                <div className="space-y-4">
+                    <input type="text" name="name" value={form.name} onChange={handleChange} placeholder="Your Full Name" className="w-full border-slate-300 rounded-md p-3" required />
+                    <input type="email" name="email" value={form.email} onChange={handleChange} placeholder="Your Email Address" className="w-full border-slate-300 rounded-md p-3" required />
+                    <input type="text" name="age" value={form.age} onChange={handleChange} placeholder="Kid's Age" className="w-full border-slate-300 rounded-md p-3" required />
+                    <input type="text" name="address" value={form.address} onChange={handleChange} placeholder="Full Delivery Address" className="w-full border-slate-300 rounded-md p-3" required />
+                </div>
+            </div>
+            <div className="bg-slate-50 p-8 rounded-xl border">
+                <h2 className="text-xl font-bold mb-4">Order Summary</h2>
+                <div className="flex justify-between items-center text-lg">
+                    <span>Total Amount:</span>
+                    <span className="font-bold">₹{total.toFixed(2)}</span>
+                </div>
+                <button onClick={handlePayment} className="mt-6 w-full bg-green-500 text-white font-bold py-3 rounded-lg hover:bg-green-600">
+                    Proceed to Pay Securely
+                </button>
+                {message && <p className="mt-4 text-center text-sm">{message}</p>}
+            </div>
         </div>
-        
-        <div className="bg-slate-50 p-8 rounded-xl border">
-          <h2 className="text-xl font-bold mb-4">Order Summary</h2>
-          <div className="flex justify-between items-center text-lg">
-            <span>Total Amount:</span>
-            <span className="font-bold">₹{total.toFixed(2)}</span>
-          </div>
-          <button type="submit" className="mt-6 w-full bg-green-500 text-white font-bold py-3 rounded-lg hover:bg-green-600">
-            Proceed to Pay Securely
-          </button>
-          {message && <p className="mt-4 text-center text-sm">{message}</p>}
-        </div>
-      </form>
     </div>
   );
 }

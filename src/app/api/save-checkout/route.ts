@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import connectDB from "@/lib/db"; // Corrected import
+import connectDB from "@/lib/db";
 import User from "@/models/User";
 import Order from "@/models/Order";
 import { getLoginSession } from "@/lib/auth";
@@ -8,7 +8,6 @@ export async function POST(req: Request) {
   try {
     await connectDB();
 
-    // ✅ Read session (user must be logged in via OTP)
     const session = await getLoginSession();
     if (!session) {
       return NextResponse.json(
@@ -26,8 +25,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // ✅ Find user by phone
-    let user = await User.findOne({ phone: session.phone });
+    const user = await User.findOne({ phone: session.phone }); // Changed let to const
     if (!user) {
       return NextResponse.json(
         { success: false, error: "User not found" },
@@ -35,27 +33,25 @@ export async function POST(req: Request) {
       );
     }
 
-    // ✅ Update user details
     user.name = name;
     user.age = age;
     user.address = address;
     await user.save();
 
-    // ✅ Create new order
     const order = await Order.create({
       user: user._id,
       items: cartItems,
       status: "Pending",
     });
 
-    // ✅ Link order to user
     user.orders.push(order._id);
     await user.save();
 
     return NextResponse.json({ success: true, order });
-  } catch (err: any) {
+  } catch (err: unknown) { // Changed any to unknown
+    const message = err instanceof Error ? err.message : "An unknown error occurred";
     return NextResponse.json(
-      { success: false, error: err.message },
+      { success: false, error: message },
       { status: 500 }
     );
   }

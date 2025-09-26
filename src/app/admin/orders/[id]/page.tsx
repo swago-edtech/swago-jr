@@ -1,53 +1,32 @@
 "use client";
-
-import { use, useEffect, useState } from "react"; // 1. Import 'use' from React
+import { use, useEffect, useState } from "react";
 import Link from "next/link";
-
-// Types remain the same
-type OrderItem = {
-  name: string;
-  price: number;
-  quantity: number;
-};
-type Order = {
-  _id: string;
-  name: string;
-  phone: string;
-  address: string;
-  status: string;
-  createdAt: string;
-  items: OrderItem[];
-};
-
-// 2. The 'params' prop is now typed as a Promise
+type OrderItem = { name: string; price: number; quantity: number; };
+type Order = { _id: string; name: string; phone: string; address: string; status: string; createdAt: string; items: OrderItem[]; };
 export default function OrderDetailsPage({ params }: { params: Promise<{ id: string }> }) {
-  // 3. We 'unwrap' the promise using the use() hook to get the id
   const { id } = use(params);
-
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [newStatus, setNewStatus] = useState("");
   const [updateMessage, setUpdateMessage] = useState("");
-
   useEffect(() => {
     const fetchOrderDetails = async () => {
       try {
-        // Use the unwrapped 'id' here
         const res = await fetch(`/api/admin/orders/${id}`);
         if (!res.ok) throw new Error("Failed to fetch order details.");
         const data = await res.json();
         setOrder(data);
         setNewStatus(data.status);
-      } catch (err: any) {
-        setError(err.message);
+      } catch (err: unknown) { // Changed any to unknown
+        const message = err instanceof Error ? err.message : "An unknown error occurred";
+        setError(message);
       } finally {
         setLoading(false);
       }
     };
     fetchOrderDetails();
-  }, [id]); // The dependency is now the unwrapped 'id'
-
+  }, [id]);
   const handleStatusUpdate = async () => {
     setUpdateMessage("");
     try {
@@ -60,22 +39,19 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
       const updatedOrder = await res.json();
       setOrder(updatedOrder);
       setUpdateMessage("Status updated successfully!");
-    } catch (err: any) {
-      setUpdateMessage(`Error: ${err.message}`);
+    } catch (err: unknown) { // Changed any to unknown
+      const message = err instanceof Error ? err.message : "An unknown error occurred";
+      setUpdateMessage(`Error: ${message}`);
     }
   };
-
   if (loading) return <p>Loading order details...</p>;
   if (error) return <p className="text-red-500">Error: {error}</p>;
   if (!order) return <p>Order not found.</p>;
-
   const orderTotal = order.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-
   return (
     <div>
       <Link href="/admin/orders" className="text-blue-600 hover:underline mb-4 inline-block">&larr; Back to All Orders</Link>
       <h1 className="text-2xl font-bold mb-6">Order Details</h1>
-      
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-1 bg-white p-4 rounded-lg shadow">
           <h2 className="font-bold text-lg mb-2">Customer Info</h2>
@@ -129,3 +105,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
     </div>
   );
 }
+
+  
+      
+      

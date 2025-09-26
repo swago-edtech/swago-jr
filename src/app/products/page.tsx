@@ -1,22 +1,19 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { useSearchParams } from "next/navigation"; // 1. Import useSearchParams
+import { useSearchParams } from "next/navigation";
 import { products } from "@/lib/products";
 import ProductCard from "@/components/ProductCard";
 import FilterSidebar, { Filters } from "@/components/FilterSidebar";
 
 export default function ProductsPage() {
-  const searchParams = useSearchParams(); // 2. Get the search params object
-
-  // 3. Set the initial state of the filters based on the URL
+  const searchParams = useSearchParams();
   const [filters, setFilters] = useState<Filters>({
     search: searchParams.get("search") || "",
     age: searchParams.get("age") || "",
     elements: searchParams.get("elements")?.split(",") || [],
   });
 
-  // This effect will update filters if the user navigates between filtered links
   useEffect(() => {
     setFilters({
       search: searchParams.get("search") || "",
@@ -25,9 +22,7 @@ export default function ProductsPage() {
     });
   }, [searchParams]);
 
-
   const filteredProducts = useMemo(() => {
-    // ... filtering logic remains the same
     return products.filter(product => {
       const searchMatch = product.name.toLowerCase().includes(filters.search.toLowerCase());
       const ageMatch = filters.age ? product.age_category === filters.age : true;
@@ -40,7 +35,6 @@ export default function ProductsPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      {/* Page content remains the same... */}
       <div className="mb-6">
         <h1 className="text-4xl font-bold">Kits by Age</h1>
         <p className="text-slate-600 mt-2">
@@ -64,7 +58,7 @@ export default function ProductsPage() {
           ) : (
             <div className="text-center py-16">
               <h3 className="text-xl font-semibold">No Kits Found</h3>
-              <p className="text-slate-500 mt-2">Try adjusting your filters to find what you're looking for.</p>
+              <p className="text-slate-500 mt-2">Try adjusting your filters to find what you&apos;re looking for.</p>
             </div>
           )}
         </div>

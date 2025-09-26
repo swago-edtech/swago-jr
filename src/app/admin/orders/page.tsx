@@ -1,29 +1,11 @@
 "use client";
-
 import { useEffect, useState } from "react";
-import Link from "next/link"; // Import the Link component
-
-// We define a type for our Order object for better code quality
-type Order = {
-  _id: string;
-  name: string;
-  phone: string;
-  address: string;
-  status: string;
-  createdAt: string;
-  items: {
-    price: number;
-    quantity: number;
-  }[];
-};
-
+import Link from "next/link";
+type Order = { _id: string; name: string; phone: string; address: string; status: string; createdAt: string; items: { price: number; quantity: number; }[]; };
 export default function AdminOrdersPage() {
-  // State for storing the list of orders, loading status, and any errors
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  // This effect runs once when the component mounts to fetch the orders
   useEffect(() => {
     const fetchOrders = async () => {
       try {
@@ -33,15 +15,15 @@ export default function AdminOrdersPage() {
         }
         const data = await res.json();
         setOrders(data);
-      } catch (err: any) {
-        setError(err.message);
+      } catch (err: unknown) { // Changed any to unknown
+        const message = err instanceof Error ? err.message : "An unknown error occurred";
+        setError(message);
       } finally {
         setLoading(false);
       }
     };
-
     fetchOrders();
-  }, []); // The empty array ensures this runs only once
+  }, []);
 
   if (loading) return <p>Loading all orders...</p>;
   if (error) return <p className="text-red-500">Error: {error}</p>;

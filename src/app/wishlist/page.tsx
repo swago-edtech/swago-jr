@@ -12,7 +12,6 @@ export default function WishlistPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Fetch the full product details for the wishlisted items
     const fetchWishlist = async () => {
       if (!user) {
         setLoading(false);
@@ -24,21 +23,21 @@ export default function WishlistPage() {
         if (!res.ok) throw new Error("Failed to fetch wishlist");
         const data = await res.json();
         setWishlistItems(data);
-      } catch (err: any) {
-        setError(err.message);
+      } catch (err: unknown) { // Changed any to unknown
+        const message = err instanceof Error ? err.message : "An unknown error occurred";
+        setError(message);
       } finally {
         setLoading(false);
       }
     };
 
-    if (user !== undefined) { // Only fetch when user state is determined
+    if (user !== undefined) {
         fetchWishlist();
     }
   }, [user]);
 
   if (loading) return <p className="text-center p-12">Loading wishlist...</p>;
 
-  // Styled "Logged Out" message
   if (!user) {
     return (
       <div className="container mx-auto text-center py-20">
@@ -59,7 +58,6 @@ export default function WishlistPage() {
     <div className="container mx-auto px-4 py-12">
       <h1 className="text-4xl font-bold mb-8">My Wishlist</h1>
       {wishlistItems.length === 0 ? (
-        // Styled "Empty Wishlist" message
         <div className="text-center py-16">
             <h2 className="text-xl font-bold">Your wishlist is empty.</h2>
             <p className="text-slate-500 mt-2 mb-6">Explore our kits and add your favorites by clicking the heart icon!</p>
