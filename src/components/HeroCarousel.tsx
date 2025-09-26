@@ -9,7 +9,7 @@ import Link from 'next/link';
 const slides = [
   { title: "Play. Learn. Grow.", subtitle: "Kids using Swago kits to build creativity.", fromColor: "hsl(var(--swago-pink))", toColor: "hsl(var(--swago-purple))" },
   { title: "Gamify Your Journey", subtitle: "Earn badges and boost your Swago Score.", fromColor: "hsl(var(--swago-orange))", toColor: "hsl(var(--swago-pink))" },
-  { title: "Colorful Elements", subtitle: "Build your Swago Core with fun elements.", fromColor: "hsl(var(--swago-purple))", toColor: "hsl(var(--swago-sky-blue))" },
+  { title: "Colorful Elements", subtitle: "Build your Swago Score with fun elements.", fromColor: "hsl(var(--swago-purple))", toColor: "hsl(var(--swago-sky-blue))" },
 ];
 
 export default function HeroCarousel() {

@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 
-// Data for the 5 core elements
 const elements = [
   {
     icon: "/images/icon-smart-tech.png",
@@ -48,10 +47,10 @@ export default function CoreElements() {
         <h2 className="text-4xl font-bold mb-4">Our Core 5 Elements</h2>
         <p className="text-slate-600 mb-12">Every activity at Swago focuses on 5 super skills your kid will love.</p>
         
+        {/* This grid is responsive: 1 column on mobile, 5 on desktop */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
           {elements.map((element) => (
-            // The href is now updated to use a query parameter
-            <Link key={element.name} href={`/products?elements=${element.letter}`} className="flex flex-col items-center group">
+            <Link key={element.name} href={`/products?elements=${element.letter}`} className="group flex flex-col items-center">
               <div className="relative flex items-center justify-center mb-4">
                 <div className="w-24 h-24 rounded-full flex items-center justify-center" style={{ backgroundColor: element.color }}>
                   <img src={element.icon} alt={element.name} className="w-12 h-12" />

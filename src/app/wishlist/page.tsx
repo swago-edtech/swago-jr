@@ -30,31 +30,45 @@ export default function WishlistPage() {
         setLoading(false);
       }
     };
-    fetchWishlist();
+
+    if (user !== undefined) { // Only fetch when user state is determined
+        fetchWishlist();
+    }
   }, [user]);
 
-  if (loading) return <p>Loading wishlist...</p>;
+  if (loading) return <p className="text-center p-12">Loading wishlist...</p>;
 
+  // Styled "Logged Out" message
   if (!user) {
     return (
-      <div className="text-center">
-        <h2 className="text-2xl font-bold">Please log in to view your wishlist.</h2>
-        <Link href="/login" className="text-blue-600 hover:underline">
-          Login now
+      <div className="container mx-auto text-center py-20">
+        <h2 className="text-2xl font-bold mb-4">Please log in to view your wishlist.</h2>
+        <Link 
+            href="/login" 
+            className="inline-block bg-[hsl(var(--swago-purple))] text-white font-bold px-6 py-3 rounded-lg hover:opacity-90 transition"
+        >
+          Login Now
         </Link>
       </div>
     );
   }
 
-  if (error) return <p className="text-red-500">Error: {error}</p>;
+  if (error) return <p className="text-red-500 text-center p-12">Error: {error}</p>;
 
   return (
-    <div>
-      <h1 className="text-3xl font-bold mb-6">My Wishlist</h1>
+    <div className="container mx-auto px-4 py-12">
+      <h1 className="text-4xl font-bold mb-8">My Wishlist</h1>
       {wishlistItems.length === 0 ? (
-        <p>You haven't added any items to your wishlist yet.</p>
+        // Styled "Empty Wishlist" message
+        <div className="text-center py-16">
+            <h2 className="text-xl font-bold">Your wishlist is empty.</h2>
+            <p className="text-slate-500 mt-2 mb-6">Explore our kits and add your favorites by clicking the heart icon!</p>
+            <Link href="/products" className="inline-block bg-[hsl(var(--swago-pink))] text-white font-bold px-6 py-3 rounded-lg hover:opacity-90 transition">
+                Explore Kits
+            </Link>
+        </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {wishlistItems.map(product => (
             <ProductCard key={product.id} product={product} />
           ))}
