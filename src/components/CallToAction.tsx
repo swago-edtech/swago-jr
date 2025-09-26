@@ -9,9 +9,10 @@ export default function CallToAction() {
           <p className="mt-2 max-w-2xl">
             Earn your Swago Score, unlock badges, and join the Swago community.
           </p>
+          {/* MODIFIED: Added the "btn-shine" class here */}
           <Link
-            href="/products" // This can be changed to a signup page later
-            className="mt-6 bg-[hsl(var(--swago-pink))] text-white font-bold px-8 py-3 rounded-full shadow-lg hover:opacity-90 transition-opacity"
+            href="/products"
+            className="btn-shine mt-6 bg-[hsl(var(--swago-pink))] text-white font-bold px-8 py-3 rounded-full shadow-lg hover:opacity-90 transition-opacity"
           >
             Start Now
           </Link>

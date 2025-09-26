@@ -9,3 +9,57 @@
   --swago-yellow: 45 93% 58%;
   --swago-sky-blue: 204 81% 59%;
 }
+
+/* --- ADD THESE NEW STYLES FOR THE BUTTON EFFECT --- */
+
+.btn-shine {
+  position: relative; /* Needed for the pseudo-element positioning */
+  overflow: hidden;   /* Hides the shine effect outside the button bounds */
+  transition: transform 0.1s ease-in-out; /* Smooths the press effect */
+}
+
+/* This is the shine element */
+.btn-shine::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -150%; /* Start off-screen to the left */
+  width: 75%;
+  height: 100%;
+  
+  /* A semi-transparent white gradient creates the shine */
+  background: linear-gradient(
+    to right,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.25) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  
+  /* Skew the shine element to give it an angle */
+  transform: skewX(-25deg);
+  
+  /* Animation settings for the sweep */
+  transition: left 0.8s ease-in-out;
+}
+
+/* On hover, move the shine element across the button */
+.btn-shine:hover::before {
+  left: 150%; /* End off-screen to the right */
+}
+
+/* On click, scale down and move the button slightly */
+.btn-shine:active {
+  transform: scale(0.98) translateY(1px);
+}
+
+/* --- ADD THESE NEW STYLES FOR THE FLOATING ANIMATION --- */
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-20px); }
+  100% { transform: translateY(0px); }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}

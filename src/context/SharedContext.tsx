@@ -3,8 +3,6 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 
-// --- Types ---
-// Define a type for populated orders to avoid using 'any'
 type PopulatedOrder = {
   _id: string;
   status: string;
@@ -17,9 +15,12 @@ export type Product = {
   name: string;
   description: string;
   price: number;
+  original_price?: number;
   images: string[];
   age_category: string;
   core_elements: string[];
+  benefits?: string;      // Changed from string[] to string
+  box_contents?: string; // Changed from string[] to string
 };
 
 export type CartItem = Product & { quantity: number };
@@ -30,7 +31,7 @@ export type User = {
   name?: string;
   age?: number;
   address?: string;
-  orders: PopulatedOrder[]; // Fixed: Use the defined type
+  orders: PopulatedOrder[];
   wishlist: number[];
   email?: string;
 };
@@ -38,7 +39,7 @@ export type User = {
 type SharedContextType = {
   cart: CartItem[];
   total: number;
-  addToCart: (product: Product) => void;
+  addToCart: (product: Product, quantity?: number) => void;
   removeFromCart: (id: number) => void;
   clearCart: () => void;
   increaseQty: (id: number) => void;
@@ -90,7 +91,7 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
           setUser(null);
           setWishlist([]);
         }
-      } catch (error: unknown) { // Fixed: Changed any to unknown
+      } catch (error: unknown) {
         console.error("Failed to check user:", error);
         setUser(null);
         setWishlist([]);
@@ -126,15 +127,15 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
     return wishlist.includes(productId);
   };
 
-  const addToCart = (product: Product) => {
+  const addToCart = (product: Product, quantity: number = 1) => {
     setCart((prev) => {
       const existing = prev.find((p) => p.id === product.id);
       if (existing) {
         return prev.map((p) =>
-          p.id === product.id ? { ...p, quantity: p.quantity + 1 } : p
+          p.id === product.id ? { ...p, quantity: p.quantity + quantity } : p
         );
       }
-      return [...prev, { ...product, quantity: 1 }];
+      return [...prev, { ...product, quantity }];
     });
   };
   

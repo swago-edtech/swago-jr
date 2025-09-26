@@ -1,34 +1,56 @@
 import Link from "next/link";
-import { products } from "@/lib/products";
+import Image from "next/image";
 
-// This will correctly find your "5-7" and "8-10" categories
-const ageCategories = Array.from(new Set(products.map(p => p.age_category))).sort();
+// Hardcoded categories to ensure only two sections are shown.
+// Each category now includes its specific background color and image source.
+const categories = [
+  {
+    age: '5-7',
+    bgColor: 'bg-teal-500', 
+    href: '/products?age=5-7',
+    imageSrc: '/images/age-5-7.png', // src for the 5-7 category
+  },
+  {
+    age: '8-10',
+    bgColor: 'bg-orange-400',
+    href: '/products?age=8-10',
+    imageSrc: '/images/age-8-10.png', // src for the 8-10 category
+  }
+];
 
 export default function ChooseYourKit() {
   return (
-    <section className="py-20 bg-slate-50">
+    // MODIFICATION 1: Reduced vertical padding from py-20 to py-16
+    <section className="py-16 bg-white"> 
       <div className="container mx-auto px-4 text-center">
-        <h2 className="text-4xl font-bold mb-4">Choose Your Kit</h2>
-        <p className="text-slate-600 mb-12">Pick the kit based on your age group and start your Swago journey.</p>
+        <h2 className="text-4xl font-bold mb-4 uppercase">
+          Shop by <span className="text-purple-700">Age</span>
+        </h2>
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 max-w-2xl mx-auto gap-8">
-          {ageCategories.map(category => (
-            // 1. Link is updated to use the query parameter and is now the main card element
+        {/* MODIFICATION 2: Reduced margin-bottom from mb-16 to mb-12 */}
+        <p className="text-slate-600 mb-12">
+          Learning kits for 5-10 years
+        </p>
+        
+        <div className="grid grid-cols-1 sm:grid-cols-2 max-w-3xl mx-auto gap-8 sm:gap-12">
+          {categories.map((category) => (
             <Link 
-              key={category} 
-              href={`/products?age=${category}`} 
-              className="block p-6 bg-white border border-slate-200 rounded-xl shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all h-72 flex flex-col text-center"
+              key={category.age} 
+              href={category.href} 
+              className={`relative block h-36 ${category.bgColor} rounded-l-2xl rounded-r-[3rem] text-white text-left shadow-lg transform transition-transform duration-300 hover:scale-105 overflow-visible`}
             >
-              {/* 2. New layout for the card content */}
-              <p className="text-slate-500">Age</p>
-              <p className="text-5xl font-bold my-4 text-slate-800">{category}</p>
-              
-              {/* This empty div pushes the button to the bottom */}
-              <div className="flex-grow"></div> 
-              
-              <div className="mt-4 text-white font-semibold bg-[hsl(var(--swago-pink))] py-3 rounded-lg hover:opacity-90 transition-opacity">
-                View Kits
+              <div className="p-6">
+                <p className="text-4xl font-extrabold">{category.age}</p>
+                <p className="text-3xl font-semibold">Years</p>
               </div>
+
+              <Image 
+                src={category.imageSrc}
+                alt={`Child playing with kit for ages ${category.age}`}
+                width={160}
+                height={160}
+                className="absolute -bottom-4 right-0 object-contain w-36 h-auto sm:w-40"
+              />
             </Link>
           ))}
         </div>

@@ -1,16 +1,20 @@
 "use client";
+
 import React, { useState, useEffect } from "react";
 import { Product, useSharedContext } from "@/context/SharedContext";
 import Link from "next/link";
-import Image from "next/image"; // 1. Import the Image component
+import Image from "next/image";
+import { motion } from "framer-motion";
 
 export default function ProductCard({ product }: { product: Product }) {
   const { addToCart, addToWishlist, removeFromWishlist, isWishlisted } = useSharedContext();
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [isHovering, setIsHovering] = useState(false);
-  
   const isLiked = isWishlisted(product.id);
 
+  // 1. Re-added state for hover and image index tracking
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [isHovering, setIsHovering] = useState(false);
+
+  // 2. Re-added the useEffect to cycle images on hover
   useEffect(() => {
     if (!isHovering) {
       setCurrentImageIndex(0);
@@ -18,14 +22,14 @@ export default function ProductCard({ product }: { product: Product }) {
     }
     const interval = setInterval(() => {
       setCurrentImageIndex((prevIndex) => (prevIndex + 1) % product.images.length);
-    }, 800);
+    }, 800); // 800ms delay between images
 
     return () => clearInterval(interval);
-  }, [isHovering, product.images]); // Simplified dependency array
+  }, [isHovering, product.images]);
 
   const handleWishlistClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    e.preventDefault(); // Also prevent navigation when clicking the heart
+    e.preventDefault();
     if (isLiked) {
       removeFromWishlist(product.id);
     } else {
@@ -34,24 +38,25 @@ export default function ProductCard({ product }: { product: Product }) {
   };
 
   return (
-    <Link href={`/product/${product.id}`} className="block h-full">
+    <Link href={`/product/${product.id}`} className="block group h-full">
+      {/* 3. Re-added event handlers to the main card container */}
       <div 
-        className="bg-white border border-slate-200 rounded-xl p-6 flex flex-col gap-4 shadow-sm hover:shadow-lg transition-shadow h-full"
+        className="bg-white border border-slate-200 rounded-xl flex flex-col h-full shadow-sm group-hover:shadow-lg transition-shadow duration-300"
         onMouseEnter={() => setIsHovering(true)}
         onMouseLeave={() => setIsHovering(false)}
       >
-        {/* 2. Move sizing classes to the parent div and add overflow-hidden */}
-        <div className="relative w-full h-40 rounded-md overflow-hidden">
-          {/* 3. Replace <img> with <Image> using the 'fill' prop */}
+        
+        {/* Image Section */}
+        <div className="relative w-full aspect-square rounded-t-xl overflow-hidden">
           <Image 
-            src={product.images[currentImageIndex]} 
+            src={product.images[currentImageIndex]} // 4. Source now uses the state index
             alt={product.name} 
             fill
-            className="object-cover transition-opacity duration-300" 
+            className="object-cover transition-transform duration-300 group-hover:scale-105" 
           />
           <button 
             onClick={handleWishlistClick}
-            className="absolute top-3 right-3 p-2 rounded-full bg-white/80 backdrop-blur-sm hover:bg-white transition"
+            className="absolute top-3 right-3 p-2 rounded-full bg-white/80 backdrop-blur-sm hover:bg-white transition z-10"
             aria-label="Add to wishlist"
           >
             {isLiked ? (
@@ -61,17 +66,21 @@ export default function ProductCard({ product }: { product: Product }) {
             )}
           </button>
         </div>
-        <div className="flex flex-col gap-2 flex-grow">
-          <h3 className="text-lg font-semibold text-slate-800">{product.name}</h3>
-          <p className="text-sm text-slate-600 flex-grow">{product.description}</p>
-          <p className="mt-2 text-xl font-bold text-slate-900">₹{product.price}</p>
+        
+        {/* Content Section */}
+        <div className="p-4 flex flex-col flex-grow">
+          <h3 className="text-base font-semibold text-slate-800 flex-grow mb-2">{product.name}</h3>
+          
+          <div className="mt-auto">
+            <p className="text-lg font-bold text-slate-900 mb-3">₹{product.price}</p>
+            <motion.button 
+              onClick={(e) => { e.preventDefault(); addToCart(product); }} 
+              className="btn-shine w-full bg-[hsl(var(--swago-purple))] text-white font-semibold py-2.5 rounded-lg text-sm"
+            >
+              Add to Cart
+            </motion.button>
+          </div>
         </div>
-        <button 
-          onClick={(e) => { e.preventDefault(); addToCart(product); }} 
-          className="w-full bg-[hsl(var(--swago-purple))] text-white font-semibold py-3 rounded-lg hover:opacity-90 transition-opacity"
-        >
-          Add to Cart
-        </button>
       </div>
     </Link>
   );
