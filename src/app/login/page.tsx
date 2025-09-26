@@ -1,69 +1,17 @@
-"use client";
-import { useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useSharedContext } from "@/context/SharedContext";
+import { Suspense } from 'react';
+import LoginForm from './LoginForm';
+
+function Loading() {
+  // You can make a more elaborate loading skeleton if you want
+  return <p>Loading login form...</p>;
+}
 
 export default function LoginPage() {
-  const [phone, setPhone] = useState("");
-  const [code, setCode] = useState("");
-  const [step, setStep] = useState<"number" | "otp">("number");
-  const [message, setMessage] = useState("");
-  const router = useRouter();
-  const { setUser } = useSharedContext();
-
-  // New: Read URL query parameters
-  const searchParams = useSearchParams();
-  const redirectUrl = searchParams.get("redirect");
-
-  const sendOtp = async () => {
-    const res = await fetch("/api/send-otp", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ phone }),
-    });
-    if (res.ok) {
-      setStep("otp");
-      setMessage("OTP sent to your phone");
-    } else {
-      setMessage("Failed to send OTP");
-    }
-  };
-
-  const verifyOtp = async () => {
-    const res = await fetch("/api/verify-otp", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ phone, code }),
-    });
-
-    if (res.ok) {
-      const data = await res.json();
-      setUser(data.user);
-      // Updated: Redirect to the stored URL, or fallback to homepage
-      router.push(redirectUrl || "/");
-    } else {
-      setMessage("❌ Invalid OTP");
-    }
-  };
-
-   return (
+  return (
     <div className="min-h-[60vh] flex items-center justify-center bg-slate-50">
-      <div className="max-w-md w-full bg-white p-8 rounded-xl shadow-lg border">
-        <h1 className="text-3xl font-bold text-center mb-6">Login with Phone</h1>
-        {step === "number" && (
-          <div className="space-y-4">
-            <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Enter phone number" className="w-full border-slate-300 rounded-md p-3" />
-            <button onClick={sendOtp} className="w-full bg-[hsl(var(--swago-purple))] text-white font-bold py-3 rounded-lg hover:opacity-90">Send OTP</button>
-          </div>
-        )}
-        {step === "otp" && (
-          <div className="space-y-4">
-            <input type="text" value={code} onChange={(e) => setCode(e.target.value)} placeholder="Enter OTP" className="w-full border-slate-300 rounded-md p-3" />
-            <button onClick={verifyOtp} className="w-full bg-green-500 text-white font-bold py-3 rounded-lg hover:bg-green-600">Verify OTP</button>
-          </div>
-        )}
-        {message && <p className="mt-4 text-center text-sm">{message}</p>}
-      </div>
+      <Suspense fallback={<Loading />}>
+        <LoginForm />
+      </Suspense>
     </div>
   );
 }
