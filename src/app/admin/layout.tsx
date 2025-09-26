@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import { getLoginSession } from "@/lib/auth";
 import connectDB from "@/lib/db";
 import User from "@/models/User";
-import { SharedProvider } from "@/context/SharedContext";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   await connectDB();

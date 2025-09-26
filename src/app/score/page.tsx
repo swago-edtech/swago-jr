@@ -3,7 +3,6 @@
 import { useSharedContext } from "@/context/SharedContext";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import Link from "next/link";
 
 // --- Dummy Data ---
 const dummyData = {

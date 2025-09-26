@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image"; // 1. Import the Image component
 
 const elements = [
   {
@@ -47,13 +48,18 @@ export default function CoreElements() {
         <h2 className="text-4xl font-bold mb-4">Our Core 5 Elements</h2>
         <p className="text-slate-600 mb-12">Every activity at Swago focuses on 5 super skills your kid will love.</p>
         
-        {/* This grid is responsive: 1 column on mobile, 5 on desktop */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
           {elements.map((element) => (
             <Link key={element.name} href={`/products?elements=${element.letter}`} className="group flex flex-col items-center">
               <div className="relative flex items-center justify-center mb-4">
                 <div className="w-24 h-24 rounded-full flex items-center justify-center" style={{ backgroundColor: element.color }}>
-                  <img src={element.icon} alt={element.name} className="w-12 h-12" />
+                  {/* 2. Replace <img> with <Image> */}
+                  <Image 
+                    src={element.icon} 
+                    alt={element.name} 
+                    width={48}  // Corresponds to w-12
+                    height={48} // Corresponds to h-12
+                  />
                 </div>
                 <div 
                   className="absolute w-24 h-24 rounded-full border-2 opacity-0 scale-75 group-hover:opacity-100 group-hover:scale-125 transition-all duration-300 ease-in-out"

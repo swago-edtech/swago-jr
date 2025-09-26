@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { Product, useSharedContext } from "@/context/SharedContext";
 import Link from "next/link";
+import Image from "next/image"; // 1. Import the Image component
 
 export default function ProductCard({ product }: { product: Product }) {
   const { addToCart, addToWishlist, removeFromWishlist, isWishlisted } = useSharedContext();
@@ -16,15 +17,15 @@ export default function ProductCard({ product }: { product: Product }) {
       return;
     }
     const interval = setInterval(() => {
-      // Use the new product.images array
       setCurrentImageIndex((prevIndex) => (prevIndex + 1) % product.images.length);
     }, 800);
 
     return () => clearInterval(interval);
-  }, [isHovering, product.images.length]);
+  }, [isHovering, product.images]); // Simplified dependency array
 
   const handleWishlistClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+    e.preventDefault(); // Also prevent navigation when clicking the heart
     if (isLiked) {
       removeFromWishlist(product.id);
     } else {
@@ -33,15 +34,21 @@ export default function ProductCard({ product }: { product: Product }) {
   };
 
   return (
-    <Link href={`/product/${product.id}`} className="block">
+    <Link href={`/product/${product.id}`} className="block h-full">
       <div 
         className="bg-white border border-slate-200 rounded-xl p-6 flex flex-col gap-4 shadow-sm hover:shadow-lg transition-shadow h-full"
         onMouseEnter={() => setIsHovering(true)}
         onMouseLeave={() => setIsHovering(false)}
       >
-        <div className="relative">
-          {/* Use the new product.images array */}
-          <img src={product.images[currentImageIndex]} alt={product.name} className="w-full h-40 object-cover rounded-md transition-opacity duration-300" />
+        {/* 2. Move sizing classes to the parent div and add overflow-hidden */}
+        <div className="relative w-full h-40 rounded-md overflow-hidden">
+          {/* 3. Replace <img> with <Image> using the 'fill' prop */}
+          <Image 
+            src={product.images[currentImageIndex]} 
+            alt={product.name} 
+            fill
+            className="object-cover transition-opacity duration-300" 
+          />
           <button 
             onClick={handleWishlistClick}
             className="absolute top-3 right-3 p-2 rounded-full bg-white/80 backdrop-blur-sm hover:bg-white transition"

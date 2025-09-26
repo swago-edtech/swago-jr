@@ -1,9 +1,19 @@
 "use client";
 
-import React from "react";
 import { useSharedContext } from "@/context/SharedContext";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image"; // Import the Next.js Image component
+
+// Define a type for cart items to avoid using 'any'
+interface CartItem {
+  id: number; // Corrected: The context functions expect a number
+  name: string;
+  price: number;
+  quantity: number;
+  images?: string[];
+  image?: string;
+}
 
 export default function CartPage() {
   const { cart, increaseQty, decreaseQty, removeFromCart, total } = useSharedContext();
@@ -32,35 +42,38 @@ export default function CartPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
         <div className="lg:col-span-2">
           <div className="space-y-4">
-            {cart.map((item) => (
-              <div key={item.id} className="flex gap-4 bg-white p-4 rounded-xl border shadow-sm">
-                
-                {/* The fix is to add the comment below to disable the linter for this line */}
-                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                <img 
-                  src={item.images?.[0] || (item as any).image || '/images/placeholder.png'}
-                  alt={item.name} 
-                  className="w-24 h-24 object-cover rounded-md" 
-                />
+            {cart.map((item: CartItem) => {
+              const imageUrl = item.images?.[0] || item.image || '/images/placeholder.png';
+              
+              return (
+                <div key={item.id} className="flex gap-4 bg-white p-4 rounded-xl border shadow-sm">
+                  <Image 
+                    src={imageUrl}
+                    alt={item.name} 
+                    width={96}
+                    height={96}
+                    className="object-cover rounded-md" 
+                  />
 
-                <div className="flex-grow flex flex-col">
-                  <h2 className="font-semibold text-lg">{item.name}</h2>
-                  <p className="text-slate-500">Price: ₹{item.price.toFixed(2)}</p>
-                  <div className="flex-grow"></div>
-                  <div className="flex items-center gap-2 mt-2">
-                    <button onClick={() => decreaseQty(item.id)} className="px-2 py-1 border rounded-md hover:bg-slate-100">-</button>
-                    <span>{item.quantity}</span>
-                    <button onClick={() => increaseQty(item.id)} className="px-2 py-1 border rounded-md hover:bg-slate-100">+</button>
+                  <div className="flex-grow flex flex-col">
+                    <h2 className="font-semibold text-lg">{item.name}</h2>
+                    <p className="text-slate-500">Price: ₹{item.price.toFixed(2)}</p>
+                    <div className="flex-grow"></div>
+                    <div className="flex items-center gap-2 mt-2">
+                      <button onClick={() => decreaseQty(item.id)} className="px-2 py-1 border rounded-md hover:bg-slate-100">-</button>
+                      <span>{item.quantity}</span>
+                      <button onClick={() => increaseQty(item.id)} className="px-2 py-1 border rounded-md hover:bg-slate-100">+</button>
+                    </div>
+                  </div>
+                  <div className="flex flex-col justify-between items-end">
+                    <p className="font-bold text-lg">₹{(item.price * item.quantity).toFixed(2)}</p>
+                    <button onClick={() => removeFromCart(item.id)} className="text-sm text-red-500 hover:underline">
+                      Remove
+                    </button>
                   </div>
                 </div>
-                <div className="flex flex-col justify-between items-end">
-                  <p className="font-bold text-lg">₹{(item.price * item.quantity).toFixed(2)}</p>
-                  <button onClick={() => removeFromCart(item.id)} className="text-sm text-red-500 hover:underline">
-                    Remove
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 

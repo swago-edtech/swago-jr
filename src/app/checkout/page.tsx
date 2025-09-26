@@ -1,15 +1,40 @@
 "use client";
 import { useEffect, useState } from "react";
-import { useSharedContext, User } from "@/context/SharedContext"; // Import User type
+import { useSharedContext } from "@/context/SharedContext";
 import { useRouter } from "next/navigation";
 
-// Define a minimal Razorpay type instead of using "any"
+type RazorpaySuccessResponse = {
+  razorpay_payment_id: string;
+  razorpay_order_id: string;
+  razorpay_signature: string;
+};
+
+type RazorpayFailedEvent = {
+  error: { description: string };
+};
+
+type RazorpayOptions = {
+  key?: string;
+  amount: number;
+  currency: string;
+  name: string;
+  description?: string;
+  order_id: string;
+  handler: (response: RazorpaySuccessResponse) => void;
+  prefill?: { name?: string; email?: string; contact?: string };
+  notes?: Record<string, string>;
+  theme?: { color?: string };
+};
+
+interface RazorpayInstance {
+  open: () => void;
+  on(event: "payment.failed", callback: (response: RazorpayFailedEvent) => void): void;
+  on(event: string, callback: (response: unknown) => void): void;
+}
+
 declare global {
   interface Window {
-    Razorpay: new (options: Record<string, unknown>) => {
-      open: () => void;
-      on: (event: string, callback: (response: any) => void) => void; // flexible callback type
-    };
+    Razorpay: new (options: RazorpayOptions) => RazorpayInstance;
   }
 }
 
@@ -40,18 +65,14 @@ export default function CheckoutPage() {
 
     const razorpayOrder = await res.json();
 
-    const options = {
+    const options: RazorpayOptions = {
       key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
       amount: razorpayOrder.amount,
       currency: razorpayOrder.currency,
       name: "Swago Junior",
       description: "Learning Kits Purchase",
       order_id: razorpayOrder.id,
-      handler: async function (response: {
-        razorpay_payment_id: string;
-        razorpay_order_id: string;
-        razorpay_signature: string;
-      }) {
+      handler: async function (response) {
         const verificationRes = await fetch("/api/payment/verify", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -86,7 +107,7 @@ export default function CheckoutPage() {
     const paymentObject = new window.Razorpay(options);
     paymentObject.open();
 
-    paymentObject.on("payment.failed", function (response: { error: { description: string } }) {
+    paymentObject.on("payment.failed", function (response) {
       setMessage(`❌ Payment failed. Error: ${response.error.description}`);
     });
   };
