@@ -25,7 +25,7 @@ export async function GET() {
 
     // Step 3: Return the list of orders
     return NextResponse.json(orders);
-    
+//pushing    
   } catch (error) {
     console.error("Failed to fetch all orders:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
