@@ -9,9 +9,13 @@ export type Product = {
   name: string;
   description: string;
   price: number;
-  image: string;
+  images: string[]; // Corrected: from image to images
+  age_category: string;
+  core_elements: string[];
 };
+
 export type CartItem = Product & { quantity: number };
+
 export type User = {
   _id: string;
   phone: string;
@@ -20,6 +24,7 @@ export type User = {
   address?: string;
   orders: any[];
   wishlist: number[];
+  email?: string;
 };
 
 type SharedContextType = {
@@ -38,11 +43,9 @@ type SharedContextType = {
   isWishlisted: (productId: number) => boolean;
 };
 
-// --- Context Definition ---
 const SharedContext = createContext<SharedContextType | undefined>(undefined);
 const STORAGE_KEY = "swago_cart";
 
-// --- Provider Component ---
 export function SharedProvider({ children }: { children: React.ReactNode }) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [user, setUser] = useState<User | null>(null);
@@ -86,8 +89,7 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
     }
     checkUser();
   }, [pathname]);
-
-  // --- Wishlist Management Functions (Restored) ---
+  
   const addToWishlist = async (productId: number) => {
     if (!user) {
       alert("Please log in to add items to your wishlist.");
@@ -115,7 +117,6 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
     return wishlist.includes(productId);
   };
 
-  // --- Cart Functions ---
   const addToCart = (product: Product) => {
     setCart((prev) => {
       const existing = prev.find((p) => p.id === product.id);
@@ -134,7 +135,6 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
   const decreaseQty = (id: number) => setCart((prev) => prev.map((p) => (p.id === id ? { ...p, quantity: Math.max(0, p.quantity - 1) } : p)).filter((p) => p.quantity > 0));
   const total = cart.reduce((s, it) => s + it.price * it.quantity, 0);
 
-  // --- Provider Value ---
   return (
     <SharedContext.Provider
       value={{ cart, total, addToCart, removeFromCart, clearCart, increaseQty, decreaseQty, user, setUser, wishlist, addToWishlist, removeFromWishlist, isWishlisted }}
@@ -144,7 +144,6 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-// --- Custom Hook ---
 export function useSharedContext() {
   const ctx = useContext(SharedContext);
   if (!ctx) throw new Error("useSharedContext must be used within a SharedProvider");

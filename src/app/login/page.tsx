@@ -46,22 +46,24 @@ export default function LoginPage() {
     }
   };
 
-  return (
-    <div className="p-6 max-w-md mx-auto">
-      <h1 className="text-xl font-bold mb-4">Login with Phone</h1>
-      {step === "number" && (
-        <>
-          <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Enter phone number" className="border p-2 w-full mb-2" />
-          <button onClick={sendOtp} className="bg-blue-500 text-white px-4 py-2 rounded">Send OTP</button>
-        </>
-      )}
-      {step === "otp" && (
-        <>
-          <input type="text" value={code} onChange={(e) => setCode(e.target.value)} placeholder="Enter OTP" className="border p-2 w-full mb-2" />
-          <button onClick={verifyOtp} className="bg-green-500 text-white px-4 py-2 rounded">Verify OTP</button>
-        </>
-      )}
-      {message && <p className="mt-4 text-sm">{message}</p>}
+   return (
+    <div className="min-h-[60vh] flex items-center justify-center bg-slate-50">
+      <div className="max-w-md w-full bg-white p-8 rounded-xl shadow-lg border">
+        <h1 className="text-3xl font-bold text-center mb-6">Login with Phone</h1>
+        {step === "number" && (
+          <div className="space-y-4">
+            <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Enter phone number" className="w-full border-slate-300 rounded-md p-3" />
+            <button onClick={sendOtp} className="w-full bg-[hsl(var(--swago-purple))] text-white font-bold py-3 rounded-lg hover:opacity-90">Send OTP</button>
+          </div>
+        )}
+        {step === "otp" && (
+          <div className="space-y-4">
+            <input type="text" value={code} onChange={(e) => setCode(e.target.value)} placeholder="Enter OTP" className="w-full border-slate-300 rounded-md p-3" />
+            <button onClick={verifyOtp} className="w-full bg-green-500 text-white font-bold py-3 rounded-lg hover:bg-green-600">Verify OTP</button>
+          </div>
+        )}
+        {message && <p className="mt-4 text-center text-sm">{message}</p>}
+      </div>
     </div>
   );
 }

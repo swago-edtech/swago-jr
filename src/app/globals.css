@@ -1,26 +1,11 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #fff9f9ff;
-    --foreground: #000000ff;
-  }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  --swago-teal: 174 72% 56%;
+  --swago-purple: 259 81% 64%;
+  --swago-orange: 22 91% 64%;
+  --swago-pink: 326 91% 64%;
+  /* New colors for the hero gradient */
+  --swago-yellow: 45 93% 58%;
+  --swago-sky-blue: 204 81% 59%;
 }

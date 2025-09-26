@@ -11,7 +11,6 @@ declare global {
 
 export default function CheckoutPage() {
   const [loading, setLoading] = useState(true);
-  // 1. Add 'email' to the form state
   const [form, setForm] = useState({ name: "", age: "", address: "", email: "" });
   const [message, setMessage] = useState("");
   const { cart, clearCart, user, total } = useSharedContext();
@@ -21,7 +20,14 @@ export default function CheckoutPage() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handlePayment = async () => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    if (!form.name || !form.email || !form.address || !form.age) {
+      setMessage("❌ Please fill out all required details.");
+      return;
+    }
+    
     setMessage("Processing payment...");
     
     const res = await fetch("/api/payment/create", {
@@ -37,6 +43,7 @@ export default function CheckoutPage() {
 
     const razorpayOrder = await res.json();
 
+    // This is the full, correct options object
     const options = {
       key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
       amount: razorpayOrder.amount,
@@ -65,7 +72,7 @@ export default function CheckoutPage() {
       },
       prefill: {
         name: form.name,
-        email: form.email, // 2. Prefill the email for Razorpay
+        email: form.email,
         contact: user?.phone,
       },
       notes: {
@@ -94,26 +101,32 @@ export default function CheckoutPage() {
   }, [user, router]);
 
   if (loading || !user) return <p className="p-6">Checking your login status...</p>;
-
+  
   return (
-    <div className="p-6 max-w-md mx-auto">
-      <h1 className="text-xl font-bold mb-4">Complete Your Purchase</h1>
-      <p className="mb-2"><strong>Phone:</strong> {user.phone}</p>
-      <p className="mb-4 font-semibold"><strong>Total Amount: ₹{total.toFixed(2)}</strong></p>
-
-      <input type="text" name="name" value={form.name} onChange={handleChange} placeholder="Your Full Name" className="border p-2 w-full mb-2" required />
-      
-      {/* 3. Add the new email input field */}
-      <input type="email" name="email" value={form.email} onChange={handleChange} placeholder="Your Email Address" className="border p-2 w-full mb-2" required />
-      
-      <input type="text" name="age" value={form.age} onChange={handleChange} placeholder="Kid's Age" className="border p-2 w-full mb-2" required />
-      <input type="text" name="address" value={form.address} onChange={handleChange} placeholder="Full Delivery Address" className="border p-2 w-full mb-2" required />
-      
-      <button onClick={handlePayment} className="w-full bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
-        Proceed to Pay
-      </button>
-
-      {message && <p className="mt-4">{message}</p>}
+    <div className="container mx-auto px-4 py-8">
+      <h1 className="text-3xl font-bold text-center mb-8">Complete Your Purchase</h1>
+      <form onSubmit={handleSubmit} className="max-w-2xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12">
+        <div className="bg-white p-8 rounded-xl shadow-lg border">
+          <div className="space-y-4">
+            <input type="text" name="name" value={form.name} onChange={handleChange} placeholder="Your Full Name" className="w-full border-slate-300 rounded-md p-3" required />
+            <input type="email" name="email" value={form.email} onChange={handleChange} placeholder="Your Email Address" className="w-full border-slate-300 rounded-md p-3" required />
+            <input type="text" name="age" value={form.age} onChange={handleChange} placeholder="Kid's Age" className="w-full border-slate-300 rounded-md p-3" required />
+            <input type="text" name="address" value={form.address} onChange={handleChange} placeholder="Full Delivery Address" className="w-full border-slate-300 rounded-md p-3" required />
+          </div>
+        </div>
+        
+        <div className="bg-slate-50 p-8 rounded-xl border">
+          <h2 className="text-xl font-bold mb-4">Order Summary</h2>
+          <div className="flex justify-between items-center text-lg">
+            <span>Total Amount:</span>
+            <span className="font-bold">₹{total.toFixed(2)}</span>
+          </div>
+          <button type="submit" className="mt-6 w-full bg-green-500 text-white font-bold py-3 rounded-lg hover:bg-green-600">
+            Proceed to Pay Securely
+          </button>
+          {message && <p className="mt-4 text-center text-sm">{message}</p>}
+        </div>
+      </form>
     </div>
   );
 }

@@ -2,7 +2,7 @@ import { jwtVerify } from "jose";
 import { cookies } from "next/headers";
 
 const secret = new TextEncoder().encode(
-  process.env.JWT_SECRET || "supersecret_superlong_key_123456"
+  process.env.JWT_SECRET
 );
 const cookieName = "session";
 
