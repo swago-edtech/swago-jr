@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose, { Mongoose } from "mongoose";
 
 // 1. Import all your models here
 import "@/models/User";
@@ -11,32 +11,38 @@ if (!MONGODB_URI) {
 }
 
 /**
- * Global is used here to maintain a cached connection across hot reloads
- * in development. This prevents connections from growing exponentially
- * during API Route usage.
+ * Extend the NodeJS global object to include mongoose cache
  */
-let cached = (global as any).mongoose;
-
-if (!cached) {
-  cached = (global as any).mongoose = { conn: null, promise: null };
+declare global {
+  // eslint-disable-next-line no-var
+  var mongooseCache: {
+    conn: Mongoose | null;
+    promise: Promise<Mongoose> | null;
+  } | undefined;
 }
 
-async function connectDB() {
-  if (cached.conn) {
-    return cached.conn;
+let cached = global.mongooseCache;
+
+if (!cached) {
+  cached = { conn: null, promise: null };
+  global.mongooseCache = cached;
+}
+
+async function connectDB(): Promise<Mongoose> {
+  if (cached!.conn) {
+    return cached!.conn;
   }
 
-  if (!cached.promise) {
+  if (!cached!.promise) {
     const opts = {
       bufferCommands: false,
     };
 
-    cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {
-      return mongoose;
-    });
+    cached!.promise = mongoose.connect(MONGODB_URI, opts).then((m) => m);
   }
-  cached.conn = await cached.promise;
-  return cached.conn;
+
+  cached!.conn = await cached!.promise;
+  return cached!.conn!;
 }
 
 export default connectDB;
