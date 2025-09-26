@@ -9,7 +9,6 @@ export default function CartPage() {
   const { cart, increaseQty, decreaseQty, removeFromCart, total } = useSharedContext();
   const router = useRouter();
 
-  // --- New "Empty Cart" View ---
   if (cart.length === 0) {
     return (
       <div className="text-center py-20">
@@ -30,15 +29,20 @@ export default function CartPage() {
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-8">Your Cart</h1>
       
-      {/* --- New Two-Column Layout --- */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-
-        {/* --- Left Column: Item List --- */}
         <div className="lg:col-span-2">
           <div className="space-y-4">
             {cart.map((item) => (
               <div key={item.id} className="flex gap-4 bg-white p-4 rounded-xl border shadow-sm">
-                <img src={item.images[0]} alt={item.name} className="w-24 h-24 object-cover rounded-md" />
+                
+                {/* This is the corrected line. It safely checks for the new 'images' array,
+                    falls back to the old 'image' property, and then to a placeholder. */}
+                <img 
+                  src={item.images?.[0] || (item as any).image || '/images/placeholder.png'} 
+                  alt={item.name} 
+                  className="w-24 h-24 object-cover rounded-md" 
+                />
+
                 <div className="flex-grow flex flex-col">
                   <h2 className="font-semibold text-lg">{item.name}</h2>
                   <p className="text-slate-500">Price: ₹{item.price.toFixed(2)}</p>
@@ -60,7 +64,6 @@ export default function CartPage() {
           </div>
         </div>
 
-        {/* --- Right Column: Order Summary --- */}
         <div className="lg:col-span-1">
           <div className="bg-slate-50 p-6 rounded-xl border sticky top-24">
             <h2 className="text-xl font-bold mb-4">Order Summary</h2>
