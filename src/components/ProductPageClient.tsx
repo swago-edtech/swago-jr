@@ -90,8 +90,6 @@ export default function ProductPageClient({ product }: { product: Product }) {
 
   const isLiked = isWishlisted(product.id);
 
-  // ⬇️⬇️ KEY FIX for the ESLint warning ⬇️⬇️
-  // Changed from ternary to if/else to satisfy the lint rule.
   const handleWishlistClick = () => {
     if (isLiked) {
       removeFromWishlist(product.id);
@@ -227,9 +225,15 @@ export default function ProductPageClient({ product }: { product: Product }) {
                 )}
               </button>
             </div>
-            <p className="text-slate-500 mt-2">
-              Age Category: {product.age_category}
-            </p>
+            
+            {/* ⬇️⬇️ MODIFIED CODE BLOCK ⬇️⬇️ */}
+            <div className="mt-2">
+              <span className="inline-flex items-center bg-[hsl(var(--swago-teal))] text-white text-sm font-semibold px-3 py-1 rounded-full">
+                Age: {product.age_category}
+              </span>
+            </div>
+            {/* ⬆️⬆️ END OF MODIFIED CODE ⬆️⬆️ */}
+
             <p className="text-3xl font-bold text-slate-900 my-4">
               ₹{product.price}
               {product.original_price && (

@@ -10,11 +10,9 @@ export default function ProductCard({ product }: { product: Product }) {
   const { addToCart, addToWishlist, removeFromWishlist, isWishlisted } = useSharedContext();
   const isLiked = isWishlisted(product.id);
 
-  // 1. Re-added state for hover and image index tracking
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isHovering, setIsHovering] = useState(false);
 
-  // 2. Re-added the useEffect to cycle images on hover
   useEffect(() => {
     if (!isHovering) {
       setCurrentImageIndex(0);
@@ -22,7 +20,7 @@ export default function ProductCard({ product }: { product: Product }) {
     }
     const interval = setInterval(() => {
       setCurrentImageIndex((prevIndex) => (prevIndex + 1) % product.images.length);
-    }, 800); // 800ms delay between images
+    }, 800);
 
     return () => clearInterval(interval);
   }, [isHovering, product.images]);
@@ -39,7 +37,6 @@ export default function ProductCard({ product }: { product: Product }) {
 
   return (
     <Link href={`/product/${product.id}`} className="block group h-full">
-      {/* 3. Re-added event handlers to the main card container */}
       <div 
         className="bg-white border border-slate-200 rounded-xl flex flex-col h-full shadow-sm group-hover:shadow-lg transition-shadow duration-300"
         onMouseEnter={() => setIsHovering(true)}
@@ -49,7 +46,7 @@ export default function ProductCard({ product }: { product: Product }) {
         {/* Image Section */}
         <div className="relative w-full aspect-square rounded-t-xl overflow-hidden">
           <Image 
-            src={product.images[currentImageIndex]} // 4. Source now uses the state index
+            src={product.images[currentImageIndex]}
             alt={product.name} 
             fill
             className="object-cover transition-transform duration-300 group-hover:scale-105" 
@@ -67,12 +64,27 @@ export default function ProductCard({ product }: { product: Product }) {
           </button>
         </div>
         
-        {/* Content Section */}
         <div className="p-4 flex flex-col flex-grow">
-          <h3 className="text-base font-semibold text-slate-800 flex-grow mb-2">{product.name}</h3>
+          <div className="flex-grow">
+            {/* ⬇️⬇️ MODIFIED LINE ⬇️⬇️ */}
+            <h3 className="text-base font-semibold text-slate-800 mb-2 h-12 line-clamp-2">{product.name}</h3>
+          </div>
           
-          <div className="mt-auto">
-            <p className="text-lg font-bold text-slate-900 mb-3">₹{product.price}</p>
+          <div className="mt-auto pt-3">
+            <div className="flex justify-between items-center mb-3">
+              <p>
+                <span className="text-lg font-bold text-slate-900">₹{product.price}</span>
+                {product.original_price && (
+                  <span className="text-sm text-slate-400 line-through ml-2">
+                    ₹{product.original_price}
+                  </span>
+                )}
+              </p>
+              <span className="inline-block bg-[hsl(var(--swago-teal))] text-white text-xs font-semibold px-2.5 py-0.5 rounded-full">
+                Age: {product.age_category}
+              </span>
+            </div>
+            
             <motion.button 
               onClick={(e) => { e.preventDefault(); addToCart(product); }} 
               className="btn-shine w-full bg-[hsl(var(--swago-purple))] text-white font-semibold py-2.5 rounded-lg text-sm"
