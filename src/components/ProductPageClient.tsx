@@ -143,10 +143,11 @@ export default function ProductPageClient({ product }: { product: Product }) {
   return (
     <>
       <div className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-start">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-12 items-start">
           {/* Image Gallery */}
-          <div>
-            <div className="relative w-full h-96 bg-slate-100 rounded-lg overflow-hidden shadow-lg">
+          <div className="md:col-span-2">
+            {/* ⬇️⬇️ MODIFIED: Increased container height ⬇️⬇️ */}
+            <div className="relative w-full h-[32rem] bg-slate-100 rounded-lg overflow-hidden shadow-lg">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={mainImage}
@@ -160,18 +161,20 @@ export default function ProductPageClient({ product }: { product: Product }) {
                     src={mainImage!}
                     alt={product.name}
                     fill
-                    className="object-cover"
+                    className="object-cover object-bottom"
                   />
                 </motion.div>
               </AnimatePresence>
             </div>
+            {/* Thumbnails */}
             <div className="grid grid-cols-4 gap-4 mt-4">
               {product.images.map((img, index) => (
                 <button
                   key={index}
                   type="button"
                   onClick={() => setMainImage(img)}
-                  className={`relative w-full h-24 rounded-md overflow-hidden border-2 transition-colors ${
+                  // ⬇️⬇️ MODIFIED: Reduced thumbnail height ⬇️⬇️
+                  className={`relative w-full h-20 bg-slate-100 rounded-md overflow-hidden border-2 transition-colors ${
                     mainImage === img
                       ? "border-[hsl(var(--swago-purple))]"
                       : "border-transparent"
@@ -182,7 +185,7 @@ export default function ProductPageClient({ product }: { product: Product }) {
                     src={img}
                     alt={`${product.name} thumbnail ${index + 1}`}
                     fill
-                    className="object-cover"
+                    className="object-cover object-bottom"
                   />
                 </button>
               ))}
@@ -190,7 +193,7 @@ export default function ProductPageClient({ product }: { product: Product }) {
           </div>
 
           {/* Product Details */}
-          <div className="flex flex-col">
+          <div className="md:col-span-3">
             <div className="flex justify-between items-start">
               <h1 className="text-4xl font-bold">{product.name}</h1>
               <button
@@ -226,13 +229,11 @@ export default function ProductPageClient({ product }: { product: Product }) {
               </button>
             </div>
             
-            {/* ⬇️⬇️ MODIFIED CODE BLOCK ⬇️⬇️ */}
             <div className="mt-2">
               <span className="inline-flex items-center bg-[hsl(var(--swago-teal))] text-white text-sm font-semibold px-3 py-1 rounded-full">
                 Age: {product.age_category}
               </span>
             </div>
-            {/* ⬆️⬆️ END OF MODIFIED CODE ⬆️⬆️ */}
 
             <p className="text-3xl font-bold text-slate-900 my-4">
               ₹{product.price}

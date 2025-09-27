@@ -8,7 +8,7 @@ This Winter Edition features cool, winter-themed activities that build creativit
     original_price: 799,
     images: ["/images/smart-mat-1.png", "/images/smart-mat-2.png", "/images/smart-mat-3.png"],
     age_category: "5-7",
-    core_elements: ["S", "O"],
+    core_elements: ["S"],
     box_contents: `Winter Word Hunt: Find hidden words to boost vocabulary and attention skills.
 Riddle Time: Solve fun riddles using secret codes for a mystery twist.
 Math Puzzle Challenge: Crack sums to reveal a festive secret message.
@@ -30,7 +30,7 @@ Perfect for home, classrooms, or group play.`
     original_price: 699,
     images: ["/images/journal-1.png", "/images/journal-2.png", "/images/journal-3.png"],
     age_category: "5-7",
-    core_elements: ["G", "W"],
+    core_elements: ["G"],
     box_contents: `32 Guided Confidence-Boosting Activities
 Fun Drawing & Doodling Pages
 Storytelling & Creative Writing Prompts
@@ -56,7 +56,7 @@ Research shows that role-play games enhance creativity, social-emotional skills,
     original_price: 899,
     images: ["/images/charades-1.png", "/images/charades-2.png", "/images/charades-3.png"],
     age_category: "8-10",
-    core_elements: ["G", "A"],
+    core_elements: ["G"],
     box_contents: `95 Charades Cards — including 15 Power Cards with playful prompts and two styling ideas per character.
 1 Colorful Scarf — safe, soft, and versatile for capes, turbans, aprons, and more.
 1 Spinner & Dice — plus a 2-minute timer for thrilling challenges.
@@ -101,7 +101,7 @@ Strengthens left-right brain coordination.`
     original_price: 799,
     images: ["/images/dance-cards-1.png", "/images/dance-cards-2.png","/images/dance-cards-3.png"],
     age_category: "5-7",
-    core_elements: ["G", "W"],
+    core_elements: ["W"],
     box_contents: `30 Balance Challenge Cards with superpower poses and affirmations
 Scanner Access + 2 Live Zoom Sessions
 Weekly Lottery Code for exciting prizes`,
@@ -140,9 +140,9 @@ Fun Bilateral Doodling Pages`,
 Perfect for ages 7-11, it encourages creativity, gratitude, and emotional growth in a playful way. Great for home or classroom use!`,
     price: 399,
     original_price: 699,
-    images: ["/images/vision-board-1.png", "/images/vision-board-2.png","/images/vision-board-2.png"],
+    images: ["/images/vision-board-1.png", "/images/vision-board-2.png","/images/vision-board-3.png"],
     age_category: "8-10",
-    core_elements: ["A", "G"],
+    core_elements: ["A"],
     box_contents: `1 Colorful Reusable Vision Board
 5 Focus Sections: Hobbies, Family, Health, Friends, Role Models
 Thumb Pins for attaching goals and inspirations
@@ -162,7 +162,7 @@ Interactive and fun with reusable A3 size.`
     original_price: 899,
     images: ["/images/seek-rush-1.png", "/images/seek-rush-2.png","/images/seek-rush-3.png"],
     age_category: "8-10", // Using 8-10 to fit the "7+" age into an existing filter category
-    core_elements: ["S", "O"], // Using 'S' for Seek and 'O' for Observation
+    core_elements: ["O"], // Using 'S' for Seek and 'O' for Observation
     box_contents: `6 Vibrant Game Boards
 120+ Mascot Cards
 1 Dice
