@@ -146,7 +146,6 @@ export default function ProductPageClient({ product }: { product: Product }) {
         <div className="grid grid-cols-1 md:grid-cols-5 gap-12 items-start">
           {/* Image Gallery */}
           <div className="md:col-span-2">
-            {/* ⬇️⬇️ MODIFIED: Increased container height ⬇️⬇️ */}
             <div className="relative w-full h-[32rem] bg-slate-100 rounded-lg overflow-hidden shadow-lg">
               <AnimatePresence mode="wait">
                 <motion.div
@@ -173,7 +172,6 @@ export default function ProductPageClient({ product }: { product: Product }) {
                   key={index}
                   type="button"
                   onClick={() => setMainImage(img)}
-                  // ⬇️⬇️ MODIFIED: Reduced thumbnail height ⬇️⬇️
                   className={`relative w-full h-20 bg-slate-100 rounded-md overflow-hidden border-2 transition-colors ${
                     mainImage === img
                       ? "border-[hsl(var(--swago-purple))]"
@@ -265,16 +263,17 @@ export default function ProductPageClient({ product }: { product: Product }) {
               </div>
             </div>
 
-            <div className="space-y-4">
+            {/* ⬇️⬇️ MODIFIED BUTTON CONTAINER ⬇️⬇️ */}
+            <div className="flex gap-4">
               <button
                 onClick={() => addToCart(product, quantity)}
-                className="btn-shine w-full bg-[hsl(var(--swago-purple))] text-white font-bold py-4 rounded-lg text-lg"
+                className="btn-shine flex-1 bg-[hsl(var(--swago-purple))] text-white font-bold py-3 rounded-lg text-base"
               >
                 Add to Cart
               </button>
               <button
                 onClick={handleBuyNow}
-                className="btn-shine w-full bg-[hsl(var(--swago-orange))] text-white font-bold py-4 rounded-lg text-lg"
+                className="btn-shine flex-1 bg-[hsl(var(--swago-orange))] text-white font-bold py-3 rounded-lg text-base"
               >
                 Buy It Now
               </button>
