@@ -121,7 +121,7 @@ export default function ShippingPage() {
             </div>
           </div>
 
-          {/* Delivery Information */}
+          {/* Delivery Information } 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="bg-slate-50 p-6 rounded-xl">
               <h3 className="text-xl font-bold text-slate-800 mb-4">What You Need to Know</h3>
@@ -144,7 +144,7 @@ export default function ShippingPage() {
                 <li>Delivery confirmation with recipient name</li>
               </ul>
             </div>
-          </div>
+          </div> */}
 
           {/* Important Notes */}
           <div className="bg-orange-50 border border-orange-200 rounded-xl p-6">
