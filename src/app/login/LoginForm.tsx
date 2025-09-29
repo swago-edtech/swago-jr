@@ -23,7 +23,12 @@ export default function LoginForm() {
     });
     if (res.ok) {
       setStep("otp");
-      setMessage("✅ OTP sent to your phone");
+      // ✅ Special message for demo number
+      if (phone === "9876543210") {
+        setMessage("✅ Demo OTP: Use 2356");
+      } else {
+        setMessage("✅ OTP sent to your phone");
+      }
     } else {
       setMessage("❌ Failed to send OTP. Please check the number.");
     }
@@ -49,16 +54,48 @@ export default function LoginForm() {
    return (
     <div className="max-w-md w-full bg-white p-8 rounded-xl shadow-lg border">
       <h1 className="text-3xl font-bold text-center mb-6">Login with Phone</h1>
+      
+      {/* ✅ Demo hint for development */}
+      {process.env.NODE_ENV === "development" && (
+        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-center">
+          <p className="text-xs text-blue-600">
+            💡 <strong>Demo:</strong> Use 9876543210 → OTP: 2356
+          </p>
+        </div>
+      )}
+
       {step === "number" && (
         <div className="space-y-4">
-          <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Enter phone number" className="w-full border-slate-300 rounded-md p-3" />
-          <button onClick={sendOtp} className="w-full bg-[hsl(var(--swago-purple))] text-white font-bold py-3 rounded-lg hover:opacity-90">Send OTP</button>
+          <input 
+            type="tel" 
+            value={phone} 
+            onChange={(e) => setPhone(e.target.value)} 
+            placeholder="Enter phone number" 
+            className="w-full border-slate-300 rounded-md p-3" 
+          />
+          <button 
+            onClick={sendOtp} 
+            className="w-full bg-[hsl(var(--swago-purple))] text-white font-bold py-3 rounded-lg hover:opacity-90"
+          >
+            Send OTP
+          </button>
         </div>
       )}
       {step === "otp" && (
         <div className="space-y-4">
-          <input type="text" value={code} onChange={(e) => setCode(e.target.value)} placeholder="Enter OTP" className="w-full border-slate-300 rounded-md p-3" />
-          <button onClick={verifyOtp} className="w-full bg-green-500 text-white font-bold py-3 rounded-lg hover:bg-green-600">Verify OTP</button>
+          <input 
+            type="text" 
+            value={code} 
+            onChange={(e) => setCode(e.target.value)} 
+            placeholder="Enter OTP" 
+            className="w-full border-slate-300 rounded-md p-3" 
+          />
+          <button 
+            onClick={verifyOtp} 
+            className="w-full bg-green-500 text-white font-bold py-3 rounded-lg hover:bg-green-600"
+          >
+            Verify OTP
+          </button>
         </div>
       )}
       {message && <p className="mt-4 text-center text-sm">{message}</p>}

@@ -15,6 +15,10 @@ const secret = new TextEncoder().encode(
 );
 const cookieName = "session";
 
+// Demo credentials
+const DEMO_PHONE = "9876543210";
+const DEMO_OTP = "2356";
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -23,13 +27,25 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: validation.error.format() }, { status: 400 });
     }
     const { phone, code } = validation.data;
-    const client = twilio(process.env.TWILIO_ACCOUNT_SID!, process.env.TWILIO_AUTH_TOKEN!);
-    const verification_check = await client.verify.v2
-      .services(process.env.TWILIO_VERIFY_SID!)
-      .verificationChecks.create({ to: `+91${phone}`, code });
-    if (verification_check.status !== "approved") {
-      return NextResponse.json({ success: false, error: "Invalid OTP" }, { status: 400 });
+
+    // ✅ NEW: Handle demo number verification
+    if (phone === DEMO_PHONE) {
+      if (code !== DEMO_OTP) {
+        return NextResponse.json({ success: false, error: "Invalid OTP" }, { status: 400 });
+      }
+      // Skip Twilio verification for demo number, proceed directly to user creation
+    } else {
+      // ✅ Original Twilio verification for real numbers
+      const client = twilio(process.env.TWILIO_ACCOUNT_SID!, process.env.TWILIO_AUTH_TOKEN!);
+      const verification_check = await client.verify.v2
+        .services(process.env.TWILIO_VERIFY_SID!)
+        .verificationChecks.create({ to: `+91${phone}`, code });
+      if (verification_check.status !== "approved") {
+        return NextResponse.json({ success: false, error: "Invalid OTP" }, { status: 400 });
+      }
     }
+
+    // ✅ Common user creation/authentication logic (works for both demo and real users)
     await connectDB();
     let user = await User.findOne({ phone });
     if (!user) {
@@ -47,7 +63,7 @@ export async function POST(req: Request) {
       maxAge: 60 * 60 * 24 * 7,
     });
     return response;
-  } catch (err: unknown) { // Changed any to unknown
+  } catch (err: unknown) {
     console.error("OTP verification error:", err);
     const message = err instanceof Error ? err.message : "An unknown error occurred";
     return NextResponse.json({ success: false, error: message }, { status: 500 });

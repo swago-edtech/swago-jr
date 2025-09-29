@@ -1,11 +1,10 @@
 import { NextResponse } from "next/server";
-import { getLoginSession } from "@/lib/auth";
+import { getLoginSession, getDemoUserData } from "@/lib/auth";
 import connectDB from "@/lib/db"; // Use the new default export
 import User from "@/models/User";
 
 export async function GET() {
   try {
-    await connectDB(); // This now guarantees all models are registered
     const session = await getLoginSession();
 
     if (!session) {
@@ -15,6 +14,21 @@ export async function GET() {
       );
     }
 
+    // ✅ NEW: Handle demo user
+    if (session.isDemo) {
+      const demoUser = getDemoUserData();
+      return NextResponse.json({
+        loggedIn: true,
+        user: {
+          ...demoUser,
+          orders: [], // Demo user has no orders initially
+          _id: "demo-user-id", // Fake ID for demo user
+        },
+      });
+    }
+
+    // ✅ Original logic for real users
+    await connectDB(); // This now guarantees all models are registered
     const user = await User.findOne({ phone: session.phone }).populate("orders");
 
     if (!user) {
