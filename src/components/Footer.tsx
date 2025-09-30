@@ -25,7 +25,7 @@ const EmailIcon = () => (
 
 export default function Footer() {
   return (
-    <footer className="bg-slate-50 text-slate-700 py-16 border-t">
+    <footer className="bg-slate-50 text-slate-700 pt-16 pb-8 border-t">
       <div className="container mx-auto px-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-10">
         
         {/* Column 1: Brand & Contact */}
@@ -64,7 +64,7 @@ export default function Footer() {
           </ul>
         </div>
 
-        {/* Column 4: Company - UPDATED */}
+        {/* Column 4: Company */}
         <div>
           <h3 className="font-bold text-slate-800 uppercase tracking-wider mb-4">Company</h3>
           <ul className="space-y-2 text-sm">
@@ -76,6 +76,11 @@ export default function Footer() {
             <li><Link href="/cancellation-policy" className="text-slate-600 hover:text-[hsl(var(--swago-purple))] transition-colors hover:underline">Cancellation Policy</Link></li> 
           </ul>
         </div>
+      </div>
+
+      {/* Copyright Section */}
+      <div className="container mx-auto px-4 mt-12 border-t border-slate-200 pt-8 text-center">
+        <p className="text-sm text-slate-500">Adi anant - All copyrights reserved 2025</p>
       </div>
     </footer>
   );
