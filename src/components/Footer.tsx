@@ -73,6 +73,7 @@ export default function Footer() {
             <li><Link href="/terms" className="text-slate-600 hover:text-[hsl(var(--swago-purple))] transition-colors hover:underline">Terms & Conditions</Link></li>
             <li><Link href="/privacy" className="text-slate-600 hover:text-[hsl(var(--swago-purple))] transition-colors hover:underline">Privacy Policy</Link></li>
             <li><Link href="/shipping" className="text-slate-600 hover:text-[hsl(var(--swago-purple))] transition-colors hover:underline">Shipping & Delivery</Link></li>
+            <li><Link href="/cancellation-policy" className="text-slate-600 hover:text-[hsl(var(--swago-purple))] transition-colors hover:underline">Cancellation Policy</Link></li> 
           </ul>
         </div>
       </div>

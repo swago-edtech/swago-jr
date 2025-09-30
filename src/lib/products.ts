@@ -138,7 +138,7 @@ Fun Bilateral Doodling Pages`,
     name: "DreamScape Ambition Vision Board for Kids | Inspirational Activity & Goal Planner Board",
     description: `The Swago Vision Board is a fun and colorful tool that helps kids build good habits, confidence, and a positive mindset. With sections for Hobbies, Family, Health, Friends, and Role Models, children can set daily goals, track progress, and celebrate achievements.
 Perfect for ages 7-11, it encourages creativity, gratitude, and emotional growth in a playful way. Great for home or classroom use!`,
-    price: 399,
+    price: 1,
     original_price: 699,
     images: ["/images/vision-board-1.png", "/images/vision-board-2.png","/images/vision-board-3.png"],
     age_category: "8-10",
