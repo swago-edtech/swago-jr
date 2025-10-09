@@ -28,14 +28,13 @@ export async function POST(req: Request) {
     }
     const { phone, code } = validation.data;
 
-    // ✅ NEW: Handle demo number verification
+    // ✅ Handle demo number verification
     if (phone === DEMO_PHONE) {
       if (code !== DEMO_OTP) {
         return NextResponse.json({ success: false, error: "Invalid OTP" }, { status: 400 });
       }
-      // Skip Twilio verification for demo number, proceed directly to user creation
     } else {
-      // ✅ Original Twilio verification for real numbers
+      // ✅ Twilio verification for real numbers
       const client = twilio(process.env.TWILIO_ACCOUNT_SID!, process.env.TWILIO_AUTH_TOKEN!);
       const verification_check = await client.verify.v2
         .services(process.env.TWILIO_VERIFY_SID!)
@@ -45,23 +44,45 @@ export async function POST(req: Request) {
       }
     }
 
-    // ✅ Common user creation/authentication logic (works for both demo and real users)
+    // ✅ User creation/authentication logic
     await connectDB();
     let user = await User.findOne({ phone });
     if (!user) {
       user = await User.create({ phone });
     }
+
+    // ✅ Create JWT token
     const token = await new SignJWT({ phone })
       .setProtectedHeader({ alg: "HS256" })
       .setExpirationTime("7d")
       .sign(secret);
+
+    // ✅ Create response
     const response = NextResponse.json({ success: true, user: user });
-    response.cookies.set(cookieName, token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      path: "/",
-      maxAge: 60 * 60 * 24 * 7,
-    });
+
+    // 🔥 FIXED: Different cookie config for development (network IP) vs production
+    const isProduction = process.env.NODE_ENV === "production";
+
+    if (isProduction) {
+      // Production: Secure cookies with HTTPS
+      response.cookies.set(cookieName, token, {
+        httpOnly: true,
+        secure: true,
+        sameSite: "lax",
+        path: "/",
+        maxAge: 60 * 60 * 24 * 7,
+      });
+    } else {
+      // Development: Allow HTTP for network IP testing
+      response.cookies.set(cookieName, token, {
+        httpOnly: true,
+        secure: false, // 🔥 False for HTTP (network IP)
+        sameSite: "lax",
+        path: "/",
+        maxAge: 60 * 60 * 24 * 7,
+      });
+    }
+
     return response;
   } catch (err: unknown) {
     console.error("OTP verification error:", err);
