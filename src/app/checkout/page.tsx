@@ -100,7 +100,7 @@ export default function CheckoutPage() {
         setDiscount(null);
       }
     } catch (error) {
-      console.error("Coupon error:", error);
+      console.error("Coupon Error:", error);
       setCouponMessage("❌ Failed to validate coupon");
       setAppliedCoupon(null);
       setDiscount(null);
