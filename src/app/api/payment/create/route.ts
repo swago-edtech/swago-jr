@@ -2,11 +2,8 @@ import { NextResponse } from "next/server";
 import Razorpay from "razorpay";
 import { getLoginSession } from "@/lib/auth";
 
-// Initialize Razorpay instance
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID!,
-  key_secret: process.env.RAZORPAY_KEY_SECRET!,
-});
+// 🔥 REMOVED: Don't initialize at module level
+// const razorpay = new Razorpay({ ... });
 
 export async function POST(req: Request) {
   try {
@@ -22,6 +19,12 @@ export async function POST(req: Request) {
     if (!totalAmount || typeof totalAmount !== "number") {
       return NextResponse.json({ error: "A valid total amount is required" }, { status: 400 });
     }
+
+    // 🔥 FIX: Initialize Razorpay INSIDE the function (lazy initialization)
+    const razorpay = new Razorpay({
+      key_id: process.env.RAZORPAY_KEY_ID!,
+      key_secret: process.env.RAZORPAY_KEY_SECRET!,
+    });
 
     // ✅ Prepare Razorpay order options
     const options = {
