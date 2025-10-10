@@ -2,47 +2,72 @@ import { NextResponse } from "next/server";
 import Razorpay from "razorpay";
 import { getLoginSession } from "@/lib/auth";
 
-// 🔥 REMOVED: Don't initialize at module level
-// const razorpay = new Razorpay({ ... });
-
 export async function POST(req: Request) {
   try {
-    // ✅ Ensure user is authenticated
+    console.log("=== Payment Create API Called ===");
+    
+    // ✅ Check authentication
     const session = await getLoginSession();
     if (!session) {
       console.error("Payment creation failed: User not authenticated");
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
+    console.log("✅ User authenticated:", session.phone);
 
-    // ✅ Get total amount from request
+    // ✅ Get total amount
     const { totalAmount } = await req.json();
     if (!totalAmount || typeof totalAmount !== "number") {
       return NextResponse.json({ error: "A valid total amount is required" }, { status: 400 });
     }
+    console.log("✅ Total amount:", totalAmount);
 
-    // 🔥 FIX: Initialize Razorpay INSIDE the function (lazy initialization)
+    // 🔥 CHECK IF RAZORPAY KEYS EXIST
+    const hasKeyId = !!process.env.RAZORPAY_KEY_ID;
+    const hasSecret = !!process.env.RAZORPAY_KEY_SECRET;
+    
+    console.log("Razorpay Key ID exists:", hasKeyId);
+    console.log("Razorpay Secret exists:", hasSecret);
+
+    if (!hasKeyId || !hasSecret) {
+      console.error("❌ RAZORPAY KEYS MISSING!");
+      return NextResponse.json({ 
+        error: "Payment gateway not configured. Please contact support.",
+        debug: { hasKeyId, hasSecret }
+      }, { status: 500 });
+    }
+
+    // 🔥 Initialize Razorpay
+    console.log("Initializing Razorpay...");
     const razorpay = new Razorpay({
-      key_id: process.env.RAZORPAY_KEY_ID!,
-      key_secret: process.env.RAZORPAY_KEY_SECRET!,
+      key_id: process.env.RAZORPAY_KEY_ID,
+      key_secret: process.env.RAZORPAY_KEY_SECRET,
     });
+    console.log("✅ Razorpay initialized");
 
-    // ✅ Prepare Razorpay order options
+    // ✅ Create order
     const options = {
-      amount: Math.round(totalAmount * 100), // Convert to paise
+      amount: Math.round(totalAmount * 100),
       currency: "INR",
       receipt: `receipt_order_${new Date().getTime()}`,
     };
 
-    // ✅ Create Razorpay order
+    console.log("Creating Razorpay order with amount:", options.amount);
     const order = await razorpay.orders.create(options);
+    console.log("✅ Razorpay order created:", order.id);
 
-    console.log("Razorpay order created successfully:", order.id);
-
-    // ✅ Return order details
     return NextResponse.json(order);
 
-  } catch (error) {
-    console.error("Failed to create Razorpay order:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  } catch (error: unknown) {
+    const err = error as Error;
+    console.error("=== PAYMENT CREATION ERROR ===");
+    console.error("Error type:", err.constructor?.name || "Unknown");
+    console.error("Error message:", err.message || String(error));
+    console.error("Full error:", JSON.stringify(error, null, 2));
+    
+    return NextResponse.json({ 
+      error: "Internal Server Error",
+      message: err.message || String(error),
+      type: err.constructor?.name || "Unknown"
+    }, { status: 500 });
   }
 }
