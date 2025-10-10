@@ -2,18 +2,18 @@ import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import Order from "@/models/Order";
 import User from "@/models/User";
-import { getLoginSession } from "@/lib/auth"; // ✅ Added authentication
+import { getLoginSession } from "@/lib/auth";
 
 export async function POST(req: Request) {
   try {
-    // 🔥 FIXED: Added authentication check
+    // ✅ Authentication check
     const session = await getLoginSession();
     if (!session) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
     await connectDB();
-    const { name, phone, age, address, cart } = await req.json();
+    const { name, age, address, cart } = await req.json(); // 🔥 REMOVED 'phone'
 
     // ✅ Use phone from authenticated session (more secure)
     const userPhone = session.phone;
@@ -21,7 +21,7 @@ export async function POST(req: Request) {
     // Create order
     const order = await Order.create({ 
       name, 
-      phone: userPhone, // Use authenticated phone
+      phone: userPhone,
       age, 
       address, 
       cart 
