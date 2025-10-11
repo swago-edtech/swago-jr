@@ -120,11 +120,13 @@ export default function CheckoutPage() {
     return discount ? discount.finalAmount : total;
   };
 
+  // 🔥 UPDATED: Secure payment handler
   const handlePayment = async () => {
     setMessage("Processing payment...");
 
     const finalAmount = getFinalTotal();
 
+    // Step 1: Create Razorpay order
     const res = await fetch("/api/payment/create", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -138,8 +140,16 @@ export default function CheckoutPage() {
 
     const razorpayOrder = await res.json();
 
+    // 🔥 Step 2: Fetch Razorpay key securely from backend
+    const configRes = await fetch("/api/razorpay/config");
+    if (!configRes.ok) {
+      setMessage("❌ Failed to load payment configuration.");
+      return;
+    }
+    const config = await configRes.json();
+
     const options: RazorpayOptions = {
-      key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+      key: config.keyId, // 🔥 Now comes from server API, not environment variable
       amount: razorpayOrder.amount,
       currency: razorpayOrder.currency,
       name: "Swago Junior",
@@ -256,7 +266,6 @@ export default function CheckoutPage() {
             <h3 className="font-semibold mb-3">Have a Coupon?</h3>
             {!appliedCoupon ? (
               <div className="space-y-3">
-                {/* ⬇️ BUTTON INSIDE INPUT FIELD FIX ⬇️ */}
                 <div className="relative w-full">
                   <input
                     type="text"
