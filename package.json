@@ -1,0 +1,30 @@
+{
+  "name": "swago-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Swago Jr. Monorepo - Main App and Admin Panel",
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "scripts": {
+    "dev": "pnpm --filter web dev",
+    "dev:web": "pnpm --filter web dev",
+    "dev:admin": "pnpm --filter admin dev",
+    "build:web": "pnpm --filter web build",
+    "build:admin": "pnpm --filter admin build",
+    "lint": "pnpm --recursive run lint"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "typescript": "^5",
+    "eslint": "^9"
+  },
+  "pnpm": {
+    "overrides": {
+      "react": "19.1.0",
+      "react-dom": "19.1.0",
+      "next": "15.5.3"
+    }
+  }
+}

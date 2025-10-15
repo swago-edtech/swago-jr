@@ -1,0 +1,14 @@
+{
+    "name": "@swago/database",
+    "version": "1.0.0",
+    "private": true,
+    "main": "src/index.ts",
+    "types": "src/index.ts",
+    "dependencies": {
+        "mongoose": "^8.18.1"
+    },
+    "devDependencies": {
+        "@types/node": "^20",
+        "typescript": "^5"
+    }
+}
