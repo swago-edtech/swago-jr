@@ -1,44 +1,34 @@
 import mongoose, { Mongoose } from "mongoose";
 
-// Remove these problematic lines:
-// import "@/models/User";
-// import "@/models/Order";
-
 const MONGODB_URI = process.env.MONGODB_URI as string;
 
 if (!MONGODB_URI) {
   throw new Error("Please define the MONGODB_URI environment variable inside .env.local");
 }
 
-declare global {
-  var mongooseCache: {
-    conn: Mongoose | null;
-    promise: Promise<Mongoose> | null;
-  } | undefined;
-}
-
-let cached = global.mongooseCache;
-
-if (!cached) {
-  cached = { conn: null, promise: null };
-  global.mongooseCache = cached;
-}
-
 async function connectDB(): Promise<Mongoose> {
-  if (cached!.conn) {
-    return cached!.conn;
+  // If already connected, return immediately
+  if (mongoose.connection.readyState === 1) {
+    return mongoose;
   }
 
-  if (!cached!.promise) {
-    const opts = {
-      bufferCommands: false,
-    };
-
-    cached!.promise = mongoose.connect(MONGODB_URI, opts).then((m) => m);
+  // If connecting, wait for it
+  if (mongoose.connection.readyState === 2) {
+    await new Promise((resolve) => {
+      mongoose.connection.once('connected', resolve);
+    });
+    return mongoose;
   }
 
-  cached!.conn = await cached!.promise;
-  return cached!.conn!;
+  // Otherwise, create new connection
+  const opts = {
+    bufferCommands: false,
+  };
+
+  await mongoose.connect(MONGODB_URI, opts);
+  console.log('✅ MongoDB connected');
+  
+  return mongoose;
 }
 
 export default connectDB;
