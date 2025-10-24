@@ -1,12 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { products } from "@swago/utils"; // 🔥 FIXED: Using shared package
+import { products } from "@swago/utils";
 import { useSharedContext } from "@/context/SharedContext";
 import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
+import ReviewList from "./ReviewList"; // ✅ NEW IMPORT
 
 type Product = (typeof products)[0];
 
@@ -85,7 +86,7 @@ export default function ProductPageClient({ product }: { product: Product }) {
   const [openAccordion, setOpenAccordion] = useState<string | null>(
     "description"
   );
-  const { addToCart, isWishlisted, addToWishlist, removeFromWishlist } =
+  const { addToCart, isWishlisted, addToWishlist, removeFromWishlist, user } = // ✅ Added user
     useSharedContext();
 
   const isLiked = isWishlisted(product.id);
@@ -302,6 +303,14 @@ export default function ProductPageClient({ product }: { product: Product }) {
               )}
             </div>
           </div>
+        </div>
+
+        {/* ✅ NEW: Reviews Section */}
+        <div className="mt-16 border-t pt-12">
+          <ReviewList 
+            productId={product.id} 
+            currentUserId={user?.phone} 
+          />
         </div>
       </div>
 

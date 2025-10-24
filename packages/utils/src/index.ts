@@ -16,3 +16,6 @@ export const generateOTP = (): string => {
 
 // ✅ FIXED: Export products (no extension needed for TypeScript)
 export * from './products';
+
+//openAIresponse
+export { analyzeReviewSentiment } from './sentiment';

@@ -47,6 +47,44 @@ export interface Address {
   phone: string;
 }
 
+// ✅ NEW: Review Types
+export interface Review {
+  _id: string;
+  productId: number;
+  userId: string;
+  orderId: string;
+  rating: number; // 1-5
+  title: string;
+  comment: string;
+  images?: string[];
+  status: 'pending' | 'approved' | 'rejected';
+  helpfulCount: number;
+  isVerifiedPurchase: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// For populated review responses (with user info)
+export interface PopulatedReview extends Omit<Review, 'userId'> {
+  user: {
+    name?: string;
+    phone: string;
+  };
+}
+
+// For review summary stats
+export interface ReviewStats {
+  averageRating: number;
+  totalReviews: number;
+  ratingDistribution: {
+    1: number;
+    2: number;
+    3: number;
+    4: number;
+    5: number;
+  };
+}
+
 // API Response Types
 export interface ApiResponse<T = any> {
   success: boolean;
