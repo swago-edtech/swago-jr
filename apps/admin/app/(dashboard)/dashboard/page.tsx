@@ -1,11 +1,11 @@
 import { connectDB, Order, User } from '@swago/database';
 import { formatPrice } from '@swago/utils';
-import { ShoppingBag, Users, DollarSign, TrendingUp } from 'lucide-react';
+import { ShoppingBag, Users, DollarSign, TrendingUp, Clock, CheckCircle } from 'lucide-react';
 
 async function getDashboardStats() {
   await connectDB();
 
-  const [totalOrders, totalCustomers, orders] = await Promise.all([
+  const [totalOrders, totalCustomers, orders, allOrders] = await Promise.all([
     Order.countDocuments(),
     User.countDocuments({ isAdmin: false }),
     Order.find()
@@ -13,17 +13,38 @@ async function getDashboardStats() {
       .limit(10)
       .select('name phone total status createdAt')
       .lean(),
+    Order.find().select('total status').lean(), // Get all orders for calculations
   ]);
 
-  // Calculate total revenue from confirmed orders
-  const confirmedOrders = await Order.find({ status: 'confirmed' }).select('total').lean();
-  const totalRevenue = confirmedOrders.reduce((sum, order) => sum + (order.total || 0), 0);
+  // Calculate confirmed revenue (actual money received)
+  const paidOrders = allOrders.filter(order => 
+    ['Paid', 'confirmed', 'delivered', 'shipped'].includes(order.status)
+  );
+  const confirmedRevenue = paidOrders.reduce((sum, order) => sum + (order.total || 0), 0);
+  
+  // Calculate pending revenue (potential money)
+  const pendingOrders = allOrders.filter(order => 
+    ['Pending', 'pending'].includes(order.status)
+  );
+  const pendingRevenue = pendingOrders.reduce((sum, order) => sum + (order.total || 0), 0);
+  
+  // Total potential revenue (all orders)
+  const totalPotentialRevenue = allOrders.reduce((sum, order) => sum + (order.total || 0), 0);
+  
+  // Average order value (based on paid orders only)
+  const avgOrderValue = paidOrders.length > 0 
+    ? confirmedRevenue / paidOrders.length 
+    : 0;
 
   return {
     totalOrders,
     totalCustomers,
-    totalRevenue,
-    avgOrderValue: totalOrders > 0 ? totalRevenue / totalOrders : 0,
+    confirmedRevenue,
+    pendingRevenue,
+    totalPotentialRevenue,
+    avgOrderValue,
+    paidOrdersCount: paidOrders.length,
+    pendingOrdersCount: pendingOrders.length,
     recentOrders: JSON.parse(JSON.stringify(orders)),
   };
 }
@@ -35,6 +56,7 @@ export default async function DashboardPage() {
     {
       title: 'Total Orders',
       value: stats.totalOrders,
+      subtitle: `${stats.paidOrdersCount} paid, ${stats.pendingOrdersCount} pending`,
       icon: ShoppingBag,
       color: 'bg-blue-500',
     },
@@ -45,14 +67,16 @@ export default async function DashboardPage() {
       color: 'bg-green-500',
     },
     {
-      title: 'Total Revenue',
-      value: formatPrice(stats.totalRevenue),
-      icon: DollarSign,
+      title: 'Confirmed Revenue',
+      value: formatPrice(stats.confirmedRevenue),
+      subtitle: `Pending: ${formatPrice(stats.pendingRevenue)}`,
+      icon: CheckCircle,
       color: 'bg-purple-500',
     },
     {
       title: 'Avg Order Value',
       value: formatPrice(stats.avgOrderValue),
+      subtitle: 'Based on paid orders',
       icon: TrendingUp,
       color: 'bg-orange-500',
     },
@@ -69,13 +93,16 @@ export default async function DashboardPage() {
           return (
             <div key={card.title} className="bg-white rounded-lg shadow p-6">
               <div className="flex items-center justify-between">
-                <div>
+                <div className="flex-1">
                   <p className="text-sm text-gray-600">{card.title}</p>
                   <p className="text-2xl font-bold text-gray-900 mt-2">
                     {card.value}
                   </p>
+                  {card.subtitle && (
+                    <p className="text-xs text-gray-500 mt-1">{card.subtitle}</p>
+                  )}
                 </div>
-                <div className={`${card.color} p-3 rounded-lg`}>
+                <div className={`${card.color} p-3 rounded-lg flex-shrink-0`}>
                   <Icon className="w-6 h-6 text-white" />
                 </div>
               </div>
@@ -84,7 +111,32 @@ export default async function DashboardPage() {
         })}
       </div>
 
-      {/* Recent Orders */}
+      {/* Revenue Breakdown (Optional) */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <h3 className="text-lg font-semibold mb-4">Revenue Breakdown</h3>
+        <div className="space-y-3">
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-gray-600">Confirmed Revenue</span>
+            <span className="text-lg font-semibold text-green-600">
+              {formatPrice(stats.confirmedRevenue)}
+            </span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-gray-600">Pending Revenue</span>
+            <span className="text-lg font-semibold text-yellow-600">
+              {formatPrice(stats.pendingRevenue)}
+            </span>
+          </div>
+          <div className="border-t pt-3 flex justify-between items-center">
+            <span className="text-sm font-medium">Total Potential</span>
+            <span className="text-lg font-bold">
+              {formatPrice(stats.totalPotentialRevenue)}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Recent Orders Table - Rest remains the same */}
       <div className="bg-white rounded-lg shadow">
         <div className="px-6 py-4 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-900">Recent Orders</h2>
@@ -119,7 +171,7 @@ export default async function DashboardPage() {
                 </tr>
               ) : (
                 stats.recentOrders.map((order: any) => (
-                  <tr key={order._id}>
+                  <tr key={order._id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">{order.name}</div>
                     </td>
@@ -128,15 +180,19 @@ export default async function DashboardPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">
-                        {formatPrice(order.total)}
+                        {formatPrice(order.total || 0)}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
                         className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          order.status === 'confirmed'
+                          order.status === 'delivered'
                             ? 'bg-green-100 text-green-800'
-                            : order.status === 'pending'
+                            : order.status === 'shipped'
+                            ? 'bg-purple-100 text-purple-800'
+                            : order.status === 'confirmed' || order.status === 'Paid'
+                            ? 'bg-blue-100 text-blue-800'
+                            : order.status === 'pending' || order.status === 'Pending'
                             ? 'bg-yellow-100 text-yellow-800'
                             : 'bg-gray-100 text-gray-800'
                         }`}

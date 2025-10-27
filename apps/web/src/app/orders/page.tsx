@@ -30,14 +30,6 @@ export default function OrdersPage() {
   useEffect(() => {
     if (user && user.orders) {
       setOrders(user.orders as Order[]);
-      // ✅ DEBUG: Log all order statuses
-      console.log("Orders loaded:", user.orders.map((o: Order) => ({ 
-        id: o._id.slice(-6), 
-        status: o.status,
-        statusType: typeof o.status,
-        statusLength: o.status.length,
-        statusBytes: [...o.status].map(c => c.charCodeAt(0))
-      })));
     }
     setLoading(false);
   }, [user]);
@@ -48,20 +40,19 @@ export default function OrdersPage() {
   };
 
   const handleWriteReview = (orderId: string, productName: string) => {
-    console.log("✅ Write review clicked:", { orderId, productName });
     const productId = getProductIdByName(productName);
     if (productId) {
       setReviewingOrder(orderId);
       setReviewingProduct({ name: productName, id: productId });
-    } else {
-      alert("Product not found. Please contact support.");
     }
+    // ✅ Removed alert - product should always be found from static list
   };
 
   const handleReviewSuccess = () => {
     setReviewingOrder(null);
     setReviewingProduct(null);
-    alert("Review submitted successfully!");
+    // ✅ REMOVED: alert("Review submitted successfully!");
+    // Modal already shows in ReviewForm!
   };
 
   const handleCancelReview = () => {
@@ -140,9 +131,7 @@ export default function OrdersPage() {
       {/* Orders List */}
       <div className="space-y-6">
         {orders.map((order) => {
-          // ✅ DEBUG: Check condition for each order
           const isDelivered = order.status.toLowerCase().includes("deliver");
-          console.log(`Order ${order._id.slice(-6)}: status="${order.status}" | isDelivered=${isDelivered}`);
 
           return (
             <div key={order._id} className="bg-white p-6 rounded-xl shadow-sm border">
@@ -153,7 +142,6 @@ export default function OrdersPage() {
                     Date: {new Date(order.createdAt).toLocaleDateString()}
                   </p>
                 </div>
-                {/* ✅ FIXED: Correct color coding */}
                 <span className="text-sm font-semibold bg-blue-100 text-blue-800 px-3 py-1 rounded-full">
                   {order.status}
                 </span>
@@ -172,12 +160,9 @@ export default function OrdersPage() {
                       <p className="font-semibold text-slate-900">₹{item.price.toFixed(2)}</p>
                     </div>
 
-                    {/* ✅ Write Review Button with DEBUG */}
-                    <div className="mt-2">
-                      <p className="text-xs text-red-500 mb-1">
-                        DEBUG: Status={`"${order.status}"`} | Match={isDelivered ? "YES" : "NO"}
-                      </p>
-                      {isDelivered ? (
+                    {/* Write Review Button - Only shown for delivered orders */}
+                    {isDelivered && (
+                      <div className="mt-2">
                         <button
                           onClick={() => handleWriteReview(order._id, item.name)}
                           className="inline-flex items-center gap-2 text-sm bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 font-medium transition-colors"
@@ -192,12 +177,8 @@ export default function OrdersPage() {
                           </svg>
                           Write Review
                         </button>
-                      ) : (
-                        <p className="text-xs text-slate-500">
-                          Button hidden (status must be &quot;Delivered&quot;)
-                        </p>
-                      )}
-                    </div>
+                      </div>
+                    )}
                   </li>
                 ))}
               </ul>

@@ -28,6 +28,14 @@ export default async function OrderDetailPage({
     notFound();
   }
 
+  // Calculate totals from items if not stored in order
+  const calculatedSubtotal = order.items?.reduce((sum: number, item: any) => 
+    sum + ((item.price || 0) * (item.quantity || 0)), 0) || 0;
+  
+  const subtotal = order.subtotal || calculatedSubtotal;
+  const discount = order.discount || 0;
+  const total = order.total || (subtotal - discount);
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -70,18 +78,24 @@ export default async function OrderDetailPage({
               <p className="text-sm text-gray-500">Address</p>
               <p className="text-sm font-medium text-gray-900">{order.address}</p>
             </div>
-            <div>
-              <p className="text-sm text-gray-500">City</p>
-              <p className="text-sm font-medium text-gray-900">{order.city}</p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">State</p>
-              <p className="text-sm font-medium text-gray-900">{order.state}</p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Pincode</p>
-              <p className="text-sm font-medium text-gray-900">{order.pincode}</p>
-            </div>
+            {order.city && (
+              <div>
+                <p className="text-sm text-gray-500">City</p>
+                <p className="text-sm font-medium text-gray-900">{order.city}</p>
+              </div>
+            )}
+            {order.state && (
+              <div>
+                <p className="text-sm text-gray-500">State</p>
+                <p className="text-sm font-medium text-gray-900">{order.state}</p>
+              </div>
+            )}
+            {order.pincode && (
+              <div>
+                <p className="text-sm text-gray-500">Pincode</p>
+                <p className="text-sm font-medium text-gray-900">{order.pincode}</p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -111,7 +125,7 @@ export default async function OrderDetailPage({
             <div className="pt-3 border-t">
               <p className="text-sm text-gray-500">Total Amount</p>
               <p className="text-2xl font-bold text-gray-900">
-                {formatPrice(order.total || 0)}
+                {formatPrice(total)}
               </p>
             </div>
           </div>
@@ -143,14 +157,21 @@ export default async function OrderDetailPage({
             </thead>
             <tbody className="divide-y divide-gray-200">
               {order.items?.map((item: any, index: number) => {
-                const product = products.find((p) => p.id === item.productId);
+                // Try to find product by ID first, then by name
+                let product = item.productId 
+                  ? products.find((p) => p.id === item.productId)
+                  : products.find((p) => p.name === item.name);
+                
+                // Use stored price or get from product data
+                const price = item.price || product?.price || 0;
+                
                 return (
                   <tr key={index}>
                     <td className="px-6 py-4">
                       <div className="flex items-center">
                         <div>
                           <div className="text-sm font-medium text-gray-900">
-                            {product?.name || 'Unknown Product'}
+                            {item.name || product?.name || 'Unknown Product'}
                           </div>
                           <div className="text-sm text-gray-500">
                             {product?.age_category || ''}
@@ -159,13 +180,13 @@ export default async function OrderDetailPage({
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {formatPrice(item.price)}
+                      {formatPrice(price)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {item.quantity}
+                      {item.quantity || 0}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {formatPrice(item.price * item.quantity)}
+                      {formatPrice(price * (item.quantity || 0))}
                     </td>
                   </tr>
                 );
@@ -180,17 +201,17 @@ export default async function OrderDetailPage({
             <div className="w-64 space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Subtotal:</span>
-                <span className="font-medium">{formatPrice(order.subtotal || 0)}</span>
+                <span className="font-medium">{formatPrice(subtotal)}</span>
               </div>
-              {order.discount > 0 && (
+              {discount > 0 && (
                 <div className="flex justify-between text-sm text-green-600">
                   <span>Discount:</span>
-                  <span>-{formatPrice(order.discount)}</span>
+                  <span>-{formatPrice(discount)}</span>
                 </div>
               )}
               <div className="flex justify-between text-base font-semibold border-t pt-2">
                 <span>Total:</span>
-                <span>{formatPrice(order.total || 0)}</span>
+                <span>{formatPrice(total)}</span>
               </div>
             </div>
           </div>

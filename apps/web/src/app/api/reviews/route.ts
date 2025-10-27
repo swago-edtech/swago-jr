@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getLoginSession } from "@/lib/auth";
 import { connectDB, Review, User, Order } from "@swago/database";
-import { analyzeReviewSentiment } from "@swago/utils"; // ✅ NEW IMPORT
+import { analyzeReviewSentiment } from "@swago/utils";
 import { z } from "zod";
 
 const reviewSchema = z.object({
@@ -53,10 +53,15 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "You have already reviewed this product" }, { status: 400 });
     }
 
-    // ✅ NEW: AI Sentiment Analysis
+    // ✅ AI Sentiment Analysis (internal logging only)
     console.log("🤖 Analyzing sentiment with GPT-4o-mini...");
     const sentiment = await analyzeReviewSentiment(title, comment);
-    console.log("📊 Result:", sentiment);
+    console.log("📊 Sentiment Result:", {
+      label: sentiment.label,
+      confidence: sentiment.confidence,
+      reasoning: sentiment.reasoning,
+      autoApproved: sentiment.isPositive
+    });
 
     // ✅ Auto-approve if positive/neutral, pending if negative
     const status = sentiment.isPositive ? "approved" : "pending";
@@ -72,27 +77,22 @@ export async function POST(req: Request) {
       images: images || [],
       status,
       isVerifiedPurchase: true,
-      // ✅ Store AI analysis results
+      // Store AI analysis results (for admin dashboard)
       sentimentLabel: sentiment.label,
       sentimentScore: sentiment.confidence,
       sentimentReasoning: sentiment.reasoning,
     });
 
-    // Custom message based on result
-    const message = sentiment.isPositive
-      ? "✅ Review approved and published!"
-      : `⏳ Review submitted for admin approval. Reason: ${sentiment.reasoning}`;
-
+    // ✅ ALWAYS return the same message to customer (hide AI logic)
     return NextResponse.json(
       {
         success: true,
-        review,
-        message,
-        sentiment: {
-          label: sentiment.label,
-          confidence: sentiment.confidence,
-          reasoning: sentiment.reasoning,
+        review: {
+          _id: review._id,
+          productId: review.productId,
+          rating: review.rating,
         },
+        message: "Review submitted successfully!", // ← Generic message always
       },
       { status: 201 }
     );

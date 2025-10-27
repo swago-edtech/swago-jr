@@ -7,12 +7,53 @@ import { render } from "@react-email/render";
 import OrderConfirmationEmail from "@/emails/OrderConfirmationEmail";
 import { z } from "zod";
 
+// Type definitions
+type CartItem = {
+  id: number;
+  name: string;
+  price: number;
+  quantity: number;
+  image?: string;
+};
+
+type OrderItem = {
+  productId: number;
+  name: string;
+  price: number;
+  quantity: number;
+  image: string;
+};
+
 const orderDetailsSchema = z.object({
   name: z.string().trim().min(1, "Name is required"),
   email: z.string().email("A valid email is required"),
   age: z.string().trim().min(1, "Age is required"),
   address: z.string().trim().min(3, "Address must be at least 3 characters"),
-  cart: z.array(z.any()).min(1),
+  city: z.string().trim().min(2, "City is required"),            // NEW
+  state: z.string().trim().min(2, "State is required"),          // NEW
+  pincode: z.string().regex(/^\d{6}$/, "Pincode must be 6 digits"), // NEW
+  cart: z.array(z.object({
+    id: z.number(),
+    name: z.string(),
+    price: z.number(),
+    quantity: z.number(),
+    image: z.string().optional(),
+  })).min(1),
+  // NEW: Add discount/coupon fields
+  coupon: z.object({
+    code: z.string(),
+    description: z.string(),
+    type: z.string(),
+    value: z.number(),
+  }).nullable().optional(),
+  discount: z.object({
+    amount: z.number(),
+    originalAmount: z.number(),
+    finalAmount: z.number(),
+    savedAmount: z.number(),
+  }).nullable().optional(),
+  originalAmount: z.number(),
+  finalAmount: z.number(),
 });
 
 sgMail.setApiKey(process.env.SENDGRID_API_KEY!);
@@ -52,15 +93,46 @@ export async function POST(req: Request) {
       user.email = orderDetails.email;
     }
 
+    // Transform cart items to include productId
+    const orderItems: OrderItem[] = orderDetails.cart.map((item: CartItem) => ({
+      productId: item.id,        // Map id to productId
+      name: item.name,
+      price: item.price,
+      quantity: item.quantity,
+      image: item.image || '',
+    }));
+
+    // Calculate totals (as a safety check)
+    const calculatedSubtotal = orderItems.reduce(
+      (sum: number, item: OrderItem) => sum + (item.price * item.quantity), 
+      0
+    );
+    
+    const subtotal = orderDetails.originalAmount || calculatedSubtotal;
+    const discountAmount = orderDetails.discount?.savedAmount || 0;
+    const total = orderDetails.finalAmount || (subtotal - discountAmount);
+
     const newOrder = await Order.create({
       phone: session.phone,
       email: orderDetails.email,
       name: orderDetails.name,
       age: orderDetails.age,
       address: orderDetails.address,
+      city: orderDetails.city,              // NEW
+      state: orderDetails.state,            // NEW
+      pincode: orderDetails.pincode,        // NEW
       status: "Paid",
       razorpay_payment_id: razorpay_payment_id,
-      items: orderDetails.cart,
+      razorpay_order_id: razorpay_order_id, // NEW: Store order ID too
+      items: orderItems,
+      subtotal: subtotal,                   // NEW
+      discount: discountAmount,             // NEW
+      total: total,                         // NEW
+      // Store coupon info if used
+      ...(orderDetails.coupon && {
+        couponCode: orderDetails.coupon.code,
+        couponDetails: orderDetails.coupon,
+      }),
     });
 
     user.orders.push(newOrder._id);
@@ -68,9 +140,8 @@ export async function POST(req: Request) {
 
     const orderObject = newOrder.toObject();
 
-    const orderTotal = orderObject.items.reduce(
-      (sum: number, item: { price: number; quantity: number }) => sum + item.price * item.quantity, 0
-    );
+    // Use the stored total for email
+    const orderTotal = orderObject.total || total;
 
     const emailHtml = await render(
       <OrderConfirmationEmail
@@ -92,7 +163,11 @@ export async function POST(req: Request) {
 
     await sgMail.send(msg);
 
-    return NextResponse.json({ success: true, orderId: newOrder._id });
+    return NextResponse.json({ 
+      success: true, 
+      orderId: newOrder._id,
+      orderNumber: orderObject._id.toString().slice(-6),
+    });
 
   } catch (error) {
     console.error("Payment verification failed:", error);

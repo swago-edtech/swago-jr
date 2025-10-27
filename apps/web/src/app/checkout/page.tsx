@@ -55,7 +55,15 @@ type Discount = {
 
 export default function CheckoutPage() {
   const [loading, setLoading] = useState(true);
-  const [form, setForm] = useState({ name: "", age: "", address: "", email: "" });
+  const [form, setForm] = useState({ 
+    name: "", 
+    age: "", 
+    email: "",
+    address: "", 
+    city: "",      // NEW
+    state: "",     // NEW
+    pincode: ""    // NEW
+  });
   const [message, setMessage] = useState("");
   const { cart, clearCart, user, total } = useSharedContext();
   const router = useRouter();
@@ -213,6 +221,10 @@ export default function CheckoutPage() {
 
   if (loading || !user) return <p className="p-6">Checking your login status...</p>;
 
+  const isFormValid = form.name && form.email && form.age && form.address && 
+                     form.city && form.state && form.pincode && 
+                     form.pincode.length === 6;
+
   return (
     <>
       {/* 🔥 ADDED: Load Razorpay script only on checkout page */}
@@ -254,15 +266,53 @@ export default function CheckoutPage() {
                 className="w-full border-slate-300 rounded-md p-3"
                 required
               />
-              <input
-                type="text"
+              <textarea
                 name="address"
                 value={form.address}
-                onChange={handleChange}
+                onChange={(e) => setForm({ ...form, address: e.target.value })}
                 placeholder="Full Delivery Address"
-                className="w-full border-slate-300 rounded-md p-3"
+                className="w-full border-slate-300 rounded-md p-3 resize-none"
+                rows={3}
                 required
               />
+              <div className="grid grid-cols-2 gap-4">
+                <input
+                  type="text"
+                  name="city"
+                  value={form.city}
+                  onChange={handleChange}
+                  placeholder="City"
+                  className="w-full border-slate-300 rounded-md p-3"
+                  required
+                />
+                <input
+                  type="text"
+                  name="state"
+                  value={form.state}
+                  onChange={handleChange}
+                  placeholder="State"
+                  className="w-full border-slate-300 rounded-md p-3"
+                  required
+                />
+              </div>
+              <input
+                type="text"
+                name="pincode"
+                value={form.pincode}
+                onChange={(e) => {
+                  // Only allow numbers and max 6 digits
+                  const value = e.target.value.replace(/\D/g, '').slice(0, 6);
+                  setForm({ ...form, pincode: value });
+                }}
+                placeholder="Pincode (6 digits)"
+                className="w-full border-slate-300 rounded-md p-3"
+                maxLength={6}
+                pattern="[0-9]{6}"
+                required
+              />
+              {form.pincode && form.pincode.length !== 6 && (
+                <p className="text-red-500 text-xs">Pincode must be 6 digits</p>
+              )}
             </div>
           </div>
 
@@ -354,7 +404,7 @@ export default function CheckoutPage() {
 
             <button
               onClick={handlePayment}
-              disabled={!form.name || !form.email || !form.age || !form.address}
+              disabled={!isFormValid}
               className="w-full bg-green-500 text-white font-bold py-3 rounded-lg hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Pay ₹{getFinalTotal().toFixed(2)} Securely
