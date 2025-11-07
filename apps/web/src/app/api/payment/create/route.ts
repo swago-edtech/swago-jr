@@ -43,7 +43,7 @@ export async function POST(req: Request) {
         state: orderDetails.state,
         pincode: orderDetails.pincode,
         items: JSON.stringify(orderDetails.cart),
-        subtotal: orderDetails.originalAmount.toString(),
+        subtotal: (orderDetails.originalAmount || 0).toString(),
         discount: (orderDetails.discount?.savedAmount || 0).toString(),
         couponDetails: orderDetails.coupon ? JSON.stringify(orderDetails.coupon) : null
       }

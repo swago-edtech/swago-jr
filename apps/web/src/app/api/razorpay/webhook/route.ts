@@ -6,9 +6,39 @@ import { connectDB, Order, User } from '@swago/database';
 import sgMail from '@sendgrid/mail';
 import { render } from '@react-email/render';
 import OrderConfirmationEmail from '@/emails/OrderConfirmationEmail';
-import type { RazorpayWebhookPayload } from '@swago/types'; // 🔥 Import from shared package
+import type { RazorpayWebhookPayload } from '@swago/types';
 
 sgMail.setApiKey(process.env.SENDGRID_API_KEY!);
+
+// Type matching SharedContext CartItem
+type CartItem = {
+  id?: number;
+  productId?: number;
+  name: string;
+  price: number;
+  quantity: number;
+  images?: string[];  // Array from SharedContext
+  image?: string;      // Fallback
+};
+
+// Coupon details type
+type CouponDetails = {
+  code: string;
+  description: string;
+  type: string;
+  value: number;
+} | null;
+
+// Safe JSON parser
+function safeJsonParse<T>(jsonString: string | null | undefined, fallback: T): T {
+  if (!jsonString) return fallback;
+  try {
+    return JSON.parse(jsonString);
+  } catch (error) {
+    console.error('⚠️ JSON parse error:', error);
+    return fallback;
+  }
+}
 
 export async function POST(req: NextRequest) {
   const timestamp = new Date().toISOString();
@@ -117,10 +147,23 @@ async function handlePaymentCaptured(payload: RazorpayWebhookPayload) {
     console.log('👤 Customer:', notes.name);
     console.log('📍 City:', notes.city);
     
-    const orderItems = JSON.parse(notes.items || '[]');
-    console.log('🛒 Cart items:', orderItems.length);
+    // 🔥 FIXED: Safe JSON parsing + handle images array
+    const cartItems = safeJsonParse<CartItem[]>(notes.items, []);
+    const orderItems = cartItems.map((item: CartItem) => ({
+      productId: item.id || item.productId || 0,
+      name: item.name || 'Unknown Product',
+      price: item.price || 0,
+      quantity: item.quantity || 1,
+      image: item.images?.[0] || item.image || '', // 🔥 Handle images array
+    }));
     
-    const couponDetails = notes.couponDetails ? JSON.parse(notes.couponDetails) : null;
+    console.log('🛒 Cart items:', orderItems.length);
+    if (orderItems.length > 0) {
+      console.log('🔍 First item productId:', orderItems[0].productId);
+      console.log('🔍 First item name:', orderItems[0].name);
+    }
+    
+    const couponDetails = safeJsonParse<CouponDetails>(notes.couponDetails, null);
     if (couponDetails) {
       console.log('🎟️ Coupon applied:', couponDetails.code);
     }
@@ -168,33 +211,39 @@ async function handlePaymentCaptured(payload: RazorpayWebhookPayload) {
     console.log('📧 Preparing confirmation email...');
     const orderObject = newOrder.toObject();
     
-    const emailHtml = await render(
-      OrderConfirmationEmail({
-        customerName: orderObject.name,
-        orderId: orderObject._id.toString(),
-        orderDate: new Date(orderObject.createdAt).toLocaleString(),
-        items: orderObject.items,
-        totalAmount: orderObject.total.toFixed(2),
-      })
-    );
+    // 🔥 FIXED: Safe email sending (won't crash order creation)
+    try {
+      const emailHtml = await render(
+        OrderConfirmationEmail({
+          customerName: orderObject.name,
+          orderId: orderObject._id.toString(),
+          orderDate: new Date(orderObject.createdAt).toLocaleString(),
+          items: orderObject.items,
+          totalAmount: orderObject.total.toFixed(2),
+        })
+      );
 
-    const msg = {
-      to: orderObject.email,
-      bcc: process.env.SENDER_EMAIL!,
-      from: process.env.SENDER_EMAIL!,
-      subject: `Your Swago Junior Order Confirmation #${orderObject._id.toString().slice(-6)}`,
-      html: emailHtml,
-    };
+      const msg = {
+        to: orderObject.email,
+        bcc: process.env.SENDER_EMAIL!,
+        from: process.env.SENDER_EMAIL!,
+        subject: `Your Swago Junior Order Confirmation #${orderObject._id.toString().slice(-6)}`,
+        html: emailHtml,
+      };
 
-    await sgMail.send(msg);
-    console.log('✅ Email sent to:', orderObject.email);
-    console.log('📬 Order number:', orderObject._id.toString().slice(-6));
+      await sgMail.send(msg);
+      console.log('✅ Email sent to:', orderObject.email);
+      console.log('📬 Order number:', orderObject._id.toString().slice(-6));
+    } catch (emailError) {
+      console.error('⚠️ Email sending failed (order still created):', emailError);
+      // Don't throw - order is already saved successfully
+    }
 
   } catch (error) {
     console.error('💥 Error in handlePaymentCaptured:', error);
     console.error('Payment ID:', payment.id);
     console.error('Stack:', (error as Error).stack);
-    throw error;
+    throw error; // Razorpay will retry
   }
 }
 
