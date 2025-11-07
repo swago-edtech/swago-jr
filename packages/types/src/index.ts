@@ -92,3 +92,44 @@ export interface ApiResponse<T = any> {
   message?: string;
   error?: string;
 }
+
+
+// ✅ NEW: Razorpay Webhook Types
+export interface RazorpayPaymentEntity {
+  id: string;
+  order_id: string;
+  amount: number;
+  currency: string;
+  status: string;
+  method?: string;
+  email?: string;
+  contact?: string;
+  error_code?: string;
+  error_description?: string;
+  error_reason?: string;
+  notes?: {
+    phone?: string;
+    email?: string;
+    name?: string;
+    age?: string;
+    address?: string;
+    city?: string;
+    state?: string;
+    pincode?: string;
+    items?: string;
+    subtotal?: string;
+    discount?: string;
+    couponDetails?: string;
+  };
+}
+
+export interface RazorpayWebhookPayload {
+  payment: {
+    entity: RazorpayPaymentEntity;
+  };
+}
+
+export interface RazorpayWebhookEvent {
+  event: 'payment.captured' | 'payment.failed' | string;
+  payload: RazorpayWebhookPayload;
+}

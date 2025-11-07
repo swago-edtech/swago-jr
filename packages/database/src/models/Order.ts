@@ -1,12 +1,13 @@
+// packages/database/src/models/Order.ts
+
 import mongoose from "mongoose";
 
-// Define subdocument schema for coupon details
 const CouponDetailsSchema = new mongoose.Schema({
   code: String,
   description: String,
   type: String,
   value: Number,
-}, { _id: false }); // _id: false prevents MongoDB from creating _id for subdocument
+}, { _id: false });
 
 const OrderSchema = new mongoose.Schema(
   {
@@ -31,14 +32,25 @@ const OrderSchema = new mongoose.Schema(
     subtotal: { type: Number, required: true },
     discount: { type: Number, default: 0 },
     total: { type: Number, required: true },
-    razorpay_payment_id: { type: String },
+    razorpay_payment_id: { 
+      type: String, 
+      unique: true,      // 🔥 NEW: Prevent duplicate orders
+      sparse: true       // 🔥 NEW: Allow null values
+    },
     razorpay_order_id: { type: String },
-    // Optional coupon fields
     couponCode: { type: String },
     couponDetails: { 
       type: CouponDetailsSchema, 
       required: false 
     },
+    // 🔥 NEW: Webhook tracking fields
+    createdVia: { 
+      type: String, 
+      enum: ['webhook', 'frontend'], 
+      default: 'webhook' 
+    },
+    webhookProcessed: { type: Boolean, default: false },
+    webhookReceivedAt: { type: Date },
   },
   { timestamps: true }
 );

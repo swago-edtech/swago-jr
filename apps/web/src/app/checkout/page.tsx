@@ -130,21 +130,38 @@ export default function CheckoutPage() {
   };
 
   const handlePayment = async () => {
-    setMessage("Processing payment...");
+  setMessage("Processing payment...");
 
-    const finalAmount = getFinalTotal();
+  const finalAmount = getFinalTotal();
 
-    // Step 1: Create Razorpay order
-    const res = await fetch("/api/payment/create", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ totalAmount: finalAmount }),
-    });
+  // 🔥 UPDATED: Now includes orderDetails
+  const res = await fetch("/api/payment/create", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ 
+      totalAmount: finalAmount,
+      orderDetails: {
+        name: form.name,
+        email: form.email,
+        age: form.age,
+        address: form.address,
+        city: form.city,
+        state: form.state,
+        pincode: form.pincode,
+        cart: cart,
+        coupon: appliedCoupon,
+        discount: discount,
+        originalAmount: total,
+        finalAmount: finalAmount,
+      }
+    }),
+  });
 
-    if (!res.ok) {
-      setMessage("❌ Failed to create payment order.");
-      return;
-    }
+  if (!res.ok) {
+    setMessage("❌ Failed to create payment order.");
+    return;
+  }
+
 
     const razorpayOrder = await res.json();
 

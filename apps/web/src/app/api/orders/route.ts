@@ -1,9 +1,10 @@
+// apps/web/src/app/api/orders/route.ts
+
 import { NextResponse } from "next/server";
 import { getLoginSession } from "@/lib/auth";
 import { connectDB, Order, User } from "@swago/database";
 import { z } from "zod";
 
-// Updated schema to include all required fields
 const orderSchema = z.object({
   name: z.string().trim().regex(/^[a-zA-Z\s]+$/, { message: "Name can only contain letters and spaces." }),
   age: z.string().trim().min(1, { message: "Age is required" }),
@@ -19,7 +20,6 @@ const orderSchema = z.object({
     quantity: z.number(),
     image: z.string().optional(),
   })).min(1, { message: "Cart cannot be empty" }),
-  // Optional fields for discounts/coupons
   discount: z.number().optional().default(0),
   couponCode: z.string().optional(),
 });
@@ -46,13 +46,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Calculate totals
     const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     const total = subtotal - (discount || 0);
 
-    // Transform cart items to include productId
     const orderItems = cart.map((item) => ({
-      productId: item.id,        // Map id to productId
+      productId: item.id,
       name: item.name,
       price: item.price,
       quantity: item.quantity,
@@ -85,8 +83,8 @@ export async function POST(req: Request) {
   }
 }
 
-// GET endpoint to fetch user orders
-export async function GET(req: Request) {
+// 🔥 FIXED: Removed unused 'req' parameter
+export async function GET() {
   try {
     const session = await getLoginSession();
     if (!session) {
