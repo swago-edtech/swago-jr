@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getLoginSession } from "@/lib/auth";
-import { connectDB, Order, User } from "@swago/database"; // 🔥 CONVERTED: Using shared package
+import { connectDB, Order, User } from "@swago/database";
 import crypto from "crypto";
 import sgMail from "@sendgrid/mail";
 import { render } from "@react-email/render";
@@ -29,9 +29,9 @@ const orderDetailsSchema = z.object({
   email: z.string().email("A valid email is required"),
   age: z.string().trim().min(1, "Age is required"),
   address: z.string().trim().min(3, "Address must be at least 3 characters"),
-  city: z.string().trim().min(2, "City is required"),            // NEW
-  state: z.string().trim().min(2, "State is required"),          // NEW
-  pincode: z.string().regex(/^\d{6}$/, "Pincode must be 6 digits"), // NEW
+  city: z.string().trim().min(2, "City is required"),
+  state: z.string().trim().min(2, "State is required"),
+  pincode: z.string().regex(/^\d{6}$/, "Pincode must be 6 digits"),
   cart: z.array(z.object({
     id: z.number(),
     name: z.string(),
@@ -39,7 +39,6 @@ const orderDetailsSchema = z.object({
     quantity: z.number(),
     image: z.string().optional(),
   })).min(1),
-  // NEW: Add discount/coupon fields
   coupon: z.object({
     code: z.string(),
     description: z.string(),
@@ -89,20 +88,51 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
+    // 🔥 NEW: Check if webhook already created this order
+    const existingOrder = await Order.findOne({ razorpay_payment_id });
+
+    if (existingOrder) {
+      console.log('✅ Order already created by webhook:', existingOrder._id);
+      
+      // Ensure user has this order in their list (if not already)
+      if (!user.orders.includes(existingOrder._id)) {
+        user.orders.push(existingOrder._id);
+        await user.save();
+        console.log('✅ Added order to user orders list');
+      }
+      
+      // Update user email if not set
+      if (!user.email && orderDetails.email) {
+        user.email = orderDetails.email;
+        await user.save();
+        console.log('✅ Updated user email');
+      }
+      
+      return NextResponse.json({ 
+        success: true, 
+        orderId: existingOrder._id,
+        orderNumber: existingOrder._id.toString().slice(-6),
+        source: 'webhook' // Indicate it was created by webhook
+      });
+    }
+
+    // 🔥 BACKUP: If webhook hasn't created order yet, create it now
+    console.log('⚠️ Webhook order not found, creating via verify route (backup)');
+
     if (!user.email) {
       user.email = orderDetails.email;
     }
 
     // Transform cart items to include productId
     const orderItems: OrderItem[] = orderDetails.cart.map((item: CartItem) => ({
-      productId: item.id,        // Map id to productId
+      productId: item.id,
       name: item.name,
       price: item.price,
       quantity: item.quantity,
       image: item.image || '',
     }));
 
-    // Calculate totals (as a safety check)
+    // Calculate totals
     const calculatedSubtotal = orderItems.reduce(
       (sum: number, item: OrderItem) => sum + (item.price * item.quantity), 
       0
@@ -118,17 +148,17 @@ export async function POST(req: Request) {
       name: orderDetails.name,
       age: orderDetails.age,
       address: orderDetails.address,
-      city: orderDetails.city,              // NEW
-      state: orderDetails.state,            // NEW
-      pincode: orderDetails.pincode,        // NEW
+      city: orderDetails.city,
+      state: orderDetails.state,
+      pincode: orderDetails.pincode,
       status: "Paid",
       razorpay_payment_id: razorpay_payment_id,
-      razorpay_order_id: razorpay_order_id, // NEW: Store order ID too
+      razorpay_order_id: razorpay_order_id,
       items: orderItems,
-      subtotal: subtotal,                   // NEW
-      discount: discountAmount,             // NEW
-      total: total,                         // NEW
-      // Store coupon info if used
+      subtotal: subtotal,
+      discount: discountAmount,
+      total: total,
+      createdVia: 'frontend', // 🔥 Mark as created by verify route
       ...(orderDetails.coupon && {
         couponCode: orderDetails.coupon.code,
         couponDetails: orderDetails.coupon,
@@ -139,34 +169,40 @@ export async function POST(req: Request) {
     await user.save();
 
     const orderObject = newOrder.toObject();
-
-    // Use the stored total for email
     const orderTotal = orderObject.total || total;
 
-    const emailHtml = await render(
-      <OrderConfirmationEmail
-        customerName={orderObject.name}
-        orderId={orderObject._id.toString()}
-        orderDate={new Date(orderObject.createdAt).toLocaleString()}
-        items={orderObject.items}
-        totalAmount={orderTotal.toFixed(2)}
-      />
-    );
+    // Send email (wrapped in try-catch to not crash if email fails)
+    try {
+      const emailHtml = await render(
+        OrderConfirmationEmail({
+          customerName: orderObject.name,
+          orderId: orderObject._id.toString(),
+          orderDate: new Date(orderObject.createdAt).toLocaleString(),
+          items: orderObject.items,
+          totalAmount: orderTotal.toFixed(2),
+        })
+      );
 
-    const msg = {
-      to: orderObject.email,
-      bcc: process.env.SENDER_EMAIL!,
-      from: process.env.SENDER_EMAIL!,
-      subject: `Your Swago Junior Order Confirmation #${orderObject._id.toString().slice(-6)}`,
-      html: emailHtml,
-    };
+      const msg = {
+        to: orderObject.email,
+        bcc: process.env.SENDER_EMAIL!,
+        from: process.env.SENDER_EMAIL!,
+        subject: `Your Swago Junior Order Confirmation #${orderObject._id.toString().slice(-6)}`,
+        html: emailHtml,
+      };
 
-    await sgMail.send(msg);
+      await sgMail.send(msg);
+      console.log('✅ Email sent via verify route');
+    } catch (emailError) {
+      console.error('⚠️ Email failed in verify route:', emailError);
+      // Don't throw - order is already created
+    }
 
     return NextResponse.json({ 
       success: true, 
       orderId: newOrder._id,
       orderNumber: orderObject._id.toString().slice(-6),
+      source: 'frontend' // Indicate it was created by verify route
     });
 
   } catch (error) {
