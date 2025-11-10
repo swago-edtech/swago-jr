@@ -17,6 +17,8 @@
     "@swago/utils": "workspace:*",
     "embla-carousel-autoplay": "^8.6.0",
     "embla-carousel-react": "^8.6.0",
+    "firebase": "^12.5.0",
+    "firebase-admin": "^13.6.0",
     "framer-motion": "^12.23.22",
     "jose": "^6.1.0",
     "jsonwebtoken": "^9.0.2",
@@ -27,6 +29,7 @@
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-email": "^4.2.11",
+    "react-phone-number-input": "^3.4.13",
     "twilio": "^5.9.0",
     "zod": "^4.1.11"
   },

@@ -7,7 +7,6 @@ import { render } from "@react-email/render";
 import OrderConfirmationEmail from "@/emails/OrderConfirmationEmail";
 import { z } from "zod";
 
-// Type definitions
 type CartItem = {
   id: number;
   name: string;
@@ -88,42 +87,61 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // 🔥 NEW: Check if webhook already created this order
     const existingOrder = await Order.findOne({ razorpay_payment_id });
 
     if (existingOrder) {
       console.log('✅ Order already created by webhook:', existingOrder._id);
       
-      // Ensure user has this order in their list (if not already)
       if (!user.orders.includes(existingOrder._id)) {
-        user.orders.push(existingOrder._id);
-        await user.save();
-        console.log('✅ Added order to user orders list');
+        try {
+          user.orders.push(existingOrder._id);
+          await user.save();
+          console.log('✅ Added order to user orders list');
+        } catch (linkError) {
+          console.error('⚠️ Could not link existing order to user:', linkError);
+        }
       }
       
-      // Update user email if not set
       if (!user.email && orderDetails.email) {
-        user.email = orderDetails.email;
-        await user.save();
-        console.log('✅ Updated user email');
+        try {
+          user.email = orderDetails.email;
+          await user.save();
+          console.log('✅ Updated user email');
+        } catch (emailError: unknown) {
+          const err = emailError as { code?: number };
+          if (err.code === 11000) {
+            console.log('⚠️ Email already in use by another user, skipping update');
+          } else {
+            console.error('⚠️ Error updating email:', emailError);
+          }
+        }
       }
       
       return NextResponse.json({ 
         success: true, 
         orderId: existingOrder._id,
         orderNumber: existingOrder._id.toString().slice(-6),
-        source: 'webhook' // Indicate it was created by webhook
+        source: 'webhook'
       });
     }
 
-    // 🔥 BACKUP: If webhook hasn't created order yet, create it now
     console.log('⚠️ Webhook order not found, creating via verify route (backup)');
 
-    if (!user.email) {
-      user.email = orderDetails.email;
+    if (!user.email && orderDetails.email) {
+      try {
+        user.email = orderDetails.email;
+        await user.save();
+        console.log('✅ Updated user email before order creation');
+      } catch (emailError: unknown) {
+        const err = emailError as { code?: number };
+        if (err.code === 11000) {
+          console.log('⚠️ Email already in use by another user');
+        } else {
+          console.error('⚠️ Error updating user email:', emailError);
+        }
+      }
     }
 
-    // Transform cart items to include productId
     const orderItems: OrderItem[] = orderDetails.cart.map((item: CartItem) => ({
       productId: item.id,
       name: item.name,
@@ -132,7 +150,6 @@ export async function POST(req: Request) {
       image: item.image || '',
     }));
 
-    // Calculate totals
     const calculatedSubtotal = orderItems.reduce(
       (sum: number, item: OrderItem) => sum + (item.price * item.quantity), 
       0
@@ -158,20 +175,26 @@ export async function POST(req: Request) {
       subtotal: subtotal,
       discount: discountAmount,
       total: total,
-      createdVia: 'frontend', // 🔥 Mark as created by verify route
+      createdVia: 'frontend',
       ...(orderDetails.coupon && {
         couponCode: orderDetails.coupon.code,
         couponDetails: orderDetails.coupon,
       }),
     });
 
-    user.orders.push(newOrder._id);
-    await user.save();
+    console.log('✅ Order created via verify route:', newOrder._id);
+
+    try {
+      user.orders.push(newOrder._id);
+      await user.save();
+      console.log('✅ Order linked to user');
+    } catch (linkError) {
+      console.error('⚠️ Could not link order to user (order still exists):', linkError);
+    }
 
     const orderObject = newOrder.toObject();
     const orderTotal = orderObject.total || total;
 
-    // Send email (wrapped in try-catch to not crash if email fails)
     try {
       const emailHtml = await render(
         OrderConfirmationEmail({
@@ -195,14 +218,13 @@ export async function POST(req: Request) {
       console.log('✅ Email sent via verify route');
     } catch (emailError) {
       console.error('⚠️ Email failed in verify route:', emailError);
-      // Don't throw - order is already created
     }
 
     return NextResponse.json({ 
       success: true, 
       orderId: newOrder._id,
       orderNumber: orderObject._id.toString().slice(-6),
-      source: 'frontend' // Indicate it was created by verify route
+      source: 'frontend'
     });
 
   } catch (error) {
