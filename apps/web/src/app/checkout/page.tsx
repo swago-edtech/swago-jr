@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useSharedContext } from "@/context/SharedContext";
 import { useRouter } from "next/navigation";
-import Script from "next/script"; // 🔥 ADDED: Import Script
+import Script from "next/script";
 
 type RazorpaySuccessResponse = {
   razorpay_payment_id: string;
@@ -55,14 +55,15 @@ type Discount = {
 
 export default function CheckoutPage() {
   const [loading, setLoading] = useState(true);
+  const [processing, setProcessing] = useState(false);
   const [form, setForm] = useState({ 
     name: "", 
     age: "", 
     email: "",
     address: "", 
-    city: "",      // NEW
-    state: "",     // NEW
-    pincode: ""    // NEW
+    city: "",
+    state: "",
+    pincode: ""
   });
   const [message, setMessage] = useState("");
   const { cart, clearCart, user, total } = useSharedContext();
@@ -130,101 +131,140 @@ export default function CheckoutPage() {
   };
 
   const handlePayment = async () => {
-  setMessage("Processing payment...");
+    setProcessing(true);
+    setMessage("Validating your details...");
 
-  const finalAmount = getFinalTotal();
+    const finalAmount = getFinalTotal();
 
-  // 🔥 UPDATED: Now includes orderDetails
-  const res = await fetch("/api/payment/create", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ 
-      totalAmount: finalAmount,
-      orderDetails: {
-        name: form.name,
-        email: form.email,
-        age: form.age,
-        address: form.address,
-        city: form.city,
-        state: form.state,
-        pincode: form.pincode,
-        cart: cart,
-        coupon: appliedCoupon,
-        discount: discount,
-        originalAmount: total,
-        finalAmount: finalAmount,
+    try {
+      console.log('🔍 Validating checkout data...');
+      const validateRes = await fetch('/api/validate-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: form.email,
+          phone: user?.phone || '',
+        }),
+      });
+
+      const validateData = await validateRes.json();
+      
+      if (!validateData.valid) {
+        setMessage(validateData.error || '❌ Validation failed. Please check your details.');
+        setProcessing(false);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
       }
-    }),
-  });
 
-  if (!res.ok) {
-    setMessage("❌ Failed to create payment order.");
-    return;
-  }
+      console.log('✅ Validation passed');
+      setMessage("Creating payment order...");
 
+      const res = await fetch("/api/payment/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          totalAmount: finalAmount,
+          orderDetails: {
+            name: form.name,
+            email: form.email,
+            age: form.age,
+            address: form.address,
+            city: form.city,
+            state: form.state,
+            pincode: form.pincode,
+            cart: cart,
+            coupon: appliedCoupon,
+            discount: discount,
+            originalAmount: total,
+            finalAmount: finalAmount,
+          }
+        }),
+      });
 
-    const razorpayOrder = await res.json();
+      if (!res.ok) {
+        setMessage("❌ Failed to create payment order.");
+        setProcessing(false);
+        return;
+      }
 
-    // Step 2: Fetch Razorpay key securely from backend
-    const configRes = await fetch("/api/razorpay/config");
-    if (!configRes.ok) {
-      setMessage("❌ Failed to load payment configuration.");
-      return;
+      const razorpayOrder = await res.json();
+
+      const configRes = await fetch("/api/razorpay/config");
+      if (!configRes.ok) {
+        setMessage("❌ Failed to load payment configuration.");
+        setProcessing(false);
+        return;
+      }
+      const config = await configRes.json();
+
+      setMessage("Opening payment gateway...");
+
+      const options: RazorpayOptions = {
+        key: config.keyId,
+        amount: razorpayOrder.amount,
+        currency: razorpayOrder.currency,
+        name: "Swago Junior",
+        description: "Learning Kits Purchase",
+        order_id: razorpayOrder.id,
+        handler: async function (response) {
+          setMessage("Verifying payment...");
+          
+          const verificationRes = await fetch("/api/payment/verify", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_signature: response.razorpay_signature,
+              orderDetails: {
+                ...form,
+                cart,
+                coupon: appliedCoupon,
+                discount: discount,
+                originalAmount: total,
+                finalAmount: finalAmount,
+              },
+            }),
+          });
+
+          if (verificationRes.ok) {
+            setMessage("✅ Payment successful! Redirecting...");
+            clearCart();
+            setTimeout(() => {
+              router.push("/orders");
+            }, 1000);
+          } else {
+            setMessage("❌ Payment verification failed. Please contact support.");
+            setProcessing(false);
+          }
+        },
+        prefill: {
+          name: form.name,
+          email: form.email,
+          contact: user?.phone,
+        },
+        notes: {
+          address: form.address,
+        },
+        theme: {
+          color: "#3b82f6",
+        },
+      };
+
+      const paymentObject = new window.Razorpay(options);
+      
+      paymentObject.on("payment.failed", function (response) {
+        setMessage(`❌ Payment failed. Error: ${response.error.description}`);
+        setProcessing(false);
+      });
+
+      paymentObject.open();
+
+    } catch (error) {
+      console.error("Payment error:", error);
+      setMessage("❌ An error occurred. Please try again.");
+      setProcessing(false);
     }
-    const config = await configRes.json();
-
-    const options: RazorpayOptions = {
-      key: config.keyId,
-      amount: razorpayOrder.amount,
-      currency: razorpayOrder.currency,
-      name: "Swago Junior",
-      description: "Learning Kits Purchase",
-      order_id: razorpayOrder.id,
-      handler: async function (response) {
-        const verificationRes = await fetch("/api/payment/verify", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            razorpay_payment_id: response.razorpay_payment_id,
-            razorpay_order_id: response.razorpay_order_id,
-            razorpay_signature: response.razorpay_signature,
-            orderDetails: {
-              ...form,
-              cart,
-              coupon: appliedCoupon,
-              discount: discount,
-              originalAmount: total,
-              finalAmount: finalAmount,
-            },
-          }),
-        });
-
-        if (verificationRes.ok) {
-          clearCart();
-          router.push("/orders");
-        } else {
-          setMessage("❌ Payment verification failed. Please contact support.");
-        }
-      },
-      prefill: {
-        name: form.name,
-        email: form.email,
-        contact: user?.phone,
-      },
-      notes: {
-        address: form.address,
-      },
-      theme: {
-        color: "#3b82f6",
-      },
-    };
-
-    const paymentObject = new window.Razorpay(options);
-    paymentObject.open();
-
-    paymentObject.on("payment.failed", function (response) {
-      setMessage(`❌ Payment failed. Error: ${response.error.description}`);
-    });
   };
 
   useEffect(() => {
@@ -236,7 +276,9 @@ export default function CheckoutPage() {
     }
   }, [user, router]);
 
-  if (loading || !user) return <p className="p-6">Checking your login status...</p>;
+  if (loading || !user) {
+    return <p className="p-6">Checking your login status...</p>;
+  }
 
   const isFormValid = form.name && form.email && form.age && form.address && 
                      form.city && form.state && form.pincode && 
@@ -244,7 +286,6 @@ export default function CheckoutPage() {
 
   return (
     <>
-      {/* 🔥 ADDED: Load Razorpay script only on checkout page */}
       <Script 
         src="https://checkout.razorpay.com/v1/checkout.js"
         strategy="lazyOnload"
@@ -317,7 +358,6 @@ export default function CheckoutPage() {
                 name="pincode"
                 value={form.pincode}
                 onChange={(e) => {
-                  // Only allow numbers and max 6 digits
                   const value = e.target.value.replace(/\D/g, '').slice(0, 6);
                   setForm({ ...form, pincode: value });
                 }}
@@ -421,10 +461,10 @@ export default function CheckoutPage() {
 
             <button
               onClick={handlePayment}
-              disabled={!isFormValid}
+              disabled={!isFormValid || processing}
               className="w-full bg-green-500 text-white font-bold py-3 rounded-lg hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Pay ₹{getFinalTotal().toFixed(2)} Securely
+              {processing ? "Processing..." : `Pay ₹${getFinalTotal().toFixed(2)} Securely`}
             </button>
 
             {message && <p className="mt-4 text-center text-sm">{message}</p>}
