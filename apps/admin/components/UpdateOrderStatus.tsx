@@ -63,10 +63,10 @@ export default function UpdateOrderStatus({ orderId, currentStatus }: UpdateOrde
         value={status}
         onChange={(e) => handleStatusChange(e.target.value)}
         disabled={loading}
-        className="block w-full px-4 py-2 pr-8 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+        className="block w-full px-4 py-2 pr-8 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed text-gray-900 font-medium"
       >
         {statusOptions.map((option) => (
-          <option key={option.value} value={option.value}>
+          <option key={option.value} value={option.value} className="text-gray-900">
             {option.label}
           </option>
         ))}

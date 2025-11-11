@@ -1,4 +1,4 @@
-import { connectDB, Review } from '@swago/database';
+import { connectDB, Review, Order } from '@swago/database';
 import { notFound } from 'next/navigation';
 import { products } from '@swago/utils';
 import ReviewDetailClient from '@/components/ReviewDetailClient';
@@ -15,7 +15,20 @@ async function getReview(id: string) {
     return null;
   }
 
-  return JSON.parse(JSON.stringify(review));
+  // Backfill user name from order if missing
+  const reviewData = review as any;
+  if (!reviewData.userId?.name && reviewData.userId?.phone) {
+    const recentOrder = await Order.findOne({ phone: reviewData.userId.phone })
+      .sort({ createdAt: -1 })
+      .select('name')
+      .lean();
+    
+    if (recentOrder && (recentOrder as any).name) {
+      reviewData.userId.name = (recentOrder as any).name;
+    }
+  }
+
+  return JSON.parse(JSON.stringify(reviewData));
 }
 
 export default async function ReviewDetailPage({
@@ -187,16 +200,16 @@ export default async function ReviewDetailPage({
               <div>
                 <div className="text-sm text-gray-500">Name</div>
                 <div className="text-sm font-medium text-gray-900">
-                  {review.userId.name || 'Anonymous'}
+                  {review.userId?.name || `Customer ${review.userId?.phone?.slice(-4)}` || 'Anonymous'}
                 </div>
               </div>
               <div>
                 <div className="text-sm text-gray-500">Phone</div>
                 <div className="text-sm font-medium text-gray-900">
-                  {review.userId.phone}
+                  {review.userId?.phone || 'N/A'}
                 </div>
               </div>
-              {review.userId.email && (
+              {review.userId?.email && (
                 <div>
                   <div className="text-sm text-gray-500">Email</div>
                   <div className="text-sm font-medium text-gray-900">
@@ -207,21 +220,21 @@ export default async function ReviewDetailPage({
             </div>
           </div>
 
-          {/* Product Info */}
+                    {/* Product Info */}
           <div className="bg-white rounded-lg shadow p-6">
             <h3 className="text-lg font-bold text-gray-900 mb-4">Product Info</h3>
             {product ? (
               <div>
                 <img
                   src={product.images[0]}
-                  alt={product.name}
-                  className="w-full h-32 object-cover rounded-lg mb-3"
+                  alt={`${product.name} product image`}
+                  className="w-full h-32 object-cover rounded-lg mb-3 bg-gray-100"
                 />
-                <div className="text-sm font-medium text-gray-900">{product.name}</div>
-                <div className="text-sm text-gray-500">₹{product.price.toFixed(2)}</div>
+                <div className="text-sm font-semibold text-gray-900 mb-1">{product.name}</div>
+                <div className="text-base font-bold text-gray-900">₹{product.price.toFixed(2)}</div>
               </div>
             ) : (
-              <div className="text-sm text-gray-500">Product #{review.productId}</div>
+              <div className="text-sm font-semibold text-gray-900">Product #{review.productId}</div>
             )}
           </div>
 

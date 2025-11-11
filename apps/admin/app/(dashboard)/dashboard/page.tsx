@@ -111,32 +111,32 @@ export default async function DashboardPage() {
         })}
       </div>
 
-      {/* Revenue Breakdown (Optional) */}
+      {/* Revenue Breakdown */}
       <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold mb-4">Revenue Breakdown</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Revenue Breakdown</h3>
         <div className="space-y-3">
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-600">Confirmed Revenue</span>
+            <span className="text-sm font-medium text-gray-900">Confirmed Revenue</span>
             <span className="text-lg font-semibold text-green-600">
               {formatPrice(stats.confirmedRevenue)}
             </span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-600">Pending Revenue</span>
+            <span className="text-sm font-medium text-gray-900">Pending Revenue</span>
             <span className="text-lg font-semibold text-yellow-600">
               {formatPrice(stats.pendingRevenue)}
             </span>
           </div>
           <div className="border-t pt-3 flex justify-between items-center">
-            <span className="text-sm font-medium">Total Potential</span>
-            <span className="text-lg font-bold">
+            <span className="text-sm font-semibold text-gray-900">Total Potential</span>
+            <span className="text-lg font-bold text-gray-900">
               {formatPrice(stats.totalPotentialRevenue)}
             </span>
           </div>
         </div>
       </div>
 
-      {/* Recent Orders Table - Rest remains the same */}
+      {/* Recent Orders Table */}
       <div className="bg-white rounded-lg shadow">
         <div className="px-6 py-4 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-900">Recent Orders</h2>
