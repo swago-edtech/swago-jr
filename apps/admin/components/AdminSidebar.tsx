@@ -4,9 +4,11 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { LayoutDashboard, ShoppingBag, Package, Users, MessageSquare, X, Menu } from 'lucide-react';
+import { TrendingUp } from 'lucide-react';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { name: 'Analytics', href: '/analytics', icon: TrendingUp }, // ✨ ADD THIS
   { name: 'Orders', href: '/orders', icon: ShoppingBag },
   { name: 'Reviews', href: '/reviews', icon: MessageSquare },
   { name: 'Products', href: '/products', icon: Package },
