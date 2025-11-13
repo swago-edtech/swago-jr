@@ -134,6 +134,7 @@ export default function Navbar() {
                       exit="exit"
                     >
                       <div className="px-4 py-3 border-b"><p className="text-sm">Signed in as</p><p className="text-sm font-medium">{user.phone}</p></div>
+                      <Link href="/profile" onClick={() => setUserMenuOpen(false)} className="block w-full text-left px-4 py-2.5 text-sm hover:bg-slate-100 hover:text-[hsl(var(--swago-purple))]">My Profile</Link>
                       <Link href="/orders" onClick={() => setUserMenuOpen(false)} className="block w-full text-left px-4 py-2.5 text-sm hover:bg-slate-100 hover:text-[hsl(var(--swago-purple))]">My Orders</Link>
                       <button onClick={handleLogout} className="block w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50">Logout</button>
                     </motion.div>
@@ -168,10 +169,11 @@ export default function Navbar() {
             <div className="flex flex-col p-4 space-y-2">
               <Link href="/about" onClick={() => setMobileMenuOpen(false)} className="p-2 hover:bg-slate-50 rounded-md">About Us</Link>
               <Link href="/wishlist" onClick={() => setMobileMenuOpen(false)} className="p-2 hover:bg-slate-50 rounded-md">Wishlist ({wishlist.length})</Link>
+              {user && <Link href="/profile" onClick={() => setMobileMenuOpen(false)} className="p-2 hover:bg-slate-50 rounded-md">My Profile</Link>}
               {user && <Link href="/orders" onClick={() => setMobileMenuOpen(false)} className="p-2 hover:bg-slate-50 rounded-md">My Orders</Link>}
               <hr/>
               <h3 className="font-bold text-slate-400 text-xs uppercase px-2 pt-2">Shop By Age</h3>
-              <Link href="/products" onClick={() => setMobileMenuOpen(false)} className="p-2 pl-4 hover:bg-slate-50 rounded-md">All Ages</Link>
+                            <Link href="/products" onClick={() => setMobileMenuOpen(false)} className="p-2 pl-4 hover:bg-slate-50 rounded-md">All Ages</Link>
               <Link href="/products?age=5-7" onClick={() => setMobileMenuOpen(false)} className="p-2 pl-4 hover:bg-slate-50 rounded-md">Ages 5-7</Link>
               <Link href="/products?age=8-10" onClick={() => setMobileMenuOpen(false)} className="p-2 pl-4 hover:bg-slate-50 rounded-md">Ages 8-10</Link>
               <hr/>
