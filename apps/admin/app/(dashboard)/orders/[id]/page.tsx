@@ -3,6 +3,7 @@ import { formatPrice } from '@swago/utils';
 import { notFound } from 'next/navigation';
 import { products } from '@swago/utils';
 import UpdateOrderStatus from '@/components/UpdateOrderStatus';
+import ProductCodesDisplay from '@/components/ProductCodesDisplay'; // ✨ NEW
 
 async function getOrder(id: string) {
   await connectDB();
@@ -141,16 +142,16 @@ export default async function OrderDetailPage({
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase">
                   Product
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase">
                   Price
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase">
                   Quantity
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase">
                   Subtotal
                 </th>
               </tr>
@@ -173,7 +174,7 @@ export default async function OrderDetailPage({
                           <div className="text-sm font-medium text-gray-900">
                             {item.name || product?.name || 'Unknown Product'}
                           </div>
-                          <div className="text-sm text-gray-500">
+                          <div className="text-sm text-gray-900">
                             {product?.age_category || ''}
                           </div>
                         </div>
@@ -200,8 +201,8 @@ export default async function OrderDetailPage({
           <div className="flex justify-end">
             <div className="w-64 space-y-2">
               <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Subtotal:</span>
-                <span className="font-medium">{formatPrice(subtotal)}</span>
+                <span className="text-gray-900">Subtotal:</span>
+                <span className="font-medium text-gray-900">{formatPrice(subtotal)}</span>
               </div>
               {discount > 0 && (
                 <div className="flex justify-between text-sm text-green-600">
@@ -210,13 +211,16 @@ export default async function OrderDetailPage({
                 </div>
               )}
               <div className="flex justify-between text-base font-semibold border-t pt-2">
-                <span>Total:</span>
-                <span>{formatPrice(total)}</span>
+                <span className="text-gray-900">Total:</span>
+                <span className="text-gray-900">{formatPrice(total)}</span>
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      {/* ✨ NEW: Product Codes Section */}
+      <ProductCodesDisplay orderId={order._id} orderStatus={order.status} />
     </div>
   );
 }

@@ -40,6 +40,13 @@ export default function ReviewsTable({ initialReviews }: ReviewsTableProps) {
     return product ? product.name : `Product #${productId}`;
   };
 
+  // Get user display name
+  const getUserDisplayName = (user: Review['userId']) => {
+    if (user.name) return user.name;
+    if (user.phone) return `Customer ${user.phone.slice(-4)}`;
+    return 'Anonymous';
+  };
+
   // Filter reviews
   const filteredReviews = reviews.filter((review) => {
     if (statusFilter !== 'all' && review.status !== statusFilter) return false;
@@ -157,11 +164,14 @@ export default function ReviewsTable({ initialReviews }: ReviewsTableProps) {
         <div className="flex flex-wrap gap-4">
           {/* Status Filter */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+            <label htmlFor="status-filter" className="block text-sm font-medium text-gray-700 mb-1">
+              Status
+            </label>
             <select
+              id="status-filter"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:ring-2 focus:ring-blue-500"
             >
               <option value="all">All Status</option>
               <option value="pending">Pending</option>
@@ -172,11 +182,14 @@ export default function ReviewsTable({ initialReviews }: ReviewsTableProps) {
 
           {/* Sentiment Filter */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Sentiment</label>
+            <label htmlFor="sentiment-filter" className="block text-sm font-medium text-gray-700 mb-1">
+              Sentiment
+            </label>
             <select
+              id="sentiment-filter"
               value={sentimentFilter}
               onChange={(e) => setSentimentFilter(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:ring-2 focus:ring-blue-500"
             >
               <option value="all">All Sentiment</option>
               <option value="POSITIVE">Positive</option>
@@ -187,11 +200,14 @@ export default function ReviewsTable({ initialReviews }: ReviewsTableProps) {
 
           {/* Rating Filter */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Rating</label>
+            <label htmlFor="rating-filter" className="block text-sm font-medium text-gray-700 mb-1">
+              Rating
+            </label>
             <select
+              id="rating-filter"
               value={ratingFilter}
               onChange={(e) => setRatingFilter(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:ring-2 focus:ring-blue-500"
             >
               <option value="all">All Ratings</option>
               <option value="5">5 Stars</option>
@@ -233,9 +249,11 @@ export default function ReviewsTable({ initialReviews }: ReviewsTableProps) {
                 <th className="px-6 py-4 text-left">
                   <input
                     type="checkbox"
+                    id="select-all-reviews"
                     checked={selectedIds.length === filteredReviews.length && filteredReviews.length > 0}
                     onChange={(e) => handleSelectAll(e.target.checked)}
                     className="rounded border-gray-300"
+                    aria-label="Select all reviews"
                   />
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -277,9 +295,11 @@ export default function ReviewsTable({ initialReviews }: ReviewsTableProps) {
                     <td className="px-6 py-4">
                       <input
                         type="checkbox"
+                        id={`review-${review._id}`}
                         checked={selectedIds.includes(review._id)}
                         onChange={(e) => handleSelect(review._id, e.target.checked)}
                         className="rounded border-gray-300"
+                        aria-label={`Select review ${review._id.slice(-6)}`}
                       />
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -289,7 +309,7 @@ export default function ReviewsTable({ initialReviews }: ReviewsTableProps) {
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-sm font-medium text-gray-900">
-                        {review.userId.name || 'Anonymous'}
+                        {getUserDisplayName(review.userId)}
                       </div>
                       <div className="text-xs text-gray-500">{review.userId.phone}</div>
                     </td>

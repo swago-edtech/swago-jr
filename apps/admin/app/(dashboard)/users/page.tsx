@@ -1,4 +1,4 @@
-import { connectDB, User } from '@swago/database';
+import { connectDB, User, Order } from '@swago/database';
 
 async function getUsers() {
   await connectDB();
@@ -9,7 +9,25 @@ async function getUsers() {
     .populate('orders')
     .lean();
 
-  return JSON.parse(JSON.stringify(users));
+  // Backfill user names from their most recent order if missing
+  const enrichedUsers = await Promise.all(
+    users.map(async (user: any) => {
+      if (!user.name && user.phone) {
+        // Find most recent order by this user's phone
+        const recentOrder = await Order.findOne({ phone: user.phone })
+          .sort({ createdAt: -1 })
+          .select('name')
+          .lean();
+        
+        if (recentOrder && (recentOrder as any).name) {
+          user.name = (recentOrder as any).name;
+        }
+      }
+      return user;
+    })
+  );
+
+  return JSON.parse(JSON.stringify(enrichedUsers));
 }
 
 export default async function UsersPage() {
@@ -68,12 +86,12 @@ export default async function UsersPage() {
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
                           <span className="text-blue-600 font-medium text-sm">
-                            {user.name?.charAt(0).toUpperCase() || 'U'}
+                            {user.name?.charAt(0).toUpperCase() || user.phone?.slice(-2) || 'U'}
                           </span>
                         </div>
                         <div className="ml-4">
                           <div className="text-sm font-medium text-gray-900">
-                            {user.name || 'Unknown'}
+                            {user.name || `Customer ${user.phone?.slice(-4)}`}
                           </div>
                           <div className="text-xs text-gray-500">
                             ID: {user._id.slice(-6)}

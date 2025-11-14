@@ -1,4 +1,4 @@
-import { connectDB, Review } from '@swago/database';
+import { connectDB, Review, Order } from '@swago/database';
 import Link from 'next/link';
 import ReviewsTable from '@/components/ReviewsTable';
 
@@ -7,11 +7,29 @@ async function getReviews() {
   
   const reviews = await Review.find()
     .populate('userId', 'name phone email')
-    .populate('orderId', '_id')
+    .populate('orderId', '_id name')
     .sort({ createdAt: -1 })
     .lean();
 
-  return JSON.parse(JSON.stringify(reviews));
+  // Backfill user names from orders if missing
+  const enrichedReviews = await Promise.all(
+    reviews.map(async (review: any) => {
+      if (!review.userId?.name && review.userId?.phone) {
+        // Find most recent order by this user's phone
+        const recentOrder = await Order.findOne({ phone: review.userId.phone })
+          .sort({ createdAt: -1 })
+          .select('name')
+          .lean();
+        
+        if (recentOrder && (recentOrder as any).name && review.userId) {
+          review.userId.name = (recentOrder as any).name;
+        }
+      }
+      return review;
+    })
+  );
+
+  return JSON.parse(JSON.stringify(enrichedReviews));
 }
 
 async function getReviewStats() {
@@ -42,7 +60,7 @@ export default async function ReviewsPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white rounded-lg shadow p-6">
           <div className="text-sm text-gray-500 uppercase tracking-wider">Total Reviews</div>
           <div className="text-3xl font-bold text-gray-900 mt-2">{stats.total}</div>
