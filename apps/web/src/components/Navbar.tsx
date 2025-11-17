@@ -1,3 +1,4 @@
+// src/components/Navbar.tsx
 "use client";
 
 import Link from "next/link";
@@ -13,7 +14,7 @@ const dropdownVariants: Variants = {
 };
 
 export default function Navbar() {
-  const { user, cart, wishlist } = useSharedContext();
+  const { user, cart, wishlist, selectedKid } = useSharedContext();
   
   const [isAgeDropdownOpen, setAgeDropdownOpen] = useState(false);
   const [isElementDropdownOpen, setElementDropdownOpen] = useState(false);
@@ -44,11 +45,9 @@ export default function Navbar() {
   }, []);
 
   return (
-    // FIX 2: Added z-50 to ensure navbar and dropdowns are on top of all content
     <nav className="w-full bg-white text-slate-800 p-4 flex justify-between items-center border-b border-slate-200 shadow-sm relative z-50">
       <Logo />
       
-      {/* FIX 1: Grouped all right-side elements together for correct alignment */}
       <div className="flex items-center gap-6">
         {/* --- Desktop Navigation --- */}
         <div className="hidden md:flex items-center gap-6 text-sm font-medium text-slate-600">
@@ -104,11 +103,37 @@ export default function Navbar() {
 
         {/* --- Right side Icons --- */}
         <div className="flex items-center gap-4">
+          {/* Kids Zone Button */}
+          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+            {selectedKid ? (
+              <Link
+                href="/kids/dashboard"
+                className="flex items-center gap-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-2 rounded-full text-sm shadow-md font-bold"
+              >
+                <div
+                  className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold"
+                  style={{ backgroundColor: selectedKid.avatarColor }}
+                >
+                  {selectedKid.name.charAt(0).toUpperCase()}
+                </div>
+                <span className="hidden sm:inline">{selectedKid.name}</span>
+              </Link>
+            ) : (
+              <Link
+                href="/kids"
+                className="bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold px-4 py-2 rounded-full text-sm shadow-md hidden md:flex items-center gap-2"
+              >
+                <span>🎮</span>
+                <span>Kids Zone</span>
+              </Link>
+            )}
+          </motion.div>
+
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
             <Link href="/cart" className="flex items-center gap-2 text-white font-bold bg-[hsl(var(--swago-pink))] px-4 py-2 rounded-full text-sm shadow-md">
               <CartIcon />
               <span className="hidden sm:inline">Cart</span>
-              {itemCount > 0 && <span className="bg-white text-[hsl(var(--swago-pink))] rounded-full px-2 text-xs">{itemCount}</span>}
+               {itemCount > 0 && <span className="bg-white text-[hsl(var(--swago-pink))] rounded-full px-2 text-xs">{itemCount}</span>}
             </Link>
           </motion.div>
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="hidden md:block">
@@ -168,12 +193,22 @@ export default function Navbar() {
           >
             <div className="flex flex-col p-4 space-y-2">
               <Link href="/about" onClick={() => setMobileMenuOpen(false)} className="p-2 hover:bg-slate-50 rounded-md">About Us</Link>
+              
+              {/* Kids Zone Mobile Link */}
+              <Link 
+                href="/kids" 
+                onClick={() => setMobileMenuOpen(false)} 
+                className="p-2 hover:bg-slate-50 rounded-md flex items-center gap-2 font-bold text-purple-600"
+              >
+                <span>🎮</span> Kids Zone
+              </Link>
+              
               <Link href="/wishlist" onClick={() => setMobileMenuOpen(false)} className="p-2 hover:bg-slate-50 rounded-md">Wishlist ({wishlist.length})</Link>
               {user && <Link href="/profile" onClick={() => setMobileMenuOpen(false)} className="p-2 hover:bg-slate-50 rounded-md">My Profile</Link>}
               {user && <Link href="/orders" onClick={() => setMobileMenuOpen(false)} className="p-2 hover:bg-slate-50 rounded-md">My Orders</Link>}
               <hr/>
               <h3 className="font-bold text-slate-400 text-xs uppercase px-2 pt-2">Shop By Age</h3>
-                            <Link href="/products" onClick={() => setMobileMenuOpen(false)} className="p-2 pl-4 hover:bg-slate-50 rounded-md">All Ages</Link>
+              <Link href="/products" onClick={() => setMobileMenuOpen(false)} className="p-2 pl-4 hover:bg-slate-50 rounded-md">All Ages</Link>
               <Link href="/products?age=5-7" onClick={() => setMobileMenuOpen(false)} className="p-2 pl-4 hover:bg-slate-50 rounded-md">Ages 5-7</Link>
               <Link href="/products?age=8-10" onClick={() => setMobileMenuOpen(false)} className="p-2 pl-4 hover:bg-slate-50 rounded-md">Ages 8-10</Link>
               <hr/>

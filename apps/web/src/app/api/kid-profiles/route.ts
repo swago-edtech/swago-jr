@@ -1,6 +1,8 @@
+// apps/web/src/app/api/kid-profiles/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB, KidProfile, User } from "@swago/database";
 import { getLoginSession } from "@/lib/auth";
+import bcrypt from "bcryptjs";
 
 // GET - List all kid profiles for the logged-in parent
 export async function GET() {
@@ -25,7 +27,7 @@ export async function GET() {
     }
 
     const profiles = await KidProfile.find({ userId: user._id })
-      .select("-__v")
+      .select("-__v") // Remove only __v, keep pin for checking
       .sort({ createdAt: -1 });
 
     // Transform to match frontend expectations
@@ -34,10 +36,13 @@ export async function GET() {
       name: profile.username,
       age: profile.age,
       grade: profile.grade,
-      avatarColor: profile.avatar, // Will store color hex or emoji
+      avatarColor: profile.avatar,
+      hasPin: !!profile.pin, // Check if PIN exists
+      isLocked: profile.lockedUntil ? profile.lockedUntil > new Date() : false,
       unlockedProducts: profile.unlockedProducts.map((p: { productId: string }) => p.productId),
       createdAt: profile.createdAt,
     }));
+    // Note: We don't return the actual pin hash, just check if it exists
 
     return NextResponse.json({ profiles: transformedProfiles });
   } catch (error) {
@@ -49,7 +54,7 @@ export async function GET() {
   }
 }
 
-// POST - Create a new kid profile
+// POST - Create a new kid profile with optional PIN
 export async function POST(request: NextRequest) {
   try {
     const session = await getLoginSession();
@@ -66,7 +71,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { name, age, avatarColor, grade } = await request.json();
+    const { name, age, avatarColor, grade, pin, pinHint } = await request.json();
 
     // Validation
     if (!name || !age || !avatarColor) {
@@ -81,6 +86,16 @@ export async function POST(request: NextRequest) {
         { error: "Age must be between 3 and 18" },
         { status: 400 }
       );
+    }
+
+    // Validate PIN if provided
+    if (pin) {
+      if (!/^\d{4}$/.test(pin)) {
+        return NextResponse.json(
+          { error: "PIN must be exactly 4 digits" },
+          { status: 400 }
+        );
+      }
     }
 
     await connectDB();
@@ -113,13 +128,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Hash PIN if provided
+    let hashedPin = null;
+    if (pin) {
+      const salt = await bcrypt.genSalt(10);
+      hashedPin = await bcrypt.hash(pin, salt);
+    }
+
     // Create new profile
     const newProfile = new KidProfile({
       userId: user._id,
       username: name.trim(),
       age,
       grade: grade || undefined,
-      avatar: avatarColor, // Store the color or emoji
+      avatar: avatarColor,
+      pin: hashedPin,
+      pinHint: pin ? pinHint || null : null,
+      pinAttempts: 0,
+      lockedUntil: null,
       unlockedProducts: [],
       progress: {},
     });
@@ -133,6 +159,7 @@ export async function POST(request: NextRequest) {
       age: newProfile.age,
       grade: newProfile.grade,
       avatarColor: newProfile.avatar,
+      hasPin: !!hashedPin,
       unlockedProducts: [],
       createdAt: newProfile.createdAt,
     };

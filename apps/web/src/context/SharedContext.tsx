@@ -1,3 +1,4 @@
+// apps/web/src/context/SharedContext.tsx
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
@@ -36,6 +37,13 @@ export type User = {
   email?: string;
 };
 
+export type SelectedKid = {
+  _id: string;
+  name: string;
+  age: number;
+  avatarColor: string;
+};
+
 type SharedContextType = {
   cart: CartItem[];
   total: number;
@@ -50,30 +58,67 @@ type SharedContextType = {
   addToWishlist: (productId: number) => void;
   removeFromWishlist: (productId: number) => void;
   isWishlisted: (productId: number) => boolean;
+  selectedKid: SelectedKid | null;
+  setSelectedKid: (kid: SelectedKid | null) => void;
+  clearSelectedKid: () => void;
 };
 
 const SharedContext = createContext<SharedContextType | undefined>(undefined);
 const STORAGE_KEY = "swago_cart";
+const KID_STORAGE_KEY = "selectedKidProfile";
 
 export function SharedProvider({ children }: { children: React.ReactNode }) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [user, setUser] = useState<User | null>(null);
   const [wishlist, setWishlist] = useState<number[]>([]);
+  const [selectedKid, setSelectedKidState] = useState<SelectedKid | null>(null);
   const pathname = usePathname();
 
+  // Load cart from localStorage on mount
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) setCart(JSON.parse(raw));
-    } catch (e) { console.error(e); }
+    } catch (e) { 
+      console.error("Error loading cart:", e); 
+    }
   }, []);
 
+  // Load selected kid from localStorage on mount
+  useEffect(() => {
+    try {
+      const storedKid = localStorage.getItem(KID_STORAGE_KEY);
+      if (storedKid) {
+        setSelectedKidState(JSON.parse(storedKid));
+      }
+    } catch (e) {
+      console.error("Error loading selected kid:", e);
+    }
+  }, []);
+
+  // Save cart to localStorage whenever it changes
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(cart));
-    } catch (e) { console.error(e); }
+    } catch (e) { 
+      console.error("Error saving cart:", e); 
+    }
   }, [cart]);
 
+  // Save selected kid to localStorage whenever it changes
+  useEffect(() => {
+    try {
+      if (selectedKid) {
+        localStorage.setItem(KID_STORAGE_KEY, JSON.stringify(selectedKid));
+      } else {
+        localStorage.removeItem(KID_STORAGE_KEY);
+      }
+    } catch (e) {
+      console.error("Error saving selected kid:", e);
+    }
+  }, [selectedKid]);
+
+  // Check user authentication status
   useEffect(() => {
     async function checkUser() {
       try {
@@ -100,6 +145,7 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
     checkUser();
   }, [pathname]);
   
+  // Wishlist functions
   const addToWishlist = async (productId: number) => {
     if (!user) {
       alert("Please log in to add items to your wishlist.");
@@ -127,6 +173,7 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
     return wishlist.includes(productId);
   };
 
+  // Cart functions
   const addToCart = (product: Product, quantity: number = 1) => {
     setCart((prev) => {
       const existing = prev.find((p) => p.id === product.id);
@@ -145,9 +192,40 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
   const decreaseQty = (id: number) => setCart((prev) => prev.map((p) => (p.id === id ? { ...p, quantity: Math.max(0, p.quantity - 1) } : p)).filter((p) => p.quantity > 0));
   const total = cart.reduce((s, it) => s + it.price * it.quantity, 0);
 
+  // Kid profile functions
+  const setSelectedKid = (kid: SelectedKid | null) => {
+    setSelectedKidState(kid);
+  };
+
+  const clearSelectedKid = () => {
+    setSelectedKidState(null);
+    try {
+      localStorage.removeItem(KID_STORAGE_KEY);
+    } catch (e) {
+      console.error("Error clearing selected kid:", e);
+    }
+  };
+
   return (
     <SharedContext.Provider
-      value={{ cart, total, addToCart, removeFromCart, clearCart, increaseQty, decreaseQty, user, setUser, wishlist, addToWishlist, removeFromWishlist, isWishlisted }}
+      value={{ 
+        cart, 
+        total, 
+        addToCart, 
+        removeFromCart, 
+        clearCart, 
+        increaseQty, 
+        decreaseQty, 
+        user, 
+        setUser, 
+        wishlist, 
+        addToWishlist, 
+        removeFromWishlist, 
+        isWishlisted,
+        selectedKid,
+        setSelectedKid,
+        clearSelectedKid
+      }}
     >
       {children}
     </SharedContext.Provider>

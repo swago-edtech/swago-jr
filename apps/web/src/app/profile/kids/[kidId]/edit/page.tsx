@@ -1,9 +1,34 @@
+// src/app/profile/kids/[kidId]/edit/page.tsx
 "use client";
 
 import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useSharedContext } from "@/context/SharedContext";
+
+// Define types for the profile data
+interface KidProfileData {
+  _id: string;
+  name: string;
+  age: number;
+  grade?: string;
+  avatarColor: string;
+  hasPin: boolean;
+  pinHint: string;
+  isLocked: boolean;
+  unlockedProducts: string[];
+  createdAt: string;
+}
+
+interface ProfileUpdateData {
+  name: string;
+  age: number;
+  grade?: string;
+  avatarColor: string;
+  removePin?: boolean;
+  pin?: string;
+  pinHint?: string | null;
+}
 
 const avatarColors = [
   "#8B5CF6", // Purple
@@ -32,17 +57,24 @@ export default function EditKidProfilePage({
 }: { 
   params: Promise<{ kidId: string }> 
 }) {
-  const { kidId } = use(params); // Unwrap params with React.use()
+  const { kidId } = use(params);
   const { user } = useSharedContext();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [profileData, setProfileData] = useState<KidProfileData | null>(null);
+  const [showPinSection, setShowPinSection] = useState(false);
+  const [pinAction, setPinAction] = useState<"none" | "change" | "remove">("none");
+  
   const [form, setForm] = useState({
     name: "",
     age: "",
     grade: "",
     avatarColor: avatarColors[0],
+    pin: "",
+    confirmPin: "",
+    pinHint: "",
   });
 
   useEffect(() => {
@@ -57,12 +89,20 @@ export default function EditKidProfilePage({
         const res = await fetch(`/api/kid-profiles/${kidId}`);
         if (res.ok) {
           const data = await res.json();
+          setProfileData(data.profile);
           setForm({
             name: data.profile.name,
             age: data.profile.age.toString(),
             grade: data.profile.grade || "",
             avatarColor: data.profile.avatarColor,
+            pin: "",
+            confirmPin: "",
+            pinHint: data.profile.pinHint || "",
           });
+          // If profile has PIN, show the section but don't enable changing by default
+          if (data.profile.hasPin) {
+            setShowPinSection(true);
+          }
         } else if (res.status === 404) {
           setError("Profile not found");
           setTimeout(() => router.push("/profile"), 2000);
@@ -93,19 +133,48 @@ export default function EditKidProfilePage({
       return;
     }
 
+    // PIN validation if changing
+    if (pinAction === "change" && form.pin) {
+      if (!/^\d{4}$/.test(form.pin)) {
+        setError("PIN must be exactly 4 digits");
+        return;
+      }
+      if (form.pin !== form.confirmPin) {
+        setError("PINs don't match");
+        return;
+      }
+    }
+
     setSaving(true);
     setError("");
 
     try {
+      const updateData: ProfileUpdateData = {
+        name: form.name.trim(),
+        age: age,
+        grade: form.grade || undefined,
+        avatarColor: form.avatarColor,
+      };
+
+      // Handle PIN updates based on action
+      if (pinAction === "remove") {
+        updateData.removePin = true;
+      } else if (pinAction === "change" && form.pin) {
+        updateData.pin = form.pin;
+        updateData.pinHint = form.pinHint || null;
+      } else if (showPinSection && !profileData?.hasPin && form.pin) {
+        // Setting PIN for first time
+        updateData.pin = form.pin;
+        updateData.pinHint = form.pinHint || null;
+      } else if (profileData?.hasPin && form.pinHint !== profileData.pinHint) {
+        // Just updating the hint
+        updateData.pinHint = form.pinHint;
+      }
+
       const res = await fetch(`/api/kid-profiles/${kidId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: form.name.trim(),
-          age: age,
-          grade: form.grade || undefined,
-          avatarColor: form.avatarColor,
-        }),
+        body: JSON.stringify(updateData),
       });
 
       const data = await res.json();
@@ -234,9 +303,210 @@ export default function EditKidProfilePage({
                     }`}
                     style={{ backgroundColor: color }}
                     aria-label={`Select ${color} color`}
+                    title={`Select ${color} avatar color`}
                   />
                 ))}
               </div>
+            </div>
+
+            {/* PIN Protection Section */}
+            <div className="border-t pt-6">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <label className="block text-sm font-medium">
+                    🔐 PIN Protection
+                  </label>
+                  <p className="text-xs text-slate-500 mt-1">
+                    {profileData?.hasPin 
+                      ? "This profile is PIN protected" 
+                      : "Protect this profile with a 4-digit PIN"}
+                  </p>
+                </div>
+                
+                {!profileData?.hasPin && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowPinSection(!showPinSection);
+                      if (!showPinSection) {
+                        setForm({ ...form, pin: "", confirmPin: "", pinHint: "" });
+                      }
+                    }}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      showPinSection ? "bg-purple-600" : "bg-gray-200"
+                    }`}
+                    aria-label={showPinSection ? "Disable PIN setup" : "Enable PIN setup"}
+                    title={showPinSection ? "Click to disable PIN setup" : "Click to enable PIN setup"}
+                  >
+                    <span className="sr-only">
+                      {showPinSection ? "PIN setup enabled" : "PIN setup disabled"}
+                    </span>
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        showPinSection ? "translate-x-6" : "translate-x-1"
+                      }`}
+                    />
+                  </button>
+                )}
+              </div>
+
+              {/* PIN Status for existing PIN */}
+              {profileData?.hasPin && (
+                <div className="bg-purple-50 rounded-lg p-4 mb-4">
+                  <div className="flex items-center justify-between mb-3">
+                                        <span className="text-sm font-medium text-purple-800">
+                      PIN is currently active
+                    </span>
+                    {profileData.isLocked && (
+                      <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full">
+                        🔒 Locked
+                      </span>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPinAction(pinAction === "change" ? "none" : "change");
+                        setForm({ ...form, pin: "", confirmPin: "" });
+                      }}
+                      className={`text-sm px-3 py-1.5 rounded-md mr-2 ${
+                        pinAction === "change" 
+                          ? "bg-purple-600 text-white" 
+                          : "bg-white text-purple-600 border border-purple-300"
+                      }`}
+                    >
+                      {pinAction === "change" ? "Cancel Change" : "Change PIN"}
+                    </button>
+                    
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (confirm("Are you sure you want to remove PIN protection?")) {
+                          setPinAction("remove");
+                        }
+                      }}
+                      className="text-sm px-3 py-1.5 rounded-md bg-red-50 text-red-600 border border-red-300 hover:bg-red-100"
+                    >
+                      Remove PIN
+                    </button>
+                  </div>
+
+                  {/* Current PIN Hint */}
+                  <div className="mt-3">
+                    <label htmlFor="pinHint" className="block text-sm font-medium mb-1">
+                      PIN Hint
+                    </label>
+                    <input
+                      type="text"
+                      id="pinHint"
+                      name="pinHint"
+                      value={form.pinHint}
+                      onChange={handleChange}
+                      placeholder="e.g., Your favorite number, Your age twice"
+                      className="w-full border border-slate-300 rounded-md p-2 text-sm"
+                      maxLength={100}
+                    />
+                    <p className="text-xs text-slate-500 mt-1">
+                      Update the hint that shows after 3 wrong attempts
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* PIN Setup/Change Fields */}
+              {((showPinSection && !profileData?.hasPin) || pinAction === "change") && (
+                <div className="space-y-4 bg-purple-50 rounded-lg p-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label htmlFor="pin" className="block text-sm font-medium mb-1">
+                        {pinAction === "change" ? "New PIN" : "4-Digit PIN"}
+                      </label>
+                      <input
+                        type="text"
+                        id="pin"
+                        name="pin"
+                        value={form.pin}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/\D/g, "").slice(0, 4);
+                          setForm({ ...form, pin: value });
+                        }}
+                        placeholder="0000"
+                        className="w-full border border-slate-300 rounded-md p-3 text-center font-mono text-lg"
+                        maxLength={4}
+                        pattern="\d{4}"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="confirmPin" className="block text-sm font-medium mb-1">
+                        Confirm PIN
+                      </label>
+                      <input
+                        type="text"
+                        id="confirmPin"
+                        name="confirmPin"
+                        value={form.confirmPin}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/\D/g, "").slice(0, 4);
+                          setForm({ ...form, confirmPin: value });
+                        }}
+                        placeholder="0000"
+                        className="w-full border border-slate-300 rounded-md p-3 text-center font-mono text-lg"
+                        maxLength={4}
+                        pattern="\d{4}"
+                      />
+                    </div>
+                  </div>
+                  
+                  {!profileData?.hasPin && (
+                    <div>
+                      <label htmlFor="newPinHint" className="block text-sm font-medium mb-1">
+                        PIN Hint (Optional)
+                      </label>
+                      <input
+                        type="text"
+                        id="newPinHint"
+                        name="pinHint"
+                        value={form.pinHint}
+                        onChange={handleChange}
+                        placeholder="e.g., Your favorite number, Your age twice"
+                        className="w-full border border-slate-300 rounded-md p-3"
+                        maxLength={100}
+                      />
+                      <p className="text-xs text-slate-500 mt-1">
+                        This hint will be shown after 3 wrong attempts
+                      </p>
+                    </div>
+                  )}
+
+                  {form.pin && form.confirmPin && form.pin !== form.confirmPin && (
+                    <p className="text-xs text-red-600">PINs don&apos;t match</p>
+                  )}
+                </div>
+              )}
+
+              {/* PIN Removal Confirmation */}
+              {pinAction === "remove" && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <p className="text-sm text-red-800 mb-2">
+                    ⚠️ Are you sure you want to remove PIN protection?
+                  </p>
+                  <p className="text-xs text-red-600 mb-3">
+                    Anyone will be able to access this profile without a PIN.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setPinAction("none")}
+                    className="text-sm px-3 py-1.5 rounded-md bg-white text-slate-600 border border-slate-300 mr-2"
+                  >
+                    Cancel
+                  </button>
+                  <span className="text-sm text-red-600">
+                    PIN will be removed when you save changes
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Preview */}
@@ -255,6 +525,24 @@ export default function EditKidProfilePage({
                     {form.age ? `${form.age} years old` : "Age not set"}
                     {form.grade && ` • ${form.grade}`}
                   </p>
+                  <div className="flex items-center gap-2 mt-1">
+                    {(profileData?.hasPin && pinAction !== "remove") && (
+                      <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
+                        🔐 Protected
+                      </span>
+                    )}
+                    {pinAction === "remove" && (
+                      <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full">
+                        🔓 PIN will be removed
+                      </span>
+                    )}
+                    {((showPinSection && !profileData?.hasPin && form.pin) || 
+                      (pinAction === "change" && form.pin)) && (
+                      <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
+                        🔐 Will be protected
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -288,9 +576,14 @@ export default function EditKidProfilePage({
         {/* Info Box */}
         <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
           <p className="text-sm text-blue-900">
-            <strong>💡 Note:</strong> The username must be unique for each kid in your account. 
-            Kids will use this name to select their profile when playing games.
+            <strong>💡 PIN Protection Tips:</strong>
           </p>
+          <ul className="text-sm text-blue-900 mt-2 space-y-1 list-disc list-inside">
+            <li>Use a PIN your kid can remember easily</li>
+            <li>The PIN will be required every time they log in</li>
+            <li>After 5 wrong attempts, the profile will be temporarily locked</li>
+            <li>You can always remove or reset the PIN from your parent profile</li>
+          </ul>
         </div>
       </div>
     </div>

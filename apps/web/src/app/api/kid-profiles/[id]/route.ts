@@ -1,6 +1,20 @@
+// apps/web/src/app/api/kid-profiles/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB, KidProfile, User } from "@swago/database";
 import { getLoginSession } from "@/lib/auth";
+import bcrypt from "bcryptjs";
+
+// Define type for update data
+interface UpdateData {
+  username?: string;
+  age?: number;
+  avatar?: string;
+  grade?: string | null;
+  pin?: string | null;
+  pinHint?: string | null;
+  pinAttempts?: number;
+  lockedUntil?: Date | null;
+}
 
 // GET - Get a single kid profile
 export async function GET(
@@ -9,7 +23,7 @@ export async function GET(
 ) {
   try {
     const session = await getLoginSession();
-    const { id } = await params; // Await params
+    const { id } = await params;
 
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -24,16 +38,16 @@ export async function GET(
 
     await connectDB();
 
-    // Get user ID from phone
     const user = await User.findOne({ phone: session.phone });
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
+    // IMPORTANT: Don't use .select("-pin") here - we need to check if PIN exists
     const profile = await KidProfile.findOne({
       _id: id,
       userId: user._id,
-    });
+    }); // Fetch WITH pin field so we can check if it exists
 
     if (!profile) {
       return NextResponse.json(
@@ -43,15 +57,20 @@ export async function GET(
     }
 
     // Transform to match frontend expectations
+    // Check if PIN exists but don't send the actual hash
     const transformedProfile = {
       _id: profile._id,
       name: profile.username,
       age: profile.age,
       grade: profile.grade,
       avatarColor: profile.avatar,
+      hasPin: !!profile.pin,  // This will now work correctly
+      pinHint: profile.pinHint || "",
+      isLocked: profile.lockedUntil ? profile.lockedUntil > new Date() : false,
       unlockedProducts: profile.unlockedProducts.map((p: { productId: string }) => p.productId),
       createdAt: profile.createdAt,
     };
+    // Note: We don't include the actual pin hash in the response
 
     return NextResponse.json({ profile: transformedProfile });
   } catch (error) {
@@ -70,7 +89,7 @@ export async function PATCH(
 ) {
   try {
     const session = await getLoginSession();
-    const { id } = await params; // Await params
+    const { id } = await params;
 
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -83,7 +102,7 @@ export async function PATCH(
       );
     }
 
-    const { name, age, avatarColor, grade } = await request.json();
+    const { name, age, avatarColor, grade, pin, pinHint, removePin } = await request.json();
 
     // Validation
     if (age && (age < 3 || age > 18)) {
@@ -93,9 +112,16 @@ export async function PATCH(
       );
     }
 
+    // Validate PIN if provided
+    if (pin && !/^\d{4}$/.test(pin)) {
+      return NextResponse.json(
+        { error: "PIN must be exactly 4 digits" },
+        { status: 400 }
+      );
+    }
+
     await connectDB();
 
-    // Get user ID from phone
     const user = await User.findOne({ phone: session.phone });
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
@@ -117,33 +143,55 @@ export async function PATCH(
       }
     }
 
-    const profile = await KidProfile.findOneAndUpdate(
+    // Prepare update object with proper typing
+    const updateData: UpdateData = {};
+    if (name) updateData.username = name.trim();
+    if (age) updateData.age = age;
+    if (avatarColor) updateData.avatar = avatarColor;
+    if (grade !== undefined) updateData.grade = grade || null;
+    
+    // Handle PIN updates
+    if (removePin) {
+      updateData.pin = null;
+      updateData.pinHint = null;
+      updateData.pinAttempts = 0;
+      updateData.lockedUntil = null;
+    } else if (pin) {
+      const salt = await bcrypt.genSalt(10);
+      updateData.pin = await bcrypt.hash(pin, salt);
+      updateData.pinHint = pinHint || null;
+      updateData.pinAttempts = 0;
+      updateData.lockedUntil = null;
+    } else if (pinHint !== undefined) {
+      updateData.pinHint = pinHint;
+    }
+
+    // Update the profile
+    const updatedProfile = await KidProfile.findOneAndUpdate(
       { _id: id, userId: user._id },
-      {
-        ...(name && { username: name.trim() }),
-        ...(age && { age }),
-        ...(avatarColor && { avatar: avatarColor }),
-        ...(grade && { grade }),
-      },
-      { new: true }
+      updateData,
+      { new: true } // Return the updated document
     );
 
-    if (!profile) {
+    if (!updatedProfile) {
       return NextResponse.json(
-        { error: "Profile not found or unauthorized" },
+        { error: "Profile not found" },
         { status: 404 }
       );
     }
 
-    // Transform response
+    // Transform to match frontend expectations
     const transformedProfile = {
-      _id: profile._id,
-      name: profile.username,
-      age: profile.age,
-      grade: profile.grade,
-      avatarColor: profile.avatar,
-      unlockedProducts: profile.unlockedProducts.map((p: { productId: string }) => p.productId),
-      createdAt: profile.createdAt,
+      _id: updatedProfile._id,
+      name: updatedProfile.username,
+      age: updatedProfile.age,
+      grade: updatedProfile.grade,
+      avatarColor: updatedProfile.avatar,
+      hasPin: !!updatedProfile.pin,  // This will now reflect the updated state
+      pinHint: updatedProfile.pinHint || "",
+      isLocked: updatedProfile.lockedUntil ? updatedProfile.lockedUntil > new Date() : false,
+      unlockedProducts: updatedProfile.unlockedProducts.map((p: { productId: string }) => p.productId),
+      createdAt: updatedProfile.createdAt,
     };
 
     return NextResponse.json({
@@ -166,7 +214,7 @@ export async function DELETE(
 ) {
   try {
     const session = await getLoginSession();
-    const { id } = await params; // Await params
+    const { id } = await params;
 
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -181,7 +229,6 @@ export async function DELETE(
 
     await connectDB();
 
-    // Get user ID from phone
     const user = await User.findOne({ phone: session.phone });
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
