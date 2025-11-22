@@ -54,7 +54,6 @@ type Discount = {
 };
 
 export default function CheckoutPage() {
-  const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [form, setForm] = useState({ 
     name: "", 
@@ -66,7 +65,7 @@ export default function CheckoutPage() {
     pincode: ""
   });
   const [message, setMessage] = useState("");
-  const { cart, clearCart, user, total } = useSharedContext();
+  const { cart, clearCart, user, total, isLoadingUser } = useSharedContext(); // 🔥 Added isLoadingUser
   const router = useRouter();
 
   const [couponCode, setCouponCode] = useState("");
@@ -267,17 +266,45 @@ export default function CheckoutPage() {
     }
   };
 
+  // 🔥 FIXED: Use isLoadingUser instead of user === undefined
   useEffect(() => {
-    if (user === undefined) return;
+    if (isLoadingUser) return; // Wait for loading to complete
+    
     if (!user) {
       router.push("/login?redirect=/checkout");
-    } else {
-      setLoading(false);
     }
-  }, [user, router]);
+  }, [user, isLoadingUser, router]);
 
-  if (loading || !user) {
-    return <p className="p-6">Checking your login status...</p>;
+  // 🔥 FIXED: Check isLoadingUser properly
+  if (isLoadingUser) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-center p-12">Loading checkout...</p>
+      </div>
+    );
+  }
+
+  // If not loading but no user, show nothing (will redirect)
+  if (!user) {
+    return null;
+  }
+
+  // Check if cart is empty
+  if (cart.length === 0) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center py-12">
+          <h1 className="text-3xl font-bold mb-4">Your cart is empty</h1>
+          <p className="text-slate-600 mb-6">Add some products to continue checkout</p>
+          <button
+            onClick={() => router.push('/products')}
+            className="bg-[hsl(var(--swago-purple))] text-white px-6 py-3 rounded-lg hover:opacity-90"
+          >
+            Browse Products
+          </button>
+        </div>
+      </div>
+    );
   }
 
   const isFormValid = form.name && form.email && form.age && form.address && 
@@ -343,7 +370,7 @@ export default function CheckoutPage() {
                       <input
                         type="text"
                         value={couponCode}
-                        onChange={(e) => setCouponCode(e.target.value)}
+                                                onChange={(e) => setCouponCode(e.target.value)}
                         placeholder="Enter coupon code"
                         className="w-full rounded-md border border-slate-300 px-3 py-2 pr-20 text-sm"
                         onKeyDown={(e) => e.key === "Enter" && applyCoupon()}

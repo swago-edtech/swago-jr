@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSharedContext } from "@/context/SharedContext";
+import { USER_EVENTS } from "@/context/SharedContext"; // Import the events
 import PhoneInput from "react-phone-number-input";
 import "react-phone-number-input/style.css";
 import { auth } from "@/lib/firebase-client";
@@ -174,6 +175,9 @@ export default function LoginForm() {
         const data = await res.json();
         setUser(data.user);
         setMessage("✅ Login successful!");
+        
+        // 🔥 NEW: Trigger login event to refresh user data
+        window.dispatchEvent(new CustomEvent(USER_EVENTS.LOGIN));
         
         // Small delay for success message
         setTimeout(() => {

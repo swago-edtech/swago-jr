@@ -27,12 +27,33 @@ export default function OrdersPage() {
   const [reviewingOrder, setReviewingOrder] = useState<string | null>(null);
   const [reviewingProduct, setReviewingProduct] = useState<{ name: string; id: number } | null>(null);
 
-  useEffect(() => {
-    if (user && user.orders) {
-      setOrders(user.orders as Order[]);
+useEffect(() => {
+  // Fetch orders from dedicated endpoint
+  const fetchOrders = async () => {
+    if (!user) {
+      setLoading(false);
+      return;
     }
-    setLoading(false);
-  }, [user]);
+
+    try {
+      const response = await fetch('/api/orders');
+      if (response.ok) {
+        const data = await response.json();
+        setOrders(data.orders || []);
+      } else {
+        console.error('Failed to fetch orders');
+        setOrders([]);
+      }
+    } catch (error) {
+      console.error('Error fetching orders:', error);
+      setOrders([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchOrders();
+}, [user]);
 
   const getProductIdByName = (productName: string): number | null => {
     const product = products.find((p) => p.name === productName);

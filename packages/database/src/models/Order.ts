@@ -55,4 +55,14 @@ const OrderSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// 🔥 PERFORMANCE INDEXES - Added for optimization
+// Critical index for user's orders lookup (most used query)
+OrderSchema.index({ phone: 1, createdAt: -1 });     
+
+// Admin panel indexes
+OrderSchema.index({ createdAt: -1 });               
+OrderSchema.index({ status: 1, createdAt: -1 });    
+
+// Note: razorpay_payment_id already has unique index from field definition
+
 export default mongoose.models.Order || mongoose.model("Order", OrderSchema);

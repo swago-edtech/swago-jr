@@ -2,7 +2,6 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
 
 type PopulatedOrder = {
   _id: string;
@@ -54,6 +53,8 @@ type SharedContextType = {
   decreaseQty: (id: number) => void;
   user: User | null;
   setUser: (user: User | null) => void;
+  isLoadingUser: boolean;
+  refreshUser: () => Promise<void>;
   wishlist: number[];
   addToWishlist: (productId: number) => void;
   removeFromWishlist: (productId: number) => void;
@@ -67,12 +68,20 @@ const SharedContext = createContext<SharedContextType | undefined>(undefined);
 const STORAGE_KEY = "swago_cart";
 const KID_STORAGE_KEY = "selectedKidProfile";
 
+// Event names for user updates
+const USER_EVENTS = {
+  LOGIN: 'user:login',
+  LOGOUT: 'user:logout',
+  PROFILE_UPDATE: 'user:profile_update',
+  WISHLIST_UPDATE: 'user:wishlist_update',
+};
+
 export function SharedProvider({ children }: { children: React.ReactNode }) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [user, setUser] = useState<User | null>(null);
+  const [isLoadingUser, setIsLoadingUser] = useState(true);
   const [wishlist, setWishlist] = useState<number[]>([]);
   const [selectedKid, setSelectedKidState] = useState<SelectedKid | null>(null);
-  const pathname = usePathname();
 
   // Load cart from localStorage on mount
   useEffect(() => {
@@ -118,32 +127,77 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
     }
   }, [selectedKid]);
 
-  // Check user authentication status
-  useEffect(() => {
-    async function checkUser() {
-      try {
-        const res = await fetch("/api/me", { cache: "no-store" });
-        if (res.ok) {
-          const data = await res.json();
-          const loggedInUser = data.loggedIn ? data.user : null;
-          setUser(loggedInUser);
-          if (loggedInUser) {
-            setWishlist(loggedInUser.wishlist || []);
-          } else {
-            setWishlist([]);
-          }
+  // Centralized function to fetch user data
+  const fetchUserData = async () => {
+    try {
+      setIsLoadingUser(true);
+      const res = await fetch("/api/me", { 
+        headers: {
+          'Cache-Control': 'private, max-age=5, stale-while-revalidate=30',
+        }
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        const loggedInUser = data.loggedIn ? data.user : null;
+        setUser(loggedInUser);
+        if (loggedInUser) {
+          setWishlist(loggedInUser.wishlist || []);
         } else {
-          setUser(null);
           setWishlist([]);
         }
-      } catch (error: unknown) {
-        console.error("Failed to check user:", error);
+      } else {
         setUser(null);
         setWishlist([]);
       }
+    } catch (error: unknown) {
+      console.error("Failed to check user:", error);
+      setUser(null);
+      setWishlist([]);
+    } finally {
+      setIsLoadingUser(false);
     }
-    checkUser();
-  }, [pathname]);
+  };
+
+  // Manual refresh function
+  const refreshUser = async () => {
+    await fetchUserData();
+  };
+
+  // Check user on mount ONLY
+  useEffect(() => {
+    fetchUserData();
+  }, []);
+
+  // Listen for user update events
+  useEffect(() => {
+    const handleUserEvent = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      console.log('User event received:', customEvent.type);
+      
+      if (customEvent.type === USER_EVENTS.LOGIN || 
+          customEvent.type === USER_EVENTS.PROFILE_UPDATE ||
+          customEvent.type === USER_EVENTS.WISHLIST_UPDATE) {
+        fetchUserData();
+      } else if (customEvent.type === USER_EVENTS.LOGOUT) {
+        setUser(null);
+        setWishlist([]);
+        setIsLoadingUser(false);
+      }
+    };
+
+    window.addEventListener(USER_EVENTS.LOGIN, handleUserEvent);
+    window.addEventListener(USER_EVENTS.LOGOUT, handleUserEvent);
+    window.addEventListener(USER_EVENTS.PROFILE_UPDATE, handleUserEvent);
+    window.addEventListener(USER_EVENTS.WISHLIST_UPDATE, handleUserEvent);
+
+    return () => {
+      window.removeEventListener(USER_EVENTS.LOGIN, handleUserEvent);
+      window.removeEventListener(USER_EVENTS.LOGOUT, handleUserEvent);
+      window.removeEventListener(USER_EVENTS.PROFILE_UPDATE, handleUserEvent);
+      window.removeEventListener(USER_EVENTS.WISHLIST_UPDATE, handleUserEvent);
+    };
+  }, []);
   
   // Wishlist functions
   const addToWishlist = async (productId: number) => {
@@ -157,6 +211,7 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ productId }),
     });
+    window.dispatchEvent(new CustomEvent(USER_EVENTS.WISHLIST_UPDATE));
   };
 
   const removeFromWishlist = async (productId: number) => {
@@ -167,6 +222,7 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ productId }),
     });
+    window.dispatchEvent(new CustomEvent(USER_EVENTS.WISHLIST_UPDATE));
   };
 
   const isWishlisted = (productId: number) => {
@@ -217,7 +273,9 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
         increaseQty, 
         decreaseQty, 
         user, 
-        setUser, 
+        setUser,
+        isLoadingUser,
+        refreshUser,
         wishlist, 
         addToWishlist, 
         removeFromWishlist, 
@@ -231,6 +289,8 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
     </SharedContext.Provider>
   );
 }
+
+export { USER_EVENTS };
 
 export function useSharedContext() {
   const ctx = useContext(SharedContext);

@@ -83,7 +83,7 @@ export async function POST(req: Request) {
   }
 }
 
-// 🔥 FIXED: Removed unused 'req' parameter
+// 🔥 OPTIMIZED: Limited to 15 recent orders
 export async function GET() {
   try {
     const session = await getLoginSession();
@@ -93,8 +93,10 @@ export async function GET() {
 
     await connectDB();
     
+    // 🔥 LIMITED TO 15 RECENT ORDERS FOR PERFORMANCE
     const orders = await Order.find({ phone: session.phone })
       .sort({ createdAt: -1 })
+      .limit(15)  // ← Only fetch 15 most recent orders
       .lean();
 
     return NextResponse.json({ success: true, orders });

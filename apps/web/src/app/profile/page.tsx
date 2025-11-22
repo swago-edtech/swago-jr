@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useSharedContext } from "@/context/SharedContext";
+import { useSharedContext, USER_EVENTS } from "@/context/SharedContext";
 
 type KidProfile = {
   _id: string;
@@ -15,7 +15,7 @@ type KidProfile = {
 };
 
 export default function ProfilePage() {
-  const { user, setUser } = useSharedContext();
+  const { user, setUser, isLoadingUser } = useSharedContext();
   const router = useRouter();
   const [kidProfiles, setKidProfiles] = useState<KidProfile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -31,7 +31,9 @@ export default function ProfilePage() {
   const [parentError, setParentError] = useState("");
 
   useEffect(() => {
-    if (user === undefined) return;
+    // Wait for user loading to complete
+    if (isLoadingUser) return;
+    
     if (!user) {
       router.push("/login?redirect=/profile");
     } else {
@@ -43,7 +45,7 @@ export default function ProfilePage() {
       });
       fetchKidProfiles();
     }
-  }, [user, router]);
+  }, [user, isLoadingUser, router]);
 
   const fetchKidProfiles = async () => {
     try {
@@ -81,6 +83,10 @@ export default function ProfilePage() {
           email: parentForm.email,
           address: parentForm.address,
         });
+        
+        // 🔥 NEW: Trigger profile update event to refresh cached data
+        window.dispatchEvent(new CustomEvent(USER_EVENTS.PROFILE_UPDATE));
+        
         setIsEditingParent(false);
       } else {
         setParentError(data.error || "Failed to update profile");
@@ -112,8 +118,13 @@ export default function ProfilePage() {
     }
   };
 
-  if (loading || !user) {
+  // 🔥 FIXED: Check both isLoadingUser and loading state
+  if (isLoadingUser || loading) {
     return <p className="text-center p-12">Loading profile...</p>;
+  }
+
+  if (!user) {
+    return null; // Will redirect in useEffect
   }
 
   return (
