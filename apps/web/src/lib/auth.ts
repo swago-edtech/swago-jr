@@ -6,15 +6,16 @@ const secret = new TextEncoder().encode(
 );
 const cookieName = "session";
 
-// ✅ Read and verify session cookie
+// ✅ FIXED: Session can have phone OR email
 export async function getLoginSession() {
-  const cookieStore = await cookies(); // <- await is required in your version
+  const cookieStore = await cookies();
   const token = cookieStore.get(cookieName)?.value;
   if (!token) return null;
 
   try {
     const { payload } = await jwtVerify(token, secret);
-    return payload as { phone: string; isDemo?: boolean };
+    // ✅ Support both phone and email sessions
+    return payload as { phone?: string; email?: string; isDemo?: boolean };
   } catch {
     return null;
   }

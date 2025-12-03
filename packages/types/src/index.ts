@@ -1,15 +1,69 @@
-// Product Types
+// Main Product interface (matches database)
 export interface Product {
   _id: string;
   name: string;
-  price: number;
   description: string;
-  category: string;
+  price: number;
+  originalPrice?: number;
   images: string[];
-  inStock: boolean;
+  ageCategory: "5-7" | "8-10" | "11-13";
+  coreElements: Array<"S" | "W" | "A" | "G" | "O">;
+  boxContents: string;
+  benefits: string;
+  stock: number;
+  lowStockThreshold: number;
+  totalSold: number;
+  isActive: boolean;
+  isFeatured: boolean;
+  slug: string;
   createdAt: Date;
   updatedAt: Date;
 }
+
+// For admin create/update forms
+export interface CreateProductInput {
+  name: string;
+  description: string;
+  price: number;
+  originalPrice?: number;
+  images: string[];
+  ageCategory: "5-7" | "8-10" | "11-13";
+  coreElements: Array<"S" | "W" | "A" | "G" | "O">;
+  boxContents: string;
+  benefits: string;
+  stock: number;
+  lowStockThreshold?: number;
+  isFeatured?: boolean;
+  isActive?: boolean;
+}
+
+// For public-facing product displays (customer side)
+export interface PublicProduct {
+  _id: string;
+  name: string;
+  description: string;
+  price: number;
+  originalPrice?: number;
+  images: string[];
+  ageCategory: string;
+  coreElements: string[];
+  boxContents: string;
+  benefits: string;
+  stock: number; // Customer needs to see stock
+  slug: string;
+}
+
+// For product list filters (admin & frontend)
+export interface ProductFilters {
+  search?: string;
+  ageCategory?: string;
+  coreElements?: string[];
+  stockStatus?: 'all' | 'in-stock' | 'low-stock' | 'out-of-stock';
+  isActive?: boolean;
+  isFeatured?: boolean;
+}
+
+
 
 // User Types  
 export interface User {
@@ -133,3 +187,56 @@ export interface RazorpayWebhookEvent {
   event: 'payment.captured' | 'payment.failed' | string;
   payload: RazorpayWebhookPayload;
 }
+
+
+
+
+// MSG91 Widget Types
+export interface MSG91WidgetConfig {
+  widgetId: string;
+  tokenAuth: string;
+  identifier?: string;
+  exposeMethods: boolean;
+  captchaRenderId?: string;
+  success?: (data: MSG91WidgetSuccessData) => void;
+  failure?: (error: MSG91WidgetError) => void;
+}
+
+export interface MSG91WidgetSuccessData {
+  message: string;
+  token?: string; // JWT access token after OTP verification
+  [key: string]: any;
+}
+
+export interface MSG91WidgetError {
+  message: string;
+  code?: string;
+  [key: string]: any;
+}
+
+// Global window extensions for MSG91 widget methods
+declare global {
+  interface Window {
+    sendOtp?: (
+      identifier: string,
+      onSuccess?: (data: MSG91WidgetSuccessData) => void,
+      onError?: (error: MSG91WidgetError) => void
+    ) => void;
+    verifyOtp?: (
+      otp: string,
+      onSuccess?: (data: MSG91WidgetSuccessData) => void,
+      onError?: (error: MSG91WidgetError) => void
+    ) => void;
+    retryOtp?: (
+      channel: string | null,
+      onSuccess?: (data: MSG91WidgetSuccessData) => void,
+      onError?: (error: MSG91WidgetError) => void,
+      reqId?: string
+    ) => void;
+    getWidgetData?: () => any;
+    isCaptchaVerified?: () => boolean;
+    initSendOTP?: (config: MSG91WidgetConfig) => void;
+  }
+}
+
+export {};

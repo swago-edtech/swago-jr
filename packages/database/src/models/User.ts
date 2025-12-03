@@ -7,18 +7,25 @@ const UserSchema = new mongoose.Schema(
     // Sparse unique indexes allow null values (admin has no phone, customer has no email)
     phone: { 
       type: String, 
-      unique: true,  // ← Automatically creates unique index
-      sparse: true   // ← Allows null/undefined (admin users)
+      unique: true,
+      sparse: true
     },
     
     email: { 
       type: String, 
-      unique: true,  // ← Automatically creates unique index
-      sparse: true   // ← Allows null/undefined (customer users)
+      unique: true,
+      sparse: true
+    },
+    
+    // ✅ NEW: Track authentication method
+    authMethod: {
+      type: String,
+      enum: ['phone', 'email'],
+      required: false  // Existing users don't have this
     },
     
     // Admin fields
-    password: { type: String }, // Only for admin users
+    password: { type: String },
     isAdmin: {
       type: Boolean,
       default: false,
@@ -26,7 +33,7 @@ const UserSchema = new mongoose.Schema(
     
     // Customer fields
     wishlist: [{
-      type: Number,  // Product IDs from static products.ts
+      type: Number,
     }],
     age: { type: Number },
     address: { type: String },
@@ -35,9 +42,8 @@ const UserSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Additional indexes for query optimization
-// (unique: true in field definition already creates indexes for phone/email)
-UserSchema.index({ isAdmin: 1 }); // Fast admin user lookups
+// Additional indexes
+UserSchema.index({ isAdmin: 1 });
 
 const User = mongoose.models.User || mongoose.model("User", UserSchema);
 export default User;

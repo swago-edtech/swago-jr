@@ -3,6 +3,10 @@ import { useEffect, useState } from "react";
 import { useSharedContext } from "@/context/SharedContext";
 import { useRouter } from "next/navigation";
 import Script from "next/script";
+//import PhoneInput, { getCountryCallingCode } from 'react-phone-number-input';
+import PhoneInput from 'react-phone-number-input';
+import 'react-phone-number-input/style.css';
+import { isPossiblePhoneNumber, parsePhoneNumber } from 'react-phone-number-input';
 
 type RazorpaySuccessResponse = {
   razorpay_payment_id: string;
@@ -59,13 +63,14 @@ export default function CheckoutPage() {
     name: "", 
     age: "", 
     email: "",
+    phone: "",
     address: "", 
     city: "",
     state: "",
     pincode: ""
   });
   const [message, setMessage] = useState("");
-  const { cart, clearCart, user, total, isLoadingUser } = useSharedContext(); // 🔥 Added isLoadingUser
+  const { cart, clearCart, user, total, isLoadingUser } = useSharedContext();
   const router = useRouter();
 
   const [couponCode, setCouponCode] = useState("");
@@ -73,6 +78,70 @@ export default function CheckoutPage() {
   const [discount, setDiscount] = useState<Discount | null>(null);
   const [couponLoading, setCouponLoading] = useState(false);
   const [couponMessage, setCouponMessage] = useState("");
+  
+  // ✅ NEW: State for pincode features
+  const [isIndianNumber, setIsIndianNumber] = useState(true);
+  const [pincodeLoading, setPincodeLoading] = useState(false);
+  const [pincodeError, setPincodeError] = useState("");
+
+  // ✅ Pre-fill form with user data
+  useEffect(() => {
+    if (user) {
+      setForm(prev => ({
+        ...prev,
+        email: user.email || prev.email,
+        phone: user.phone || prev.phone,
+        name: user.name || prev.name,
+      }));
+    }
+  }, [user]);
+
+  // ✅ NEW: Detect if phone is Indian
+  useEffect(() => {
+    if (form.phone) {
+      try {
+        const phoneNumber = parsePhoneNumber(form.phone);
+        setIsIndianNumber(phoneNumber?.country === 'IN');
+      } catch {
+        setIsIndianNumber(false);
+      }
+    }
+  }, [form.phone]);
+
+  // ✅ NEW: Auto-fill city/state from pincode (India only)
+  useEffect(() => {
+    if (!isIndianNumber || form.pincode.length !== 6) return;
+
+    const fetchPincodeData = async () => {
+      setPincodeLoading(true);
+      setPincodeError("");
+
+      try {
+        const response = await fetch(`https://api.postalpincode.in/pincode/${form.pincode}`);
+        const data = await response.json();
+
+        if (data[0]?.Status === "Success" && data[0]?.PostOffice?.length > 0) {
+          const postOffice = data[0].PostOffice[0];
+          setForm(prev => ({
+            ...prev,
+            city: postOffice.District || prev.city,
+            state: postOffice.State || prev.state,
+          }));
+          setPincodeError("");
+        } else {
+          setPincodeError("Invalid pincode");
+        }
+      } catch (error) {
+        console.error("Pincode lookup error:", error);
+        setPincodeError("Could not verify pincode");
+      } finally {
+        setPincodeLoading(false);
+      }
+    };
+
+    const debounce = setTimeout(fetchPincodeData, 500);
+    return () => clearTimeout(debounce);
+  }, [form.pincode, isIndianNumber]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -142,7 +211,7 @@ export default function CheckoutPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: form.email,
-          phone: user?.phone || '',
+          phone: form.phone,
         }),
       });
 
@@ -166,6 +235,7 @@ export default function CheckoutPage() {
           orderDetails: {
             name: form.name,
             email: form.email,
+            phone: form.phone,
             age: form.age,
             address: form.address,
             city: form.city,
@@ -240,7 +310,7 @@ export default function CheckoutPage() {
         prefill: {
           name: form.name,
           email: form.email,
-          contact: user?.phone,
+          contact: form.phone,
         },
         notes: {
           address: form.address,
@@ -266,16 +336,14 @@ export default function CheckoutPage() {
     }
   };
 
-  // 🔥 FIXED: Use isLoadingUser instead of user === undefined
   useEffect(() => {
-    if (isLoadingUser) return; // Wait for loading to complete
+    if (isLoadingUser) return;
     
     if (!user) {
       router.push("/login?redirect=/checkout");
     }
   }, [user, isLoadingUser, router]);
 
-  // 🔥 FIXED: Check isLoadingUser properly
   if (isLoadingUser) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -284,12 +352,10 @@ export default function CheckoutPage() {
     );
   }
 
-  // If not loading but no user, show nothing (will redirect)
   if (!user) {
     return null;
   }
 
-  // Check if cart is empty
   if (cart.length === 0) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -307,9 +373,12 @@ export default function CheckoutPage() {
     );
   }
 
-  const isFormValid = form.name && form.email && form.age && form.address && 
-                     form.city && form.state && form.pincode && 
-                     form.pincode.length === 6;
+  // ✅ Updated validation - pincode only required for India
+  const isFormValid = form.name && form.email && form.phone && 
+                     isPossiblePhoneNumber(form.phone || '') &&
+                     form.age && form.address && 
+                     form.city && form.state &&
+                     (isIndianNumber ? (form.pincode && form.pincode.length === 6) : true);
 
   return (
     <>
@@ -328,7 +397,6 @@ export default function CheckoutPage() {
             <div className="bg-slate-50 p-6 border-b">
               <h2 className="text-xl font-bold mb-4">Order Summary</h2>
               
-              {/* Order Total Box */}
               <div className="bg-white rounded-lg border p-4 mb-4">
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
@@ -361,7 +429,6 @@ export default function CheckoutPage() {
                 </div>
               </div>
 
-              {/* Coupon Box */}
               <div className="bg-white rounded-lg border p-4">
                 <h3 className="font-semibold mb-3">Have a Coupon?</h3>
                 {!appliedCoupon ? (
@@ -370,7 +437,7 @@ export default function CheckoutPage() {
                       <input
                         type="text"
                         value={couponCode}
-                                                onChange={(e) => setCouponCode(e.target.value)}
+                        onChange={(e) => setCouponCode(e.target.value)}
                         placeholder="Enter coupon code"
                         className="w-full rounded-md border border-slate-300 px-3 py-2 pr-20 text-sm"
                         onKeyDown={(e) => e.key === "Enter" && applyCoupon()}
@@ -436,7 +503,7 @@ export default function CheckoutPage() {
                   </div>
 
                   <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
                       Email Address *
                     </label>
                     <input
@@ -449,6 +516,30 @@ export default function CheckoutPage() {
                       required
                     />
                   </div>
+                </div>
+
+                {/* ✅ Phone Number with Country Selector */}
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Phone Number *
+                  </label>
+                  <PhoneInput
+                  international
+                  defaultCountry="IN"
+                  value={form.phone}
+                  onChange={(value) => setForm({ ...form, phone: value || '' })}
+                  placeholder="Enter phone number"
+                  numberInputProps={{
+                    className: "w-full border border-slate-300 rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  }}
+                  countrySelectProps={{
+                    className: "border-slate-300 rounded-l-md"
+                    }}
+                    />
+
+                  {form.phone && !isPossiblePhoneNumber(form.phone) && (
+                    <p className="text-red-500 text-xs mt-1">Please enter a valid phone number</p>
+                  )}
                 </div>
 
                 <div>
@@ -482,6 +573,55 @@ export default function CheckoutPage() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* ✅ Smart Pincode - Only for India */}
+                  {isIndianNumber && (
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                        Pincode *
+                      </label>
+                      <input
+                        type="text"
+                        name="pincode"
+                        value={form.pincode}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/\D/g, '').slice(0, 6);
+                          setForm({ ...form, pincode: value });
+                        }}
+                        placeholder="6 digits"
+                        className="w-full border border-slate-300 rounded-md p-3"
+                        maxLength={6}
+                        required
+                      />
+                      {pincodeLoading && (
+                        <p className="text-blue-500 text-xs mt-1">Looking up pincode...</p>
+                      )}
+                      {pincodeError && (
+                        <p className="text-red-500 text-xs mt-1">{pincodeError}</p>
+                      )}
+                      {form.pincode && form.pincode.length === 6 && !pincodeError && !pincodeLoading && (
+                        <p className="text-green-500 text-xs mt-1">✓ Pincode verified</p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* ✅ Optional Postal Code for International */}
+                  {!isIndianNumber && (
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                        Postal Code
+                      </label>
+                      <input
+                        type="text"
+                        name="pincode"
+                        value={form.pincode}
+                        onChange={(e) => setForm({ ...form, pincode: e.target.value.slice(0, 10) })}
+                        placeholder="Optional"
+                        className="w-full border border-slate-300 rounded-md p-3"
+                        maxLength={10}
+                      />
+                    </div>
+                  )}
+
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">
                       City *
@@ -511,29 +651,6 @@ export default function CheckoutPage() {
                       required
                     />
                   </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">
-                      Pincode *
-                    </label>
-                    <input
-                      type="text"
-                      name="pincode"
-                      value={form.pincode}
-                      onChange={(e) => {
-                        const value = e.target.value.replace(/\D/g, '').slice(0, 6);
-                        setForm({ ...form, pincode: value });
-                      }}
-                      placeholder="6 digits"
-                      className="w-full border border-slate-300 rounded-md p-3"
-                      maxLength={6}
-                      pattern="[0-9]{6}"
-                      required
-                    />
-                    {form.pincode && form.pincode.length !== 6 && (
-                      <p className="text-red-500 text-xs mt-1">Pincode must be 6 digits</p>
-                    )}
-                  </div>
                 </div>
               </div>
             </div>
@@ -561,19 +678,7 @@ export default function CheckoutPage() {
                   disabled={!isFormValid || processing}
                   className="w-full bg-green-500 text-white font-bold py-4 rounded-lg hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
-                  {processing ? (
-                    <span className="flex items-center justify-center">
-                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Processing...
-                    </span>
-                  ) : (
-                    <>
-                      🔒 Pay Securely Now
-                    </>
-                  )}
+                  {processing ? "Processing..." : "🔒 Pay Securely Now"}
                 </button>
 
                 {!isFormValid && (

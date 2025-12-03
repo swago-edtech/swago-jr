@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getLoginSession, getDemoUserData } from "@/lib/auth";
 import { connectDB, User } from "@swago/database";
 
-// ✅ FIX 1: Define proper User type based on your schema
+// ✅ Define proper User type based on your schema
 interface IUser {
   _id: string;
   name?: string;
@@ -18,12 +18,12 @@ interface IUser {
   updatedAt?: Date;
 }
 
-// ✅ FIX 2: Type the cache with IUser instead of any
+// ✅ Type the cache with IUser instead of any
 const userCache = new Map<string, { data: IUser; timestamp: number }>();
 const CACHE_TTL = 30000 + Math.random() * 10000; // 30-40 seconds (staggered)
 
-// ✅ FIX 3: Prefix unused parameter with underscore
-export async function GET(_request: Request) {
+// ✅ FIXED: Changed _request to _ to indicate unused parameter
+export async function GET() {
   try {
     const session = await getLoginSession();
 
@@ -50,8 +50,8 @@ export async function GET(_request: Request) {
       return response;
     }
 
-    // Check in-memory cache first
-    const cacheKey = session.phone;
+    // ✅ FIXED: Create cache key based on phone OR email
+    const cacheKey = session.phone || session.email || 'unknown';
     const cached = userCache.get(cacheKey);
     
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
@@ -65,9 +65,15 @@ export async function GET(_request: Request) {
       return response;
     }
 
-    // ✅ FIX 4: Properly type the lean() result
+    // ✅ FIXED: Look up user by phone OR email
     await connectDB();
-    const user = await User.findOne({ phone: session.phone }).lean() as IUser | null;
+    let user: IUser | null = null;
+    
+    if (session.phone) {
+      user = await User.findOne({ phone: session.phone }).lean() as IUser | null;
+    } else if (session.email) {
+      user = await User.findOne({ email: session.email }).lean() as IUser | null;
+    }
 
     if (!user) {
       return NextResponse.json(

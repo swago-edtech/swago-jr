@@ -11,6 +11,11 @@ const CouponDetailsSchema = new mongoose.Schema({
 
 const OrderSchema = new mongoose.Schema(
   {
+    userId: { 
+      type: mongoose.Schema.Types.ObjectId, 
+      ref: "User",
+      required: true
+    },
     phone: { type: String, required: true },
     email: { type: String, required: true },
     name: { type: String, required: true },
@@ -22,7 +27,7 @@ const OrderSchema = new mongoose.Schema(
     status: { type: String, default: "Pending" },
     items: [
       {
-        productId: { type: Number, required: true },
+        productId: { type: mongoose.Schema.Types.Mixed, required: true }, // ✅ CHANGED: Now accepts both Number and String
         name: String,
         price: Number,
         quantity: Number,
@@ -34,8 +39,8 @@ const OrderSchema = new mongoose.Schema(
     total: { type: Number, required: true },
     razorpay_payment_id: { 
       type: String, 
-      unique: true,      // 🔥 NEW: Prevent duplicate orders
-      sparse: true       // 🔥 NEW: Allow null values
+      unique: true,
+      sparse: true
     },
     razorpay_order_id: { type: String },
     couponCode: { type: String },
@@ -43,7 +48,6 @@ const OrderSchema = new mongoose.Schema(
       type: CouponDetailsSchema, 
       required: false 
     },
-    // 🔥 NEW: Webhook tracking fields
     createdVia: { 
       type: String, 
       enum: ['webhook', 'frontend'], 
@@ -55,14 +59,14 @@ const OrderSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// 🔥 PERFORMANCE INDEXES - Added for optimization
-// Critical index for user's orders lookup (most used query)
+// ✅ UPDATED: Critical index for user's orders lookup by userId
+OrderSchema.index({ userId: 1, createdAt: -1 });     
+
+// Keep phone index for backward compatibility
 OrderSchema.index({ phone: 1, createdAt: -1 });     
 
 // Admin panel indexes
 OrderSchema.index({ createdAt: -1 });               
 OrderSchema.index({ status: 1, createdAt: -1 });    
-
-// Note: razorpay_payment_id already has unique index from field definition
 
 export default mongoose.models.Order || mongoose.model("Order", OrderSchema);

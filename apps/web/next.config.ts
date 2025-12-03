@@ -8,8 +8,19 @@ const nextConfig: NextConfig = {
   // Optional: Fix the workspace root warning
   outputFileTracingRoot: path.join(__dirname, '../..'),
   
-  // 🔥 FIXED: Moved out of experimental (Next.js 15 update)
-  serverExternalPackages: ['mongoose']
+  // Server-side packages
+  serverExternalPackages: ['mongoose'],
+  
+  // ✅ Image configuration for external domains
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'res.cloudinary.com',
+        pathname: '/**',
+      },
+    ],
+  },
 };
 
 export default nextConfig;

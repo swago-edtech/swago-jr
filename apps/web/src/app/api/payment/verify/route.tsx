@@ -1,14 +1,15 @@
 import { NextResponse } from "next/server";
 import { getLoginSession } from "@/lib/auth";
-import { connectDB, Order, User } from "@swago/database";
+import { connectDB, Order, User, Product } from "@swago/database";
 import crypto from "crypto";
-import sgMail from "@sendgrid/mail";
-import { render } from "@react-email/render";
-import OrderConfirmationEmail from "@/emails/OrderConfirmationEmail";
 import { z } from "zod";
+import { sendOrderConfirmationEmail } from "@/lib/msg91-email";
+import mongoose from "mongoose";
+import { isValidObjectId } from "mongoose";
 
 type CartItem = {
-  id: number;
+  id?: number;
+  _id?: string;
   name: string;
   price: number;
   quantity: number;
@@ -16,23 +17,47 @@ type CartItem = {
 };
 
 type OrderItem = {
-  productId: number;
+  productId: number | string;
   name: string;
   price: number;
   quantity: number;
   image: string;
 };
 
+// ✅ Type for order object items from database
+interface OrderItemFromDb {
+  productId: number | string;
+  name: string;
+  price: number;
+  quantity: number;
+  image?: string;
+  _id?: string;
+}
+
+// ✅ Type for product document
+interface ProductDocument {
+  _id: string;
+  name: string;
+  slug?: string;
+  stock: number;
+  reservedStock?: number;
+  totalSold?: number;
+  save: () => Promise<void>;
+  [key: string]: unknown;
+}
+
 const orderDetailsSchema = z.object({
   name: z.string().trim().min(1, "Name is required"),
   email: z.string().email("A valid email is required"),
+  phone: z.string().min(10, "Phone is required"),
   age: z.string().trim().min(1, "Age is required"),
   address: z.string().trim().min(3, "Address must be at least 3 characters"),
   city: z.string().trim().min(2, "City is required"),
   state: z.string().trim().min(2, "State is required"),
-  pincode: z.string().regex(/^\d{6}$/, "Pincode must be 6 digits"),
+  pincode: z.string().min(1, "Pincode/Postal code is required"),
   cart: z.array(z.object({
-    id: z.number(),
+    id: z.number().optional(),
+    _id: z.string().optional(),
     name: z.string(),
     price: z.number(),
     quantity: z.number(),
@@ -54,7 +79,27 @@ const orderDetailsSchema = z.object({
   finalAmount: z.number(),
 });
 
-sgMail.setApiKey(process.env.SENDGRID_API_KEY!);
+// ========================================
+// ✅ Helper to get product by ID or slug
+// ========================================
+async function getProductById(id: string | number): Promise<ProductDocument | null> {
+  try {
+    const idString = id.toString();
+    
+    // Try slug first
+    let product = await Product.findOne({ slug: idString });
+    
+    // Try MongoDB _id if valid ObjectId
+    if (!product && isValidObjectId(idString)) {
+      product = await Product.findOne({ _id: idString });
+    }
+    
+    return product as ProductDocument | null;
+  } catch (error) {
+    console.error('Error fetching product:', error);
+    return null;
+  }
+}
 
 export async function POST(req: Request) {
   try {
@@ -82,7 +127,15 @@ export async function POST(req: Request) {
     }
 
     await connectDB();
-    const user = await User.findOne({ phone: session.phone });
+    
+    // Find user by login credentials (phone OR email)
+    let user = null;
+    if (session.phone) {
+      user = await User.findOne({ phone: session.phone });
+    } else if (session.email) {
+      user = await User.findOne({ email: session.email });
+    }
+    
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
@@ -91,6 +144,13 @@ export async function POST(req: Request) {
 
     if (existingOrder) {
       console.log('✅ Order already created by webhook:', existingOrder._id);
+      
+      // Ensure userId is set (for old orders from webhook)
+      if (!existingOrder.userId) {
+        existingOrder.userId = new mongoose.Types.ObjectId(user._id);
+        await existingOrder.save();
+        console.log('✅ Added userId to existing order');
+      }
       
       if (!user.orders.includes(existingOrder._id)) {
         try {
@@ -102,6 +162,23 @@ export async function POST(req: Request) {
         }
       }
       
+      // Update phone for email-only users
+      if (!user.phone && orderDetails.phone) {
+        try {
+          user.phone = orderDetails.phone;
+          await user.save();
+          console.log('✅ First order: Added phone to email-only user profile:', orderDetails.phone);
+        } catch (phoneError: unknown) {
+          const err = phoneError as { code?: number };
+          if (err.code === 11000) {
+            console.log('⚠️ Phone already in use by another user, skipping update');
+          } else {
+            console.error('⚠️ Error updating phone:', phoneError);
+          }
+        }
+      }
+      
+      // Update email for phone-only users
       if (!user.email && orderDetails.email) {
         try {
           user.email = orderDetails.email;
@@ -127,6 +204,69 @@ export async function POST(req: Request) {
 
     console.log('⚠️ Webhook order not found, creating via verify route (backup)');
 
+    // ========================================
+    // ✅ STOCK MANAGEMENT: Process stock reduction
+    // ========================================
+    console.log('🔄 Processing stock for', orderDetails.cart.length, 'items via verify route');
+    
+    for (const item of orderDetails.cart) {
+      const productId = item._id || item.id;
+      if (!productId) {
+        console.log('⚠️ Skipping item with no ID:', item.name);
+        continue;
+      }
+
+      const product = await getProductById(productId);
+      
+      if (!product) {
+        console.log(`⚠️ Product not found: ${item.name} (ID: ${productId})`);
+        continue;
+      }
+
+      const quantity = item.quantity || 1;
+      
+      // Store old values for logging
+      const oldStock = product.stock;
+      const oldReserved = product.reservedStock || 0;
+      const oldSold = product.totalSold || 0;
+      
+      // Reduce actual stock
+      product.stock = Math.max(0, product.stock - quantity);
+      
+      // Release reserved stock (if any)
+      product.reservedStock = Math.max(0, (product.reservedStock || 0) - quantity);
+      
+      // Increase total sold
+      product.totalSold = (product.totalSold || 0) + quantity;
+      
+      await product.save();
+      
+      console.log(`✅ ${product.name} (verify route):`);
+      console.log(`   📦 Stock: ${oldStock} → ${product.stock} (reduced by ${quantity})`);
+      console.log(`   🔒 Reserved: ${oldReserved} → ${product.reservedStock}`);
+      console.log(`   📊 Total Sold: ${oldSold} → ${product.totalSold}`);
+    }
+    
+    console.log('✅ Stock updated successfully via verify route');
+    // ========================================
+
+    // Update phone for email-only users
+    if (!user.phone && orderDetails.phone) {
+      try {
+        user.phone = orderDetails.phone;
+        await user.save();
+        console.log('✅ First order: Added phone to email-only user profile:', orderDetails.phone);
+      } catch (phoneError: unknown) {
+        const err = phoneError as { code?: number };
+        if (err.code === 11000) {
+          console.log('⚠️ Phone already in use by another user');
+        } else {
+          console.error('⚠️ Error updating phone:', phoneError);
+        }
+      }
+    }
+
+    // Update email for phone-only users
     if (!user.email && orderDetails.email) {
       try {
         user.email = orderDetails.email;
@@ -143,7 +283,7 @@ export async function POST(req: Request) {
     }
 
     const orderItems: OrderItem[] = orderDetails.cart.map((item: CartItem) => ({
-      productId: item.id,
+      productId: item._id || item.id || 0,
       name: item.name,
       price: item.price,
       quantity: item.quantity,
@@ -159,8 +299,10 @@ export async function POST(req: Request) {
     const discountAmount = orderDetails.discount?.savedAmount || 0;
     const total = orderDetails.finalAmount || (subtotal - discountAmount);
 
+    // Create order with proper ObjectId userId
     const newOrder = await Order.create({
-      phone: session.phone,
+      userId: new mongoose.Types.ObjectId(user._id),
+      phone: orderDetails.phone,
       email: orderDetails.email,
       name: orderDetails.name,
       age: orderDetails.age,
@@ -182,7 +324,8 @@ export async function POST(req: Request) {
       }),
     });
 
-    console.log('✅ Order created via verify route:', newOrder._id);
+    console.log('✅ Order created via verify route with userId:', newOrder._id);
+    console.log('✅ userId type:', typeof newOrder.userId, newOrder.userId);
 
     try {
       user.orders.push(newOrder._id);
@@ -196,25 +339,28 @@ export async function POST(req: Request) {
     const orderTotal = orderObject.total || total;
 
     try {
-      const emailHtml = await render(
-        OrderConfirmationEmail({
-          customerName: orderObject.name,
-          orderId: orderObject._id.toString(),
-          orderDate: new Date(orderObject.createdAt).toLocaleString(),
-          items: orderObject.items,
-          totalAmount: orderTotal.toFixed(2),
-        })
-      );
+      // ✅ FIXED: Proper typing instead of any
+      const itemsHtml = orderObject.items.map((item: OrderItemFromDb) => `
+        <tr class="item-row">
+          <td class="item-name">${item.name}</td>
+          <td class="item-qty">x${item.quantity}</td>
+          <td class="item-price">₹${(item.price * item.quantity).toFixed(2)}</td>
+        </tr>
+      `).join('');
 
-      const msg = {
-        to: orderObject.email,
-        bcc: process.env.SENDER_EMAIL!,
-        from: process.env.SENDER_EMAIL!,
-        subject: `Your Swago Junior Order Confirmation #${orderObject._id.toString().slice(-6)}`,
-        html: emailHtml,
-      };
-
-      await sgMail.send(msg);
+      await sendOrderConfirmationEmail({
+        name: orderObject.name,
+        orderNumber: orderObject._id.toString().slice(-6),
+        orderDate: new Date(orderObject.createdAt).toLocaleString('en-IN'),
+        email: orderObject.email,
+        items: itemsHtml,
+        totalAmount: orderTotal.toFixed(2),
+        address: orderObject.address,
+        city: orderObject.city,
+        state: orderObject.state,
+        pincode: orderObject.pincode,
+      });
+      
       console.log('✅ Email sent via verify route');
     } catch (emailError) {
       console.error('⚠️ Email failed in verify route:', emailError);

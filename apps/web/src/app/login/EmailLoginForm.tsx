@@ -7,11 +7,10 @@ import Script from "next/script";
 
 type AuthMode = "signup" | "signin";
 
-export default function LoginForm() {
+export default function EmailLoginForm() {
   const [authMode, setAuthMode] = useState<AuthMode>("signup");
-  const [phone, setPhone] = useState<string>("");
-  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
   const [code, setCode] = useState("");
   const [step, setStep] = useState<"form" | "otp">("form");
   const [message, setMessage] = useState("");
@@ -23,16 +22,12 @@ export default function LoginForm() {
   const searchParams = useSearchParams();
   const redirectUrl = searchParams.get("redirect");
 
-  // Demo credentials
-  const DEMO_PHONE = "9876543210";
-  const DEMO_OTP_HINT = "123456";
-
-  // Widget configuration
-  const WIDGET_ID = process.env.NEXT_PUBLIC_MSG91_WIDGET_ID!;
+  // Email widget configuration
+  const EMAIL_WIDGET_ID = process.env.NEXT_PUBLIC_MSG91_EMAIL_WIDGET_ID!;
   const TOKEN_AUTH = process.env.NEXT_PUBLIC_MSG91_TOKEN_AUTH!;
 
   const handleWidgetLoad = () => {
-    console.log("📱 MSG91 script loaded");
+    console.log("📧 MSG91 Email script loaded");
     setScriptLoaded(true);
   };
 
@@ -45,18 +40,18 @@ export default function LoginForm() {
       if (typeof window.initSendOTP === "function") {
         try {
           window.initSendOTP({
-            widgetId: WIDGET_ID,
+            widgetId: EMAIL_WIDGET_ID,
             tokenAuth: TOKEN_AUTH,
             exposeMethods: true,
             success: (data) => {
-              console.log("✅ Widget initialized successfully:", data);
+              console.log("✅ Email widget initialized successfully:", data);
             },
             failure: (error) => {
-              console.error("❌ Widget init failed:", error);
+              console.error("❌ Email widget init failed:", error);
             },
           });
         } catch (error) {
-          console.error("❌ Widget init error:", error);
+          console.error("❌ Email widget init error:", error);
         }
       } else {
         console.log("⏳ initSendOTP not available, retrying...");
@@ -65,16 +60,16 @@ export default function LoginForm() {
     };
 
     setTimeout(initWidget, 200);
-  }, [scriptLoaded, WIDGET_ID, TOKEN_AUTH]);
+  }, [scriptLoaded, EMAIL_WIDGET_ID, TOKEN_AUTH]);
 
   const sendOtp = async () => {
-    if (!phone) {
-      setMessage("❌ Please enter a phone number");
+    if (!email) {
+      setMessage("❌ Please enter your email address");
       return;
     }
 
-    if (phone.length !== 10) {
-      setMessage("❌ Please enter a valid 10-digit phone number");
+    if (!email.includes("@") || !email.includes(".")) {
+      setMessage("❌ Please enter a valid email address");
       return;
     }
 
@@ -83,17 +78,6 @@ export default function LoginForm() {
         setMessage("❌ Please enter your name");
         return;
       }
-      if (!email.trim() || !email.includes("@")) {
-        setMessage("❌ Please enter a valid email");
-        return;
-      }
-    }
-
-    if (phone === DEMO_PHONE) {
-      console.log("🎭 Demo mode: Bypassing widget");
-      setStep("otp");
-      setMessage(`✅ Demo mode: Use OTP ${DEMO_OTP_HINT}`);
-      return;
     }
 
     setLoading(true);
@@ -104,9 +88,9 @@ export default function LoginForm() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
-          identifier: "+91" + phone,
-          authMethod: "phone"
-        })
+          identifier: email,
+          authMethod: "email"
+        }),
       });
 
       const checkData = await checkRes.json();
@@ -117,7 +101,6 @@ export default function LoginForm() {
         return;
       }
 
-      // ✅ AUTO-SWITCH: Sign Up mode but user exists
       if (authMode === "signup" && checkData.exists) {
         setMessage("✅ Account found! Switching to sign in...");
         setAuthMode("signin");
@@ -128,9 +111,8 @@ export default function LoginForm() {
         return;
       }
 
-      // ✅ AUTO-SWITCH: Sign In mode but user doesn't exist
       if (authMode === "signin" && !checkData.exists) {
-        setMessage("📝 New number! Switching to sign up...");
+        setMessage("📝 New email! Switching to sign up...");
         setAuthMode("signup");
         setTimeout(() => {
           setMessage("");
@@ -146,18 +128,17 @@ export default function LoginForm() {
       }
 
       setMessage("Sending OTP...");
-      const formattedPhone = "91" + phone;
 
       window.sendOtp(
-        formattedPhone,
+        email,
         (data) => {
-          console.log("✅ OTP sent via widget:", data);
+          console.log("✅ OTP sent to email:", data);
           setStep("otp");
-          setMessage("✅ OTP sent to your phone");
+          setMessage("✅ OTP sent to your email");
           setLoading(false);
         },
         (error) => {
-          console.error("❌ Widget sendOtp error:", error);
+          console.error("❌ Email OTP error:", error);
           setMessage(`❌ ${error.message || "Failed to send OTP"}`);
           setLoading(false);
         }
@@ -184,32 +165,6 @@ export default function LoginForm() {
     setMessage("Verifying OTP...");
 
     try {
-      if (phone === DEMO_PHONE) {
-        if (code !== DEMO_OTP_HINT) {
-          setMessage(`❌ Invalid demo OTP. Use ${DEMO_OTP_HINT}`);
-          setLoading(false);
-          return;
-        }
-
-        const res = await fetch("/api/verify-otp", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ phone: "+91" + phone, otp: code, isDemo: true }),
-        });
-
-        const data = await res.json();
-        if (res.ok && data.success) {
-          setUser(data.user);
-          setMessage("✅ Login successful!");
-          window.dispatchEvent(new CustomEvent(USER_EVENTS.LOGIN));
-          setTimeout(() => router.push(redirectUrl || "/"), 500);
-        } else {
-          setMessage(`❌ ${data.error || "Verification failed"}`);
-        }
-        setLoading(false);
-        return;
-      }
-
       if (!window.verifyOtp) {
         setMessage("❌ Widget not loaded. Please refresh the page.");
         setLoading(false);
@@ -219,7 +174,7 @@ export default function LoginForm() {
       window.verifyOtp(
         code,
         async (data) => {
-          console.log("✅ OTP verified by widget:", data);
+          console.log("✅ Email OTP verified:", data);
 
           const accessToken = data.message || data.token || data.access_token;
           if (!accessToken) {
@@ -233,9 +188,9 @@ export default function LoginForm() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               accessToken,
-              identifier: "+91" + phone,
-              authMethod: "phone",
-              ...(authMode === "signup" && { name, email }),
+              identifier: email,
+              authMethod: "email",
+              ...(authMode === "signup" && { name }),
             }),
           });
 
@@ -279,9 +234,12 @@ export default function LoginForm() {
       />
 
       <div className="max-w-md w-full bg-white p-8 rounded-xl shadow-lg border">
-        <h1 className="text-3xl font-bold text-center mb-6">
+        <h1 className="text-3xl font-bold text-center mb-2">
           {authMode === "signup" ? "Create Account" : "Welcome Back"}
         </h1>
+        <p className="text-sm text-gray-600 text-center mb-6">
+          International login with email
+        </p>
 
         {step === "form" && (
           <div className="flex mb-6 bg-gray-100 rounded-lg p-1">
@@ -308,46 +266,19 @@ export default function LoginForm() {
           </div>
         )}
 
-        {process.env.NODE_ENV === "development" && (
-          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-center">
-            <p className="text-xs text-blue-600">
-              💡 <strong>Demo:</strong> Use {DEMO_PHONE} → OTP: {DEMO_OTP_HINT}
-            </p>
-          </div>
-        )}
-
         {step === "form" && (
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Phone Number <span className="text-red-500">*</span>
+                Email Address <span className="text-red-500">*</span>
               </label>
-              <div className="flex gap-2">
-                <div className="w-20">
-                  <input
-                    type="text"
-                    value="+91"
-                    disabled
-                    aria-label="Country code"
-                    title="India country code"
-                    className="w-full border border-slate-300 rounded-md p-3 bg-gray-50 text-gray-700 font-medium text-center"
-                  />
-                </div>
-                <input
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => {
-                    const value = e.target.value.replace(/\D/g, "");
-                    if (value.length <= 10) {
-                      setPhone(value);
-                    }
-                  }}
-                  placeholder="Enter 10-digit number"
-                  maxLength={10}
-                  aria-label="Phone number"
-                  className="flex-1 border border-slate-300 rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
-              </div>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value.toLowerCase().trim())}
+                placeholder="your.email@example.com"
+                className="w-full border border-slate-300 rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              />
             </div>
 
             {authMode === "signup" && (
@@ -365,24 +296,9 @@ export default function LoginForm() {
               </div>
             )}
 
-            {authMode === "signup" && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Email Address <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="your.email@example.com"
-                  className="w-full border border-slate-300 rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
-              </div>
-            )}
-
             <button
               onClick={sendOtp}
-              disabled={loading || !phone || phone.length !== 10}
+              disabled={loading || !email}
               className="w-full bg-[hsl(var(--swago-purple))] text-white font-bold py-3 rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
             >
               {loading ? "Sending..." : "Send OTP"}
@@ -390,10 +306,11 @@ export default function LoginForm() {
 
             <div className="text-center pt-4 border-t border-gray-200">
               <button
-               onClick={() => router.push("/login/email")}
-               className="text-sm text-gray-600 hover:text-[hsl(var(--swago-purple))] transition-colors">
-                Not in India? Use Email Login →
-                </button>
+                onClick={() => router.push("/login")}
+                className="text-sm text-gray-600 hover:text-[hsl(var(--swago-purple))] transition-colors"
+              >
+                ← Back to Phone Login
+              </button>
             </div>
           </div>
         )}
@@ -401,7 +318,7 @@ export default function LoginForm() {
         {step === "otp" && (
           <div className="space-y-4">
             <div className="text-center text-sm text-gray-600 mb-2">
-              OTP sent to: <strong>+91{phone}</strong>
+              OTP sent to: <strong>{email}</strong>
               {authMode === "signup" && name && (
                 <div className="mt-1 text-xs text-gray-500">
                   Creating account for: {name}
@@ -434,7 +351,7 @@ export default function LoginForm() {
               }}
               className="w-full text-sm text-gray-600 hover:text-gray-800 underline"
             >
-              Change phone number
+              Change email address
             </button>
           </div>
         )}
@@ -444,8 +361,6 @@ export default function LoginForm() {
             className={`mt-4 text-center text-sm ${
               message.includes("✅")
                 ? "text-green-600"
-                : message.includes("🚧")
-                ? "text-blue-600"
                 : "text-red-600"
             }`}
           >

@@ -1,8 +1,48 @@
-// apps/web/src/app/api/payment/create/route.ts
-
 import { NextResponse } from "next/server";
 import Razorpay from "razorpay";
 import { getLoginSession } from "@/lib/auth";
+import { connectDB, Product } from "@swago/database";
+import { isValidObjectId } from "mongoose";
+
+// ✅ Type definitions
+interface ProductDocument {
+  _id: string;
+  name: string;
+  slug: string;
+  stock: number;
+  reservedStock?: number;
+  isActive: boolean;
+  save: () => Promise<void>;
+  [key: string]: unknown;
+}
+
+interface CartItem {
+  _id?: string;
+  id?: number;
+  name: string;
+  price: number;
+  quantity: number;
+  image?: string;
+  images?: string[];
+}
+
+// Helper to get product by ID or slug
+async function getProductById(id: string): Promise<ProductDocument | null> {
+  try {
+    // Try slug first
+    let product = await Product.findOne({ slug: id, isActive: true });
+    
+    // Try MongoDB _id if valid ObjectId
+    if (!product && isValidObjectId(id)) {
+      product = await Product.findOne({ _id: id, isActive: true });
+    }
+    
+    return product as ProductDocument | null;
+  } catch (error) {
+    console.error('Error fetching product:', error);
+    return null;
+  }
+}
 
 export async function POST(req: Request) {
   try {
@@ -17,8 +57,82 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "A valid total amount is required" }, { status: 400 });
     }
 
+    if (!orderDetails?.cart || !Array.isArray(orderDetails.cart) || orderDetails.cart.length === 0) {
+      return NextResponse.json({ error: "Cart is required" }, { status: 400 });
+    }
+
+    // ========================================
+    // ✅ STOCK VALIDATION & RESERVATION
+    // ========================================
+    console.log('🔍 Starting stock validation for', orderDetails.cart.length, 'items');
+    
+    await connectDB();
+    
+    const stockErrors: string[] = [];
+    const reservations: Array<{ product: ProductDocument; quantity: number }> = [];
+
+    // Step 1: Validate all items have sufficient stock
+    for (const item of orderDetails.cart) {
+      const productId = item._id || item.id?.toString();
+      
+      if (!productId) {
+        stockErrors.push(`Invalid product ID for ${item.name}`);
+        continue;
+      }
+
+      const product = await getProductById(productId);
+      
+      if (!product) {
+        stockErrors.push(`${item.name} is no longer available`);
+        continue;
+      }
+
+      const availableStock = Math.max(0, product.stock - (product.reservedStock || 0));
+      
+      console.log(`📦 ${product.name}: Stock=${product.stock}, Reserved=${product.reservedStock}, Available=${availableStock}, Requested=${item.quantity}`);
+      
+      if (availableStock === 0) {
+        stockErrors.push(`${item.name} is out of stock`);
+      } else if (item.quantity > availableStock) {
+        stockErrors.push(`${item.name}: Only ${availableStock} available (you requested ${item.quantity})`);
+      } else {
+        // Stock is sufficient - prepare for reservation
+        reservations.push({ product, quantity: item.quantity });
+      }
+    }
+
+    // If any stock errors, don't proceed
+    if (stockErrors.length > 0) {
+      console.log('❌ Stock validation failed:', stockErrors);
+      return NextResponse.json({ 
+        error: "Stock unavailable",
+        stockErrors: stockErrors,
+        details: stockErrors.join('; ')
+      }, { status: 400 });
+    }
+
+    // Step 2: Reserve stock for all items
+    console.log('✅ Stock validation passed. Reserving stock...');
+    
+    for (const { product, quantity } of reservations) {
+      product.reservedStock = (product.reservedStock || 0) + quantity;
+      await product.save();
+      console.log(`🔒 Reserved ${quantity} units of ${product.name} (total reserved: ${product.reservedStock})`);
+    }
+
+    console.log('✅ Stock reserved successfully for all items');
+    // ========================================
+
     if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
       console.error("Razorpay credentials missing");
+      
+      // Rollback reservations
+      console.log('⚠️ Razorpay config missing, rolling back reservations...');
+      for (const { product, quantity } of reservations) {
+        product.reservedStock = Math.max(0, (product.reservedStock || 0) - quantity);
+        await product.save();
+      }
+      
       return NextResponse.json({ 
         error: "Payment gateway not configured" 
       }, { status: 500 });
@@ -29,35 +143,79 @@ export async function POST(req: Request) {
       key_secret: process.env.RAZORPAY_KEY_SECRET,
     });
 
-    // 🔥 FIX: Simplify notes - Razorpay has limitations on note size and format
+    // Prepare cart items for notes
+    const cartItemsJson = JSON.stringify(
+      orderDetails?.cart?.map((item: CartItem) => ({
+        id: item.id,
+        _id: item._id,
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity,
+        image: item.image || item.images?.[0] || '',
+      })) || []
+    );
+
+    // Prepare coupon details if exists
+    const couponDetailsJson = orderDetails?.coupon 
+      ? JSON.stringify(orderDetails.coupon) 
+      : '';
+
     const options = {
-      amount: Math.round(totalAmount * 100), // Amount in paise
+      amount: Math.round(totalAmount * 100),
       currency: "INR",
-      receipt: `receipt_${Date.now()}`, // Shorter receipt ID
+      receipt: `receipt_${Date.now()}`,
       notes: {
-        phone: session.phone || "",
+        // Login credentials (for user lookup)
+        loginPhone: session.phone || "",
+        loginEmail: session.email || "",
+        
+        // Delivery details (from checkout form)
+        phone: orderDetails?.phone || "",
         email: orderDetails?.email || "",
         name: orderDetails?.name || "",
-        // Only include essential data - avoid large JSON strings
+        age: orderDetails?.age || "",
+        address: orderDetails?.address || "",
+        city: orderDetails?.city || "",
+        state: orderDetails?.state || "",
+        pincode: orderDetails?.pincode || "",
+        
+        // Order details
+        items: cartItemsJson,
+        subtotal: orderDetails?.originalAmount?.toString() || "0",
+        discount: orderDetails?.discount?.savedAmount?.toString() || "0",
+        couponDetails: couponDetailsJson,
+        
+        // Quick reference
         items_count: orderDetails?.cart?.length?.toString() || "0",
         has_discount: orderDetails?.discount ? "yes" : "no",
         coupon_code: orderDetails?.coupon?.code || "",
+        
+        // ✅ NEW: Stock reservation flag
+        stock_reserved: "true",
+        reservation_timestamp: Date.now().toString(),
       }
     };
 
-    console.log("Creating Razorpay order with options:", {
-      ...options,
-      key_id: process.env.RAZORPAY_KEY_ID ? "Present" : "Missing"
-    });
+    console.log("Creating Razorpay order with stock reserved");
 
-    const order = await razorpay.orders.create(options);
-    
-    console.log("Razorpay order created:", order.id);
-
-    return NextResponse.json(order);
+    try {
+      const order = await razorpay.orders.create(options);
+      console.log("✅ Razorpay order created:", order.id);
+      return NextResponse.json(order);
+    } catch (razorpayError) {
+      // Razorpay order creation failed - rollback reservations
+      console.error("❌ Razorpay order creation failed, rolling back stock...");
+      
+      for (const { product, quantity } of reservations) {
+        product.reservedStock = Math.max(0, (product.reservedStock || 0) - quantity);
+        await product.save();
+        console.log(`🔓 Released ${quantity} units of ${product.name}`);
+      }
+      
+      throw razorpayError;
+    }
 
   } catch (error: unknown) {
-    // 🔥 FIX: Better error handling
     console.error("Payment creation error - Full error:", error);
     
     let errorMessage = "Failed to create payment order";

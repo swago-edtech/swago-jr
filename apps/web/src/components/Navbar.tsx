@@ -158,7 +158,12 @@ export default function Navbar() {
                       animate="visible"
                       exit="exit"
                     >
-                      <div className="px-4 py-3 border-b"><p className="text-sm">Signed in as</p><p className="text-sm font-medium">{user.phone}</p></div>
+                      <div className="px-4 py-3 border-b">
+                        <p className="text-sm">Signed in as</p>
+                        <p className="text-sm font-medium">
+                          {user.name || user.email || user.phone}
+                        </p>
+                      </div>
                       <Link href="/profile" onClick={() => setUserMenuOpen(false)} className="block w-full text-left px-4 py-2.5 text-sm hover:bg-slate-100 hover:text-[hsl(var(--swago-purple))]">My Profile</Link>
                       <Link href="/orders" onClick={() => setUserMenuOpen(false)} className="block w-full text-left px-4 py-2.5 text-sm hover:bg-slate-100 hover:text-[hsl(var(--swago-purple))]">My Orders</Link>
                       <button onClick={handleLogout} className="block w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50">Logout</button>

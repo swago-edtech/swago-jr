@@ -10,17 +10,46 @@ type PopulatedOrder = {
   items: { name: string; quantity: number; price: number; }[];
 };
 
+// ✅ Updated Product type - supports BOTH old and new formats
 export type Product = {
-  id: number;
+  // IDs (support both)
+  id?: number;              // Old (hardcoded products)
+  _id?: string;             // New (MongoDB products)
+  
+  // Basic fields
   name: string;
   description: string;
   price: number;
-  original_price?: number;
+  
+  // Price (support both naming conventions)
+  original_price?: number;  // Old
+  originalPrice?: number;   // New
+  
   images: string[];
-  age_category: string;
-  core_elements: string[];
-  benefits?: string;      // Changed from string[] to string
-  box_contents?: string; // Changed from string[] to string
+  
+  // Age category (support both)
+  age_category?: string;    // Old
+  ageCategory?: string;     // New
+  
+  // Core elements (support both)
+  core_elements?: string[]; // Old
+  coreElements?: string[];  // New
+  
+  benefits?: string;
+  
+  // Box contents (support both)
+  box_contents?: string;    // Old
+  boxContents?: string;     // New
+  
+  // New fields (only in DB products)
+  stock?: number;
+  isFeatured?: boolean;
+  isActive?: boolean;
+  slug?: string;
+  lowStockThreshold?: number;
+  totalSold?: number;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 export type CartItem = Product & { quantity: number };
@@ -47,10 +76,10 @@ type SharedContextType = {
   cart: CartItem[];
   total: number;
   addToCart: (product: Product, quantity?: number) => void;
-  removeFromCart: (id: number) => void;
+  removeFromCart: (id: number | string) => void;
   clearCart: () => void;
-  increaseQty: (id: number) => void;
-  decreaseQty: (id: number) => void;
+  increaseQty: (id: number | string) => void;
+  decreaseQty: (id: number | string) => void;
   user: User | null;
   setUser: (user: User | null) => void;
   isLoadingUser: boolean;
@@ -74,6 +103,11 @@ const USER_EVENTS = {
   LOGOUT: 'user:logout',
   PROFILE_UPDATE: 'user:profile_update',
   WISHLIST_UPDATE: 'user:wishlist_update',
+};
+
+// Helper to get product ID (supports both formats)
+const getProductId = (product: Product): string => {
+  return product._id || product.id?.toString() || '';
 };
 
 export function SharedProvider({ children }: { children: React.ReactNode }) {
@@ -229,23 +263,71 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
     return wishlist.includes(productId);
   };
 
-  // Cart functions
+  // Cart functions (updated to support both ID formats)
   const addToCart = (product: Product, quantity: number = 1) => {
+    // Check stock before adding
+    if (product.stock !== undefined && product.stock === 0) {
+      alert("This product is out of stock");
+      return;
+    }
+
     setCart((prev) => {
-      const existing = prev.find((p) => p.id === product.id);
+      const productId = getProductId(product);
+      const existing = prev.find((p) => getProductId(p) === productId);
+      
       if (existing) {
+        const newQuantity = existing.quantity + quantity;
+        
+        // Check if new quantity exceeds stock
+        if (product.stock !== undefined && newQuantity > product.stock) {
+          alert(`Only ${product.stock} items available in stock`);
+          return prev;
+        }
+        
         return prev.map((p) =>
-          p.id === product.id ? { ...p, quantity: p.quantity + quantity } : p
+          getProductId(p) === productId ? { ...p, quantity: newQuantity } : p
         );
       }
+      
+      // Check stock for new item
+      if (product.stock !== undefined && quantity > product.stock) {
+        alert(`Only ${product.stock} items available in stock`);
+        return prev;
+      }
+      
       return [...prev, { ...product, quantity }];
     });
   };
   
-  const removeFromCart = (id: number) => setCart((prev) => prev.filter((p) => p.id !== id));
+  const removeFromCart = (id: number | string) => 
+    setCart((prev) => prev.filter((p) => getProductId(p) !== id.toString()));
+  
   const clearCart = () => setCart([]);
-  const increaseQty = (id: number) => setCart((prev) => prev.map((p) => (p.id === id ? { ...p, quantity: p.quantity + 1 } : p)));
-  const decreaseQty = (id: number) => setCart((prev) => prev.map((p) => (p.id === id ? { ...p, quantity: Math.max(0, p.quantity - 1) } : p)).filter((p) => p.quantity > 0));
+  
+  const increaseQty = (id: number | string) => 
+    setCart((prev) => prev.map((p) => {
+      if (getProductId(p) !== id.toString()) return p;
+      
+      const newQuantity = p.quantity + 1;
+      
+      // Check stock limit
+      if (p.stock !== undefined && newQuantity > p.stock) {
+        alert(`Only ${p.stock} items available in stock`);
+        return p;
+      }
+      
+      return { ...p, quantity: newQuantity };
+    }));
+  
+  const decreaseQty = (id: number | string) => 
+    setCart((prev) => 
+      prev.map((p) => 
+        getProductId(p) === id.toString() 
+          ? { ...p, quantity: Math.max(0, p.quantity - 1) } 
+          : p
+      ).filter((p) => p.quantity > 0)
+    );
+  
   const total = cart.reduce((s, it) => s + it.price * it.quantity, 0);
 
   // Kid profile functions

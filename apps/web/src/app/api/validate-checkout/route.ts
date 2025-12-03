@@ -32,13 +32,39 @@ export async function POST(req: Request) {
 
     await connectDB();
 
+    // ✅ Find current logged-in user
+    const currentUser = session.phone 
+      ? await User.findOne({ phone: session.phone })
+      : await User.findOne({ email: session.email });
+
+    if (!currentUser) {
+      return NextResponse.json(
+        { valid: false, error: "User not found" },
+        { status: 404 }
+      );
+    }
+
+    // ✅ Check if email is used by ANOTHER user
     const existingEmailUser = await User.findOne({ email });
     
-    if (existingEmailUser && existingEmailUser.phone !== phone) {
+    if (existingEmailUser && existingEmailUser._id.toString() !== currentUser._id.toString()) {
+      // Email belongs to a different user
       return NextResponse.json({
         valid: false,
-        error: `This email is already registered with a different phone number. Please use a different email or contact support.`,
+        error: `This email is already registered to another account. Please use a different email or contact support.`,
         field: "email",
+      });
+    }
+
+    // ✅ Check if phone is used by ANOTHER user (optional, for extra safety)
+    const existingPhoneUser = await User.findOne({ phone });
+    
+    if (existingPhoneUser && existingPhoneUser._id.toString() !== currentUser._id.toString()) {
+      // Phone belongs to a different user
+      return NextResponse.json({
+        valid: false,
+        error: `This phone number is already registered to another account. Please use a different number or contact support.`,
+        field: "phone",
       });
     }
 
