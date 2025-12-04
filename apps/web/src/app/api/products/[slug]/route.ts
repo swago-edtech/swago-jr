@@ -3,6 +3,7 @@ import { connectDB, Product } from "@swago/database";
 import { products as hardcodedProducts } from "@swago/utils";
 import { isValidObjectId } from "mongoose";
 
+
 // ✅ Define product type to handle both DB and hardcoded products
 interface ProductResponse {
   _id: string;
@@ -24,9 +25,30 @@ interface ProductResponse {
   [key: string]: unknown;
 }
 
+
 // Cache for individual products
 const productCache = new Map<string, { data: ProductResponse; timestamp: number }>();
-const CACHE_TTL = 120000; // 2 minute cache for individual products
+const CACHE_TTL = 60000; // ✅ CHANGED: 1 minute cache (was 120000)
+
+
+// ✅ NEW: Export cache invalidation function
+// ✅ NEW: Export cache invalidation function with better logging
+export function invalidateProductCache(identifier: string) {
+  console.log(`🔍 Cache invalidation called with: "${identifier}" (type: ${typeof identifier})`);
+  
+  if (!identifier || identifier === '') {
+    console.log('⚠️ Cache invalidation skipped: Empty identifier');
+    return;
+  }
+  
+  const existed = productCache.has(identifier);
+  const deleted = productCache.delete(identifier);
+  
+  console.log(`🗑️ Cache invalidation for "${identifier}": ${deleted ? 'DELETED' : 'KEY NOT FOUND'} (existed before: ${existed})`);
+  console.log(`📊 Cache size after deletion: ${productCache.size} entries`);
+}
+
+
 
 export async function GET(
   _request: Request,
@@ -34,6 +56,7 @@ export async function GET(
 ) {
   try {
     const { slug } = await params;
+
 
     // Check cache
     const cached = productCache.get(slug);
@@ -44,14 +67,17 @@ export async function GET(
         product: cached.data
       });
       response.headers.set('X-Cache', 'HIT');
-      response.headers.set('Cache-Control', 'public, max-age=120, stale-while-revalidate=240');
+      response.headers.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=120'); // ✅ CHANGED: 60s max-age
       return response;
     }
+
 
     // Connect to database
     await connectDB();
 
+
     let product: ProductResponse | null = null;
+
 
     // Try slug-based lookup first
     product = await Product.findOne({
@@ -60,6 +86,7 @@ export async function GET(
     })
       .select("-__v")
       .lean() as ProductResponse | null;
+
 
     // If not found by slug, try MongoDB _id (only if valid ObjectId format)
     if (!product && isValidObjectId(slug)) {
@@ -70,6 +97,7 @@ export async function GET(
         .select("-__v")
         .lean() as ProductResponse | null;
     }
+
 
     // Fallback to hardcoded products for old numeric IDs (backward compatibility)
     if (!product && !isNaN(Number(slug))) {
@@ -96,6 +124,7 @@ export async function GET(
       }
     }
 
+
     if (!product) {
       return NextResponse.json(
         { success: false, error: "Product not found" },
@@ -103,11 +132,13 @@ export async function GET(
       );
     }
 
+
     // Store in cache
     productCache.set(slug, {
       data: product,
       timestamp: Date.now()
     });
+
 
     // Clean up old cache entries
     if (productCache.size > 200) {
@@ -119,13 +150,16 @@ export async function GET(
       }
     }
 
+
     const response = NextResponse.json({
       success: true,
       product: product
     });
 
+
     response.headers.set('X-Cache', 'MISS');
-    response.headers.set('Cache-Control', 'public, max-age=120, stale-while-revalidate=240');
+    response.headers.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=120'); // ✅ CHANGED: 60s max-age
+
 
     return response;
   } catch (error) {
