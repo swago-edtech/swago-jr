@@ -3,15 +3,16 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { LayoutDashboard, ShoppingBag, Package, Users, MessageSquare, X, Menu } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, Package, Users, MessageSquare, X, Menu, HelpCircle } from 'lucide-react';
 import { TrendingUp } from 'lucide-react';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Analytics', href: '/analytics', icon: TrendingUp }, // ✨ ADD THIS
+  { name: 'Analytics', href: '/analytics', icon: TrendingUp },
   { name: 'Orders', href: '/orders', icon: ShoppingBag },
   { name: 'Reviews', href: '/reviews', icon: MessageSquare },
   { name: 'Products', href: '/products', icon: Package },
+  { name: 'FAQs', href: '/faqs', icon: HelpCircle }, // ✅ NEW - FAQ link
   { name: 'Users', href: '/users', icon: Users },
 ];
 
@@ -84,7 +85,7 @@ export default function AdminSidebar() {
         {/* Navigation */}
         <nav className="flex-1 px-4 space-y-1 overflow-y-auto">
           {navigation.map((item) => {
-            const isActive = pathname === item.href;
+            const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
             const Icon = item.icon;
             
             return (

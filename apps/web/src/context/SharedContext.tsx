@@ -61,7 +61,7 @@ export type User = {
   age?: number;
   address?: string;
   orders: PopulatedOrder[];
-  wishlist: number[];
+  wishlist: (number | string)[]; // ✅ CHANGED: Support both types
   email?: string;
 };
 
@@ -84,10 +84,10 @@ type SharedContextType = {
   setUser: (user: User | null) => void;
   isLoadingUser: boolean;
   refreshUser: () => Promise<void>;
-  wishlist: number[];
-  addToWishlist: (productId: number) => void;
-  removeFromWishlist: (productId: number) => void;
-  isWishlisted: (productId: number) => boolean;
+  wishlist: (number | string)[]; // ✅ CHANGED: Support both types
+  addToWishlist: (productId: number | string) => void; // ✅ CHANGED
+  removeFromWishlist: (productId: number | string) => void; // ✅ CHANGED
+  isWishlisted: (productId: number | string) => boolean; // ✅ CHANGED
   selectedKid: SelectedKid | null;
   setSelectedKid: (kid: SelectedKid | null) => void;
   clearSelectedKid: () => void;
@@ -102,7 +102,6 @@ const USER_EVENTS = {
   LOGIN: 'user:login',
   LOGOUT: 'user:logout',
   PROFILE_UPDATE: 'user:profile_update',
-  WISHLIST_UPDATE: 'user:wishlist_update',
 };
 
 // Helper to get product ID (supports both formats)
@@ -114,7 +113,7 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [user, setUser] = useState<User | null>(null);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
-  const [wishlist, setWishlist] = useState<number[]>([]);
+  const [wishlist, setWishlist] = useState<(number | string)[]>([]); // ✅ CHANGED
   const [selectedKid, setSelectedKidState] = useState<SelectedKid | null>(null);
 
   // Load cart from localStorage on mount
@@ -203,15 +202,14 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
     fetchUserData();
   }, []);
 
-  // Listen for user update events
+  // Listen for user update events (LOGIN, LOGOUT, PROFILE_UPDATE only)
   useEffect(() => {
     const handleUserEvent = (event: Event) => {
       const customEvent = event as CustomEvent;
       console.log('User event received:', customEvent.type);
       
       if (customEvent.type === USER_EVENTS.LOGIN || 
-          customEvent.type === USER_EVENTS.PROFILE_UPDATE ||
-          customEvent.type === USER_EVENTS.WISHLIST_UPDATE) {
+          customEvent.type === USER_EVENTS.PROFILE_UPDATE) {
         fetchUserData();
       } else if (customEvent.type === USER_EVENTS.LOGOUT) {
         setUser(null);
@@ -223,44 +221,129 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
     window.addEventListener(USER_EVENTS.LOGIN, handleUserEvent);
     window.addEventListener(USER_EVENTS.LOGOUT, handleUserEvent);
     window.addEventListener(USER_EVENTS.PROFILE_UPDATE, handleUserEvent);
-    window.addEventListener(USER_EVENTS.WISHLIST_UPDATE, handleUserEvent);
 
     return () => {
       window.removeEventListener(USER_EVENTS.LOGIN, handleUserEvent);
       window.removeEventListener(USER_EVENTS.LOGOUT, handleUserEvent);
       window.removeEventListener(USER_EVENTS.PROFILE_UPDATE, handleUserEvent);
-      window.removeEventListener(USER_EVENTS.WISHLIST_UPDATE, handleUserEvent);
     };
   }, []);
   
-  // Wishlist functions
-  const addToWishlist = async (productId: number) => {
+  // ✅ FIXED: Improved wishlist functions with proper optimistic updates
+  const addToWishlist = async (productId: number | string) => {
     if (!user) {
       alert("Please log in to add items to your wishlist.");
       return;
     }
-    setWishlist((prev) => [...prev, productId]);
-    await fetch('/api/wishlist', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ productId }),
+    
+    console.log('💝 Adding to wishlist:', productId, 'Type:', typeof productId);
+    
+    // ✅ Optimistic update with duplicate check
+    setWishlist((prev) => {
+      const exists = prev.some(id => {
+        if (typeof id === typeof productId) return id === productId;
+        return id.toString() === productId.toString();
+      });
+      
+      if (exists) {
+        console.log('⚠️ Already in wishlist (local check)');
+        return prev;
+      }
+      
+      return [...prev, productId];
     });
-    window.dispatchEvent(new CustomEvent(USER_EVENTS.WISHLIST_UPDATE));
+    
+    try {
+      const res = await fetch('/api/wishlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId }),
+      });
+      
+      if (!res.ok) {
+        console.error('Failed to add to wishlist');
+        // ✅ Revert optimistic update with proper type comparison
+        setWishlist((prev) => prev.filter(id => {
+          if (typeof id === typeof productId) return id !== productId;
+          return id.toString() !== productId.toString();
+        }));
+        return;
+      }
+      
+      const data = await res.json();
+      console.log('✅ Added to wishlist successfully');
+      
+      // ✅ Update from server response (most reliable)
+      if (data.wishlist) {
+        setWishlist(data.wishlist);
+      }
+      
+    } catch (error) {
+      console.error('Error adding to wishlist:', error);
+      // ✅ Revert optimistic update with proper type comparison
+      setWishlist((prev) => prev.filter(id => {
+        if (typeof id === typeof productId) return id !== productId;
+        return id.toString() !== productId.toString();
+      }));
+    }
   };
 
-  const removeFromWishlist = async (productId: number) => {
+  const removeFromWishlist = async (productId: number | string) => {
     if (!user) return;
-    setWishlist((prev) => prev.filter(id => id !== productId));
-    await fetch('/api/wishlist', {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ productId }),
-    });
-    window.dispatchEvent(new CustomEvent(USER_EVENTS.WISHLIST_UPDATE));
+    
+    console.log('💔 Removing from wishlist:', productId, 'Type:', typeof productId);
+    
+    // ✅ Optimistic update with proper type comparison
+    setWishlist((prev) => prev.filter(id => {
+      if (typeof id === typeof productId) return id !== productId;
+      return id.toString() !== productId.toString();
+    }));
+    
+    try {
+      const res = await fetch('/api/wishlist', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId }),
+      });
+      
+      if (!res.ok) {
+        console.error('Failed to remove from wishlist');
+        // ✅ Revert optimistic update
+        setWishlist((prev) => [...prev, productId]);
+        return;
+      }
+      
+      const data = await res.json();
+      console.log('✅ Removed from wishlist successfully');
+      
+      // ✅ Update from server response (most reliable)
+      if (data.wishlist) {
+        setWishlist(data.wishlist);
+      }
+      
+    } catch (error) {
+      console.error('Error removing from wishlist:', error);
+      // ✅ Revert optimistic update
+      setWishlist((prev) => [...prev, productId]);
+    }
   };
 
-  const isWishlisted = (productId: number) => {
-    return wishlist.includes(productId);
+  const isWishlisted = (productId: number | string) => {
+    // ✅ Support both number and string comparison
+    return wishlist.some(id => {
+      // Direct match (handles same type comparison)
+      if (id === productId) return true;
+      
+      // Cross-type match (string "123" === number 123)
+      if (typeof id === 'string' && typeof productId === 'number') {
+        return id === productId.toString();
+      }
+      if (typeof id === 'number' && typeof productId === 'string') {
+        return id.toString() === productId;
+      }
+      
+      return false;
+    });
   };
 
   // Cart functions (updated to support both ID formats)

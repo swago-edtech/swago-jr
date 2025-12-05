@@ -54,6 +54,8 @@ export default function Navbar() {
           <motion.div whileHover={{ y: -2 }}>
             <Link href="/about" className="transition-colors hover:text-[hsl(var(--swago-purple))]">About Us</Link>
           </motion.div>
+
+          
           
           <motion.div className="relative" ref={ageDropdownRef} whileHover={{ y: -2 }}>
             <button onClick={() => setAgeDropdownOpen(!isAgeDropdownOpen)} className="transition-colors hover:text-[hsl(var(--swago-purple))] flex items-center gap-1">

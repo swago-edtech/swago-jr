@@ -9,9 +9,31 @@ import { motion } from "framer-motion";
 export default function ProductCard({ product }: { product: Product }) {
   const { addToCart, addToWishlist, removeFromWishlist, isWishlisted } = useSharedContext();
   
-  // Support both ID formats for wishlist
-  const productId = product.id || parseInt(product._id?.replace('hardcoded-', '') || '0');
-  const isLiked = isWishlisted(productId);
+  // ✅ FIXED: Send the correct identifier based on product source
+  // - Database products: Use MongoDB _id string (e.g., "692ecdd8899e1646b312effd")
+  // - Hardcoded products: Use numeric id (e.g., 1, 2, 3)
+  // - Hardcoded with _id: Strip "hardcoded-" prefix to get numeric id
+  const getProductIdentifier = (): string | number => {
+    // If it's a database product with MongoDB _id
+    if (product._id && !product._id.startsWith('hardcoded-')) {
+      return product._id; // Return string
+    }
+    
+    // If it's a hardcoded product with numeric id
+    if (product.id) {
+      return product.id; // Return number
+    }
+    
+    // If it's a hardcoded product with synthetic _id like "hardcoded-1"
+    if (product._id?.startsWith('hardcoded-')) {
+      return parseInt(product._id.replace('hardcoded-', ''));
+    }
+    
+    return 0; // Fallback
+  };
+
+  const productIdentifier = getProductIdentifier();
+  const isLiked = isWishlisted(productIdentifier);
 
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isHovering, setIsHovering] = useState(false);
@@ -36,10 +58,17 @@ export default function ProductCard({ product }: { product: Product }) {
   const handleWishlistClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
+    
+    console.log('💝 Wishlist clicked:', { 
+      productIdentifier, 
+      type: typeof productIdentifier,
+      isLiked 
+    });
+    
     if (isLiked) {
-      removeFromWishlist(productId);
+      removeFromWishlist(productIdentifier);
     } else {
-      addToWishlist(productId);
+      addToWishlist(productIdentifier);
     }
   };
 

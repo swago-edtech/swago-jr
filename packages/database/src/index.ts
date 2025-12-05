@@ -6,6 +6,10 @@ export { default as KidProfile } from './models/KidProfile'; // ✨ NEW
 export { default as ProductCode } from './models/ProductCode'; // ✨ NEW
 
 export { default as Product } from "./models/Product"; // NEW
+
+export { default as FAQ } from './models/FAQ'; //New
+
+
 // Export database connection
 export { default as connectDB } from './connection';
 

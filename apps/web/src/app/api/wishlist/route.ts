@@ -1,15 +1,32 @@
 import { NextResponse } from "next/server";
-import { connectDB, User } from "@swago/database"; // ✅ Updated to shared package
+import { connectDB, User, Product } from "@swago/database";
 import { getLoginSession } from "@/lib/auth";
-import { products } from "@swago/utils"; // ✅ Updated to shared package
+import { products as hardcodedProducts } from "@swago/utils";
 import { z } from "zod";
-// Removed: import connectDB from "@/lib/db";
-// Removed: import User from "@/models/User";
-// Removed: import { products } from "@/lib/products";
+import mongoose from "mongoose";
 
-// Schema for validating the product ID
+// ✅ Type for MongoDB product document
+interface DbProduct {
+  _id: mongoose.Types.ObjectId;
+  name: string;
+  description: string;
+  price: number;
+  originalPrice?: number;
+  images: string[];
+  ageCategory: string;
+  coreElements: string[];
+  boxContents: string;
+  benefits: string;
+  stock: number;
+  isActive: boolean;
+  isFeatured: boolean;
+  slug: string;
+  [key: string]: unknown;
+}
+
+// ✅ UPDATED: Schema accepts both number and string
 const productIdSchema = z.object({
-  productId: z.number(),
+  productId: z.union([z.number(), z.string()]),
 });
 
 /**
@@ -29,14 +46,47 @@ export async function POST(req: Request) {
     }
     const { productId } = validation.data;
 
-    await connectDB(); // ✅ Now using shared package
+    await connectDB();
 
-    // Use $addToSet to add the ID to the array if it doesn't already exist
-    const updatedUser = await User.findOneAndUpdate( // ✅ Now using shared package
-      { phone: session.phone },
+    // Find user by phone or email
+    let user = null;
+    if (session.phone) {
+      user = await User.findOne({ phone: session.phone });
+    } else if (session.email) {
+      user = await User.findOne({ email: session.email });
+    }
+
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    // ✅ Check if already in wishlist (handle both types)
+    const wishlist = user.wishlist || [];
+    const alreadyExists = wishlist.some((id: number | string) => {
+      if (typeof id === typeof productId) {
+        return id === productId;
+      }
+      // Cross-type comparison
+      return id.toString() === productId.toString();
+    });
+
+    if (alreadyExists) {
+      console.log('⚠️ Product already in wishlist:', productId);
+      return NextResponse.json({ 
+        success: true, 
+        wishlist: user.wishlist,
+        message: 'Already in wishlist'
+      });
+    }
+
+    // ✅ Use $addToSet to add the ID (works with Mixed type)
+    const updatedUser = await User.findOneAndUpdate(
+      { _id: user._id },
       { $addToSet: { wishlist: productId } },
-      { new: true } // Return the updated document
+      { new: true }
     );
+
+    console.log('✅ Added to wishlist:', productId, 'Type:', typeof productId);
 
     return NextResponse.json({ success: true, wishlist: updatedUser?.wishlist });
 
@@ -50,35 +100,49 @@ export async function POST(req: Request) {
  * DELETE handler to remove an item from the wishlist
  */
 export async function DELETE(req: Request) {
-    try {
-      const session = await getLoginSession();
-      if (!session) {
-        return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-      }
-  
-      const body = await req.json();
-      const validation = productIdSchema.safeParse(body);
-      if (!validation.success) {
-        return NextResponse.json({ error: validation.error.format() }, { status: 400 });
-      }
-      const { productId } = validation.data;
-  
-      await connectDB(); // ✅ Now using shared package
-  
-      // Use $pull to remove the ID from the array
-      const updatedUser = await User.findOneAndUpdate( // ✅ Now using shared package
-        { phone: session.phone },
-        { $pull: { wishlist: productId } },
-        { new: true }
-      );
-  
-      return NextResponse.json({ success: true, wishlist: updatedUser?.wishlist });
-  
-    } catch (error) {
-      console.error("Failed to remove from wishlist:", error);
-      return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  try {
+    const session = await getLoginSession();
+    if (!session) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
+
+    const body = await req.json();
+    const validation = productIdSchema.safeParse(body);
+    if (!validation.success) {
+      return NextResponse.json({ error: validation.error.format() }, { status: 400 });
+    }
+    const { productId } = validation.data;
+
+    await connectDB();
+
+    // Find user by phone or email
+    let user = null;
+    if (session.phone) {
+      user = await User.findOne({ phone: session.phone });
+    } else if (session.email) {
+      user = await User.findOne({ email: session.email });
+    }
+
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    // ✅ Use $pull to remove the ID (works with Mixed type)
+    const updatedUser = await User.findOneAndUpdate(
+      { _id: user._id },
+      { $pull: { wishlist: productId } },
+      { new: true }
+    );
+
+    console.log('✅ Removed from wishlist:', productId, 'Type:', typeof productId);
+
+    return NextResponse.json({ success: true, wishlist: updatedUser?.wishlist });
+
+  } catch (error) {
+    console.error("Failed to remove from wishlist:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
+}
 
 /**
  * GET handler to fetch the user's wishlist items
@@ -90,19 +154,65 @@ export async function GET() {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    await connectDB(); // ✅ Now using shared package
-    const user = await User.findOne({ phone: session.phone }); // ✅ Now using shared package
+    await connectDB();
+    
+    // Find user by phone or email
+    let user = null;
+    if (session.phone) {
+      user = await User.findOne({ phone: session.phone });
+    } else if (session.email) {
+      user = await User.findOne({ email: session.email });
+    }
+    
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Get the array of product IDs from the user's wishlist
+    // Get the array of product IDs (can be numbers or strings)
     const wishlistIds = user.wishlist || [];
-
-    // Filter the static products array to find the full product details
-    const wishlistProducts = products.filter(product => wishlistIds.includes(product.id)); // ✅ Now using shared package
     
-    return NextResponse.json(wishlistProducts);
+    if (wishlistIds.length === 0) {
+      return NextResponse.json([]);
+    }
+
+    // ✅ Separate numeric IDs and MongoDB _id strings
+    const numericIds: number[] = [];
+    const mongoIds: string[] = [];
+    
+    wishlistIds.forEach((id: number | string) => {
+      if (typeof id === 'number') {
+        numericIds.push(id);
+      } else if (typeof id === 'string') {
+        mongoIds.push(id);
+      }
+    });
+
+    console.log('📋 Wishlist IDs:', { numericIds, mongoIds });
+
+    // Fetch products from both sources
+    const dbProducts = mongoIds.length > 0 
+      ? await Product.find({ 
+          _id: { $in: mongoIds },
+          isActive: true 
+        }).lean<DbProduct[]>() // ✅ FIXED: Type assertion
+      : [];
+
+    const legacyProducts = hardcodedProducts.filter(p => numericIds.includes(p.id));
+
+    // ✅ Merge and return all wishlist products
+    const allWishlistProducts = [
+      ...dbProducts.map(p => ({
+        ...p,
+        _id: p._id.toString(), // ✅ FIXED: Now TypeScript knows the type
+        ageCategory: p.ageCategory,
+        coreElements: p.coreElements
+      })),
+      ...legacyProducts
+    ];
+
+    console.log('✅ Returning wishlist:', allWishlistProducts.length, 'products');
+
+    return NextResponse.json(allWishlistProducts);
 
   } catch (error) {
     console.error("Failed to fetch wishlist:", error);

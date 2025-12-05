@@ -23,7 +23,7 @@ export default function WishlistPage() {
         if (!res.ok) throw new Error("Failed to fetch wishlist");
         const data = await res.json();
         setWishlistItems(data);
-      } catch (err: unknown) { // Changed any to unknown
+      } catch (err: unknown) {
         const message = err instanceof Error ? err.message : "An unknown error occurred";
         setError(message);
       } finally {
@@ -68,7 +68,10 @@ export default function WishlistPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {wishlistItems.map(product => (
-            <ProductCard key={product.id} product={product} />
+            <ProductCard 
+              key={product._id || product.id || Math.random()} 
+              product={product} 
+            />
           ))}
         </div>
       )}

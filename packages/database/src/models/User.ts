@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 
+
 const UserSchema = new mongoose.Schema(
   {
     name: { type: String },
@@ -32,8 +33,8 @@ const UserSchema = new mongoose.Schema(
     },
     
     // Customer fields
-    wishlist: [{
-      type: Number,
+    wishlist: [{ 
+      type: mongoose.Schema.Types.Mixed,  // ✅ CHANGED: Supports both Number and String
     }],
     age: { type: Number },
     address: { type: String },
@@ -42,8 +43,10 @@ const UserSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+
 // Additional indexes
 UserSchema.index({ isAdmin: 1 });
+
 
 const User = mongoose.models.User || mongoose.model("User", UserSchema);
 export default User;
