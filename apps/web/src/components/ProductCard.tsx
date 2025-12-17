@@ -9,27 +9,20 @@ import { motion } from "framer-motion";
 export default function ProductCard({ product }: { product: Product }) {
   const { addToCart, addToWishlist, removeFromWishlist, isWishlisted } = useSharedContext();
   
-  // ✅ FIXED: Send the correct identifier based on product source
-  // - Database products: Use MongoDB _id string (e.g., "692ecdd8899e1646b312effd")
-  // - Hardcoded products: Use numeric id (e.g., 1, 2, 3)
-  // - Hardcoded with _id: Strip "hardcoded-" prefix to get numeric id
   const getProductIdentifier = (): string | number => {
-    // If it's a database product with MongoDB _id
     if (product._id && !product._id.startsWith('hardcoded-')) {
-      return product._id; // Return string
+      return product._id;
     }
     
-    // If it's a hardcoded product with numeric id
     if (product.id) {
-      return product.id; // Return number
+      return product.id;
     }
     
-    // If it's a hardcoded product with synthetic _id like "hardcoded-1"
     if (product._id?.startsWith('hardcoded-')) {
       return parseInt(product._id.replace('hardcoded-', ''));
     }
     
-    return 0; // Fallback
+    return 0;
   };
 
   const productIdentifier = getProductIdentifier();
@@ -126,14 +119,16 @@ export default function ProductCard({ product }: { product: Product }) {
         
         <div className="p-4 flex flex-col flex-grow">
           <div className="flex-grow">
-            <h3 className="text-base font-semibold text-slate-800 mb-2 h-12 line-clamp-2">
+            {/* ✨ UPDATED: Added text-zoom-in effect */}
+            <h3 className="text-base font-semibold text-slate-800 mb-2 h-12 line-clamp-2 text-zoom-in">
               {product.name}
             </h3>
           </div>
           
           <div className="mt-auto pt-3">
             <div className="flex justify-between items-center mb-3">
-              <p>
+              {/* ✨ UPDATED: Added text-pop hover effect on price */}
+              <p className="text-pop">
                 <span className="text-lg font-bold text-slate-900">₹{product.price}</span>
                 {originalPrice && (
                   <span className="text-sm text-slate-400 line-through ml-2">
@@ -146,6 +141,7 @@ export default function ProductCard({ product }: { product: Product }) {
               </span>
             </div>
             
+            {/* ✨ UPDATED: Added btn-text-pop and wrapped text in span */}
             <motion.button 
               onClick={(e) => { 
                 e.preventDefault(); 
@@ -157,10 +153,10 @@ export default function ProductCard({ product }: { product: Product }) {
               className={`w-full font-semibold py-2.5 rounded-lg text-sm transition ${
                 isOutOfStock 
                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
-                  : 'btn-shine bg-[hsl(var(--swago-purple))] text-white'
+                  : 'btn-shine btn-text-pop bg-[hsl(var(--swago-purple))] text-white'
               }`}
             >
-              {isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
+              <span>{isOutOfStock ? 'Out of Stock' : 'Add to Cart'}</span>
             </motion.button>
           </div>
         </div>

@@ -222,7 +222,8 @@ export default function ProductPageClient({ product }: { product: Product }) {
 
           <div className="md:col-span-3">
             <div className="flex justify-between items-start">
-              <h1 className="text-4xl font-bold">{product.name}</h1>
+              {/* ✨ UPDATED: Added text-zoom-in effect */}
+              <h1 className="text-4xl font-bold text-zoom-in">{product.name}</h1>
               <button 
                 onClick={handleWishlistClick} 
                 className="p-2" 
@@ -266,7 +267,8 @@ export default function ProductPageClient({ product }: { product: Product }) {
               )}
             </div>
 
-            <p className="text-3xl font-bold text-slate-900 my-4">
+            {/* ✨ UPDATED: Added text-pop-bounce effect on price */}
+            <p className="text-3xl font-bold text-slate-900 my-4 text-pop-bounce">
               ₹{product.price}
               {originalPrice && (
                 <span className="text-xl text-slate-400 line-through ml-2">
@@ -315,6 +317,7 @@ export default function ProductPageClient({ product }: { product: Product }) {
               </div>
             )}
 
+            {/* ✨ UPDATED: Added btn-text-pop to both buttons and wrapped text in span */}
             <div className="flex gap-4">
               <button 
                 onClick={handleAddToCart} 
@@ -322,10 +325,10 @@ export default function ProductPageClient({ product }: { product: Product }) {
                 className={`flex-1 font-bold py-3 rounded-lg text-base transition ${
                   isOutOfStock
                     ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    : 'btn-shine bg-[hsl(var(--swago-purple))] text-white'
+                    : 'btn-shine btn-text-pop bg-[hsl(var(--swago-purple))] text-white'
                 }`}
               >
-                {isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
+                <span>{isOutOfStock ? 'Out of Stock' : 'Add to Cart'}</span>
               </button>
               <button 
                 onClick={handleBuyNow} 
@@ -333,10 +336,10 @@ export default function ProductPageClient({ product }: { product: Product }) {
                 className={`flex-1 font-bold py-3 rounded-lg text-base transition ${
                   isOutOfStock
                     ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    : 'btn-shine bg-[hsl(var(--swago-orange))] text-white'
+                    : 'btn-shine btn-text-pop bg-[hsl(var(--swago-orange))] text-white'
                 }`}
               >
-                {isOutOfStock ? 'Out of Stock' : 'Buy It Now'}
+                <span>{isOutOfStock ? 'Out of Stock' : 'Buy It Now'}</span>
               </button>
             </div>
 
@@ -357,9 +360,10 @@ export default function ProductPageClient({ product }: { product: Product }) {
         </div>
       </div>
 
+      {/* ✨ UPDATED: Added btn-text-pop to View More Products button */}
       <div className="text-center pt-8 pb-16">
-        <Link href="/products" className="btn-shine inline-block bg-[hsl(var(--swago-teal))] text-white font-bold px-8 py-3 rounded-full shadow-lg">
-          View More Products
+        <Link href="/products" className="btn-shine btn-text-pop inline-block bg-[hsl(var(--swago-teal))] text-white font-bold px-8 py-3 rounded-full shadow-lg">
+          <span>View More Products</span>
         </Link>
       </div>
     </>

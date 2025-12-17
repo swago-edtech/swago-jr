@@ -6,6 +6,7 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import ReviewForm from "@/components/ReviewForm";
 import { products } from "@swago/utils";
+import { useFormattedDate } from "@/hooks/useFormattedDate"; // ✨ NEW
 
 type OrderItem = {
   name: string;
@@ -27,33 +28,33 @@ export default function OrdersPage() {
   const [reviewingOrder, setReviewingOrder] = useState<string | null>(null);
   const [reviewingProduct, setReviewingProduct] = useState<{ name: string; id: number } | null>(null);
 
-useEffect(() => {
-  // Fetch orders from dedicated endpoint
-  const fetchOrders = async () => {
-    if (!user) {
-      setLoading(false);
-      return;
-    }
-
-    try {
-      const response = await fetch('/api/orders');
-      if (response.ok) {
-        const data = await response.json();
-        setOrders(data.orders || []);
-      } else {
-        console.error('Failed to fetch orders');
-        setOrders([]);
+  useEffect(() => {
+    // Fetch orders from dedicated endpoint
+    const fetchOrders = async () => {
+      if (!user) {
+        setLoading(false);
+        return;
       }
-    } catch (error) {
-      console.error('Error fetching orders:', error);
-      setOrders([]);
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  fetchOrders();
-}, [user]);
+      try {
+        const response = await fetch('/api/orders');
+        if (response.ok) {
+          const data = await response.json();
+          setOrders(data.orders || []);
+        } else {
+          console.error('Failed to fetch orders');
+          setOrders([]);
+        }
+      } catch (error) {
+        console.error('Error fetching orders:', error);
+        setOrders([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchOrders();
+  }, [user]);
 
   const getProductIdByName = (productName: string): number | null => {
     const product = products.find((p) => p.name === productName);
@@ -66,14 +67,11 @@ useEffect(() => {
       setReviewingOrder(orderId);
       setReviewingProduct({ name: productName, id: productId });
     }
-    // ✅ Removed alert - product should always be found from static list
   };
 
   const handleReviewSuccess = () => {
     setReviewingOrder(null);
     setReviewingProduct(null);
-    // ✅ REMOVED: alert("Review submitted successfully!");
-    // Modal already shows in ReviewForm!
   };
 
   const handleCancelReview = () => {
@@ -151,69 +149,87 @@ useEffect(() => {
 
       {/* Orders List */}
       <div className="space-y-6">
-        {orders.map((order) => {
-          const isDelivered = order.status.toLowerCase().includes("deliver");
+        {orders.map((order) => (
+          <OrderCard
+            key={order._id}
+            order={order}
+            onWriteReview={handleWriteReview}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
 
-          return (
-            <div key={order._id} className="bg-white p-6 rounded-xl shadow-sm border">
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <p className="text-sm text-slate-500">Order ID: {order._id}</p>
-                  <p className="text-sm text-slate-500">
-                    Date: {new Date(order.createdAt).toLocaleDateString()}
-                  </p>
-                </div>
-                <span className="text-sm font-semibold bg-blue-100 text-blue-800 px-3 py-1 rounded-full">
-                  {order.status}
-                </span>
+// ✨ NEW: Separate OrderCard component for cleaner code
+function OrderCard({ 
+  order, 
+  onWriteReview 
+}: { 
+  order: Order; 
+  onWriteReview: (orderId: string, productName: string) => void;
+}) {
+  const isDelivered = order.status.toLowerCase().includes("deliver");
+  // ✨ NEW: Use hook for date formatting
+  const orderDate = useFormattedDate(order.createdAt, 'clean');
+
+  return (
+    <div className="bg-white p-6 rounded-xl shadow-sm border">
+      <div className="flex justify-between items-start mb-4">
+        <div>
+          <p className="text-sm text-slate-500">Order ID: {order._id}</p>
+          {/* ✨ UPDATED: Now shows IST time */}
+          <p className="text-sm text-slate-500">
+            Date: {orderDate}
+          </p>
+        </div>
+        <span className="text-sm font-semibold bg-blue-100 text-blue-800 px-3 py-1 rounded-full">
+          {order.status}
+        </span>
+      </div>
+      <hr className="my-4" />
+
+      {/* Items List */}
+      <ul className="space-y-4">
+        {order.items?.map((item, idx) => (
+          <li key={idx} className="border-l-4 border-purple-200 pl-4">
+            <div className="flex justify-between items-start mb-2">
+              <div className="flex-1">
+                <p className="font-medium text-slate-900">{item.name}</p>
+                <p className="text-sm text-slate-500">Quantity: {item.quantity}</p>
               </div>
-              <hr className="my-4" />
-
-              {/* Items List */}
-              <ul className="space-y-4">
-                {order.items?.map((item, idx) => (
-                  <li key={idx} className="border-l-4 border-purple-200 pl-4">
-                    <div className="flex justify-between items-start mb-2">
-                      <div className="flex-1">
-                        <p className="font-medium text-slate-900">{item.name}</p>
-                        <p className="text-sm text-slate-500">Quantity: {item.quantity}</p>
-                      </div>
-                      <p className="font-semibold text-slate-900">₹{item.price.toFixed(2)}</p>
-                    </div>
-
-                    {/* Write Review Button - Only shown for delivered orders */}
-                    {isDelivered && (
-                      <div className="mt-2">
-                        <button
-                          onClick={() => handleWriteReview(order._id, item.name)}
-                          className="inline-flex items-center gap-2 text-sm bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 font-medium transition-colors"
-                        >
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                            />
-                          </svg>
-                          Write Review
-                        </button>
-                      </div>
-                    )}
-                  </li>
-                ))}
-              </ul>
-
-              {/* Order Total */}
-              <div className="mt-4 pt-4 border-t flex justify-between items-center">
-                <span className="font-semibold">Order Total:</span>
-                <span className="text-xl font-bold">
-                  ₹{order.items.reduce((total, item) => total + item.price * item.quantity, 0).toFixed(2)}
-                </span>
-              </div>
+              <p className="font-semibold text-slate-900">₹{item.price.toFixed(2)}</p>
             </div>
-          );
-        })}
+
+            {/* Write Review Button - Only shown for delivered orders */}
+            {isDelivered && (
+              <div className="mt-2">
+                <button
+                  onClick={() => onWriteReview(order._id, item.name)}
+                  className="inline-flex items-center gap-2 text-sm bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 font-medium transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                    />
+                  </svg>
+                  Write Review
+                </button>
+              </div>
+            )}
+          </li>
+        ))}
+      </ul>
+
+      {/* Order Total */}
+      <div className="mt-4 pt-4 border-t flex justify-between items-center">
+        <span className="font-semibold">Order Total:</span>
+        <span className="text-xl font-bold">
+          ₹{order.items.reduce((total, item) => total + item.price * item.quantity, 0).toFixed(2)}
+        </span>
       </div>
     </div>
   );

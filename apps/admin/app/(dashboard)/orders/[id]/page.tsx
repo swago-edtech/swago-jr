@@ -3,7 +3,8 @@ import { formatPrice } from '@swago/utils';
 import { notFound } from 'next/navigation';
 import { products } from '@swago/utils';
 import UpdateOrderStatus from '@/components/UpdateOrderStatus';
-import ProductCodesDisplay from '@/components/ProductCodesDisplay'; // ✨ NEW
+import ProductCodesDisplay from '@/components/ProductCodesDisplay';
+import OrderDetailDate from './OrderDetailDate'; // ✨ NEW: Client component
 
 async function getOrder(id: string) {
   await connectDB();
@@ -104,14 +105,10 @@ export default async function OrderDetailPage({
         <div className="bg-white rounded-lg shadow p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Order Summary</h2>
           <div className="space-y-3">
+            {/* ✨ UPDATED: Use client component for date */}
             <div>
               <p className="text-sm text-gray-500">Order Date</p>
-              <p className="text-sm font-medium text-gray-900">
-                {new Date(order.createdAt).toLocaleString('en-IN', {
-                  dateStyle: 'medium',
-                  timeStyle: 'short',
-                })}
-              </p>
+              <OrderDetailDate date={order.createdAt} />
             </div>
             <div>
               <p className="text-sm text-gray-500">Payment ID</p>
@@ -219,7 +216,7 @@ export default async function OrderDetailPage({
         </div>
       </div>
 
-      {/* ✨ NEW: Product Codes Section */}
+      {/* Product Codes Section */}
       <ProductCodesDisplay orderId={order._id} orderStatus={order.status} />
     </div>
   );

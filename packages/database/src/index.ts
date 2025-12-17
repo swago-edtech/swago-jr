@@ -2,14 +2,12 @@
 export { default as User } from './models/User';
 export { default as Order } from './models/Order';
 export { default as Review } from './models/Review';
-export { default as KidProfile } from './models/KidProfile'; // ✨ NEW
-export { default as ProductCode } from './models/ProductCode'; // ✨ NEW
-
-export { default as Product } from "./models/Product"; // NEW
-
-export { default as FAQ } from './models/FAQ'; //New
-
+export { default as KidProfile } from './models/KidProfile';
+export { default as ProductCode } from './models/ProductCode';
+export { default as Product } from "./models/Product";
+export { default as FAQ } from './models/FAQ';
+export { default as AmbassadorApplication } from './models/AmbassadorApplication'; // ✨ NEW
+export { default as Waitlist } from './models/Waitlist'; // ✨ NEW (simplified name)
 
 // Export database connection
 export { default as connectDB } from './connection';
-

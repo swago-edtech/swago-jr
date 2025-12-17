@@ -1,6 +1,7 @@
 import { connectDB, Order } from '@swago/database';
 import { formatPrice } from '@swago/utils';
 import Link from 'next/link';
+import OrderDateCell from './OrderDateCell'; // ✨ NEW: Client component for dates
 
 async function getOrders() {
   await connectDB();
@@ -98,20 +99,9 @@ export default async function OrdersPage() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <StatusBadge status={order.status} />
                     </td>
+                    {/* ✨ UPDATED: Use client component for date */}
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
-                        {new Date(order.createdAt).toLocaleDateString('en-IN', {
-                          day: '2-digit',
-                          month: 'short',
-                          year: 'numeric',
-                        })}
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        {new Date(order.createdAt).toLocaleTimeString('en-IN', {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                      </div>
+                      <OrderDateCell date={order.createdAt} />
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <Link

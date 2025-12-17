@@ -239,4 +239,54 @@ declare global {
   }
 }
 
+// ✅ NEW: Ambassador Application Types
+export interface AmbassadorApplication {
+  _id: string;
+  kidName: string;
+  kidAge: number;
+  city: string;
+  parentName: string;
+  parentEmail: string;
+  parentPhone: string;
+  whyJoin?: string;
+  status: 'pending' | 'under_review' | 'shortlisted' | 'selected' | 'rejected';
+  consentGiven: boolean;
+  adminNotes?: string;
+  reviewedBy?: string;
+  reviewedAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface AmbassadorApplicationInput {
+  kidName: string;
+  kidAge: number;
+  city: string;
+  parentName: string;
+  parentEmail: string;
+  parentPhone: string;
+  whyJoin?: string;
+  consentGiven: boolean;
+}
+
+// ✅ NEW: Waitlist Types (general purpose)
+export interface Waitlist {
+  _id: string;
+  kidName: string;
+  kidAge: number;
+  parentEmail: string;
+  parentPhone: string;
+  notified: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface WaitlistInput {
+  kidName: string;
+  kidAge: number;
+  parentEmail: string;
+  parentPhone: string;
+}
+
+
 export {};

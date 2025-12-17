@@ -1,6 +1,8 @@
 import { connectDB, Order, User } from '@swago/database';
 import { formatPrice } from '@swago/utils';
 import { ShoppingBag, Users, DollarSign, TrendingUp, Clock, CheckCircle } from 'lucide-react';
+import DashboardDateCell from './DashboardDateCell';
+
 
 async function getDashboardStats() {
   await connectDB();
@@ -201,7 +203,7 @@ export default async function DashboardPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(order.createdAt).toLocaleDateString('en-IN')}
+                      <DashboardDateCell date={order.createdAt} />
                     </td>
                   </tr>
                 ))

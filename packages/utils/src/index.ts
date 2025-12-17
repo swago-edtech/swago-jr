@@ -19,3 +19,6 @@ export * from './products';
 
 //openAIresponse
 export { analyzeReviewSentiment } from './sentiment';
+
+// 🆕 NEW: Export date utilities
+export * from './date';

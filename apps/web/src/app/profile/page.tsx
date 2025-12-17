@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useSharedContext, USER_EVENTS } from "@/context/SharedContext";
+import KidProfileDate from './KidProfileDate';
+
 
 type KidProfile = {
   _id: string;
@@ -307,8 +309,8 @@ export default function ProfilePage() {
                     {kid.unlockedProducts.length} items
                   </p>
                   <p className="text-xs text-slate-500 mt-1">
-                    Created: {new Date(kid.createdAt).toLocaleDateString()}
-                  </p>
+                    <KidProfileDate createdAt={kid.createdAt} />
+                    </p>
                 </div>
 
                 {/* Actions */}

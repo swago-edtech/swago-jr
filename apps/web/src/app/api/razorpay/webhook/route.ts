@@ -5,7 +5,8 @@ import { connectDB, Order, User, Product } from '@swago/database';
 import type { RazorpayWebhookPayload } from '@swago/types';
 import { sendOrderConfirmationEmail } from '@/lib/msg91-email';
 import { isValidObjectId } from 'mongoose';
-import { invalidateProductCache } from '@/app/api/products/[slug]/route'; // ✅ NEW IMPORT
+//import { invalidateProductCache } from '@/app/api/products/[slug]/route'; // ✅ NEW IMPORT
+import { invalidateProductCache } from "@/lib/productCache";
 
 
 // Type matching SharedContext CartItem

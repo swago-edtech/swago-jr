@@ -536,13 +536,13 @@ export default function NewProductPage() {
 
         {/* Submit Buttons */}
         <div className="flex gap-4 pt-4 border-t">
-          <button
-            type="button"
-            onClick={() => router.back()}
-            className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-          >
-            Cancel
-          </button>
+         <button
+             type="button"
+             onClick={() => router.back()}
+             className="px-6 py-2 border-2 border-gray-400 text-gray-700 font-medium rounded-lg hover:bg-gray-100 hover:border-gray-500 transition-colors"
+           >
+             Cancel
+           </button>
           <button
             type="submit"
             disabled={loading}

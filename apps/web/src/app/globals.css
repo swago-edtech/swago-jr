@@ -10,49 +10,40 @@
   --swago-sky-blue: 204 81% 59%;
 }
 
-/* --- ADD THESE NEW STYLES FOR THE BUTTON EFFECT --- */
+/* --- BUTTON SHINE EFFECT --- */
 
 .btn-shine {
-  position: relative; /* Needed for the pseudo-element positioning */
-  overflow: hidden;   /* Hides the shine effect outside the button bounds */
-  transition: transform 0.1s ease-in-out; /* Smooths the press effect */
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.1s ease-in-out;
 }
 
-/* This is the shine element */
 .btn-shine::before {
   content: '';
   position: absolute;
   top: 0;
-  left: -150%; /* Start off-screen to the left */
+  left: -150%;
   width: 75%;
   height: 100%;
-  
-  /* A semi-transparent white gradient creates the shine */
   background: linear-gradient(
     to right,
     rgba(255, 255, 255, 0) 0%,
     rgba(255, 255, 255, 0.25) 50%,
     rgba(255, 255, 255, 0) 100%
   );
-  
-  /* Skew the shine element to give it an angle */
   transform: skewX(-25deg);
-  
-  /* Animation settings for the sweep */
   transition: left 0.8s ease-in-out;
 }
 
-/* On hover, move the shine element across the button */
 .btn-shine:hover::before {
-  left: 150%; /* End off-screen to the right */
+  left: 150%;
 }
 
-/* On click, scale down and move the button slightly */
 .btn-shine:active {
   transform: scale(0.98) translateY(1px);
 }
 
-/* --- ADD THESE NEW STYLES FOR THE FLOATING ANIMATION --- */
+/* --- FLOATING ANIMATION --- */
 
 @keyframes float {
   0% { transform: translateY(0px); }
@@ -62,4 +53,110 @@
 
 .animate-float {
   animation: float 6s ease-in-out infinite;
+}
+
+/* --- 🆕 TEXT POP/ZOOM EFFECT --- */
+
+/* Basic text pop on hover */
+.text-pop {
+  display: inline-block;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.text-pop:hover {
+  transform: scale(1.1);
+}
+
+/* Text pop with bounce effect */
+.text-pop-bounce {
+  display: inline-block;
+  transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.text-pop-bounce:hover {
+  transform: scale(1.15);
+}
+
+/* Text pop animation on button hover (applies to child text) */
+.btn-text-pop span {
+  display: inline-block;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.btn-text-pop:hover span {
+  transform: scale(1.08);
+}
+
+/* Text zoom animation keyframe */
+@keyframes textZoomIn {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Apply zoom animation on page load */
+.text-zoom-in {
+  animation: textZoomIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Text pulse zoom (continuous animation) */
+@keyframes textPulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+.text-pulse {
+  animation: textPulse 2s ease-in-out infinite;
+}
+
+/* Individual letter pop effect */
+.letter-pop {
+  display: inline-block;
+}
+
+.letter-pop span {
+  display: inline-block;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.letter-pop:hover span {
+  animation: letterBounce 0.5s ease;
+}
+
+@keyframes letterBounce {
+  0%, 100% {
+    transform: scale(1) translateY(0);
+  }
+  25% {
+    transform: scale(1.2) translateY(-5px);
+  }
+  50% {
+    transform: scale(1.1) translateY(-2px);
+  }
+  75% {
+    transform: scale(1.15) translateY(-3px);
+  }
+}
+
+/* Pop effect with glow */
+.text-pop-glow {
+  display: inline-block;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.text-pop-glow:hover {
+  transform: scale(1.1);
+  text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
 }

@@ -3,8 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { LayoutDashboard, ShoppingBag, Package, Users, MessageSquare, X, Menu, HelpCircle } from 'lucide-react';
-import { TrendingUp } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, Package, Users, MessageSquare, X, Menu, HelpCircle, TrendingUp, Award, ChevronDown, ChevronRight } from 'lucide-react';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -12,13 +11,34 @@ const navigation = [
   { name: 'Orders', href: '/orders', icon: ShoppingBag },
   { name: 'Reviews', href: '/reviews', icon: MessageSquare },
   { name: 'Products', href: '/products', icon: Package },
-  { name: 'FAQs', href: '/faqs', icon: HelpCircle }, // ✅ NEW - FAQ link
+  { name: 'FAQs', href: '/faqs', icon: HelpCircle },
   { name: 'Users', href: '/users', icon: Users },
+  { 
+    name: 'Ambassadors', 
+    icon: Award,
+    submenu: [
+      { name: 'Applications', href: '/ambassadors/applications' },
+      { name: 'Waitlist', href: '/ambassadors/waitlist' },
+    ]
+  },
 ];
 
 export default function AdminSidebar() {
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
+
+  // Auto-expand submenu if current path matches
+  useEffect(() => {
+    navigation.forEach((item) => {
+      if (item.submenu) {
+        const isActive = item.submenu.some((sub) => pathname.startsWith(sub.href));
+        if (isActive && !expandedMenus.includes(item.name)) {
+          setExpandedMenus((prev) => [...prev, item.name]);
+        }
+      }
+    });
+  }, [pathname]);
 
   // Close mobile menu when route changes
   useEffect(() => {
@@ -36,6 +56,12 @@ export default function AdminSidebar() {
       document.body.style.overflow = 'unset';
     };
   }, [isMobileMenuOpen]);
+
+  const toggleSubmenu = (name: string) => {
+    setExpandedMenus((prev) =>
+      prev.includes(name) ? prev.filter((item) => item !== name) : [...prev, name]
+    );
+  };
 
   return (
     <>
@@ -85,8 +111,61 @@ export default function AdminSidebar() {
         {/* Navigation */}
         <nav className="flex-1 px-4 space-y-1 overflow-y-auto">
           {navigation.map((item) => {
-            const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
             const Icon = item.icon;
+            
+            // Menu item with submenu
+            if (item.submenu) {
+              const isExpanded = expandedMenus.includes(item.name);
+              const isActive = item.submenu.some((sub) => pathname.startsWith(sub.href));
+
+              return (
+                <div key={item.name}>
+                  <button
+                    onClick={() => toggleSubmenu(item.name)}
+                    className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-colors ${
+                      isActive
+                        ? 'bg-blue-600 text-white'
+                        : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                    }`}
+                  >
+                    <div className="flex items-center">
+                      <Icon className="w-5 h-5 mr-3" />
+                      {item.name}
+                    </div>
+                    {isExpanded ? (
+                      <ChevronDown className="w-4 h-4" />
+                    ) : (
+                      <ChevronRight className="w-4 h-4" />
+                    )}
+                  </button>
+
+                  {/* Submenu */}
+                  {isExpanded && (
+                    <div className="ml-4 mt-1 space-y-1">
+                      {item.submenu.map((subItem) => {
+                        const isSubActive = pathname === subItem.href || pathname.startsWith(subItem.href + '/');
+                        return (
+                          <Link
+                            key={subItem.name}
+                            href={subItem.href}
+                            className={`block px-4 py-2 rounded-lg text-sm transition-colors ${
+                              isSubActive
+                                ? 'bg-blue-500 text-white'
+                                : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                            }`}
+                          >
+                            {subItem.name}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+
+            // Regular menu item without submenu
+            const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
             
             return (
               <Link

@@ -6,7 +6,8 @@ import { z } from "zod";
 import { sendOrderConfirmationEmail } from "@/lib/msg91-email";
 import mongoose from "mongoose";
 import { isValidObjectId } from "mongoose";
-import { invalidateProductCache } from "@/app/api/products/[slug]/route"; // ✅ NEW IMPORT
+//import { invalidateProductCache } from "@/app/api/products/[slug]/route"; // ✅ NEW IMPORT
+import { invalidateProductCache } from "@/lib/productCache";
 
 
 type CartItem = {
