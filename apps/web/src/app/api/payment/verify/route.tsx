@@ -6,8 +6,8 @@ import { z } from "zod";
 import { sendOrderConfirmationEmail } from "@/lib/msg91-email";
 import mongoose from "mongoose";
 import { isValidObjectId } from "mongoose";
-//import { invalidateProductCache } from "@/app/api/products/[slug]/route"; // ✅ NEW IMPORT
 import { invalidateProductCache } from "@/lib/productCache";
+
 
 
 type CartItem = {
@@ -20,6 +20,7 @@ type CartItem = {
 };
 
 
+
 type OrderItem = {
   productId: number | string;
   name: string;
@@ -27,6 +28,7 @@ type OrderItem = {
   quantity: number;
   image: string;
 };
+
 
 
 // ✅ Type for order object items from database
@@ -40,6 +42,7 @@ interface OrderItemFromDb {
 }
 
 
+
 // ✅ Type for product document
 interface ProductDocument {
   _id: string;
@@ -51,6 +54,7 @@ interface ProductDocument {
   save: () => Promise<void>;
   [key: string]: unknown;
 }
+
 
 
 const orderDetailsSchema = z.object({
@@ -87,6 +91,34 @@ const orderDetailsSchema = z.object({
 });
 
 
+
+// ========================================
+// ✅ UPDATED: Helper to detect hardcoded products
+// ========================================
+function isHardcodedProduct(productId: string | number | undefined): boolean {
+  if (!productId) return false;
+  
+  // Handle numeric IDs (1, 2, 3...)
+  if (typeof productId === 'number') {
+    return productId >= 1 && productId <= 100;
+  }
+  
+  // Handle string IDs
+  const idString = productId.toString();
+  
+  // Check for "hardcoded-X" format
+  if (idString.startsWith('hardcoded-')) {
+    const numericPart = parseInt(idString.replace('hardcoded-', ''), 10);
+    return !isNaN(numericPart) && numericPart >= 1 && numericPart <= 100;
+  }
+  
+  // Check for pure numeric strings ("1", "2", "3"...)
+  const numericId = Number(idString);
+  return !isNaN(numericId) && numericId >= 1 && numericId <= 100;
+}
+
+
+
 // ========================================
 // ✅ Helper to get product by ID or slug
 // ========================================
@@ -110,6 +142,7 @@ async function getProductById(id: string | number): Promise<ProductDocument | nu
 }
 
 
+
 export async function POST(req: Request) {
   try {
     const session = await getLoginSession();
@@ -118,14 +151,17 @@ export async function POST(req: Request) {
     }
 
 
+
     const body = await req.json();
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature, orderDetails } = body;
+
 
 
     const validation = orderDetailsSchema.safeParse(orderDetails);
     if (!validation.success) {
       return NextResponse.json({ error: validation.error.format() }, { status: 400 });
     }
+
 
 
     const secret = process.env.RAZORPAY_KEY_SECRET!;
@@ -135,9 +171,11 @@ export async function POST(req: Request) {
       .digest("hex");
 
 
+
     if (generated_signature !== razorpay_signature) {
       return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
     }
+
 
 
     await connectDB();
@@ -155,7 +193,9 @@ export async function POST(req: Request) {
     }
 
 
+
     const existingOrder = await Order.findOne({ razorpay_payment_id });
+
 
 
     if (existingOrder) {
@@ -219,7 +259,9 @@ export async function POST(req: Request) {
     }
 
 
+
     console.log('⚠️ Webhook order not found, creating via verify route (backup)');
+
 
 
     // ========================================
@@ -234,6 +276,11 @@ export async function POST(req: Request) {
         continue;
       }
 
+      // ✅ Skip hardcoded products
+      if (isHardcodedProduct(productId)) {
+        console.log(`⏭️ Skipping stock update for hardcoded product: ${item.name} (ID: ${productId})`);
+        continue;
+      }
 
       const product = await getProductById(productId);
       
@@ -241,6 +288,7 @@ export async function POST(req: Request) {
         console.log(`⚠️ Product not found: ${item.name} (ID: ${productId})`);
         continue;
       }
+
 
 
       const quantity = item.quantity || 1;
@@ -266,7 +314,7 @@ export async function POST(req: Request) {
       console.log(`   🔒 Reserved: ${oldReserved} → ${product.reservedStock}`);
       console.log(`   📊 Total Sold: ${oldSold} → ${product.totalSold}`);
       
-      // ✅ NEW: Invalidate product cache
+      // ✅ Invalidate product cache
       try {
         invalidateProductCache(product.slug || '');
         invalidateProductCache(product._id.toString());
@@ -277,6 +325,7 @@ export async function POST(req: Request) {
     
     console.log('✅ Stock updated successfully via verify route');
     // ========================================
+
 
 
     // Update phone for email-only users
@@ -296,6 +345,7 @@ export async function POST(req: Request) {
     }
 
 
+
     // Update email for phone-only users
     if (!user.email && orderDetails.email) {
       try {
@@ -313,6 +363,7 @@ export async function POST(req: Request) {
     }
 
 
+
     const orderItems: OrderItem[] = orderDetails.cart.map((item: CartItem) => ({
       productId: item._id || item.id || 0,
       name: item.name,
@@ -320,6 +371,7 @@ export async function POST(req: Request) {
       quantity: item.quantity,
       image: item.image || '',
     }));
+
 
 
     const calculatedSubtotal = orderItems.reduce(
@@ -330,6 +382,7 @@ export async function POST(req: Request) {
     const subtotal = orderDetails.originalAmount || calculatedSubtotal;
     const discountAmount = orderDetails.discount?.savedAmount || 0;
     const total = orderDetails.finalAmount || (subtotal - discountAmount);
+
 
 
     // Create order with proper ObjectId userId
@@ -358,8 +411,10 @@ export async function POST(req: Request) {
     });
 
 
+
     console.log('✅ Order created via verify route with userId:', newOrder._id);
     console.log('✅ userId type:', typeof newOrder.userId, newOrder.userId);
+
 
 
     try {
@@ -371,8 +426,10 @@ export async function POST(req: Request) {
     }
 
 
+
     const orderObject = newOrder.toObject();
     const orderTotal = orderObject.total || total;
+
 
 
     try {
@@ -384,6 +441,7 @@ export async function POST(req: Request) {
           <td class="item-price">₹${(item.price * item.quantity).toFixed(2)}</td>
         </tr>
       `).join('');
+
 
 
       await sendOrderConfirmationEmail({
@@ -405,12 +463,14 @@ export async function POST(req: Request) {
     }
 
 
+
     return NextResponse.json({ 
       success: true, 
       orderId: newOrder._id,
       orderNumber: orderObject._id.toString().slice(-6),
       source: 'frontend'
     });
+
 
 
   } catch (error) {

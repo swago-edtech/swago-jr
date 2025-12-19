@@ -4,6 +4,7 @@ import { getLoginSession } from "@/lib/auth";
 import { connectDB, Product } from "@swago/database";
 import { isValidObjectId } from "mongoose";
 
+
 // ✅ Type definitions
 interface ProductDocument {
   _id: string;
@@ -16,6 +17,7 @@ interface ProductDocument {
   [key: string]: unknown;
 }
 
+
 interface CartItem {
   _id?: string;
   id?: number;
@@ -25,6 +27,31 @@ interface CartItem {
   image?: string;
   images?: string[];
 }
+
+
+// ✅ UPDATED: Helper to detect hardcoded products
+function isHardcodedProduct(productId: string | number | undefined): boolean {
+  if (!productId) return false;
+  
+  // Handle numeric IDs (1, 2, 3...)
+  if (typeof productId === 'number') {
+    return productId >= 1 && productId <= 100;
+  }
+  
+  // Handle string IDs
+  const idString = productId.toString();
+  
+  // Check for "hardcoded-X" format
+  if (idString.startsWith('hardcoded-')) {
+    const numericPart = parseInt(idString.replace('hardcoded-', ''), 10);
+    return !isNaN(numericPart) && numericPart >= 1 && numericPart <= 100;
+  }
+  
+  // Check for pure numeric strings ("1", "2", "3"...)
+  const numericId = Number(idString);
+  return !isNaN(numericId) && numericId >= 1 && numericId <= 100;
+}
+
 
 // Helper to get product by ID or slug
 async function getProductById(id: string): Promise<ProductDocument | null> {
@@ -44,6 +71,7 @@ async function getProductById(id: string): Promise<ProductDocument | null> {
   }
 }
 
+
 export async function POST(req: Request) {
   try {
     const session = await getLoginSession();
@@ -51,15 +79,18 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
+
     const { totalAmount, orderDetails } = await req.json();
     
     if (!totalAmount || typeof totalAmount !== "number") {
       return NextResponse.json({ error: "A valid total amount is required" }, { status: 400 });
     }
 
+
     if (!orderDetails?.cart || !Array.isArray(orderDetails.cart) || orderDetails.cart.length === 0) {
       return NextResponse.json({ error: "Cart is required" }, { status: 400 });
     }
+
 
     // ========================================
     // ✅ STOCK VALIDATION & RESERVATION
@@ -71,21 +102,41 @@ export async function POST(req: Request) {
     const stockErrors: string[] = [];
     const reservations: Array<{ product: ProductDocument; quantity: number }> = [];
 
+
     // Step 1: Validate all items have sufficient stock
     for (const item of orderDetails.cart) {
       const productId = item._id || item.id?.toString();
+      
+      // ✅ DEBUG LOGGING
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.log('🔍 Item:', item.name);
+      console.log('   item.id:', item.id, '(type:', typeof item.id, ')');
+      console.log('   item._id:', item._id, '(type:', typeof item._id, ')');
+      console.log('   productId (selected):', productId, '(type:', typeof productId, ')');
+      console.log('   isHardcodedProduct?', isHardcodedProduct(productId));
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
       
       if (!productId) {
         stockErrors.push(`Invalid product ID for ${item.name}`);
         continue;
       }
 
+
+      // ✅ NEW: Skip hardcoded products (always available)
+      if (isHardcodedProduct(productId)) {
+        console.log(`⏭️ Skipping stock check for hardcoded product: ${item.name} (ID: ${productId})`);
+        continue; // No stock management needed
+      }
+
+
+      // Database products - check stock
       const product = await getProductById(productId);
       
       if (!product) {
         stockErrors.push(`${item.name} is no longer available`);
         continue;
       }
+
 
       const availableStock = Math.max(0, product.stock - (product.reservedStock || 0));
       
@@ -101,6 +152,7 @@ export async function POST(req: Request) {
       }
     }
 
+
     // If any stock errors, don't proceed
     if (stockErrors.length > 0) {
       console.log('❌ Stock validation failed:', stockErrors);
@@ -111,7 +163,8 @@ export async function POST(req: Request) {
       }, { status: 400 });
     }
 
-    // Step 2: Reserve stock for all items
+
+    // Step 2: Reserve stock for all items (only DB products)
     console.log('✅ Stock validation passed. Reserving stock...');
     
     for (const { product, quantity } of reservations) {
@@ -120,8 +173,10 @@ export async function POST(req: Request) {
       console.log(`🔒 Reserved ${quantity} units of ${product.name} (total reserved: ${product.reservedStock})`);
     }
 
+
     console.log('✅ Stock reserved successfully for all items');
     // ========================================
+
 
     if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
       console.error("Razorpay credentials missing");
@@ -138,10 +193,12 @@ export async function POST(req: Request) {
       }, { status: 500 });
     }
 
+
     const razorpay = new Razorpay({
       key_id: process.env.RAZORPAY_KEY_ID,
       key_secret: process.env.RAZORPAY_KEY_SECRET,
     });
+
 
     // Prepare cart items for notes
     const cartItemsJson = JSON.stringify(
@@ -155,10 +212,12 @@ export async function POST(req: Request) {
       })) || []
     );
 
+
     // Prepare coupon details if exists
     const couponDetailsJson = orderDetails?.coupon 
       ? JSON.stringify(orderDetails.coupon) 
       : '';
+
 
     const options = {
       amount: Math.round(totalAmount * 100),
@@ -190,13 +249,15 @@ export async function POST(req: Request) {
         has_discount: orderDetails?.discount ? "yes" : "no",
         coupon_code: orderDetails?.coupon?.code || "",
         
-        // ✅ NEW: Stock reservation flag
-        stock_reserved: "true",
+        // Stock reservation flag
+        stock_reserved: reservations.length > 0 ? "true" : "false", // ✅ Only true if DB products reserved
         reservation_timestamp: Date.now().toString(),
       }
     };
 
+
     console.log("Creating Razorpay order with stock reserved");
+
 
     try {
       const order = await razorpay.orders.create(options);
@@ -214,6 +275,7 @@ export async function POST(req: Request) {
       
       throw razorpayError;
     }
+
 
   } catch (error: unknown) {
     console.error("Payment creation error - Full error:", error);

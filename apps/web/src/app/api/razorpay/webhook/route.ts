@@ -5,8 +5,8 @@ import { connectDB, Order, User, Product } from '@swago/database';
 import type { RazorpayWebhookPayload } from '@swago/types';
 import { sendOrderConfirmationEmail } from '@/lib/msg91-email';
 import { isValidObjectId } from 'mongoose';
-//import { invalidateProductCache } from '@/app/api/products/[slug]/route'; // ✅ NEW IMPORT
 import { invalidateProductCache } from "@/lib/productCache";
+
 
 
 // Type matching SharedContext CartItem
@@ -22,6 +22,7 @@ type CartItem = {
 };
 
 
+
 // Order item type
 type OrderItem = {
   productId: number | string;
@@ -30,6 +31,7 @@ type OrderItem = {
   quantity: number;
   image: string;
 };
+
 
 
 // ✅ Type for order object items from database
@@ -41,6 +43,7 @@ interface OrderItemFromDb {
   image?: string;
   _id?: string;
 }
+
 
 
 // ✅ Type for product document
@@ -56,6 +59,7 @@ interface ProductDocument {
 }
 
 
+
 // Coupon details type
 type CouponDetails = {
   code: string;
@@ -63,6 +67,7 @@ type CouponDetails = {
   type: string;
   value: number;
 } | null;
+
 
 
 // ✅ Extended notes type
@@ -90,6 +95,7 @@ type ExtendedRazorpayNotes = {
 };
 
 
+
 // Safe JSON parser
 function safeJsonParse<T>(jsonString: string | null | undefined, fallback: T): T {
   if (!jsonString) return fallback;
@@ -100,6 +106,34 @@ function safeJsonParse<T>(jsonString: string | null | undefined, fallback: T): T
     return fallback;
   }
 }
+
+
+
+// ========================================
+// ✅ UPDATED: Helper to detect hardcoded products
+// ========================================
+function isHardcodedProduct(productId: string | number | undefined): boolean {
+  if (!productId) return false;
+  
+  // Handle numeric IDs (1, 2, 3...)
+  if (typeof productId === 'number') {
+    return productId >= 1 && productId <= 100;
+  }
+  
+  // Handle string IDs
+  const idString = productId.toString();
+  
+  // Check for "hardcoded-X" format
+  if (idString.startsWith('hardcoded-')) {
+    const numericPart = parseInt(idString.replace('hardcoded-', ''), 10);
+    return !isNaN(numericPart) && numericPart >= 1 && numericPart <= 100;
+  }
+  
+  // Check for pure numeric strings ("1", "2", "3"...)
+  const numericId = Number(idString);
+  return !isNaN(numericId) && numericId >= 1 && numericId <= 100;
+}
+
 
 
 // ========================================
@@ -125,6 +159,7 @@ async function getProductById(id: string | number): Promise<ProductDocument | nu
 }
 
 
+
 export async function POST(req: NextRequest) {
   const timestamp = new Date().toISOString();
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
@@ -147,9 +182,11 @@ export async function POST(req: NextRequest) {
     }
 
 
+
     const event = JSON.parse(body);
     console.log('📋 Event type:', event.event);
     console.log('🆔 Event ID:', event.payload?.payment?.entity?.id || 'N/A');
+
 
 
     if (event.event === 'payment.captured') {
@@ -163,9 +200,11 @@ export async function POST(req: NextRequest) {
     }
 
 
+
     console.log('✅ Webhook processed successfully');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     return NextResponse.json({ received: true }, { status: 200 });
+
 
 
   } catch (error) {
@@ -177,11 +216,13 @@ export async function POST(req: NextRequest) {
 }
 
 
+
 function verifyWebhookSignature(body: string, signature: string | null): boolean {
   if (!signature) {
     console.log('⚠️ No signature header found');
     return false;
   }
+
 
 
   const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
@@ -191,10 +232,12 @@ function verifyWebhookSignature(body: string, signature: string | null): boolean
   }
 
 
+
   const expectedSignature = crypto
     .createHmac('sha256', secret)
     .update(body)
     .digest('hex');
+
 
 
   try {
@@ -211,6 +254,7 @@ function verifyWebhookSignature(body: string, signature: string | null): boolean
 }
 
 
+
 async function handlePaymentCaptured(payload: RazorpayWebhookPayload) {
   const payment = payload.payment.entity;
   
@@ -225,9 +269,11 @@ async function handlePaymentCaptured(payload: RazorpayWebhookPayload) {
     console.log('✅ Database connected');
 
 
+
     const existingOrder = await Order.findOne({
       razorpay_payment_id: payment.id
     });
+
 
 
     if (existingOrder) {
@@ -237,7 +283,9 @@ async function handlePaymentCaptured(payload: RazorpayWebhookPayload) {
     }
 
 
+
     console.log('🆕 Creating new order...');
+
 
 
     const notes = (payment.notes || {}) as ExtendedRazorpayNotes;
@@ -260,6 +308,11 @@ async function handlePaymentCaptured(payload: RazorpayWebhookPayload) {
         continue;
       }
 
+      // ✅ Skip hardcoded products
+      if (isHardcodedProduct(productId)) {
+        console.log(`⏭️ Skipping stock update for hardcoded product: ${item.name} (ID: ${productId})`);
+        continue;
+      }
 
       const product = await getProductById(productId);
       
@@ -267,6 +320,7 @@ async function handlePaymentCaptured(payload: RazorpayWebhookPayload) {
         console.log(`⚠️ Product not found: ${item.name} (ID: ${productId})`);
         continue;
       }
+
 
 
       const quantity = item.quantity || 1;
@@ -292,7 +346,7 @@ async function handlePaymentCaptured(payload: RazorpayWebhookPayload) {
       console.log(`   🔒 Reserved: ${oldReserved} → ${product.reservedStock}`);
       console.log(`   📊 Total Sold: ${oldSold} → ${product.totalSold}`);
       
-      // ✅ NEW: Invalidate product cache
+      // ✅ Invalidate product cache
       try {
         invalidateProductCache(product.slug || '');
         invalidateProductCache(product._id.toString());
@@ -323,8 +377,10 @@ async function handlePaymentCaptured(payload: RazorpayWebhookPayload) {
     }
 
 
+
     const orderPhone = notes.phone || payment.contact || '';
     console.log('📱 Order/Delivery phone:', orderPhone);
+
 
 
     // Find user by login credentials
@@ -351,11 +407,13 @@ async function handlePaymentCaptured(payload: RazorpayWebhookPayload) {
     }
 
 
+
     if (!user) {
       console.log('❌ User not found. Cannot create order without user.');
       console.log('Login credentials:', { phone: notes.loginPhone, email: notes.loginEmail });
       return;
     }
+
 
 
     const newOrder = await Order.create({
@@ -383,8 +441,10 @@ async function handlePaymentCaptured(payload: RazorpayWebhookPayload) {
     });
 
 
+
     console.log('✅ Order created:', newOrder._id);
     console.log('💵 Order total:', newOrder.total, 'INR');
+
 
 
     // Update user profile
@@ -417,6 +477,7 @@ async function handlePaymentCaptured(payload: RazorpayWebhookPayload) {
     console.log('✅ User updated with new order');
 
 
+
     // Send confirmation email
     console.log('📧 Sending confirmation email...');
     const orderObject = newOrder.toObject();
@@ -429,6 +490,7 @@ async function handlePaymentCaptured(payload: RazorpayWebhookPayload) {
         <td class="item-price">₹${(item.price * item.quantity).toFixed(2)}</td>
       </tr>
     `).join('');
+
 
 
     try {
@@ -450,6 +512,7 @@ async function handlePaymentCaptured(payload: RazorpayWebhookPayload) {
     }
 
 
+
   } catch (error) {
     console.error('💥 Error in handlePaymentCaptured:', error);
     console.error('Payment ID:', payment.id);
@@ -457,6 +520,7 @@ async function handlePaymentCaptured(payload: RazorpayWebhookPayload) {
     throw error;
   }
 }
+
 
 
 async function handlePaymentFailed(payload: RazorpayWebhookPayload) {
@@ -501,12 +565,18 @@ async function handlePaymentFailed(payload: RazorpayWebhookPayload) {
         continue;
       }
 
+      // ✅ Skip hardcoded products
+      if (isHardcodedProduct(productId)) {
+        console.log(`⏭️ Skipping stock release for hardcoded product: ${item.name} (ID: ${productId})`);
+        continue;
+      }
 
       const product = await getProductById(productId);
       if (!product) {
         console.log(`⚠️ Product not found: ${item.name}`);
         continue;
       }
+
 
 
       const quantity = item.quantity || 1;
@@ -518,7 +588,7 @@ async function handlePaymentFailed(payload: RazorpayWebhookPayload) {
       
       console.log(`🔓 ${product.name}: Reserved ${oldReserved} → ${product.reservedStock} (released ${quantity})`);
       
-      // ✅ NEW: Invalidate product cache
+      // ✅ Invalidate product cache
       try {
         invalidateProductCache(product.slug || '');
         invalidateProductCache(product._id.toString());
