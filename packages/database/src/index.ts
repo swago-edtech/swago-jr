@@ -9,5 +9,8 @@ export { default as FAQ } from './models/FAQ';
 export { default as AmbassadorApplication } from './models/AmbassadorApplication'; // ✨ NEW
 export { default as Waitlist } from './models/Waitlist'; // ✨ NEW (simplified name)
 
+export { default as ContactSubmission } from './models/ContactSubmission';
+
+
 // Export database connection
 export { default as connectDB } from './connection';

@@ -7,10 +7,11 @@ import Image from "next/image";
 import { useState, useEffect } from "react";
 
 interface CartItem {
+  productId?: string | number;  // ✅ NEW: The actual product reference
   id?: number;
-  _id?: string;
+  _id?: string;  // MongoDB subdocument ID (NOT the product ID)
   name: string;
-  price: number;
+  price?: number;
   quantity: number;
   images?: string[];
   image?: string;
@@ -45,15 +46,27 @@ export default function CartPage() {
         const errors: string[] = [];
 
         for (const item of cart) {
-          const productId = item._id || item.id?.toString();
+          // ✅ FIXED: Use productId first (actual product reference), not _id (subdocument ID)
+          const productId = item.productId?.toString() || item.id?.toString() || item._id;
           if (!productId) continue;
 
           try {
             const res = await fetch(`/api/products/${productId}`);
+            
+            // ✅ FIX: If product doesn't exist (404), just skip stock check
+            if (res.status === 404) {
+              console.log(`⚠️ Product ${productId} not found (404), skipping stock check`);
+              continue;
+            }
+
             const data = await res.json();
 
             if (data.success && data.product) {
-              const available = Math.max(0, (data.product.stock || 0) - (data.product.reservedStock || 0));
+              // ✅ FIXED: Hardcoded products have stock: undefined (unlimited)
+              const hasStockTracking = typeof data.product.stock === 'number';
+              const available = hasStockTracking 
+                ? Math.max(0, data.product.stock - (data.product.reservedStock || 0))
+                : 999999; // Unlimited for hardcoded products
               
               stockData[productId] = {
                 available: available,
@@ -61,11 +74,13 @@ export default function CartPage() {
                 total: data.product.stock || 0
               };
 
-              // Check for issues
-              if (available === 0) {
-                errors.push(`${item.name} is out of stock`);
-              } else if (item.quantity > available) {
-                errors.push(`${item.name}: Only ${available} available (you have ${item.quantity} in cart)`);
+              // ✅ Only check stock issues for products that track stock
+              if (hasStockTracking) {
+                if (available === 0) {
+                  errors.push(`${item.name} is out of stock`);
+                } else if (item.quantity > available) {
+                  errors.push(`${item.name}: Only ${available} available (you have ${item.quantity} in cart)`);
+                }
               }
             }
           } catch (error) {
@@ -85,8 +100,9 @@ export default function CartPage() {
     fetchStock();
   }, [cart]);
 
+  // ✅ FIXED: Use productId first
   const getProductKey = (item: CartItem): string => {
-    return item._id || item.id?.toString() || '';
+    return item.productId?.toString() || item.id?.toString() || item._id || '';
   };
 
   const hasStockIssues = stockErrors.length > 0;
@@ -142,6 +158,9 @@ export default function CartPage() {
           ) : (
             <div className="space-y-4">
               {cart.map((item: CartItem) => {
+                // ✅ Guard against undefined price
+                const unitPrice = typeof item.price === "number" ? item.price : 0;
+                
                 const imageUrl = item.images?.[0] || item.image || '/images/placeholder.png';
                 const productKey = getProductKey(item);
                 const stock = stockInfo[productKey];
@@ -173,7 +192,7 @@ export default function CartPage() {
 
                     <div className="flex-grow flex flex-col">
                       <h2 className="font-semibold text-lg">{item.name}</h2>
-                      <p className="text-slate-500">Price: ₹{item.price.toFixed(2)}</p>
+                      <p className="text-slate-500">Price: ₹{unitPrice.toFixed(2)}</p>
                       
                       {/* Stock Status */}
                       {stock && (
@@ -201,14 +220,14 @@ export default function CartPage() {
                       <div className="flex-grow"></div>
                       <div className="flex items-center gap-2 mt-2">
                         <button 
-                          onClick={() => decreaseQty(item.id || item._id!)} 
+                          onClick={() => decreaseQty(item.productId || item.id || item._id!)} 
                           className="px-2 py-1 border rounded-md hover:bg-slate-100"
                         >
                           -
                         </button>
                         <span className="font-medium">{item.quantity}</span>
                         <button 
-                          onClick={() => increaseQty(item.id || item._id!)} 
+                          onClick={() => increaseQty(item.productId || item.id || item._id!)} 
                           className="px-2 py-1 border rounded-md hover:bg-slate-100"
                           disabled={isOutOfStock || item.quantity >= available}
                         >
@@ -217,11 +236,10 @@ export default function CartPage() {
                         {hasQuantityIssue && (
                           <button
                             onClick={() => {
-                              // Set quantity to max available
                               const currentQty = item.quantity;
                               const diff = currentQty - available;
                               for (let i = 0; i < diff; i++) {
-                                decreaseQty(item.id || item._id!);
+                                decreaseQty(item.productId || item.id || item._id!);
                               }
                             }}
                             className="ml-2 text-xs text-blue-600 hover:underline"
@@ -233,9 +251,9 @@ export default function CartPage() {
                     </div>
                     
                     <div className="flex flex-col justify-between items-end">
-                      <p className="font-bold text-lg">₹{(item.price * item.quantity).toFixed(2)}</p>
+                      <p className="font-bold text-lg">₹{(unitPrice * item.quantity).toFixed(2)}</p>
                       <button 
-                        onClick={() => removeFromCart(item.id || item._id!)} 
+                        onClick={() => removeFromCart(item.productId || item.id || item._id!)} 
                         className="text-sm text-red-500 hover:underline"
                       >
                         Remove

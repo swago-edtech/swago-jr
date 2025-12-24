@@ -1,30 +1,71 @@
-import type { Metadata } from 'next';
+'use client';
 
-export const metadata: Metadata = {
-  title: 'Contact Us | Swago Junior',
-  description: 'Get in touch with Swago Junior for any questions about our kids learning kits',
-};
-
-const PhoneIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 0 1-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 6.75Z" />
-  </svg>
-);
-
-const EmailIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
-  </svg>
-);
-
-const LocationIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
-  </svg>
-);
+import { useState, FormEvent } from 'react';
+import { FiPhone, FiMail, FiMapPin } from 'react-icons/fi';
 
 export default function ContactPage() {
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    subject: '',
+    message: '',
+  });
+
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    });
+    // Clear error when user starts typing
+    if (error) setError('');
+    if (success) setSuccess(false);
+  };
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    setSuccess(false);
+
+    try {
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to submit form');
+      }
+
+      // Success!
+      setSuccess(true);
+      setFormData({
+        firstName: '',
+        lastName: '',
+        email: '',
+        phone: '',
+        subject: '',
+        message: '',
+      });
+
+      // Auto-hide success message after 5 seconds
+      setTimeout(() => setSuccess(false), 5000);
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
+      } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-white">
       {/* Hero Section */}
@@ -55,7 +96,7 @@ export default function ContactPage() {
             <div className="space-y-6">
               <div className="flex items-start space-x-4 p-6 bg-slate-50 rounded-xl">
                 <div className="text-[hsl(var(--swago-purple))]">
-                  <PhoneIcon />
+                  <FiPhone className="w-6 h-6" />
                 </div>
                 <div>
                   <h3 className="font-semibold text-slate-800 mb-1">Phone</h3>
@@ -66,7 +107,7 @@ export default function ContactPage() {
 
               <div className="flex items-start space-x-4 p-6 bg-slate-50 rounded-xl">
                 <div className="text-[hsl(var(--swago-purple))]">
-                  <EmailIcon />
+                  <FiMail className="w-6 h-6" />
                 </div>
                 <div>
                   <h3 className="font-semibold text-slate-800 mb-1">Email</h3>
@@ -77,7 +118,7 @@ export default function ContactPage() {
 
               <div className="flex items-start space-x-4 p-6 bg-slate-50 rounded-xl">
                 <div className="text-[hsl(var(--swago-purple))]">
-                  <LocationIcon />
+                  <FiMapPin className="w-6 h-6" />
                 </div>
                 <div>
                   <h3 className="font-semibold text-slate-800 mb-1">Address</h3>
@@ -93,59 +134,105 @@ export default function ContactPage() {
           {/* Contact Form */}
           <div className="bg-slate-50 p-8 rounded-2xl">
             <h2 className="text-2xl font-bold text-slate-800 mb-6">Send us a Message</h2>
-            <form className="space-y-6">
+            
+            {/* Success Message */}
+            {success && (
+              <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg text-green-800">
+                <p className="font-medium">✓ Message sent successfully!</p>
+                <p className="text-sm mt-1">We&#39;ll get back to you within 24 hours.</p>
+              </div>
+            )}
+
+            {/* Error Message */}
+            {error && (
+              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-800">
+                <p className="font-medium">✗ {error}</p>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label htmlFor="firstName" className="block text-sm font-medium text-slate-700 mb-2">First Name</label>
+                  <label htmlFor="firstName" className="block text-sm font-medium text-slate-700 mb-2">
+                    First Name <span className="text-red-500">*</span>
+                  </label>
                   <input 
                     id="firstName"
                     name="firstName"
-                    type="text" 
+                    type="text"
+                    required
+                    value={formData.firstName}
+                    onChange={handleChange}
                     className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[hsl(var(--swago-purple))] focus:border-transparent"
                     placeholder="Your first name"
+                    disabled={loading}
                   />
                 </div>
                 <div>
-                  <label htmlFor="lastName" className="block text-sm font-medium text-slate-700 mb-2">Last Name</label>
+                  <label htmlFor="lastName" className="block text-sm font-medium text-slate-700 mb-2">
+                    Last Name <span className="text-red-500">*</span>
+                  </label>
                   <input 
                     id="lastName"
                     name="lastName"
-                    type="text" 
+                    type="text"
+                    required
+                    value={formData.lastName}
+                    onChange={handleChange}
                     className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[hsl(var(--swago-purple))] focus:border-transparent"
                     placeholder="Your last name"
+                    disabled={loading}
                   />
                 </div>
               </div>
 
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-2">Email</label>
+                <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-2">
+                  Email <span className="text-red-500">*</span>
+                </label>
                 <input 
                   id="email"
                   name="email"
-                  type="email" 
+                  type="email"
+                  required
+                  value={formData.email}
+                  onChange={handleChange}
                   className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[hsl(var(--swago-purple))] focus:border-transparent"
                   placeholder="your.email@example.com"
+                  disabled={loading}
                 />
               </div>
 
               <div>
-                <label htmlFor="phone" className="block text-sm font-medium text-slate-700 mb-2">Phone</label>
+                <label htmlFor="phone" className="block text-sm font-medium text-slate-700 mb-2">
+                  Phone <span className="text-red-500">*</span>
+                </label>
                 <input 
                   id="phone"
                   name="phone"
-                  type="tel" 
+                  type="tel"
+                  required
+                  value={formData.phone}
+                  onChange={handleChange}
                   className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[hsl(var(--swago-purple))] focus:border-transparent"
                   placeholder="+91 XXXXX XXXXX"
+                  disabled={loading}
                 />
               </div>
 
               <div>
-                <label htmlFor="subject" className="block text-sm font-medium text-slate-700 mb-2">Subject</label>
+                <label htmlFor="subject" className="block text-sm font-medium text-slate-700 mb-2">
+                  Subject <span className="text-red-500">*</span>
+                </label>
                 <select 
                   id="subject"
                   name="subject"
+                  required
+                  value={formData.subject}
+                  onChange={handleChange}
                   title="Select inquiry subject"
                   className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[hsl(var(--swago-purple))] focus:border-transparent"
+                  disabled={loading}
                 >
                   <option value="">Select a topic</option>
                   <option value="product">Product Questions</option>
@@ -157,21 +244,29 @@ export default function ContactPage() {
               </div>
 
               <div>
-                <label htmlFor="message" className="block text-sm font-medium text-slate-700 mb-2">Message</label>
+                <label htmlFor="message" className="block text-sm font-medium text-slate-700 mb-2">
+                  Message <span className="text-red-500">*</span>
+                </label>
                 <textarea 
                   id="message"
                   name="message"
                   rows={5}
+                  required
+                  minLength={10}
+                  value={formData.message}
+                  onChange={handleChange}
                   className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[hsl(var(--swago-purple))] focus:border-transparent resize-none"
-                  placeholder="Tell us how we can help..."
+                  placeholder="Tell us how we can help... (min 10 characters)"
+                  disabled={loading}
                 ></textarea>
               </div>
 
               <button 
                 type="submit"
-                className="w-full bg-[hsl(var(--swago-purple))] text-white font-bold py-3 px-6 rounded-lg hover:opacity-90 transition-opacity"
+                disabled={loading}
+                className="w-full bg-[hsl(var(--swago-purple))] text-white font-bold py-3 px-6 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Send Message
+                {loading ? 'Sending...' : 'Send Message'}
               </button>
             </form>
           </div>

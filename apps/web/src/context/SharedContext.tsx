@@ -1,7 +1,7 @@
 // apps/web/src/context/SharedContext.tsx
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from "react";
 
 type PopulatedOrder = {
   _id: string;
@@ -10,38 +10,22 @@ type PopulatedOrder = {
   items: { name: string; quantity: number; price: number; }[];
 };
 
-// ✅ Updated Product type - supports BOTH old and new formats
 export type Product = {
-  // IDs (support both)
-  id?: number;              // Old (hardcoded products)
-  _id?: string;             // New (MongoDB products)
-  
-  // Basic fields
+  id?: number;
+  _id?: string;
   name: string;
   description: string;
   price: number;
-  
-  // Price (support both naming conventions)
-  original_price?: number;  // Old
-  originalPrice?: number;   // New
-  
+  original_price?: number;
+  originalPrice?: number;
   images: string[];
-  
-  // Age category (support both)
-  age_category?: string;    // Old
-  ageCategory?: string;     // New
-  
-  // Core elements (support both)
-  core_elements?: string[]; // Old
-  coreElements?: string[];  // New
-  
+  age_category?: string;
+  ageCategory?: string;
+  core_elements?: string[];
+  coreElements?: string[];
   benefits?: string;
-  
-  // Box contents (support both)
-  box_contents?: string;    // Old
-  boxContents?: string;     // New
-  
-  // New fields (only in DB products)
+  box_contents?: string;
+  boxContents?: string;
   stock?: number;
   isFeatured?: boolean;
   isActive?: boolean;
@@ -52,7 +36,11 @@ export type Product = {
   updatedAt?: string;
 };
 
-export type CartItem = Product & { quantity: number };
+export type CartItem = Product & { 
+  quantity: number;
+  productId?: string | number;  // ✅ NEW: For DB cart items
+  addedAt?: Date | string;      // ✅ NEW: DB timestamp
+};
 
 export type User = {
   _id: string;
@@ -61,8 +49,9 @@ export type User = {
   age?: number;
   address?: string;
   orders: PopulatedOrder[];
-  wishlist: (number | string)[]; // ✅ CHANGED: Support both types
+  wishlist: (number | string)[];
   email?: string;
+  cart?: CartItem[];
 };
 
 export type SelectedKid = {
@@ -84,10 +73,10 @@ type SharedContextType = {
   setUser: (user: User | null) => void;
   isLoadingUser: boolean;
   refreshUser: () => Promise<void>;
-  wishlist: (number | string)[]; // ✅ CHANGED: Support both types
-  addToWishlist: (productId: number | string) => void; // ✅ CHANGED
-  removeFromWishlist: (productId: number | string) => void; // ✅ CHANGED
-  isWishlisted: (productId: number | string) => boolean; // ✅ CHANGED
+  wishlist: (number | string)[];
+  addToWishlist: (productId: number | string) => void;
+  removeFromWishlist: (productId: number | string) => void;
+  isWishlisted: (productId: number | string) => boolean;
   selectedKid: SelectedKid | null;
   setSelectedKid: (kid: SelectedKid | null) => void;
   clearSelectedKid: () => void;
@@ -97,15 +86,18 @@ const SharedContext = createContext<SharedContextType | undefined>(undefined);
 const STORAGE_KEY = "swago_cart";
 const KID_STORAGE_KEY = "selectedKidProfile";
 
-// Event names for user updates
 const USER_EVENTS = {
   LOGIN: 'user:login',
   LOGOUT: 'user:logout',
   PROFILE_UPDATE: 'user:profile_update',
 };
 
-// Helper to get product ID (supports both formats)
-const getProductId = (product: Product): string => {
+// ✅ FIXED: Check productId first (from DB cart items)
+const getProductId = (product: Product | CartItem): string => {
+  // Priority: productId (from DB cart) > _id > id
+  if ('productId' in product && product.productId) {
+    return product.productId.toString();
+  }
   return product._id || product.id?.toString() || '';
 };
 
@@ -113,8 +105,12 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [user, setUser] = useState<User | null>(null);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
-  const [wishlist, setWishlist] = useState<(number | string)[]>([]); // ✅ CHANGED
+  const [wishlist, setWishlist] = useState<(number | string)[]>([]);
   const [selectedKid, setSelectedKidState] = useState<SelectedKid | null>(null);
+  
+  const cartSyncTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastSyncedCartRef = useRef<string>('');
+  const skipNextSyncRef = useRef(false);
 
   // Load cart from localStorage on mount
   useEffect(() => {
@@ -160,6 +156,92 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
     }
   }, [selectedKid]);
 
+  // Load cart from server when user logs in
+  useEffect(() => {
+    if (user && user.cart && user.cart.length > 0) {
+      console.log('🔄 Loading merged cart from server:', user.cart.length, 'items');
+      setCart(user.cart);
+      skipNextSyncRef.current = true;
+    }
+  }, [user?._id]);
+
+  // ✅ UPDATED: Sync cart to database with full product details
+  const syncCartToDatabase = useCallback(async (cartData: CartItem[]) => {
+    if (!user) return;
+
+    // Skip sync if we just loaded from server
+    if (skipNextSyncRef.current) {
+      console.log('⏭️ Skipping sync (just loaded from server)');
+      skipNextSyncRef.current = false;
+      
+      // Update lastSyncedCartRef to current cart
+      const dbCart = cartData.map(item => ({
+        productId: getProductId(item),
+        quantity: item.quantity,
+        price: item.price,
+        name: item.name,
+        image: item.images?.[0] || '/images/placeholder.png',
+        addedAt: new Date()
+      }));
+      lastSyncedCartRef.current = JSON.stringify(dbCart);
+      return;
+    }
+
+    // ✅ UPDATED: Prepare cart with full product details
+    const dbCart = cartData.map(item => ({
+      productId: getProductId(item),
+      quantity: item.quantity,
+      price: item.price,
+      name: item.name,
+      image: item.images?.[0] || '/images/placeholder.png',
+      addedAt: new Date()
+    }));
+
+    const cartString = JSON.stringify(dbCart);
+    
+    // Skip if cart hasn't changed
+    if (cartString === lastSyncedCartRef.current) {
+      console.log('⏭️ Cart unchanged, skipping sync');
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/cart', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cart: dbCart }),
+      });
+
+      if (res.ok) {
+        lastSyncedCartRef.current = cartString;
+        console.log('✅ Cart synced to database:', dbCart.length, 'items');
+      } else {
+        console.error('❌ Failed to sync cart');
+      }
+    } catch (error) {
+      console.error('❌ Cart sync error:', error);
+    }
+  }, [user]);
+
+  // Debounced cart sync effect
+  useEffect(() => {
+    if (!user) return;
+
+    if (cartSyncTimerRef.current) {
+      clearTimeout(cartSyncTimerRef.current);
+    }
+
+    cartSyncTimerRef.current = setTimeout(() => {
+      syncCartToDatabase(cart);
+    }, 500);
+
+    return () => {
+      if (cartSyncTimerRef.current) {
+        clearTimeout(cartSyncTimerRef.current);
+      }
+    };
+  }, [cart, user, syncCartToDatabase]);
+
   // Centralized function to fetch user data
   const fetchUserData = async () => {
     try {
@@ -176,6 +258,11 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
         setUser(loggedInUser);
         if (loggedInUser) {
           setWishlist(loggedInUser.wishlist || []);
+          if (loggedInUser.cart && loggedInUser.cart.length > 0) {
+            console.log('✅ Cart loaded from /api/me:', loggedInUser.cart.length, 'items');
+            setCart(loggedInUser.cart);
+            skipNextSyncRef.current = true;
+          }
         } else {
           setWishlist([]);
         }
@@ -192,7 +279,6 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Manual refresh function
   const refreshUser = async () => {
     await fetchUserData();
   };
@@ -202,7 +288,7 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
     fetchUserData();
   }, []);
 
-  // Listen for user update events (LOGIN, LOGOUT, PROFILE_UPDATE only)
+  // Listen for user update events
   useEffect(() => {
     const handleUserEvent = (event: Event) => {
       const customEvent = event as CustomEvent;
@@ -229,7 +315,6 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
   
-  // ✅ FIXED: Improved wishlist functions with proper optimistic updates
   const addToWishlist = async (productId: number | string) => {
     if (!user) {
       alert("Please log in to add items to your wishlist.");
@@ -238,7 +323,6 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
     
     console.log('💝 Adding to wishlist:', productId, 'Type:', typeof productId);
     
-    // ✅ Optimistic update with duplicate check
     setWishlist((prev) => {
       const exists = prev.some(id => {
         if (typeof id === typeof productId) return id === productId;
@@ -262,7 +346,6 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
       
       if (!res.ok) {
         console.error('Failed to add to wishlist');
-        // ✅ Revert optimistic update with proper type comparison
         setWishlist((prev) => prev.filter(id => {
           if (typeof id === typeof productId) return id !== productId;
           return id.toString() !== productId.toString();
@@ -273,14 +356,12 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
       const data = await res.json();
       console.log('✅ Added to wishlist successfully');
       
-      // ✅ Update from server response (most reliable)
       if (data.wishlist) {
         setWishlist(data.wishlist);
       }
       
     } catch (error) {
       console.error('Error adding to wishlist:', error);
-      // ✅ Revert optimistic update with proper type comparison
       setWishlist((prev) => prev.filter(id => {
         if (typeof id === typeof productId) return id !== productId;
         return id.toString() !== productId.toString();
@@ -293,7 +374,6 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
     
     console.log('💔 Removing from wishlist:', productId, 'Type:', typeof productId);
     
-    // ✅ Optimistic update with proper type comparison
     setWishlist((prev) => prev.filter(id => {
       if (typeof id === typeof productId) return id !== productId;
       return id.toString() !== productId.toString();
@@ -308,7 +388,6 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
       
       if (!res.ok) {
         console.error('Failed to remove from wishlist');
-        // ✅ Revert optimistic update
         setWishlist((prev) => [...prev, productId]);
         return;
       }
@@ -316,25 +395,20 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
       const data = await res.json();
       console.log('✅ Removed from wishlist successfully');
       
-      // ✅ Update from server response (most reliable)
       if (data.wishlist) {
         setWishlist(data.wishlist);
       }
       
     } catch (error) {
       console.error('Error removing from wishlist:', error);
-      // ✅ Revert optimistic update
       setWishlist((prev) => [...prev, productId]);
     }
   };
 
   const isWishlisted = (productId: number | string) => {
-    // ✅ Support both number and string comparison
     return wishlist.some(id => {
-      // Direct match (handles same type comparison)
       if (id === productId) return true;
       
-      // Cross-type match (string "123" === number 123)
       if (typeof id === 'string' && typeof productId === 'number') {
         return id === productId.toString();
       }
@@ -346,9 +420,8 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
-  // Cart functions (updated to support both ID formats)
+  // Cart functions
   const addToCart = (product: Product, quantity: number = 1) => {
-    // Check stock before adding
     if (product.stock !== undefined && product.stock === 0) {
       alert("This product is out of stock");
       return;
@@ -361,7 +434,6 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
       if (existing) {
         const newQuantity = existing.quantity + quantity;
         
-        // Check if new quantity exceeds stock
         if (product.stock !== undefined && newQuantity > product.stock) {
           alert(`Only ${product.stock} items available in stock`);
           return prev;
@@ -372,7 +444,6 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
         );
       }
       
-      // Check stock for new item
       if (product.stock !== undefined && quantity > product.stock) {
         alert(`Only ${product.stock} items available in stock`);
         return prev;
@@ -393,7 +464,6 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
       
       const newQuantity = p.quantity + 1;
       
-      // Check stock limit
       if (p.stock !== undefined && newQuantity > p.stock) {
         alert(`Only ${p.stock} items available in stock`);
         return p;
@@ -413,7 +483,6 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
   
   const total = cart.reduce((s, it) => s + it.price * it.quantity, 0);
 
-  // Kid profile functions
   const setSelectedKid = (kid: SelectedKid | null) => {
     setSelectedKidState(kid);
   };

@@ -7,6 +7,11 @@ import Script from "next/script";
 
 type AuthMode = "signup" | "signin";
 
+// ✅ Helper to get product ID
+const getProductId = (product: { _id?: string; id?: number }): string => {
+  return product._id || product.id?.toString() || '';
+};
+
 export default function LoginForm() {
   const [authMode, setAuthMode] = useState<AuthMode>("signup");
   const [phone, setPhone] = useState<string>("");
@@ -18,7 +23,7 @@ export default function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [scriptLoaded, setScriptLoaded] = useState(false);
   const router = useRouter();
-  const { setUser } = useSharedContext();
+  const { setUser, cart } = useSharedContext();
 
   const searchParams = useSearchParams();
   const redirectUrl = searchParams.get("redirect");
@@ -183,6 +188,18 @@ export default function LoginForm() {
     setLoading(true);
     setMessage("Verifying OTP...");
 
+    // ✅ UPDATED: Prepare local cart with FULL product details
+    const localCart = cart.map(item => ({
+      productId: getProductId(item),
+      quantity: item.quantity,
+      price: item.price,                                    // ✅ NEW
+      name: item.name,                                      // ✅ NEW
+      image: item.images?.[0] || '/images/placeholder.png', // ✅ NEW
+      addedAt: new Date().toISOString()
+    }));
+
+    console.log(`🛒 Sending local cart with ${localCart.length} items`);
+
     try {
       if (phone === DEMO_PHONE) {
         if (code !== DEMO_OTP_HINT) {
@@ -194,7 +211,11 @@ export default function LoginForm() {
         const res = await fetch("/api/verify-otp", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ phone: "+91" + phone, otp: code, isDemo: true }),
+          body: JSON.stringify({ 
+            phone: "+91" + phone, 
+            otp: code, 
+            isDemo: true 
+          }),
         });
 
         const data = await res.json();
@@ -228,6 +249,7 @@ export default function LoginForm() {
             return;
           }
 
+          // ✅ UPDATED: Send local cart with FULL details
           const res = await fetch("/api/verify-otp", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -235,6 +257,7 @@ export default function LoginForm() {
               accessToken,
               identifier: "+91" + phone,
               authMethod: "phone",
+              localCart, // ✅ Now includes price, name, image
               ...(authMode === "signup" && { name, email }),
             }),
           });

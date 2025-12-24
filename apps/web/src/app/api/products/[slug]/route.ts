@@ -1,12 +1,13 @@
+// apps/web/src/app/api/products/[slug]/route.ts
 import { NextResponse } from "next/server";
 import { connectDB, Product } from "@swago/database";
 import { products as hardcodedProducts } from "@swago/utils";
 import { isValidObjectId } from "mongoose";
 import { getProductCache, getCacheTTL } from "@/lib/productCache";
 
-// ✅ Define product type to handle both DB and hardcoded products
 interface ProductResponse {
-  _id: string;
+  _id?: string;
+  id?: number;
   name: string;
   description: string;
   price: number;
@@ -17,6 +18,7 @@ interface ProductResponse {
   benefits?: string;
   boxContents?: string;
   stock?: number;
+  reservedStock?: number;
   isFeatured?: boolean;
   isActive?: boolean;
   slug?: string;
@@ -25,7 +27,6 @@ interface ProductResponse {
   [key: string]: unknown;
 }
 
-// ✅ UPDATED: Use shared cache from utility
 const productCache = getProductCache();
 const CACHE_TTL = getCacheTTL();
 
@@ -49,7 +50,45 @@ export async function GET(
       return response;
     }
 
-    // Connect to database
+    // ✅ FIXED: Check hardcoded products FIRST (by numeric ID)
+    const numericId = parseInt(slug);
+    if (!isNaN(numericId) && numericId > 0 && numericId <= 100) {
+      const hardcoded = hardcodedProducts.find(p => p.id === numericId);
+      if (hardcoded) {
+        console.log(`✅ Using hardcoded product for ID: ${slug}`);
+        const product: ProductResponse = {
+          id: hardcoded.id,  // ✅ Keep numeric id
+          _id: hardcoded.id.toString(), // ✅ Also provide string _id for compatibility
+          name: hardcoded.name,
+          description: hardcoded.description,
+          price: hardcoded.price,
+          originalPrice: hardcoded.original_price,
+          images: hardcoded.images,
+          ageCategory: hardcoded.age_category,
+          coreElements: hardcoded.core_elements,
+          benefits: hardcoded.benefits,
+          boxContents: hardcoded.box_contents,
+          stock: undefined, // Hardcoded products don't track stock
+          reservedStock: undefined,
+          isFeatured: false,
+          isActive: true,
+          slug: `product-${hardcoded.id}`
+        };
+
+        // Cache it
+        productCache.set(slug, {
+          data: product,
+          timestamp: Date.now()
+        });
+
+        return NextResponse.json({
+          success: true,
+          product: product
+        });
+      }
+    }
+
+    // Connect to database for DB products
     await connectDB();
 
     let product: ProductResponse | null = null;
@@ -72,36 +111,16 @@ export async function GET(
         .lean() as ProductResponse | null;
     }
 
-    // Fallback to hardcoded products for old numeric IDs (backward compatibility)
-    if (!product && !isNaN(Number(slug))) {
-      const hardcoded = hardcodedProducts.find(p => p.id === parseInt(slug));
-      if (hardcoded) {
-        console.log(`Using hardcoded product for ID: ${slug}`);
-        // Convert hardcoded product to new format
-        product = {
-          _id: `hardcoded-${hardcoded.id}`,
-          name: hardcoded.name,
-          description: hardcoded.description,
-          price: hardcoded.price,
-          originalPrice: hardcoded.original_price,
-          images: hardcoded.images,
-          ageCategory: hardcoded.age_category,
-          coreElements: hardcoded.core_elements,
-          benefits: hardcoded.benefits,
-          boxContents: hardcoded.box_contents,
-          stock: 100, // Default stock for hardcoded products
-          isFeatured: false,
-          isActive: true,
-          slug: `product-${hardcoded.id}`
-        };
-      }
-    }
-
     if (!product) {
       return NextResponse.json(
         { success: false, error: "Product not found" },
         { status: 404 }
       );
+    }
+
+    // ✅ Ensure _id is string for DB products
+    if (product._id) {
+      product._id = product._id.toString();
     }
 
     // Store in cache

@@ -48,7 +48,7 @@ Supports parent–child & teacher–student bonding`
   },
   {
     id: 3,
-    name: "Scarf Dumb Charades – Fun Family Game for Kids & Adults | Ages 7+ | Boosts Kids’ Expression & Creativity | Perfect for Parties & Game Nights",
+    name: "Scarf Dumb Charades – Fun Family Game for Kids & Adults | Ages 7+ | Boosts Kids' Expression & Creativity | Perfect for Parties & Game Nights",
     description: `A fun, brain-boosting game that blends creativity, confidence, and communication skills through imaginative role play. Perfect for children aged 7+, it encourages self-expression, teamwork, and problem-solving while fostering parent-child bonding.
 Why It Works:
 Research shows that role-play games enhance creativity, social-emotional skills, and quick thinking — supporting up to 90% of brain development before age 7+.`,
@@ -73,7 +73,7 @@ Weekly Lottery System — unique code in each box for exciting prizes, goodies, 
   {
     id: 4,
     name: " 10-Minute Brain Gym Lab Workout for Kids (Ages 5–7) ",
-    description: `Boost your child’s brain power with our Drawing Activity Binder — a complete Brain Gym set designed to make early learning fun and effective. Featuring imaginative themes like animals, vehicles, oceans, and space adventures, this set blends tracing, pattern-building, and puzzle activities to strengthen:
+    description: `Boost your child's brain power with our Drawing Activity Binder — a complete Brain Gym set designed to make early learning fun and effective. Featuring imaginative themes like animals, vehicles, oceans, and space adventures, this set blends tracing, pattern-building, and puzzle activities to strengthen:
 ✍ Fine Motor Skills & Pencil Control
 🧩 Logical Reasoning & Pattern Recognition
 🎯 Focus & Attention
@@ -115,7 +115,7 @@ Weekly Lottery Code for exciting prizes`,
   {
     id: 6,
     name: "Left-Right Brain Gym Activity Calendar for Kids (Ages 6–12) Reusable Wipe & Clean Brain Booster for Bilateral Coordination, Tracing & Fine Motor Skills",
-    description: `A reusable, wipe-clean brain booster designed for kids aged 6–12. Packed with fun exercises to enhance bilateral coordination, fine motor skills, hand-eye coordination, and cognitive development. Inspired by brain gym techniques, this calendar helps activate both sides of the brain, improve concentration, boost memory, and sharpen problem-solving skills. Perfect for home or travel, it’s a playful way to support your child’s growth while keeping learning exciting.`,
+    description: `A reusable, wipe-clean brain booster designed for kids aged 6–12. Packed with fun exercises to enhance bilateral coordination, fine motor skills, hand-eye coordination, and cognitive development. Inspired by brain gym techniques, this calendar helps activate both sides of the brain, improve concentration, boost memory, and sharpen problem-solving skills. Perfect for home or travel, it's a playful way to support your child's growth while keeping learning exciting.`,
     price: 2499,
     original_price: 2999,
     images: ["/images/calendar-1.png", "/images/calendar-2.png","/images/calendar-3.png"],
@@ -153,7 +153,6 @@ Encourages setting and tracking daily goals.
 Fosters creativity, gratitude, and emotional growth.
 Interactive and fun with reusable A3 size.`
   },
-  // ⬇️⬇️ NEW PRODUCT ADDED BELOW ⬇️⬇️
   {
     id: 8,
     name: "Seek Rush – Speed, Focus & Memory Challenge for Kids | Educational Game for Brain Development | Fun Gift for Boys & Girls Ages 7+",
@@ -161,8 +160,8 @@ Interactive and fun with reusable A3 size.`
     price: 599,
     original_price: 899,
     images: ["/images/seek-rush-1.png", "/images/seek-rush-2.png","/images/seek-rush-3.png"],
-    age_category: "8-10", // Using 8-10 to fit the "7+" age into an existing filter category
-    core_elements: ["O"], // Using 'S' for Seek and 'O' for Observation
+    age_category: "8-10",
+    core_elements: ["O"],
     box_contents: `6 Vibrant Game Boards
 120+ Mascot Cards
 1 Dice
@@ -175,7 +174,6 @@ Timer for the Rush!`,
   }
 ];
 
-
 // Optional utility functions for products
 export const getProductById = (id: number) => {
   return products.find(product => product.id === id);
@@ -184,3 +182,27 @@ export const getProductById = (id: number) => {
 export const getProductsByCategory = (category: string) => {
   return products.filter(product => product.age_category === category);
 };
+
+// ✅ Helper to detect hardcoded products (IDs 1-100)
+// Used by cart API to skip stock validation for hardcoded products
+export function isHardcodedProduct(productId: string | number | undefined): boolean {
+  if (!productId) return false;
+  
+  // Handle numeric IDs (1, 2, 3...)
+  if (typeof productId === 'number') {
+    return productId >= 1 && productId <= 100;
+  }
+  
+  // Handle string IDs
+  const idString = productId.toString();
+  
+  // Check for "hardcoded-X" format
+  if (idString.startsWith('hardcoded-')) {
+    const numericPart = parseInt(idString.replace('hardcoded-', ''), 10);
+    return !isNaN(numericPart) && numericPart >= 1 && numericPart <= 100;
+  }
+  
+  // Check for pure numeric strings ("1", "2", "3"...)
+  const numericId = Number(idString);
+  return !isNaN(numericId) && numericId >= 1 && numericId <= 100;
+}

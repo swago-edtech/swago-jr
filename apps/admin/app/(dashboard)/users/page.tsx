@@ -1,11 +1,12 @@
 import { connectDB, User, Order } from '@swago/database';
+import Link from 'next/link';
 
 async function getUsers() {
   await connectDB();
   
   const users = await User.find({ isAdmin: false })
     .sort({ createdAt: -1 })
-    .select('name phone email orders wishlist createdAt')
+    .select('name phone email orders wishlist cart createdAt') // ✅ Added 'cart'
     .populate('orders')
     .lean();
 
@@ -64,6 +65,10 @@ export default async function UsersPage() {
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Orders
                 </th>
+                {/* ✅ NEW: Cart column */}
+                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Cart
+                </th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Wishlist
                 </th>
@@ -75,65 +80,86 @@ export default async function UsersPage() {
             <tbody className="bg-white divide-y divide-gray-200">
               {users.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                  <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
                     No customers found
                   </td>
                 </tr>
               ) : (
-                users.map((user: any) => (
-                  <tr key={user._id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0 h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
-                          <span className="text-blue-600 font-medium text-sm">
-                            {user.name?.charAt(0).toUpperCase() || user.phone?.slice(-2) || 'U'}
+                users.map((user: any) => {
+                  // ✅ Calculate cart item count
+                  const cartItemCount = user.cart?.reduce(
+                    (sum: number, item: any) => sum + (item.quantity || 0),
+                    0
+                  ) || 0;
+
+                  return (
+                    <tr key={user._id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center">
+                          <div className="flex-shrink-0 h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
+                            <span className="text-blue-600 font-medium text-sm">
+                              {user.name?.charAt(0).toUpperCase() || user.phone?.slice(-2) || 'U'}
+                            </span>
+                          </div>
+                          <div className="ml-4">
+                            {/* ✅ Make name clickable */}
+                            <Link
+                              href={`/users/${user._id}`}
+                              className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline"
+                            >
+                              {user.name || `Customer ${user.phone?.slice(-4)}`}
+                            </Link>
+                            <div className="text-xs text-gray-500">
+                              ID: {user._id.slice(-6)}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">{user.phone}</div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm text-gray-900">
+                          {user.email || <span className="text-gray-400">Not provided</span>}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <span className="text-sm font-medium text-gray-900">
+                            {user.orders?.length || 0}
                           </span>
+                          <span className="ml-1 text-xs text-gray-500">orders</span>
                         </div>
-                        <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">
-                            {user.name || `Customer ${user.phone?.slice(-4)}`}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            ID: {user._id.slice(-6)}
-                          </div>
+                      </td>
+                      {/* ✅ NEW: Cart column */}
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <span className="text-sm font-medium text-gray-900">
+                            {cartItemCount}
+                          </span>
+                          <span className="ml-1 text-xs text-gray-500">items</span>
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{user.phone}</div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900">
-                        {user.email || <span className="text-gray-400">Not provided</span>}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <span className="text-sm font-medium text-gray-900">
-                          {user.orders?.length || 0}
-                        </span>
-                        <span className="ml-1 text-xs text-gray-500">orders</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <span className="text-sm font-medium text-gray-900">
-                          {user.wishlist?.length || 0}
-                        </span>
-                        <span className="ml-1 text-xs text-gray-500">items</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
-                        {new Date(user.createdAt).toLocaleDateString('en-IN', {
-                          day: '2-digit',
-                          month: 'short',
-                          year: 'numeric',
-                        })}
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <span className="text-sm font-medium text-gray-900">
+                            {user.wishlist?.length || 0}
+                          </span>
+                          <span className="ml-1 text-xs text-gray-500">items</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">
+                          {new Date(user.createdAt).toLocaleDateString('en-IN', {
+                            day: '2-digit',
+                            month: 'short',
+                            year: 'numeric',
+                          })}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
