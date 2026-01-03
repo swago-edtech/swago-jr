@@ -28,6 +28,25 @@ export default function AdminSidebar() {
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
+  const [unviewedCount, setUnviewedCount] = useState(0);
+
+  // Fetch unviewed contact count
+  const fetchUnviewedCount = async () => {
+    try {
+      const response = await fetch('/api/contact/unviewed-count');
+      if (response.ok) {
+        const data = await response.json();
+        setUnviewedCount(data.count || 0);
+      }
+    } catch (error) {
+      console.error('Failed to fetch unviewed count:', error);
+    }
+  };
+
+  // Fetch on mount and when pathname changes
+  useEffect(() => {
+    fetchUnviewedCount();
+  }, [pathname]);
 
   // Auto-expand submenu if current path matches
   useEffect(() => {
@@ -172,7 +191,7 @@ export default function AdminSidebar() {
               <Link
                 key={item.name}
                 href={item.href}
-                className={`flex items-center px-4 py-3 rounded-lg transition-colors ${
+                className={`flex items-center px-4 py-3 rounded-lg transition-colors relative ${
                   isActive
                     ? 'bg-blue-600 text-white'
                     : 'text-gray-300 hover:bg-gray-800 hover:text-white'
@@ -180,6 +199,13 @@ export default function AdminSidebar() {
               >
                 <Icon className="w-5 h-5 mr-3" />
                 {item.name}
+                
+                {/* Notification Badge for Contact */}
+                {item.name === 'Contact' && unviewedCount > 0 && (
+                  <span className="ml-auto flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-red-600 rounded-full">
+                    {unviewedCount > 9 ? '9+' : unviewedCount}
+                  </span>
+                )}
               </Link>
             );
           })}

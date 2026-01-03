@@ -6,7 +6,7 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import ReviewForm from "@/components/ReviewForm";
 import { products } from "@swago/utils";
-import { useFormattedDate } from "@/hooks/useFormattedDate"; // ✨ NEW
+import { useFormattedDate } from "@/hooks/useFormattedDate";
 
 type OrderItem = {
   name: string;
@@ -161,7 +161,7 @@ export default function OrdersPage() {
   );
 }
 
-// ✨ NEW: Separate OrderCard component for cleaner code
+// OrderCard component
 function OrderCard({ 
   order, 
   onWriteReview 
@@ -170,7 +170,6 @@ function OrderCard({
   onWriteReview: (orderId: string, productName: string) => void;
 }) {
   const isDelivered = order.status.toLowerCase().includes("deliver");
-  // ✨ NEW: Use hook for date formatting
   const orderDate = useFormattedDate(order.createdAt, 'clean');
 
   return (
@@ -178,7 +177,6 @@ function OrderCard({
       <div className="flex justify-between items-start mb-4">
         <div>
           <p className="text-sm text-slate-500">Order ID: {order._id}</p>
-          {/* ✨ UPDATED: Now shows IST time */}
           <p className="text-sm text-slate-500">
             Date: {orderDate}
           </p>
@@ -201,9 +199,9 @@ function OrderCard({
               <p className="font-semibold text-slate-900">₹{item.price.toFixed(2)}</p>
             </div>
 
-            {/* Write Review Button - Only shown for delivered orders */}
+            {/* Action Buttons - Only shown for delivered orders */}
             {isDelivered && (
-              <div className="mt-2">
+              <div className="mt-3 flex flex-wrap gap-2">
                 <button
                   onClick={() => onWriteReview(order._id, item.name)}
                   className="inline-flex items-center gap-2 text-sm bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 font-medium transition-colors"
@@ -217,6 +215,36 @@ function OrderCard({
                     />
                   </svg>
                   Write Review
+                </button>
+
+                <button
+                  onClick={() => alert('Return product feature coming soon!')}
+                  className="inline-flex items-center gap-2 text-sm bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 font-medium transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"
+                    />
+                  </svg>
+                  Return Product
+                </button>
+
+                <button
+                  onClick={() => alert('Replace product feature coming soon!')}
+                  className="inline-flex items-center gap-2 text-sm bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                    />
+                  </svg>
+                  Replace Product
                 </button>
               </div>
             )}

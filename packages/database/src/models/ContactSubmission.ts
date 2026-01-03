@@ -41,6 +41,10 @@ const ContactSubmissionSchema = new mongoose.Schema(
       enum: ["pending", "resolved"],
       default: "pending",
     },
+    isViewed: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,
@@ -50,6 +54,7 @@ const ContactSubmissionSchema = new mongoose.Schema(
 // Index for filtering by status
 ContactSubmissionSchema.index({ status: 1, createdAt: -1 });
 ContactSubmissionSchema.index({ email: 1 });
+ContactSubmissionSchema.index({ isViewed: 1 }); // NEW: Index for notification queries
 
 const ContactSubmission =
   mongoose.models.ContactSubmission ||

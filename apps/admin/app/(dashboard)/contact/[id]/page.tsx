@@ -25,6 +25,16 @@ async function getSubmission(id: string) {
   return JSON.parse(JSON.stringify(submission));
 }
 
+async function markAsViewed(id: string) {
+  await connectDB();
+  
+  await ContactSubmission.findByIdAndUpdate(
+    id,
+    { isViewed: true },
+    { new: true }
+  );
+}
+
 export default async function ContactDetailPage({
   params,
 }: {
@@ -42,6 +52,9 @@ export default async function ContactDetailPage({
   if (!submission) {
     notFound();
   }
+
+  // Mark as viewed when admin opens the page
+  await markAsViewed(id);
 
   return (
     <div className="space-y-6">

@@ -71,9 +71,40 @@ const UserSchema = new mongoose.Schema(
     age: { type: Number },
     address: { type: String },
     orders: [{ type: mongoose.Schema.Types.ObjectId, ref: "Order" }],
+    
+    // 🆕 NEW: Lottery tickets (redeemed codes)
+    lotteryTickets: [{
+      codeId: { 
+        type: mongoose.Schema.Types.ObjectId, 
+        ref: "LotteryCode",
+        required: true 
+      },
+      code: { 
+        type: String,
+        required: true 
+      },
+      productId: { 
+        type: mongoose.Schema.Types.ObjectId, 
+        ref: "Product",
+        required: true 
+      },
+      productName: {
+        type: String,
+        required: true
+      },
+      shortForm: {
+        type: String,
+        required: true
+      },
+      redeemedAt: { 
+        type: Date, 
+        default: Date.now 
+      }
+    }],
   },
   { timestamps: true }
 );
+
 
 // Additional indexes
 UserSchema.index({ isAdmin: 1 });

@@ -1,13 +1,13 @@
-import { connectDB, Order, User } from '@swago/database';
+import { connectDB, Order, User, ContactSubmission } from '@swago/database';
 import { formatPrice } from '@swago/utils';
-import { ShoppingBag, Users, DollarSign, TrendingUp, Clock, CheckCircle } from 'lucide-react';
+import { ShoppingBag, Users, DollarSign, TrendingUp, Clock, CheckCircle, AlertCircle } from 'lucide-react';
 import DashboardDateCell from './DashboardDateCell';
-
+import Link from 'next/link';
 
 async function getDashboardStats() {
   await connectDB();
 
-  const [totalOrders, totalCustomers, orders, allOrders] = await Promise.all([
+  const [totalOrders, totalCustomers, orders, allOrders, pendingContactCount] = await Promise.all([
     Order.countDocuments(),
     User.countDocuments({ isAdmin: false }),
     Order.find()
@@ -16,6 +16,7 @@ async function getDashboardStats() {
       .select('name phone total status createdAt')
       .lean(),
     Order.find().select('total status').lean(), // Get all orders for calculations
+    ContactSubmission.countDocuments({ status: 'pending' }), // NEW: Get pending contact queries
   ]);
 
   // Calculate confirmed revenue (actual money received)
@@ -47,6 +48,7 @@ async function getDashboardStats() {
     avgOrderValue,
     paidOrdersCount: paidOrders.length,
     pendingOrdersCount: pendingOrders.length,
+    pendingContactCount, // NEW: Add to return
     recentOrders: JSON.parse(JSON.stringify(orders)),
   };
 }
@@ -87,6 +89,33 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+
+      {/* Alert Banner for Pending Contact Queries */}
+      {stats.pendingContactCount > 0 && (
+        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg">
+          <div className="flex items-start">
+            <div className="flex-shrink-0">
+              <AlertCircle className="h-5 w-5 text-yellow-400" />
+            </div>
+            <div className="ml-3 flex-1">
+              <p className="text-sm text-yellow-800">
+                <span className="font-medium">
+                  You have {stats.pendingContactCount} unresolved {stats.pendingContactCount === 1 ? 'query' : 'queries'}
+                </span>{' '}
+                in the Contact Us section.
+              </p>
+            </div>
+            <div className="ml-3 flex-shrink-0">
+              <Link
+                href="/contact"
+                className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-yellow-800 bg-yellow-100 hover:bg-yellow-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 transition-colors"
+              >
+                View Queries →
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

@@ -64,7 +64,6 @@ const ProductSchema = new mongoose.Schema(
       required: true
     },
     
-    // ✅ NEW: Reserved stock (held during checkout)
     reservedStock: {
       type: Number,
       default: 0,
@@ -81,6 +80,14 @@ const ProductSchema = new mongoose.Schema(
       type: Number,
       default: 0,
       min: [0, "Total sold cannot be negative"]
+    },
+    
+    // 🆕 NEW: Lottery Code Short Forms
+    shortForms: {
+      type: [String],
+      default: [],
+      uppercase: true,
+      trim: true,
     },
     
     // Status Management
@@ -114,8 +121,9 @@ ProductSchema.index({ stock: 1 });
 ProductSchema.index({ isFeatured: 1, isActive: 1 });
 ProductSchema.index({ ageCategory: 1, isActive: 1 });
 ProductSchema.index({ coreElements: 1, isActive: 1 });
+ProductSchema.index({ shortForms: 1 }); // 🆕 NEW: Index for short form lookups
 
-// ✅ NEW: Virtual field for available stock
+// Virtual field for available stock
 ProductSchema.virtual('availableStock').get(function() {
   return Math.max(0, this.stock - this.reservedStock);
 });

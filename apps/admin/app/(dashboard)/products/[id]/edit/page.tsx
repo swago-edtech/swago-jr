@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Image from "next/image";
+import LotteryCodesManager from '@/components/LotteryCodesManager';
 
 type Product = {
   _id: string;
@@ -427,29 +428,27 @@ export default function EditProductPage() {
           </h2>
 
           {/* Age Category */}
-{/* Age Category */}
-<div>
-  <label htmlFor="age-category-select" className="block text-sm font-medium text-gray-700 mb-1">
-    Age Category *
-  </label>
-  <select
-    id="age-category-select"
-    name="ageCategory"
-    value={form.ageCategory}
-    onChange={handleChange}
-    className={`w-full border rounded-md px-3 py-2 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-      errors.ageCategory ? "border-red-500" : "border-gray-300"
-    }`}
-  >
-    <option value="5-7">5-7 years</option>
-    <option value="8-10">8-10 years</option>
-    <option value="11-13">11-13 years</option>
-  </select>
-  {errors.ageCategory && (
-    <p className="text-red-500 text-xs mt-1">{errors.ageCategory}</p>
-  )}
-</div>
-
+          <div>
+            <label htmlFor="age-category-select" className="block text-sm font-medium text-gray-700 mb-1">
+              Age Category *
+            </label>
+            <select
+              id="age-category-select"
+              name="ageCategory"
+              value={form.ageCategory}
+              onChange={handleChange}
+              className={`w-full border rounded-md px-3 py-2 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                errors.ageCategory ? "border-red-500" : "border-gray-300"
+              }`}
+            >
+              <option value="5-7">5-7 years</option>
+              <option value="8-10">8-10 years</option>
+              <option value="11-13">11-13 years</option>
+            </select>
+            {errors.ageCategory && (
+              <p className="text-red-500 text-xs mt-1">{errors.ageCategory}</p>
+            )}
+          </div>
 
           {/* Core Elements (SWAGO) */}
           <div>
@@ -611,15 +610,18 @@ export default function EditProductPage() {
           </div>
         </div>
 
+        {/* Lottery Codes */}
+        <LotteryCodesManager productId={productId} />
+
         {/* Submit Buttons */}
         <div className="flex gap-4 pt-4 border-t">
-    <button
-      type="button"
-      onClick={() => router.back()}
-      className="px-6 py-2 border-2 border-gray-400 text-gray-700 font-medium rounded-lg hover:bg-gray-100 hover:border-gray-500 transition-colors"
-    >
-      Cancel
-    </button>
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="px-6 py-2 border-2 border-gray-400 text-gray-700 font-medium rounded-lg hover:bg-gray-100 hover:border-gray-500 transition-colors"
+          >
+            Cancel
+          </button>
           <button
             type="submit"
             disabled={saving}
