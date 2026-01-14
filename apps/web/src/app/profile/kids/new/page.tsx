@@ -3,15 +3,17 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { useSharedContext } from "@/context/SharedContext";
 
-const avatarColors = [
-  "#8B5CF6", // Purple
-  "#3B82F6", // Blue
-  "#10B981", // Green
-  "#F59E0B", // Amber
-  "#EF4444", // Red
-  "#EC4899", // Pink
+const avatarOptions = [
+  { name: "Swoo", image: "/images/swoo.png" },
+  { name: "William", image: "/images/william.png" },
+  { name: "Aron", image: "/images/aron.png" },
+  { name: "Gibbson", image: "/images/gibbson.png" },
+  { name: "Oswald", image: "/images/oswald.png" },
+  { name: "Boy Hero", image: "/images/kid_boy1.png" },
+  { name: "Girl Hero", image: "/images/kid_girl1.png" },
 ];
 
 const gradeOptions = [
@@ -33,11 +35,13 @@ export default function NewKidProfilePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showPinSection, setShowPinSection] = useState(false);
+
   const [form, setForm] = useState({
     name: "",
     age: "",
     grade: "",
-    avatarColor: avatarColors[0],
+    gender: "boy",
+    avatarColor: avatarOptions[0].image, // ✅ NOW stores image path
     pin: "",
     confirmPin: "",
     pinHint: "",
@@ -45,13 +49,12 @@ export default function NewKidProfilePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!user) {
       router.push("/login?redirect=/profile/kids/new");
       return;
     }
 
-    // Validation
     if (!form.name.trim()) {
       setError("Please enter the kid's name");
       return;
@@ -63,7 +66,6 @@ export default function NewKidProfilePage() {
       return;
     }
 
-    // PIN validation if enabled
     if (showPinSection && form.pin) {
       if (!/^\d{4}$/.test(form.pin)) {
         setError("PIN must be exactly 4 digits");
@@ -86,7 +88,8 @@ export default function NewKidProfilePage() {
           name: form.name.trim(),
           age: age,
           grade: form.grade || undefined,
-          avatarColor: form.avatarColor,
+          gender: form.gender,
+          avatarColor: form.avatarColor, // Sends image path
           pin: showPinSection ? form.pin : null,
           pinHint: showPinSection && form.pin ? form.pinHint : null,
         }),
@@ -109,13 +112,12 @@ export default function NewKidProfilePage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
-    setError(""); // Clear error when user types
+    setError("");
   };
 
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-lg mx-auto">
-        {/* Header */}
         <div className="mb-8">
           <Link
             href="/profile"
@@ -129,7 +131,6 @@ export default function NewKidProfilePage() {
           </p>
         </div>
 
-        {/* Form Card */}
         <div className="bg-white p-8 rounded-xl shadow-lg border">
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Name Input */}
@@ -143,7 +144,7 @@ export default function NewKidProfilePage() {
                 name="name"
                 value={form.name}
                 onChange={handleChange}
-                placeholder="Enter kid&apos;s name"
+                placeholder="Enter kid's name"
                 className="w-full border border-slate-300 rounded-md p-3"
                 maxLength={50}
                 required
@@ -153,9 +154,8 @@ export default function NewKidProfilePage() {
               </p>
             </div>
 
-            {/* Age and Grade - Side by side */}
+            {/* Age and Grade */}
             <div className="grid grid-cols-2 gap-4">
-              {/* Age Input */}
               <div>
                 <label htmlFor="age" className="block text-sm font-medium mb-2">
                   Age
@@ -174,7 +174,6 @@ export default function NewKidProfilePage() {
                 />
               </div>
 
-              {/* Grade Select */}
               <div>
                 <label htmlFor="grade" className="block text-sm font-medium mb-2">
                   Grade (Optional)
@@ -195,31 +194,100 @@ export default function NewKidProfilePage() {
                 </select>
               </div>
             </div>
-            
+
             <p className="text-xs text-slate-500 -mt-3">
               Content recommendations will be based on age and grade
             </p>
 
-            {/* Avatar Color Selector */}
+            {/* Gender Selection */}
             <div>
               <label className="block text-sm font-medium mb-3">
-                Choose Avatar Color
+                Gender
               </label>
-              <div className="flex gap-3 flex-wrap">
-                {avatarColors.map((color) => (
+              <div className="grid grid-cols-3 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, gender: "boy" })}
+                  className={`p-4 rounded-lg border-2 transition-all ${
+                    form.gender === "boy"
+                      ? "border-blue-500 bg-blue-50 text-blue-700"
+                      : "border-slate-300 bg-white text-slate-700 hover:border-blue-300"
+                  }`}
+                >
+                  <div className="text-3xl mb-2">👦</div>
+                  <p className="text-sm font-semibold">Boy</p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, gender: "girl" })}
+                  className={`p-4 rounded-lg border-2 transition-all ${
+                    form.gender === "girl"
+                      ? "border-pink-500 bg-pink-50 text-pink-700"
+                      : "border-slate-300 bg-white text-slate-700 hover:border-pink-300"
+                  }`}
+                >
+                  <div className="text-3xl mb-2">👧</div>
+                  <p className="text-sm font-semibold">Girl</p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, gender: "other" })}
+                  className={`p-4 rounded-lg border-2 transition-all ${
+                    form.gender === "other"
+                      ? "border-purple-500 bg-purple-50 text-purple-700"
+                      : "border-slate-300 bg-white text-slate-700 hover:border-purple-300"
+                  }`}
+                >
+                  <div className="text-3xl mb-2">🧒</div>
+                  <p className="text-sm font-semibold">Other</p>
+                </button>
+              </div>
+              <p className="text-xs text-slate-500 mt-2">
+                This helps us personalize their avatar and content
+              </p>
+            </div>
+
+            {/* ✅ NEW: Avatar Character Selector */}
+            <div>
+              <label className="block text-sm font-medium mb-3">
+                Choose Your Character
+              </label>
+              <div className="grid grid-cols-4 gap-3">
+                {avatarOptions.map((avatar) => (
                   <button
-                    key={color}
+                    key={avatar.image}
                     type="button"
-                    onClick={() => setForm({ ...form, avatarColor: color })}
-                    className={`w-12 h-12 rounded-full border-2 transition-all ${
-                      form.avatarColor === color
-                        ? "border-slate-800 scale-110 shadow-lg"
-                        : "border-slate-300 hover:border-slate-500"
+                    onClick={() => setForm({ ...form, avatarColor: avatar.image })}
+                    className={`relative p-2 rounded-xl border-2 transition-all hover:scale-105 ${
+                      form.avatarColor === avatar.image
+                        ? "border-purple-500 bg-purple-50 shadow-lg"
+                        : "border-slate-300 bg-white hover:border-purple-300"
                     }`}
-                    style={{ backgroundColor: color }} // Dynamic color requires inline style
-                    aria-label={`Select ${color} color`}
-                    title={`Select ${color} avatar color`} // Added title for accessibility
-                  />
+                  >
+                    <div className="w-full aspect-square rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center relative">
+                      <Image
+                        src={avatar.image}
+                        alt={avatar.name}
+                        width={80}
+                        height={80}
+                        className="object-cover"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.src = "/images/swoo.png";
+                        }}
+                      />
+                    </div>
+                    <p className="text-xs font-medium text-center mt-1 truncate">
+                      {avatar.name}
+                    </p>
+                    {form.avatarColor === avatar.image && (
+                      <div className="absolute -top-2 -right-2 bg-purple-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">
+                        ✓
+                      </div>
+                    )}
+                  </button>
                 ))}
               </div>
             </div>
@@ -247,11 +315,7 @@ export default function NewKidProfilePage() {
                     showPinSection ? "bg-purple-600" : "bg-gray-200"
                   }`}
                   aria-label={showPinSection ? "Disable PIN protection" : "Enable PIN protection"}
-                  title={showPinSection ? "Click to disable PIN" : "Click to enable PIN"}
                 >
-                  <span className="sr-only">
-                    {showPinSection ? "PIN protection enabled" : "PIN protection disabled"}
-                  </span>
                   <span
                     className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
                       showPinSection ? "translate-x-6" : "translate-x-1"
@@ -260,7 +324,6 @@ export default function NewKidProfilePage() {
                 </button>
               </div>
 
-              {/* PIN Fields */}
               {showPinSection && (
                 <div className="space-y-4 bg-purple-50 rounded-lg p-4">
                   <div className="grid grid-cols-2 gap-4">
@@ -280,9 +343,9 @@ export default function NewKidProfilePage() {
                         placeholder="0000"
                         className="w-full border border-slate-300 rounded-md p-3 text-center font-mono text-lg"
                         maxLength={4}
-                        pattern="\d{4}"
                       />
                     </div>
+
                     <div>
                       <label htmlFor="confirmPin" className="block text-sm font-medium mb-1">
                         Confirm PIN
@@ -299,11 +362,10 @@ export default function NewKidProfilePage() {
                         placeholder="0000"
                         className="w-full border border-slate-300 rounded-md p-3 text-center font-mono text-lg"
                         maxLength={4}
-                        pattern="\d{4}"
                       />
                     </div>
                   </div>
-                  
+
                   <div>
                     <label htmlFor="pinHint" className="block text-sm font-medium mb-1">
                       PIN Hint (Optional)
@@ -334,31 +396,39 @@ export default function NewKidProfilePage() {
             <div className="bg-slate-50 rounded-lg p-4">
               <p className="text-sm font-medium text-slate-600 mb-3">Preview</p>
               <div className="flex items-center gap-3">
-                <div
-                  className="w-14 h-14 rounded-full flex items-center justify-center text-white text-xl font-bold"
-                  style={{ backgroundColor: form.avatarColor }}
-                >
-                  {form.name ? form.name.charAt(0).toUpperCase() : "?"}
+                {/* ✅ NEW: Image preview */}
+                <div className="w-14 h-14 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center relative">
+                  <Image
+                    src={form.avatarColor || "/images/swoo.png"}
+                    alt={form.name || "Avatar"}
+                    width={56}
+                    height={56}
+                    className="object-cover"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.src = "/images/swoo.png";
+                    }}
+                  />
                 </div>
+
                 <div>
-                  <p className="font-medium">{form.name || "Kid&apos;s Name"}</p>
+                  <p className="font-medium">{form.name || "Kid's Name"}</p>
                   <p className="text-sm text-slate-500">
                     {form.age ? `${form.age} years old` : "Age not set"}
                     {form.grade && ` • ${form.grade}`}
+                    {form.gender && ` • ${form.gender === "boy" ? "👦" : form.gender === "girl" ? "👧" : "🧒"}`}
                     {showPinSection && form.pin && " • 🔐 Protected"}
                   </p>
                 </div>
               </div>
             </div>
 
-            {/* Error Message */}
             {error && (
               <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm">
                 {error}
               </div>
             )}
 
-            {/* Submit Button */}
             <button
               type="submit"
               disabled={loading}
@@ -369,10 +439,9 @@ export default function NewKidProfilePage() {
           </form>
         </div>
 
-        {/* Info Box */}
         <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
           <p className="text-sm text-blue-900">
-            <strong>💡 Note:</strong> The username must be unique for each kid in your account. 
+            <strong>💡 Note:</strong> The username must be unique for each kid in your account.
             Kids will use this name to select their profile when playing games.
           </p>
         </div>

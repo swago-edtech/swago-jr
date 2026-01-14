@@ -67,7 +67,6 @@ const AmbassadorApplicationSchema = new mongoose.Schema(
 );
 
 // Indexes
-AmbassadorApplicationSchema.index({ parentEmail: 1 });
 AmbassadorApplicationSchema.index({ status: 1, createdAt: -1 });
 AmbassadorApplicationSchema.index({ createdAt: -1 });
 

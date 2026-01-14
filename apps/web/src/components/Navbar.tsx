@@ -14,7 +14,7 @@ const dropdownVariants: Variants = {
 };
 
 export default function Navbar() {
-  const { user, cart, wishlist, selectedKid } = useSharedContext();
+  const { user, cart, wishlist, selectedKid, openCartSidebar } = useSharedContext(); // ✅ UPDATED: Added openCartSidebar
   
   const [isAgeDropdownOpen, setAgeDropdownOpen] = useState(false);
   const [isElementDropdownOpen, setElementDropdownOpen] = useState(false);
@@ -131,13 +131,18 @@ export default function Navbar() {
             )}
           </motion.div>
 
+          {/* ✅ UPDATED: Cart Button now opens sidebar instead of navigating */}
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-            <Link href="/cart" className="flex items-center gap-2 text-white font-bold bg-[hsl(var(--swago-pink))] px-4 py-2 rounded-full text-sm shadow-md">
+            <button 
+              onClick={openCartSidebar}
+              className="flex items-center gap-2 text-white font-bold bg-[hsl(var(--swago-pink))] px-4 py-2 rounded-full text-sm shadow-md"
+            >
               <CartIcon />
               <span className="hidden sm:inline">Cart</span>
-               {itemCount > 0 && <span className="bg-white text-[hsl(var(--swago-pink))] rounded-full px-2 text-xs">{itemCount}</span>}
-            </Link>
+              {itemCount > 0 && <span className="bg-white text-[hsl(var(--swago-pink))] rounded-full px-2 text-xs">{itemCount}</span>}
+            </button>
           </motion.div>
+
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="hidden md:block">
             <Link href="/wishlist" className="flex items-center gap-2 text-white font-bold bg-[hsl(var(--swago-pink))] px-4 py-2 rounded-full text-sm shadow-md">
               <WishlistIcon />

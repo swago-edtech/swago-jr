@@ -20,15 +20,28 @@ export async function GET() {
 
     await connectDB();
 
-    // Get user ID from phone
-    const user = await User.findOne({ phone: session.phone });
+    // ✅ FIX: Get user by phone OR email based on session
+    let user;
+    if (session.email) {
+      console.log("🔍 Finding user by email:", session.email);
+      user = await User.findOne({ email: session.email });
+    } else if (session.phone) {
+      console.log("🔍 Finding user by phone:", session.phone);
+      user = await User.findOne({ phone: session.phone });
+    }
+
     if (!user) {
+      console.error("❌ User not found for session:", session);
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
+    console.log("✅ User found:", user._id);
+
     const profiles = await KidProfile.find({ userId: user._id })
-      .select("-__v") // Remove only __v, keep pin for checking
+      .select("-__v")
       .sort({ createdAt: -1 });
+
+    console.log(`📋 Found ${profiles.length} kid profile(s)`);
 
     // Transform to match frontend expectations
     const transformedProfiles = profiles.map(profile => ({
@@ -37,12 +50,12 @@ export async function GET() {
       age: profile.age,
       grade: profile.grade,
       avatarColor: profile.avatar,
-      hasPin: !!profile.pin, // Check if PIN exists
+      gender: profile.gender,
+      hasPin: !!profile.pin,
       isLocked: profile.lockedUntil ? profile.lockedUntil > new Date() : false,
       unlockedProducts: profile.unlockedProducts.map((p: { productId: string }) => p.productId),
       createdAt: profile.createdAt,
     }));
-    // Note: We don't return the actual pin hash, just check if it exists
 
     return NextResponse.json({ profiles: transformedProfiles });
   } catch (error) {
@@ -54,7 +67,7 @@ export async function GET() {
   }
 }
 
-// POST - Create a new kid profile with optional PIN
+// POST - Create a new kid profile with optional PIN and gender
 export async function POST(request: NextRequest) {
   try {
     const session = await getLoginSession();
@@ -71,7 +84,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { name, age, avatarColor, grade, pin, pinHint } = await request.json();
+    const { name, age, avatarColor, grade, gender, pin, pinHint } = await request.json();
 
     // Validation
     if (!name || !age || !avatarColor) {
@@ -88,6 +101,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (gender && !["boy", "girl", "other"].includes(gender)) {
+      return NextResponse.json(
+        { error: "Gender must be 'boy', 'girl', or 'other'" },
+        { status: 400 }
+      );
+    }
+
     // Validate PIN if provided
     if (pin) {
       if (!/^\d{4}$/.test(pin)) {
@@ -100,8 +120,14 @@ export async function POST(request: NextRequest) {
 
     await connectDB();
 
-    // Get user ID from phone
-    const user = await User.findOne({ phone: session.phone });
+    // ✅ FIX: Get user by phone OR email based on session
+    let user;
+    if (session.email) {
+      user = await User.findOne({ email: session.email });
+    } else if (session.phone) {
+      user = await User.findOne({ phone: session.phone });
+    }
+
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
@@ -142,6 +168,7 @@ export async function POST(request: NextRequest) {
       age,
       grade: grade || undefined,
       avatar: avatarColor,
+      gender: gender || "other",
       pin: hashedPin,
       pinHint: pin ? pinHint || null : null,
       pinAttempts: 0,
@@ -159,6 +186,7 @@ export async function POST(request: NextRequest) {
       age: newProfile.age,
       grade: newProfile.grade,
       avatarColor: newProfile.avatar,
+      gender: newProfile.gender,
       hasPin: !!hashedPin,
       unlockedProducts: [],
       createdAt: newProfile.createdAt,

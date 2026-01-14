@@ -1,9 +1,9 @@
-// src/app/profile/kids/[kidId]/edit/page.tsx
 "use client";
 
 import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { useSharedContext } from "@/context/SharedContext";
 
 // Define types for the profile data
@@ -30,13 +30,15 @@ interface ProfileUpdateData {
   pinHint?: string | null;
 }
 
-const avatarColors = [
-  "#8B5CF6", // Purple
-  "#3B82F6", // Blue
-  "#10B981", // Green
-  "#F59E0B", // Amber
-  "#EF4444", // Red
-  "#EC4899", // Pink
+// ✅ UPDATED: Character images instead of colors
+const avatarOptions = [
+  { name: "Swoo", image: "/images/swoo.png" },
+  { name: "William", image: "/images/william.png" },
+  { name: "Aron", image: "/images/aron.png" },
+  { name: "Gibbson", image: "/images/gibbson.png" },
+  { name: "Oswald", image: "/images/oswald.png" },
+  { name: "Boy Hero", image: "/images/kid_boy1.png" },
+  { name: "Girl Hero", image: "/images/kid_girl1.png" },
 ];
 
 const gradeOptions = [
@@ -71,7 +73,7 @@ export default function EditKidProfilePage({
     name: "",
     age: "",
     grade: "",
-    avatarColor: avatarColors[0],
+    avatarColor: avatarOptions[0].image, // ✅ NOW stores image path
     pin: "",
     confirmPin: "",
     pinHint: "",
@@ -90,11 +92,19 @@ export default function EditKidProfilePage({
         if (res.ok) {
           const data = await res.json();
           setProfileData(data.profile);
+          
+          // ✅ Handle both old (hex color) and new (image path) data
+          let avatarValue = data.profile.avatarColor;
+          if (avatarValue?.startsWith('#')) {
+            // Old hex color - set default image
+            avatarValue = avatarOptions[0].image;
+          }
+          
           setForm({
             name: data.profile.name,
             age: data.profile.age.toString(),
             grade: data.profile.grade || "",
-            avatarColor: data.profile.avatarColor,
+            avatarColor: avatarValue,
             pin: "",
             confirmPin: "",
             pinHint: data.profile.pinHint || "",
@@ -153,7 +163,7 @@ export default function EditKidProfilePage({
         name: form.name.trim(),
         age: age,
         grade: form.grade || undefined,
-        avatarColor: form.avatarColor,
+        avatarColor: form.avatarColor, // Sends image path
       };
 
       // Handle PIN updates based on action
@@ -285,26 +295,45 @@ export default function EditKidProfilePage({
               </div>
             </div>
 
-            {/* Avatar Color Selector */}
+            {/* ✅ NEW: Avatar Character Selector */}
             <div>
               <label className="block text-sm font-medium mb-3">
-                Choose Avatar Color
+                Choose Your Character
               </label>
-              <div className="flex gap-3 flex-wrap">
-                {avatarColors.map((color) => (
+              <div className="grid grid-cols-4 gap-3">
+                {avatarOptions.map((avatar) => (
                   <button
-                    key={color}
+                    key={avatar.image}
                     type="button"
-                    onClick={() => setForm({ ...form, avatarColor: color })}
-                    className={`w-12 h-12 rounded-full border-2 transition-all ${
-                      form.avatarColor === color
-                        ? "border-slate-800 scale-110 shadow-lg"
-                        : "border-slate-300 hover:border-slate-500"
+                    onClick={() => setForm({ ...form, avatarColor: avatar.image })}
+                    className={`relative p-2 rounded-xl border-2 transition-all hover:scale-105 ${
+                      form.avatarColor === avatar.image
+                        ? "border-purple-500 bg-purple-50 shadow-lg"
+                        : "border-slate-300 bg-white hover:border-purple-300"
                     }`}
-                    style={{ backgroundColor: color }}
-                    aria-label={`Select ${color} color`}
-                    title={`Select ${color} avatar color`}
-                  />
+                  >
+                    <div className="w-full aspect-square rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center relative">
+                      <Image
+                        src={avatar.image}
+                        alt={avatar.name}
+                        width={80}
+                        height={80}
+                        className="object-cover"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.src = "/images/swoo.png";
+                        }}
+                      />
+                    </div>
+                    <p className="text-xs font-medium text-center mt-1 truncate">
+                      {avatar.name}
+                    </p>
+                    {form.avatarColor === avatar.image && (
+                      <div className="absolute -top-2 -right-2 bg-purple-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">
+                        ✓
+                      </div>
+                    )}
+                  </button>
                 ))}
               </div>
             </div>
@@ -354,7 +383,7 @@ export default function EditKidProfilePage({
               {profileData?.hasPin && (
                 <div className="bg-purple-50 rounded-lg p-4 mb-4">
                   <div className="flex items-center justify-between mb-3">
-                                        <span className="text-sm font-medium text-purple-800">
+                    <span className="text-sm font-medium text-purple-800">
                       PIN is currently active
                     </span>
                     {profileData.isLocked && (
@@ -509,15 +538,22 @@ export default function EditKidProfilePage({
               )}
             </div>
 
-            {/* Preview */}
+            {/* ✅ UPDATED: Preview with Image */}
             <div className="bg-slate-50 rounded-lg p-4">
               <p className="text-sm font-medium text-slate-600 mb-3">Preview</p>
               <div className="flex items-center gap-3">
-                <div
-                  className="w-14 h-14 rounded-full flex items-center justify-center text-white text-xl font-bold"
-                  style={{ backgroundColor: form.avatarColor }}
-                >
-                  {form.name ? form.name.charAt(0).toUpperCase() : "?"}
+                <div className="w-14 h-14 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center relative">
+                  <Image
+                    src={form.avatarColor || "/images/swoo.png"}
+                    alt={form.name || "Avatar"}
+                    width={56}
+                    height={56}
+                    className="object-cover"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.src = "/images/swoo.png";
+                    }}
+                  />
                 </div>
                 <div>
                   <p className="font-medium">{form.name || "Kid&apos;s Name"}</p>

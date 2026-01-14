@@ -60,7 +60,7 @@ export default function ProductPageClient({ product }: { product: Product }) {
   const [direction, setDirection] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [openAccordion, setOpenAccordion] = useState<string | null>("description");
-  const { addToCart, isWishlisted, addToWishlist, removeFromWishlist, user } = useSharedContext();
+  const { addToCart, isWishlisted, addToWishlist, removeFromWishlist, user, openCartSidebar } = useSharedContext(); // ✅ UPDATED: Added openCartSidebar
 
   // Support both ID formats
   const productId = product.id || parseInt(product._id?.replace('hardcoded-', '') || '0');
@@ -113,9 +113,15 @@ export default function ProductPageClient({ product }: { product: Product }) {
     router.push("/cart");
   };
 
+  // ✅ UPDATED: Handle add to cart with auto-open (desktop only)
   const handleAddToCart = () => {
     if (isOutOfStock) return;
     addToCart(product, quantity);
+    
+    // Auto-open sidebar only on desktop/tablet (screen width > 768px)
+    if (typeof window !== 'undefined' && window.innerWidth > 768) {
+      openCartSidebar();
+    }
   };
 
   const renderListContent = (text: string | undefined) => {
@@ -222,7 +228,6 @@ export default function ProductPageClient({ product }: { product: Product }) {
 
           <div className="md:col-span-3">
             <div className="flex justify-between items-start">
-              {/* ✨ UPDATED: Added text-zoom-in effect */}
               <h1 className="text-4xl font-bold text-zoom-in">{product.name}</h1>
               <button 
                 onClick={handleWishlistClick} 
@@ -267,7 +272,6 @@ export default function ProductPageClient({ product }: { product: Product }) {
               )}
             </div>
 
-            {/* ✨ UPDATED: Added text-pop-bounce effect on price */}
             <p className="text-3xl font-bold text-slate-900 my-4 text-pop-bounce">
               ₹{product.price}
               {originalPrice && (
@@ -317,10 +321,9 @@ export default function ProductPageClient({ product }: { product: Product }) {
               </div>
             )}
 
-            {/* ✨ UPDATED: Added btn-text-pop to both buttons and wrapped text in span */}
             <div className="flex gap-4">
               <button 
-                onClick={handleAddToCart} 
+                onClick={handleAddToCart}
                 disabled={isOutOfStock}
                 className={`flex-1 font-bold py-3 rounded-lg text-base transition ${
                   isOutOfStock
@@ -360,7 +363,6 @@ export default function ProductPageClient({ product }: { product: Product }) {
         </div>
       </div>
 
-      {/* ✨ UPDATED: Added btn-text-pop to View More Products button */}
       <div className="text-center pt-8 pb-16">
         <Link href="/products" className="btn-shine btn-text-pop inline-block bg-[hsl(var(--swago-teal))] text-white font-bold px-8 py-3 rounded-full shadow-lg">
           <span>View More Products</span>

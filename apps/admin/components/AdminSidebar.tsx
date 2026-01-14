@@ -19,11 +19,11 @@ const navigation = [
     name: 'Ambassadors', 
     icon: Award,
     submenu: [
-      { name: 'Applications', href: '/ambassadors/applications' },
-      { name: 'Waitlist', href: '/ambassadors/waitlist' },
+      { name: 'Reel Submissions', href: '/ambassadors/reels' }, // ✅ NEW
     ]
   },
 ];
+
 
 export default function AdminSidebar() {
   const pathname = usePathname();

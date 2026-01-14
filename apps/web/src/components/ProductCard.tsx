@@ -1,13 +1,13 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Product, useSharedContext } from "@/context/SharedContext";
+import { Product, CartItem, useSharedContext } from "@/context/SharedContext";
 import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
 
 export default function ProductCard({ product }: { product: Product }) {
-  const { addToCart, addToWishlist, removeFromWishlist, isWishlisted } = useSharedContext();
+  const { cart, addToCart, addToWishlist, removeFromWishlist, isWishlisted, openCartSidebar, increaseQty, decreaseQty } = useSharedContext(); // ✅ ADDED cart, increaseQty, decreaseQty
   
   const getProductIdentifier = (): string | number => {
     if (product._id && !product._id.startsWith('hardcoded-')) {
@@ -36,6 +36,15 @@ export default function ProductCard({ product }: { product: Product }) {
   const isOutOfStock = stock !== undefined && stock === 0;
   const isLowStock = stock !== undefined && stock > 0 && stock < 10;
 
+  // ✅ NEW: Check if item is in cart and get quantity
+  const getProductId = (item: CartItem): string => {
+    return item.productId?.toString() || item._id?.toString() || item.id?.toString() || '';
+  };
+  
+  const cartItem = cart.find(item => getProductId(item) === productIdentifier.toString());
+  const quantityInCart = cartItem?.quantity || 0;
+  const isInCart = quantityInCart > 0;
+
   useEffect(() => {
     if (!isHovering) {
       setCurrentImageIndex(0);
@@ -63,6 +72,39 @@ export default function ProductCard({ product }: { product: Product }) {
     } else {
       addToWishlist(productIdentifier);
     }
+  };
+
+  // Handle add to cart with auto-open sidebar (desktop only)
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (isOutOfStock) return;
+    
+    console.log('🛒 Adding to cart:', product.name);
+    addToCart(product);
+    
+    // Auto-open sidebar only on desktop/tablet (screen width > 768px)
+    if (typeof window !== 'undefined' && window.innerWidth > 768) {
+      console.log('✅ Opening cart sidebar (desktop)');
+      openCartSidebar();
+    } else {
+      console.log('📱 Mobile detected, not opening sidebar');
+    }
+  };
+
+  // ✅ NEW: Handle quantity increase
+  const handleIncrease = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    increaseQty(productIdentifier);
+  };
+
+  // ✅ NEW: Handle quantity decrease
+  const handleDecrease = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    decreaseQty(productIdentifier);
   };
 
   // Support both naming conventions
@@ -119,7 +161,6 @@ export default function ProductCard({ product }: { product: Product }) {
         
         <div className="p-4 flex flex-col flex-grow">
           <div className="flex-grow">
-            {/* ✨ UPDATED: Added text-zoom-in effect */}
             <h3 className="text-base font-semibold text-slate-800 mb-2 h-12 line-clamp-2 text-zoom-in">
               {product.name}
             </h3>
@@ -127,7 +168,6 @@ export default function ProductCard({ product }: { product: Product }) {
           
           <div className="mt-auto pt-3">
             <div className="flex justify-between items-center mb-3">
-              {/* ✨ UPDATED: Added text-pop hover effect on price */}
               <p className="text-pop">
                 <span className="text-lg font-bold text-slate-900">₹{product.price}</span>
                 {originalPrice && (
@@ -141,23 +181,43 @@ export default function ProductCard({ product }: { product: Product }) {
               </span>
             </div>
             
-            {/* ✨ UPDATED: Added btn-text-pop and wrapped text in span */}
-            <motion.button 
-              onClick={(e) => { 
-                e.preventDefault(); 
-                if (!isOutOfStock) {
-                  addToCart(product);
-                }
-              }} 
-              disabled={isOutOfStock}
-              className={`w-full font-semibold py-2.5 rounded-lg text-sm transition ${
-                isOutOfStock 
-                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
-                  : 'btn-shine btn-text-pop bg-[hsl(var(--swago-purple))] text-white'
-              }`}
-            >
-              <span>{isOutOfStock ? 'Out of Stock' : 'Add to Cart'}</span>
-            </motion.button>
+            {/* ✅ UPDATED: Show Add to Cart OR Quantity Controls */}
+            {!isInCart ? (
+              // Show "Add to Cart" button when item is NOT in cart
+              <motion.button 
+                onClick={handleAddToCart}
+                disabled={isOutOfStock}
+                className={`w-full font-semibold py-2.5 rounded-lg text-sm transition ${
+                  isOutOfStock 
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+                    : 'btn-shine btn-text-pop bg-[hsl(var(--swago-purple))] text-white'
+                }`}
+              >
+                <span>{isOutOfStock ? 'Out of Stock' : 'Add to Cart'}</span>
+              </motion.button>
+            ) : (
+              // Show quantity controls when item IS in cart
+              <div className="flex items-center justify-center gap-2 border-2 border-[hsl(var(--swago-purple))] rounded-lg bg-purple-50">
+                <button
+                  onClick={handleDecrease}
+                  className="px-3 py-2 hover:bg-purple-100 transition text-[hsl(var(--swago-purple))] font-bold text-lg"
+                  aria-label="Decrease quantity"
+                >
+                  −
+                </button>
+                <span className="font-bold text-lg text-[hsl(var(--swago-purple))] min-w-[2rem] text-center">
+                  {quantityInCart}
+                </span>
+                <button
+                  onClick={handleIncrease}
+                  className="px-3 py-2 hover:bg-purple-100 transition text-[hsl(var(--swago-purple))] font-bold text-lg"
+                  aria-label="Increase quantity"
+                  disabled={stock !== undefined && quantityInCart >= stock}
+                >
+                  +
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

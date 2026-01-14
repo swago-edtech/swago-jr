@@ -37,7 +37,6 @@ const WaitlistSchema = new mongoose.Schema(
 );
 
 // Indexes
-WaitlistSchema.index({ parentEmail: 1 });
 WaitlistSchema.index({ notified: 1, createdAt: -1 });
 WaitlistSchema.index({ createdAt: -1 });
 

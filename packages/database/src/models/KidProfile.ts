@@ -7,7 +7,6 @@ const KidProfileSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
-      // index: true, ← REMOVE THIS
     },
     username: {
       type: String,
@@ -36,12 +35,18 @@ const KidProfileSchema = new mongoose.Schema(
       ],
     },
     avatar: {
-      type: String, // Color hex or emoji
+      type: String, // Color hex or image path
       default: "🧒",
+    },
+    // ✅ Gender for avatar selection
+    gender: {
+      type: String,
+      enum: ["boy", "girl", "other"],
+      default: "other",
     },
     // PIN Security Fields
     pin: {
-      type: String, // Hashed PIN
+      type: String,
       default: null,
     },
     pinHint: {
@@ -85,16 +90,68 @@ const KidProfileSchema = new mongoose.Schema(
       type: Date,
       default: Date.now,
     },
+    // ✅ Ambassador Program Fields
+    ambassador: {
+      isAmbassador: {
+        type: Boolean,
+        default: false,
+      },
+      status: {
+        type: String,
+        enum: ["not_started", "profile_created", "entry_pending", "entry_approved", "entry_rejected", "brand_ambassador"],
+        default: "not_started",
+      },
+      swagoMoney: {
+        type: Number,
+        default: 0,
+      },
+      badges: [{
+        name: String,
+        awardedAt: {
+          type: Date,
+          default: Date.now,
+        },
+      }],
+      currentStep: {
+        type: Number,
+        default: 1, // Step 1: Profile Created
+        min: 1,
+        max: 4,
+      },
+      entryChallenge: {
+        submitted: {
+          type: Boolean,
+          default: false,
+        },
+        reelUrl: String,
+        submittedAt: Date,
+        reviewedAt: Date,
+        status: {
+          type: String,
+          enum: ["not_submitted", "pending", "approved", "rejected"],
+          default: "not_submitted",
+        },
+        reviewNotes: String,
+      },
+      brainGym: {
+        completed: {
+          type: Boolean,
+          default: false,
+        },
+        answer: String,
+        completedAt: Date,
+      },
+      totalEarnings: {
+        type: Number,
+        default: 0,
+      },
+      joinedAt: Date,
+    },
   },
   { timestamps: true }
 );
 
-// DELETE THIS LINE - The compound index below handles userId queries
-// KidProfileSchema.index({ userId: 1 });
-
-// Keep only this compound index - it handles both:
-// 1. Queries by userId (via index prefix)
-// 2. Queries by userId + username
+// Compound index
 KidProfileSchema.index({ userId: 1, username: 1 });
 
 // Method to check if profile is locked
@@ -114,8 +171,44 @@ KidProfileSchema.methods.resetAttempts = function() {
 KidProfileSchema.methods.incrementAttempts = function() {
   this.pinAttempts += 1;
   if (this.pinAttempts >= 5) {
-    // Lock for 30 minutes after 5 attempts
     this.lockedUntil = new Date(Date.now() + 30 * 60 * 1000);
+  }
+  return this.save();
+};
+
+// ✅ Ambassador helper methods
+KidProfileSchema.methods.awardSwagoMoney = function(amount: number, reason: string) {
+  this.ambassador.swagoMoney += amount;
+  this.ambassador.totalEarnings += amount;
+  // You can log transaction here if needed
+  return this.save();
+};
+
+KidProfileSchema.methods.awardBadge = function(badgeName: string) {
+  const existingBadge = this.ambassador.badges.find((b: { name: string }) => b.name === badgeName);
+  if (!existingBadge) {
+    this.ambassador.badges.push({ name: badgeName, awardedAt: new Date() });
+  }
+  return this.save();
+};
+
+// ✅ FIXED: Initialize ambassador with currentStep = 2
+KidProfileSchema.methods.initializeAmbassador = function() {
+  if (!this.ambassador.isAmbassador) {
+    this.ambassador.isAmbassador = true;
+    this.ambassador.status = "profile_created";
+    this.ambassador.swagoMoney = 50; // Initial reward
+    this.ambassador.totalEarnings = 50;
+    this.ambassador.currentStep = 2; // ✅ FIX: Changed from 1 to 2 to unlock Entry Challenge
+    this.ambassador.joinedAt = new Date();
+    this.ambassador.badges = [{ name: "Swago Saviour", awardedAt: new Date() }];
+    this.ambassador.entryChallenge = {
+      submitted: false,
+      status: "not_submitted",
+    };
+    this.ambassador.brainGym = {
+      completed: false,
+    };
   }
   return this.save();
 };

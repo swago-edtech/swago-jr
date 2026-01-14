@@ -8,7 +8,7 @@ const categories = [
     age: '5-7',
     bgColor: 'bg-teal-500', 
     href: '/products?age=5-7',
-    imageSrc: '/images/age-5-7.png', // src for the 5-7 category
+    imageSrc: '/images/gibbson_jump.gif', // src for the 5-7 category
   },
   {
     age: '8-10',
@@ -45,12 +45,13 @@ export default function ChooseYourKit() {
               </div>
 
               <Image 
-                src={category.imageSrc}
-                alt={`Child playing with kit for ages ${category.age}`}
-                width={160}
-                height={160}
-                className="absolute -bottom-4 right-0 object-contain w-36 h-auto sm:w-40"
-              />
+  src={category.imageSrc}
+  alt={`Child playing with kit for ages ${category.age}`}
+  width={300} // Increased source resolution just in case
+  height={300}
+  // CHANGED: w-48 (192px) on mobile, sm:w-56 (224px) on desktop
+  className="absolute -bottom-4 right-0 object-contain w-48 h-auto sm:w-56"
+/>
             </Link>
           ))}
         </div>

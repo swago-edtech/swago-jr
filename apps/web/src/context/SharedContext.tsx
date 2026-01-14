@@ -38,8 +38,8 @@ export type Product = {
 
 export type CartItem = Product & { 
   quantity: number;
-  productId?: string | number;  // ✅ NEW: For DB cart items
-  addedAt?: Date | string;      // ✅ NEW: DB timestamp
+  productId?: string | number;
+  addedAt?: Date | string;
 };
 
 export type User = {
@@ -80,6 +80,9 @@ type SharedContextType = {
   selectedKid: SelectedKid | null;
   setSelectedKid: (kid: SelectedKid | null) => void;
   clearSelectedKid: () => void;
+  isCartSidebarOpen: boolean;         // ✅ NEW
+  openCartSidebar: () => void;        // ✅ NEW
+  closeCartSidebar: () => void;       // ✅ NEW
 };
 
 const SharedContext = createContext<SharedContextType | undefined>(undefined);
@@ -92,9 +95,7 @@ const USER_EVENTS = {
   PROFILE_UPDATE: 'user:profile_update',
 };
 
-// ✅ FIXED: Check productId first (from DB cart items)
 const getProductId = (product: Product | CartItem): string => {
-  // Priority: productId (from DB cart) > _id > id
   if ('productId' in product && product.productId) {
     return product.productId.toString();
   }
@@ -107,6 +108,7 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
   const [isLoadingUser, setIsLoadingUser] = useState(true);
   const [wishlist, setWishlist] = useState<(number | string)[]>([]);
   const [selectedKid, setSelectedKidState] = useState<SelectedKid | null>(null);
+  const [isCartSidebarOpen, setIsCartSidebarOpen] = useState(false); // ✅ NEW
   
   const cartSyncTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastSyncedCartRef = useRef<string>('');
@@ -165,16 +167,13 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
     }
   }, [user?._id]);
 
-  // ✅ UPDATED: Sync cart to database with full product details
   const syncCartToDatabase = useCallback(async (cartData: CartItem[]) => {
     if (!user) return;
 
-    // Skip sync if we just loaded from server
     if (skipNextSyncRef.current) {
       console.log('⏭️ Skipping sync (just loaded from server)');
       skipNextSyncRef.current = false;
       
-      // Update lastSyncedCartRef to current cart
       const dbCart = cartData.map(item => ({
         productId: getProductId(item),
         quantity: item.quantity,
@@ -187,7 +186,6 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // ✅ UPDATED: Prepare cart with full product details
     const dbCart = cartData.map(item => ({
       productId: getProductId(item),
       quantity: item.quantity,
@@ -199,7 +197,6 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
 
     const cartString = JSON.stringify(dbCart);
     
-    // Skip if cart hasn't changed
     if (cartString === lastSyncedCartRef.current) {
       console.log('⏭️ Cart unchanged, skipping sync');
       return;
@@ -496,6 +493,15 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // ✅ NEW: Cart Sidebar Functions
+  const openCartSidebar = () => {
+    setIsCartSidebarOpen(true);
+  };
+
+  const closeCartSidebar = () => {
+    setIsCartSidebarOpen(false);
+  };
+
   return (
     <SharedContext.Provider
       value={{ 
@@ -516,7 +522,10 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
         isWishlisted,
         selectedKid,
         setSelectedKid,
-        clearSelectedKid
+        clearSelectedKid,
+        isCartSidebarOpen,      // ✅ NEW
+        openCartSidebar,        // ✅ NEW
+        closeCartSidebar        // ✅ NEW
       }}
     >
       {children}

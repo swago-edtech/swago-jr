@@ -1,98 +1,67 @@
-import { 
-  HiStar, 
-  HiTrophy, 
-  HiLightBulb, 
-  HiGift, 
-  HiSparkles, 
-  HiUserGroup 
-} from 'react-icons/hi2';
+"use client";
+
+import React from "react";
+import { motion } from "framer-motion";
 
 export default function AmbassadorBenefitsSection() {
+  const benefits = [
+    {
+      title: "What Happens After completing first Challenge",
+      items: [
+        "Enter the Swago Ambassador Journey officially",
+        "Get Exclusive Masterclasses",
+        "Receive new missions",
+        "Solve fun brain challenges",
+        "Earn Swago Money",
+        "Progress toward Brand Ambassador status",
+      ],
+    },
+  ];
+
   return (
-    <div className="bg-slate-50 py-16">
-      <div className="container mx-auto px-4">
-        <h2 className="text-3xl md:text-4xl font-bold text-slate-800 text-center mb-12">
-          How the Program Benefits Kids
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
-          {/* Benefit 1 */}
-          <div className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow">
-            <div className="text-[hsl(var(--swago-purple))] mb-4">
-              <HiStar className="w-8 h-8" />
-            </div>
-            <h3 className="text-xl font-semibold text-slate-800 mb-3">Real Recognition</h3>
-            <p className="text-slate-600">
-              Featured on <strong>Swago smart boxes, website, and brand campaigns</strong>
-            </p>
-          </div>
+    <section className="py-16 px-4 bg-slate-50">
+      <div className="max-w-6xl mx-auto">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+        >
+          <h2 className="text-3xl md:text-4xl font-bold text-slate-800 mb-12 text-center">
+            What Happens After You Complete first Challenge
+          </h2>
 
-          {/* Benefit 2 */}
-          <div className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow">
-            <div className="text-[hsl(var(--swago-teal))] mb-4">
-              <HiTrophy className="w-8 h-8" />
+          <div className="bg-white rounded-2xl shadow-xl p-8 md:p-12">
+            <div className="flex items-start gap-4 mb-6">
+              
+              <div>
+                <h3 className="text-2xl font-bold text-slate-800 mb-4">
+                  {benefits[0].title}
+                </h3>
+                <p className="text-lg text-slate-600 mb-6">
+                  Once your child submits their video, they officially enter the <strong>Swago Ambassador Journey</strong>. From there, they will:
+                </p>
+              </div>
             </div>
-            <h3 className="text-xl font-semibold text-slate-800 mb-3">Industry Exposure</h3>
-            <p className="text-slate-600">
-              Value-providing sessions with <strong>industry leaders, creators, and influencers</strong>
-            </p>
-          </div>
 
-          {/* Benefit 3 */}
-          <div className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow">
-            <div className="text-[hsl(var(--swago-orange))] mb-4">
-              <HiLightBulb className="w-8 h-8" />
-            </div>
-            <h3 className="text-xl font-semibold text-slate-800 mb-3">Exclusive Masterclasses</h3>
-            <p className="text-slate-600">
-              Special sessions focused on Swago&apos;s <strong>core future skills</strong>
-            </p>
+            <ul className="space-y-3 ml-4">
+              {benefits[0].items.map((item, index) => (
+                <motion.li
+                  key={index}
+                  initial={{ opacity: 0, x: -20 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.4, delay: index * 0.1 }}
+                  className="flex items-start gap-3 text-slate-700"
+                >
+                  <span className="text-purple-600 text-xl flex-shrink-0">✓</span>
+                  <span className="text-lg">{item}</span>
+                </motion.li>
+              ))}
+            </ul>
           </div>
-
-          {/* Benefit 4 */}
-          <div className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow">
-            <div className="text-[hsl(var(--swago-pink))] mb-4">
-              <HiGift className="w-8 h-8" />
-            </div>
-            <h3 className="text-xl font-semibold text-slate-800 mb-3">Free Smart Box</h3>
-            <p className="text-slate-600">
-              Get <strong>1 Swago smart box of your choice</strong>, absolutely free
-            </p>
-          </div>
-
-          {/* Benefit 5 */}
-          <div className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow">
-            <div className="text-[hsl(var(--swago-purple))] mb-4">
-              <HiSparkles className="w-8 h-8" />
-            </div>
-            <h3 className="text-xl font-semibold text-slate-800 mb-3">Discounts & Rewards</h3>
-            <p className="text-slate-600">
-              Discount coupons + a <strong>personal referral code</strong> to earn Swago Money
-            </p>
-          </div>
-
-          {/* Benefit 6 */}
-          <div className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow">
-            <div className="text-[hsl(var(--swago-teal))] mb-4">
-              <HiSparkles className="w-8 h-8" />
-            </div>
-            <h3 className="text-xl font-semibold text-slate-800 mb-3">Brain Gym Growth</h3>
-            <p className="text-slate-600">
-              Fun challenges that improve <strong>confidence, thinking speed, and problem-solving</strong>
-            </p>
-          </div>
-
-          {/* Benefit 7 */}
-          <div className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow md:col-span-2 lg:col-span-3">
-            <div className="text-[hsl(var(--swago-orange))] mb-4 flex justify-center">
-              <HiUserGroup className="w-8 h-8" />
-            </div>
-            <h3 className="text-xl font-semibold text-slate-800 mb-3 text-center">Co-Creation & Collaboration</h3>
-            <p className="text-slate-600 text-center max-w-2xl mx-auto">
-              Work with other kids and the Swago team to <strong>shape smart boxes and activities</strong>
-            </p>
-          </div>
-        </div>
+        </motion.div>
       </div>
-    </div>
+    </section>
   );
 }

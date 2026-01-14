@@ -3,15 +3,15 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { useSharedContext, USER_EVENTS } from "@/context/SharedContext";
 import KidProfileDate from './KidProfileDate';
-
 
 type KidProfile = {
   _id: string;
   name: string;
   age: number;
-  avatarColor: string;
+  avatarColor: string; // Now stores image path
   unlockedProducts: number[];
   createdAt: string;
 };
@@ -148,56 +148,56 @@ export default function ProfilePage() {
         </div>
 
         {isEditingParent ? (
-  <form onSubmit={handleParentSubmit} className="space-y-4">
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div>
-        <label htmlFor="parent-name" className="block text-sm font-medium mb-1">Name</label>
-        <input
-          type="text"
-          id="parent-name"
-          name="name"
-          value={parentForm.name}
-          onChange={(e) => setParentForm({ ...parentForm, name: e.target.value })}
-          placeholder="Your full name"
-          className="w-full border border-slate-300 rounded-md p-2"
-        />
-      </div>
-      <div>
-        <label htmlFor="parent-email" className="block text-sm font-medium mb-1">Email</label>
-        <input
-          type="email"
-          id="parent-email"
-          name="email"
-          value={parentForm.email}
-          onChange={(e) => setParentForm({ ...parentForm, email: e.target.value })}
-          placeholder="your@email.com"
-          className="w-full border border-slate-300 rounded-md p-2"
-        />
-      </div>
-      <div>
-        <label htmlFor="parent-phone" className="block text-sm font-medium mb-1">Phone</label>
-        <input
-          type="text"
-          id="parent-phone"
-          name="phone"
-          value={user.phone}
-          disabled
-          className="w-full border border-slate-200 rounded-md p-2 bg-slate-50"
-        />
-      </div>
-      <div>
-        <label htmlFor="parent-address" className="block text-sm font-medium mb-1">Address</label>
-        <input
-          type="text"
-          id="parent-address"
-          name="address"
-          value={parentForm.address}
-          onChange={(e) => setParentForm({ ...parentForm, address: e.target.value })}
-          placeholder="Your address"
-          className="w-full border border-slate-300 rounded-md p-2"
-        />
-      </div>
-    </div>
+          <form onSubmit={handleParentSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="parent-name" className="block text-sm font-medium mb-1">Name</label>
+                <input
+                  type="text"
+                  id="parent-name"
+                  name="name"
+                  value={parentForm.name}
+                  onChange={(e) => setParentForm({ ...parentForm, name: e.target.value })}
+                  placeholder="Your full name"
+                  className="w-full border border-slate-300 rounded-md p-2"
+                />
+              </div>
+              <div>
+                <label htmlFor="parent-email" className="block text-sm font-medium mb-1">Email</label>
+                <input
+                  type="email"
+                  id="parent-email"
+                  name="email"
+                  value={parentForm.email}
+                  onChange={(e) => setParentForm({ ...parentForm, email: e.target.value })}
+                  placeholder="your@email.com"
+                  className="w-full border border-slate-300 rounded-md p-2"
+                />
+              </div>
+              <div>
+                <label htmlFor="parent-phone" className="block text-sm font-medium mb-1">Phone</label>
+                <input
+                  type="text"
+                  id="parent-phone"
+                  name="phone"
+                  value={user.phone}
+                  disabled
+                  className="w-full border border-slate-200 rounded-md p-2 bg-slate-50"
+                />
+              </div>
+              <div>
+                <label htmlFor="parent-address" className="block text-sm font-medium mb-1">Address</label>
+                <input
+                  type="text"
+                  id="parent-address"
+                  name="address"
+                  value={parentForm.address}
+                  onChange={(e) => setParentForm({ ...parentForm, address: e.target.value })}
+                  placeholder="Your address"
+                  className="w-full border border-slate-300 rounded-md p-2"
+                />
+              </div>
+            </div>
 
             {parentError && (
               <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm">
@@ -286,15 +286,32 @@ export default function ProfilePage() {
               <div
                 key={kid._id}
                 className="border rounded-lg p-6 hover:shadow-md transition-shadow"
-                style={{ borderColor: kid.avatarColor }}
               >
-                {/* Avatar */}
+                {/* ✅ FIXED: Avatar with backward compatibility */}
                 <div className="flex items-center gap-4 mb-4">
-                  <div
-                    className="w-16 h-16 rounded-full flex items-center justify-center text-white text-2xl font-bold"
-                    style={{ backgroundColor: kid.avatarColor }}
-                  >
-                    {kid.name.charAt(0).toUpperCase()}
+                  <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center relative flex-shrink-0">
+                    {kid.avatarColor?.startsWith('#') ? (
+                      // OLD DATA: Render colored circle
+                      <div
+                        className="w-full h-full flex items-center justify-center text-white text-xl font-bold"
+                        style={{ backgroundColor: kid.avatarColor }}
+                      >
+                        {kid.name.charAt(0).toUpperCase()}
+                      </div>
+                    ) : (
+                      // NEW DATA: Render image
+                      <Image
+                        src={kid.avatarColor || "/images/swoo.png"}
+                        alt={kid.name}
+                        width={64}
+                        height={64}
+                        className="object-cover"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.src = "/images/swoo.png";
+                        }}
+                      />
+                    )}
                   </div>
                   <div>
                     <h3 className="font-bold text-lg">{kid.name}</h3>
@@ -310,7 +327,7 @@ export default function ProfilePage() {
                   </p>
                   <p className="text-xs text-slate-500 mt-1">
                     <KidProfileDate createdAt={kid.createdAt} />
-                    </p>
+                  </p>
                 </div>
 
                 {/* Actions */}

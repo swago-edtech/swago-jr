@@ -1,9 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-
-// Character set: A-Z excluding I, L, O and numbers 2-9 (no 0, 1)
-const CHARSET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+import { useRouter } from "next/navigation";
 
 type Product = {
   _id: string;
@@ -11,12 +9,8 @@ type Product = {
   shortForms: string[];
 };
 
-type GeneratedCode = {
-  id: number;
-  code: string;
-};
-
 export default function LotteryGeneratorPage() {
+  const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [selectedProductId, setSelectedProductId] = useState("");
@@ -30,7 +24,6 @@ export default function LotteryGeneratorPage() {
   
   // Code Generation
   const [quantity, setQuantity] = useState("");
-  const [codes, setCodes] = useState<GeneratedCode[]>([]);
   const [generating, setGenerating] = useState(false);
   const [existingSuffixes, setExistingSuffixes] = useState<Set<string>>(new Set());
 
@@ -59,7 +52,6 @@ export default function LotteryGeneratorPage() {
     const productId = e.target.value;
     setSelectedProductId(productId);
     setSelectedShortForm("");
-    setCodes([]);
 
     if (productId) {
       const product = products.find((p) => p._id === productId);
@@ -157,7 +149,6 @@ export default function LotteryGeneratorPage() {
   const handleShortFormSelect = async (e: React.ChangeEvent<HTMLSelectElement>) => {
     const shortForm = e.target.value;
     setSelectedShortForm(shortForm);
-    setCodes([]);
 
     if (shortForm) {
       try {
@@ -180,30 +171,8 @@ export default function LotteryGeneratorPage() {
     }
   };
 
-  // Generate random 6-character suffix (globally unique)
-  const generateUniqueSuffix = (usedSuffixes: Set<string>): string => {
-    let suffix = "";
-    let attempts = 0;
-    const maxAttempts = 100;
-
-    do {
-      suffix = "";
-      for (let i = 0; i < 6; i++) {
-        const randomIndex = Math.floor(Math.random() * CHARSET.length);
-        suffix += CHARSET[randomIndex];
-      }
-      attempts++;
-
-      if (attempts >= maxAttempts) {
-        throw new Error("Unable to generate unique suffix after 100 attempts");
-      }
-    } while (usedSuffixes.has(suffix));
-
-    return suffix;
-  };
-
-  // Generate codes
-  const handleGenerate = () => {
+  // Generate batch (save to DB)
+  const handleGenerate = async () => {
     if (!selectedProductId) {
       alert("Please select a product");
       return;
@@ -220,75 +189,39 @@ export default function LotteryGeneratorPage() {
       return;
     }
 
+    if (!confirm(`Generate ${qty} codes for ${selectedProduct?.name} (${selectedShortForm})?`)) {
+      return;
+    }
+
     setGenerating(true);
 
     try {
-      const generatedCodes: GeneratedCode[] = [];
-      const allUsedSuffixes = new Set([...existingSuffixes]);
+      const res = await fetch("/api/lottery-batches/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          productId: selectedProductId,
+          shortForm: selectedShortForm,
+          quantity: qty,
+        }),
+      });
 
-      // Generate unique codes
-      for (let i = 0; i < qty; i++) {
-        const suffix = generateUniqueSuffix(allUsedSuffixes);
-        allUsedSuffixes.add(suffix);
+      const data = await res.json();
 
-        const code = `SWAGO-${selectedShortForm}-${suffix}`;
-        generatedCodes.push({
-          id: i + 1,
-          code: code,
-        });
+      if (data.success) {
+        alert(`✅ Batch created successfully!\n\nBatch Number: ${data.batch.batchNumber}\nCodes: ${data.batch.quantity}`);
+        
+        // Redirect to batch list page
+        router.push("/lottery-batches");
+      } else {
+        alert("Error: " + data.error);
       }
-
-      setCodes(generatedCodes);
-      alert(`Successfully generated ${qty} unique codes!`);
     } catch (error) {
-      console.error("Error generating codes:", error);
-      alert("Failed to generate codes: " + (error as Error).message);
+      console.error("Error generating batch:", error);
+      alert("Failed to generate batch");
     } finally {
       setGenerating(false);
     }
-  };
-
-  // Download as CSV
-  const handleDownload = () => {
-    if (codes.length === 0) {
-      alert("No codes to download");
-      return;
-    }
-
-    // Create CSV content with header
-    const csvContent = "ID,Code\n" + codes.map((c) => `${c.id},${c.code}`).join("\n");
-
-    // Download
-    const blob = new Blob([csvContent], { type: "text/csv" });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `lottery-codes-${selectedShortForm}-${Date.now()}.csv`;
-    a.click();
-    window.URL.revokeObjectURL(url);
-  };
-
-  // Copy all codes to clipboard
-  const handleCopy = () => {
-    if (codes.length === 0) {
-      alert("No codes to copy");
-      return;
-    }
-
-    const codeList = codes.map((c) => c.code).join("\n");
-    navigator.clipboard.writeText(codeList);
-    alert("Codes copied to clipboard!");
-  };
-
-  // Reset
-  const handleReset = () => {
-    setSelectedProductId("");
-    setSelectedProduct(null);
-    setShortForms([]);
-    setSelectedShortForm("");
-    setQuantity("");
-    setCodes([]);
-    setExistingSuffixes(new Set());
   };
 
   return (
@@ -296,7 +229,7 @@ export default function LotteryGeneratorPage() {
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Lottery Code Generator</h1>
-        <p className="text-gray-600 mt-1">Generate unique lottery codes for products</p>
+        <p className="text-gray-600 mt-1">Generate and save lottery code batches to database</p>
       </div>
 
       {/* Generator Form */}
@@ -400,7 +333,7 @@ export default function LotteryGeneratorPage() {
           {shortForms.length > 0 && (
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-gray-900">
-                3. Generate Codes
+                3. Generate Batch
               </h3>
 
               <div className="grid grid-cols-2 gap-4">
@@ -423,7 +356,7 @@ export default function LotteryGeneratorPage() {
                   </select>
                   {selectedShortForm && existingSuffixes.size > 0 && (
                     <p className="text-xs text-orange-600 mt-1">
-                      ⚠️ {existingSuffixes.size} existing codes found (will avoid duplicates)
+                      ℹ️ {existingSuffixes.size} existing codes (will avoid duplicates)
                     </p>
                   )}
                 </div>
@@ -443,103 +376,49 @@ export default function LotteryGeneratorPage() {
                     disabled={!selectedShortForm}
                     className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
                   />
-                  <p className="text-xs text-gray-500 mt-1">Max: 10,000 codes</p>
+                  <p className="text-xs text-gray-500 mt-1">Max: 10,000 codes per batch</p>
                 </div>
               </div>
 
               {selectedShortForm && (
-                <div className="bg-blue-50 p-3 rounded border border-blue-200">
-                  <p className="text-sm text-blue-900 font-medium">Code Format Preview:</p>
-                  <p className="text-lg font-mono font-bold text-blue-700 mt-1">
-                    SWAGO-{selectedShortForm}-XXXXXX
+                <div className="bg-blue-50 p-4 rounded border border-blue-200">
+                  <p className="text-sm text-blue-900 font-medium mb-2">📋 Code Format Preview:</p>
+                  <p className="text-xl font-mono font-bold text-blue-700">
+                    SWAGO-{selectedShortForm}-123456
                   </p>
-                  <p className="text-xs text-blue-600 mt-2">
-                    Character Set: {CHARSET}
-                  </p>
-                  <p className="text-xs text-blue-600">
-                    Letters A-Z (excluding I, L, O) + Numbers 2-9 (excluding 0, 1)
-                  </p>
+                  <div className="mt-3 text-xs text-blue-600 space-y-1">
+                    <p><span className="font-semibold">Format:</span> 6 Digits</p>
+                    <p><span className="font-semibold">Characters:</span> 0-9</p>
+                    <p><span className="font-semibold">Total Combinations:</span> 1,000,000 per short form</p>
+                  </div>
                 </div>
               )}
 
-              {/* Action Buttons */}
+              {/* Generate Button */}
               <div className="flex gap-3 pt-2">
                 <button
                   onClick={handleGenerate}
                   disabled={generating || !selectedShortForm || !quantity}
-                  className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition font-medium"
+                  className="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition font-semibold text-lg shadow-lg"
                 >
-                  {generating ? "Generating..." : "Generate Codes"}
+                  {generating ? "Generating..." : "🎟️ Generate & Save Batch"}
                 </button>
 
-                {codes.length > 0 && (
-                  <>
-                    <button
-                      onClick={handleDownload}
-                      className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition font-medium"
-                    >
-                      📥 Download CSV
-                    </button>
-                    <button
-                      onClick={handleCopy}
-                      className="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 transition font-medium"
-                    >
-                      📋 Copy All
-                    </button>
-                    <button
-                      onClick={handleReset}
-                      className="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition font-medium"
-                    >
-                      🔄 Reset
-                    </button>
-                  </>
-                )}
+                <button
+                  onClick={() => router.push("/lottery-batches")}
+                  className="bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition font-medium"
+                >
+                  📋 View All Batches
+                </button>
               </div>
+
+              <p className="text-sm text-gray-600 bg-yellow-50 border border-yellow-200 rounded p-3">
+                💡 <span className="font-semibold">Note:</span> Codes will be saved to the database. You can download and manage them from the Batch List page.
+              </p>
             </div>
           )}
         </div>
       </div>
-
-      {/* Generated Codes Table */}
-      {codes.length > 0 && (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <div className="bg-gray-50 px-6 py-3 border-b">
-            <h2 className="font-semibold text-gray-900">
-              Generated Codes ({codes.length})
-            </h2>
-            <p className="text-sm text-gray-600 mt-1">
-              Product: <span className="font-medium">{selectedProduct?.name}</span> • 
-              Short Form: <span className="font-mono font-semibold">{selectedShortForm}</span> • 
-              Format: <span className="font-mono font-semibold">SWAGO-{selectedShortForm}-XXXXXX</span>
-            </p>
-          </div>
-
-          <div className="max-h-96 overflow-y-auto">
-            <table className="w-full">
-              <thead className="bg-gray-100 sticky top-0">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-600">
-                    #
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-600">
-                    Code
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {codes.map((code) => (
-                  <tr key={code.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-3 text-sm text-gray-500">{code.id}</td>
-                    <td className="px-6 py-3 text-sm font-mono text-gray-900">
-                      {code.code}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

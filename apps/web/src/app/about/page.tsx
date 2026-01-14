@@ -1,39 +1,31 @@
-import HeroSection from "@/components/HeroSection";
 import CoreElements from "@/components/CoreElements";
-import SWAGO_S from "@/components/SWAGO_S";
-import SWAGO_W from "@/components/SWAGO_W";
-import SWAGO_A from "@/components/SWAGO_A";
-import SWAGO_G from "@/components/SWAGO_G";
-import SWAGO_O from "@/components/SWAGO_O";
-import SwagoScoreSection from "@/components/SwagoScoreSection";
-import WhySwagoIsFunSection from "@/components/WhySwagoIsFunSection";
+import FounderMessage from "@/components/FounderMessage";
+import AmbassadorCTA from "@/components/AmbassadorCTA";
 import AnimateOnScroll from "@/components/AnimateOnScroll";
 
 export default function AboutPage() {
   return (
     <div className="w-full">
       <AnimateOnScroll>
-        <HeroSection />
+        <FounderMessage />
       </AnimateOnScroll>
 
       <AnimateOnScroll>
         <CoreElements />
       </AnimateOnScroll>
 
-      {/* Character Animations - NO AnimateOnScroll wrapper */}
-      <SWAGO_S />
-      <SWAGO_W />
-      <SWAGO_A />
-      <SWAGO_G />
-      <SWAGO_O />
 
       <AnimateOnScroll>
-        <SwagoScoreSection />
+        <AmbassadorCTA />
       </AnimateOnScroll>
+
+    
+      {/* Copyright Section */}
+      <div className="container mx-auto px-4 mt-12 border-t border-slate-200 pt-8 text-center">
+        <p className="text-sm text-slate-500">Adi anant - All copyrights reserved 2025</p>
+      </div>
       
-      <AnimateOnScroll>
-        <WhySwagoIsFunSection />
-      </AnimateOnScroll>
+
     </div>
   );
 }

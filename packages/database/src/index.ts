@@ -9,7 +9,8 @@ export { default as FAQ } from './models/FAQ';
 export { default as AmbassadorApplication } from './models/AmbassadorApplication';
 export { default as Waitlist } from './models/Waitlist';
 export { default as ContactSubmission } from './models/ContactSubmission';
-export { default as LotteryCode } from './models/LotteryCode'; // 🆕 NEW
+export { default as LotteryCode } from './models/LotteryCode';
+export { default as LotteryCodeBatch } from './models/LotteryCodeBatch'; // 🆕 NEW
 
 // Export database connection
 export { default as connectDB } from './connection';

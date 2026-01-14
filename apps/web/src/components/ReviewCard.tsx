@@ -1,120 +1,119 @@
 "use client";
 
-import { motion } from "framer-motion";
-import StarRating from "./StarRating";
 import Image from "next/image";
+import { motion } from "framer-motion";
 
-interface ReviewCardProps {
-  review: {
-    _id: string;
-    rating: number;
-    title: string;
-    comment: string;
-    images?: string[];
-    isVerifiedPurchase: boolean;
-    createdAt: string;
-    user: {
-      name?: string;
-      phone: string;
-    };
+interface Review {
+  _id: string;
+  rating: number;
+  title: string;
+  comment: string;
+  images?: string[];
+  isVerifiedPurchase: boolean;
+  createdAt: string;
+  user: {
+    name?: string;
+    phone: string;
   };
-  onEdit?: (reviewId: string) => void;
-  onDelete?: (reviewId: string) => void;
-  isOwnReview?: boolean;
 }
 
-export default function ReviewCard({
-  review,
-  onEdit,
-  onDelete,
-  isOwnReview = false,
-}: ReviewCardProps) {
+interface ReviewCardProps {
+  review: Review;
+  isOwnReview: boolean;
+  onDelete: (reviewId: string) => Promise<void>;
+}
+
+export default function ReviewCard({ review, isOwnReview, onDelete }: ReviewCardProps) {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
+    return date.toLocaleDateString("en-IN", {
       year: "numeric",
-      month: "long",
+      month: "short",
       day: "numeric",
     });
   };
 
-  const maskPhone = (phone: string) => {
-    // Show only last 4 digits: +91 9999999999 -> +91 ****9999
-    return phone.replace(/(\+\d{2})\s?(\d+)(\d{4})/, "$1 ****$3");
+  const renderStars = (rating: number) => {
+    return (
+      <div className="flex gap-1">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <svg
+            key={star}
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill={star <= rating ? "currentColor" : "none"}
+            stroke="currentColor"
+            className={`w-5 h-5 ${
+              star <= rating ? "text-yellow-500" : "text-slate-300"
+            }`}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z"
+            />
+          </svg>
+        ))}
+      </div>
+    );
   };
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white p-6 rounded-xl shadow-sm border border-slate-200"
+      className="border border-slate-200 rounded-xl p-6 bg-white hover:shadow-md transition-shadow"
     >
       {/* Header */}
       <div className="flex justify-between items-start mb-3">
-        <div className="flex items-center gap-3">
-          {/* Avatar */}
-          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center text-white font-bold text-lg">
-            {review.user.name ? review.user.name[0].toUpperCase() : "U"}
-          </div>
-          
-          <div>
-            <p className="font-semibold text-slate-900">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <h4 className="font-semibold text-slate-800">
               {review.user.name || "Anonymous"}
-            </p>
-            <p className="text-xs text-slate-500">{maskPhone(review.user.phone)}</p>
+            </h4>
+            {review.isVerifiedPurchase && (
+              <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
+                ✓ Verified Purchase
+              </span>
+            )}
           </div>
+          {renderStars(review.rating)}
         </div>
 
-        {/* Actions for own review */}
-        {isOwnReview && (
-          <div className="flex gap-2">
-            {onEdit && (
-              <button
-                onClick={() => onEdit(review._id)}
-                className="text-sm text-blue-600 hover:text-blue-800"
-              >
-                Edit
-              </button>
-            )}
-            {onDelete && (
-              <button
-                onClick={() => onDelete(review._id)}
-                className="text-sm text-red-600 hover:text-red-800"
-              >
-                Delete
-              </button>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Rating & Date */}
-      <div className="flex items-center gap-3 mb-3">
-        <StarRating rating={review.rating} size="sm" />
-        <span className="text-sm text-slate-500">{formatDate(review.createdAt)}</span>
-        {review.isVerifiedPurchase && (
-          <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">
-            ✓ Verified Purchase
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-slate-500">
+            {formatDate(review.createdAt)}
           </span>
-        )}
+          {isOwnReview && (
+            <button
+              onClick={() => onDelete(review._id)}
+              className="text-red-500 hover:text-red-700 text-sm font-medium"
+              aria-label="Delete review"
+            >
+              Delete
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Review Title */}
-      <h3 className="font-bold text-lg text-slate-900 mb-2">{review.title}</h3>
+      {/* Title */}
+      {review.title && (
+        <h5 className="font-semibold text-slate-900 mb-2">{review.title}</h5>
+      )}
 
-      {/* Review Comment */}
-      <p className="text-slate-700 leading-relaxed mb-4">{review.comment}</p>
+      {/* Comment */}
+      <p className="text-slate-700 leading-relaxed mb-3">{review.comment}</p>
 
-      {/* Review Images */}
+      {/* Images */}
       {review.images && review.images.length > 0 && (
-        <div className="flex gap-3 overflow-x-auto">
-          {review.images.map((img, index) => (
+        <div className="flex gap-2 flex-wrap">
+          {review.images.map((image, index) => (
             <div
               key={index}
-              className="relative w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden border border-slate-200"
+              className="relative w-20 h-20 rounded-lg overflow-hidden border border-slate-200"
             >
               <Image
-                src={img}
+                src={image}
                 alt={`Review image ${index + 1}`}
                 fill
                 className="object-cover"
