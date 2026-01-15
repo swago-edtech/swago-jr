@@ -3,12 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectDB, KidProfile, User } from "@swago/database";
 import { getLoginSession } from "@/lib/auth";
 
-// ✅ Type definitions
-interface UnlockedProduct {
-  productId: string;
-  unlockedAt?: Date;
-}
-
+// Type definitions
 interface ProfileUpdates {
   username?: string;
   age?: number;
@@ -39,7 +34,6 @@ export async function GET(
           name: "Demo Kid",
           age: 8,
           avatarColor: "#8B5CF6",
-          unlockedProducts: [],
           ambassador: {
             isAmbassador: false,
             status: "not_started",
@@ -61,7 +55,7 @@ export async function GET(
 
     await connectDB();
 
-    // ✅ FIX: Get user by phone OR email based on session
+    // Get user by phone OR email based on session
     let user;
     if (session.email) {
       console.log("🔍 Finding user by email:", session.email);
@@ -118,9 +112,6 @@ export async function GET(
       grade: profile.grade,
       avatarColor: profile.avatar,
       gender: profile.gender,
-      hasPin: !!profile.pin,
-      isLocked: profile.lockedUntil ? profile.lockedUntil > new Date() : false,
-      unlockedProducts: profile.unlockedProducts.map((p: UnlockedProduct) => p.productId),
       lastActiveAt: profile.lastActiveAt,
       // Ambassador data
       ambassador: {
@@ -193,7 +184,7 @@ export async function PATCH(
 
     await connectDB();
 
-    // ✅ FIX: Get user by phone OR email based on session
+    // Get user by phone OR email based on session
     let user;
     if (session.email) {
       user = await User.findOne({ email: session.email });
@@ -255,7 +246,7 @@ export async function DELETE(
 
     await connectDB();
 
-    // ✅ FIX: Get user by phone OR email based on session
+    // Get user by phone OR email based on session
     let user;
     if (session.email) {
       user = await User.findOne({ email: session.email });

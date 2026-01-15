@@ -70,10 +70,10 @@ export default function ReelUploadForm({ kidProfileId, onSuccess }: ReelUploadFo
   return (
     <div className="bg-white rounded-2xl shadow-xl p-8">
       <h3 className="text-2xl font-bold text-slate-800 mb-2 text-center">
-        🎬 Upload Your Entry Challenge Reel
+         Upload Your Entry Challenge Reel
       </h3>
       <p className="text-slate-600 text-center mb-6">
-        Share your Instagram reel featuring the Swago Scarf!
+        Complete your Swago Ambassador First Challenge!
       </p>
 
       {error && (

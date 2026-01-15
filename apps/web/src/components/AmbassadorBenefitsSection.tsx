@@ -28,23 +28,21 @@ export default function AmbassadorBenefitsSection() {
           transition={{ duration: 0.6 }}
         >
           <h2 className="text-3xl md:text-4xl font-bold text-slate-800 mb-12 text-center">
-            What Happens After You Complete first Challenge
+            {benefits[0].title}
           </h2>
 
           <div className="bg-white rounded-2xl shadow-xl p-8 md:p-12">
             <div className="flex items-start gap-4 mb-6">
-              
               <div>
-                <h3 className="text-2xl font-bold text-slate-800 mb-4">
-                  {benefits[0].title}
-                </h3>
-                <p className="text-lg text-slate-600 mb-6">
-                  Once your child submits their video, they officially enter the <strong>Swago Ambassador Journey</strong>. From there, they will:
+                <h3 className="text-2xl font-bold text-slate-800 mb-4"></h3>
+                <p className="text-lg text-slate-800 mb-6">
+                  Once your child submits their video, they officially enter the{" "}
+                  <strong>Swago Ambassador Journey</strong>. From there, they will:
                 </p>
               </div>
             </div>
 
-            <ul className="space-y-3 ml-4">
+            <ul className="space-y-3 ml-1">
               {benefits[0].items.map((item, index) => (
                 <motion.li
                   key={index}
@@ -52,10 +50,11 @@ export default function AmbassadorBenefitsSection() {
                   whileInView={{ opacity: 1, x: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.4, delay: index * 0.1 }}
-                  className="flex items-start gap-3 text-slate-700"
+                  className="flex items-start gap-3 text-slate-800"
                 >
-                  <span className="text-purple-600 text-xl flex-shrink-0">✓</span>
-                  <span className="text-lg">{item}</span>
+                  <span className="text-purple-600 text-md flex-shrink-0">✓</span>
+                  <span className="text-sm md:text-lg">{item}</span>
+
                 </motion.li>
               ))}
             </ul>

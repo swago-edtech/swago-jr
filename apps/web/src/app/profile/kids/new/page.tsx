@@ -34,17 +34,13 @@ export default function NewKidProfilePage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [showPinSection, setShowPinSection] = useState(false);
 
   const [form, setForm] = useState({
     name: "",
     age: "",
     grade: "",
     gender: "boy",
-    avatarColor: avatarOptions[0].image, // ✅ NOW stores image path
-    pin: "",
-    confirmPin: "",
-    pinHint: "",
+    avatarColor: avatarOptions[0].image,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -66,17 +62,6 @@ export default function NewKidProfilePage() {
       return;
     }
 
-    if (showPinSection && form.pin) {
-      if (!/^\d{4}$/.test(form.pin)) {
-        setError("PIN must be exactly 4 digits");
-        return;
-      }
-      if (form.pin !== form.confirmPin) {
-        setError("PINs don't match");
-        return;
-      }
-    }
-
     setLoading(true);
     setError("");
 
@@ -89,9 +74,7 @@ export default function NewKidProfilePage() {
           age: age,
           grade: form.grade || undefined,
           gender: form.gender,
-          avatarColor: form.avatarColor, // Sends image path
-          pin: showPinSection ? form.pin : null,
-          pinHint: showPinSection && form.pin ? form.pinHint : null,
+          avatarColor: form.avatarColor,
         }),
       });
 
@@ -127,7 +110,7 @@ export default function NewKidProfilePage() {
           </Link>
           <h1 className="text-3xl font-bold">Create Kid Profile</h1>
           <p className="text-slate-600 mt-2">
-            Add a kid profile to unlock digital content with your product codes
+            Add a kid profile for games, activities, and the Ambassador Program
           </p>
         </div>
 
@@ -150,7 +133,7 @@ export default function NewKidProfilePage() {
                 required
               />
               <p className="text-xs text-slate-500 mt-1">
-                This name will be used to log into their profile
+                This name will be used to select their profile
               </p>
             </div>
 
@@ -204,7 +187,7 @@ export default function NewKidProfilePage() {
               <label className="block text-sm font-medium mb-3">
                 Gender
               </label>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 gap-3">
                 <button
                   type="button"
                   onClick={() => setForm({ ...form, gender: "boy" })}
@@ -230,26 +213,13 @@ export default function NewKidProfilePage() {
                   <div className="text-3xl mb-2">👧</div>
                   <p className="text-sm font-semibold">Girl</p>
                 </button>
-
-                <button
-                  type="button"
-                  onClick={() => setForm({ ...form, gender: "other" })}
-                  className={`p-4 rounded-lg border-2 transition-all ${
-                    form.gender === "other"
-                      ? "border-purple-500 bg-purple-50 text-purple-700"
-                      : "border-slate-300 bg-white text-slate-700 hover:border-purple-300"
-                  }`}
-                >
-                  <div className="text-3xl mb-2">🧒</div>
-                  <p className="text-sm font-semibold">Other</p>
-                </button>
               </div>
               <p className="text-xs text-slate-500 mt-2">
                 This helps us personalize their avatar and content
               </p>
             </div>
 
-            {/* ✅ NEW: Avatar Character Selector */}
+            {/* Avatar Character Selector */}
             <div>
               <label className="block text-sm font-medium mb-3">
                 Choose Your Character
@@ -292,111 +262,10 @@ export default function NewKidProfilePage() {
               </div>
             </div>
 
-            {/* PIN Protection Toggle */}
-            <div className="border-t pt-6">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <label className="block text-sm font-medium">
-                    🔐 PIN Protection (Optional)
-                  </label>
-                  <p className="text-xs text-slate-500 mt-1">
-                    Protect this profile with a 4-digit PIN
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowPinSection(!showPinSection);
-                    if (!showPinSection) {
-                      setForm({ ...form, pin: "", confirmPin: "", pinHint: "" });
-                    }
-                  }}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                    showPinSection ? "bg-purple-600" : "bg-gray-200"
-                  }`}
-                  aria-label={showPinSection ? "Disable PIN protection" : "Enable PIN protection"}
-                >
-                  <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                      showPinSection ? "translate-x-6" : "translate-x-1"
-                    }`}
-                  />
-                </button>
-              </div>
-
-              {showPinSection && (
-                <div className="space-y-4 bg-purple-50 rounded-lg p-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label htmlFor="pin" className="block text-sm font-medium mb-1">
-                        4-Digit PIN
-                      </label>
-                      <input
-                        type="text"
-                        id="pin"
-                        name="pin"
-                        value={form.pin}
-                        onChange={(e) => {
-                          const value = e.target.value.replace(/\D/g, "").slice(0, 4);
-                          setForm({ ...form, pin: value });
-                        }}
-                        placeholder="0000"
-                        className="w-full border border-slate-300 rounded-md p-3 text-center font-mono text-lg"
-                        maxLength={4}
-                      />
-                    </div>
-
-                    <div>
-                      <label htmlFor="confirmPin" className="block text-sm font-medium mb-1">
-                        Confirm PIN
-                      </label>
-                      <input
-                        type="text"
-                        id="confirmPin"
-                        name="confirmPin"
-                        value={form.confirmPin}
-                        onChange={(e) => {
-                          const value = e.target.value.replace(/\D/g, "").slice(0, 4);
-                          setForm({ ...form, confirmPin: value });
-                        }}
-                        placeholder="0000"
-                        className="w-full border border-slate-300 rounded-md p-3 text-center font-mono text-lg"
-                        maxLength={4}
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label htmlFor="pinHint" className="block text-sm font-medium mb-1">
-                      PIN Hint (Optional)
-                    </label>
-                    <input
-                      type="text"
-                      id="pinHint"
-                      name="pinHint"
-                      value={form.pinHint}
-                      onChange={handleChange}
-                      placeholder="e.g., Your favorite number, Your age twice"
-                      className="w-full border border-slate-300 rounded-md p-3"
-                      maxLength={100}
-                    />
-                    <p className="text-xs text-slate-500 mt-1">
-                      This hint will be shown after 3 wrong attempts
-                    </p>
-                  </div>
-
-                  {form.pin && form.confirmPin && form.pin !== form.confirmPin && (
-                    <p className="text-xs text-red-600">PINs don&apos;t match</p>
-                  )}
-                </div>
-              )}
-            </div>
-
             {/* Preview */}
             <div className="bg-slate-50 rounded-lg p-4">
               <p className="text-sm font-medium text-slate-600 mb-3">Preview</p>
               <div className="flex items-center gap-3">
-                {/* ✅ NEW: Image preview */}
                 <div className="w-14 h-14 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center relative">
                   <Image
                     src={form.avatarColor || "/images/swoo.png"}
@@ -416,8 +285,7 @@ export default function NewKidProfilePage() {
                   <p className="text-sm text-slate-500">
                     {form.age ? `${form.age} years old` : "Age not set"}
                     {form.grade && ` • ${form.grade}`}
-                    {form.gender && ` • ${form.gender === "boy" ? "👦" : form.gender === "girl" ? "👧" : "🧒"}`}
-                    {showPinSection && form.pin && " • 🔐 Protected"}
+                    {form.gender && ` • ${form.gender === "boy" ? "👦" : "👧"}`}
                   </p>
                 </div>
               </div>
@@ -442,7 +310,7 @@ export default function NewKidProfilePage() {
         <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
           <p className="text-sm text-blue-900">
             <strong>💡 Note:</strong> The username must be unique for each kid in your account.
-            Kids will use this name to select their profile when playing games.
+            Kids will use this name to select their profile.
           </p>
         </div>
       </div>

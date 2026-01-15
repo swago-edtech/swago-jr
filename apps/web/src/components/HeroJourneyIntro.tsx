@@ -18,7 +18,7 @@ export default function HeroJourneyIntro() {
             What is the Swago Ambassador Journey?
           </h2>
           
-          <div className="max-w-3xl mx-auto space-y-4 text-lg text-slate-700 leading-relaxed">
+          <div className="max-w-6xl mx-auto space-y-4 text-lg text-slate-700 leading-relaxed text-left">
             <p>
               The <strong className="text-purple-600">Swago Ambassador Journey</strong> is a path where children learn to believe in themselves through small real actions.
             </p>
@@ -37,7 +37,7 @@ export default function HeroJourneyIntro() {
             </p>
             
             <div className="bg-gradient-to-r from-purple-100 to-pink-100 rounded-xl p-6 mt-8">
-              <p className="text-slate-800 font-medium">
+              <p className="text-slate-800 font-medium ">
                 This is not about being perfect.<br />
                 It&apos;s about becoming <strong className="text-purple-700">your best growing self</strong>.
               </p>

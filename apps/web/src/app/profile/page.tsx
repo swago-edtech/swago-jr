@@ -11,8 +11,7 @@ type KidProfile = {
   _id: string;
   name: string;
   age: number;
-  avatarColor: string; // Now stores image path
-  unlockedProducts: number[];
+  avatarColor: string;
   createdAt: string;
 };
 
@@ -86,7 +85,7 @@ export default function ProfilePage() {
           address: parentForm.address,
         });
         
-        // 🔥 NEW: Trigger profile update event to refresh cached data
+        // Trigger profile update event to refresh cached data
         window.dispatchEvent(new CustomEvent(USER_EVENTS.PROFILE_UPDATE));
         
         setIsEditingParent(false);
@@ -120,7 +119,6 @@ export default function ProfilePage() {
     }
   };
 
-  // 🔥 FIXED: Check both isLoadingUser and loading state
   if (isLoadingUser || loading) {
     return <p className="text-center p-12">Loading profile...</p>;
   }
@@ -271,7 +269,7 @@ export default function ProfilePage() {
             <div className="text-6xl mb-4">👶</div>
             <p className="text-slate-600 mb-4">No kid profiles yet</p>
             <p className="text-sm text-slate-500 mb-6">
-              Create up to 2 kid profiles to unlock digital content with product codes
+              Create up to 2 kid profiles for games, activities, and the Ambassador Program
             </p>
             <Link
               href="/profile/kids/new"
@@ -287,7 +285,7 @@ export default function ProfilePage() {
                 key={kid._id}
                 className="border rounded-lg p-6 hover:shadow-md transition-shadow"
               >
-                {/* ✅ FIXED: Avatar with backward compatibility */}
+                {/* Avatar with backward compatibility */}
                 <div className="flex items-center gap-4 mb-4">
                   <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center relative flex-shrink-0">
                     {kid.avatarColor?.startsWith('#') ? (
@@ -319,13 +317,9 @@ export default function ProfilePage() {
                   </div>
                 </div>
 
-                {/* Stats */}
+                {/* Profile Info */}
                 <div className="bg-slate-50 rounded-lg p-3 mb-4">
-                  <p className="text-sm text-slate-600">
-                    <span className="font-medium">Unlocked Content:</span>{" "}
-                    {kid.unlockedProducts.length} items
-                  </p>
-                  <p className="text-xs text-slate-500 mt-1">
+                  <p className="text-xs text-slate-500">
                     <KidProfileDate createdAt={kid.createdAt} />
                   </p>
                 </div>
@@ -333,23 +327,17 @@ export default function ProfilePage() {
                 {/* Actions */}
                 <div className="flex gap-2">
                   <Link
-                    href={`/profile/kids/${kid._id}/unlock`}
-                    className="flex-1 text-center bg-green-500 text-white py-2 rounded-lg hover:bg-green-600 font-medium text-sm"
-                  >
-                    🎁 Unlock Content
-                  </Link>
-                  <Link
                     href={`/profile/kids/${kid._id}/edit`}
-                    className="flex-1 text-center border border-slate-300 py-2 rounded-lg hover:bg-slate-50 font-medium text-sm"
+                    className="flex-1 text-center bg-[hsl(var(--swago-purple))] text-white py-2 rounded-lg hover:opacity-90 font-medium text-sm"
                   >
-                    ✏️ Edit
+                    ✏️ Edit Profile
                   </Link>
                   <button
                     onClick={() => handleDelete(kid._id)}
-                    className="px-3 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 text-sm"
+                    className="px-4 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 text-sm font-medium"
                     title="Delete Profile"
                   >
-                    🗑️
+                    🗑️ Delete
                   </button>
                 </div>
               </div>

@@ -13,10 +13,7 @@ interface KidProfileData {
   age: number;
   grade?: string;
   avatarColor: string;
-  hasPin: boolean;
-  pinHint: string;
-  isLocked: boolean;
-  unlockedProducts: string[];
+  gender?: string;
   createdAt: string;
 }
 
@@ -25,12 +22,9 @@ interface ProfileUpdateData {
   age: number;
   grade?: string;
   avatarColor: string;
-  removePin?: boolean;
-  pin?: string;
-  pinHint?: string | null;
+  gender?: string;
 }
 
-// ✅ UPDATED: Character images instead of colors
 const avatarOptions = [
   { name: "Swoo", image: "/images/swoo.png" },
   { name: "William", image: "/images/william.png" },
@@ -66,17 +60,13 @@ export default function EditKidProfilePage({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [profileData, setProfileData] = useState<KidProfileData | null>(null);
-  const [showPinSection, setShowPinSection] = useState(false);
-  const [pinAction, setPinAction] = useState<"none" | "change" | "remove">("none");
   
   const [form, setForm] = useState({
     name: "",
     age: "",
     grade: "",
-    avatarColor: avatarOptions[0].image, // ✅ NOW stores image path
-    pin: "",
-    confirmPin: "",
-    pinHint: "",
+    gender: "boy",
+    avatarColor: avatarOptions[0].image,
   });
 
   useEffect(() => {
@@ -93,7 +83,7 @@ export default function EditKidProfilePage({
           const data = await res.json();
           setProfileData(data.profile);
           
-          // ✅ Handle both old (hex color) and new (image path) data
+          // Handle both old (hex color) and new (image path) data
           let avatarValue = data.profile.avatarColor;
           if (avatarValue?.startsWith('#')) {
             // Old hex color - set default image
@@ -104,15 +94,9 @@ export default function EditKidProfilePage({
             name: data.profile.name,
             age: data.profile.age.toString(),
             grade: data.profile.grade || "",
+            gender: data.profile.gender || "boy",
             avatarColor: avatarValue,
-            pin: "",
-            confirmPin: "",
-            pinHint: data.profile.pinHint || "",
           });
-          // If profile has PIN, show the section but don't enable changing by default
-          if (data.profile.hasPin) {
-            setShowPinSection(true);
-          }
         } else if (res.status === 404) {
           setError("Profile not found");
           setTimeout(() => router.push("/profile"), 2000);
@@ -143,18 +127,6 @@ export default function EditKidProfilePage({
       return;
     }
 
-    // PIN validation if changing
-    if (pinAction === "change" && form.pin) {
-      if (!/^\d{4}$/.test(form.pin)) {
-        setError("PIN must be exactly 4 digits");
-        return;
-      }
-      if (form.pin !== form.confirmPin) {
-        setError("PINs don't match");
-        return;
-      }
-    }
-
     setSaving(true);
     setError("");
 
@@ -163,23 +135,9 @@ export default function EditKidProfilePage({
         name: form.name.trim(),
         age: age,
         grade: form.grade || undefined,
-        avatarColor: form.avatarColor, // Sends image path
+        avatarColor: form.avatarColor,
+        gender: form.gender,
       };
-
-      // Handle PIN updates based on action
-      if (pinAction === "remove") {
-        updateData.removePin = true;
-      } else if (pinAction === "change" && form.pin) {
-        updateData.pin = form.pin;
-        updateData.pinHint = form.pinHint || null;
-      } else if (showPinSection && !profileData?.hasPin && form.pin) {
-        // Setting PIN for first time
-        updateData.pin = form.pin;
-        updateData.pinHint = form.pinHint || null;
-      } else if (profileData?.hasPin && form.pinHint !== profileData.pinHint) {
-        // Just updating the hint
-        updateData.pinHint = form.pinHint;
-      }
 
       const res = await fetch(`/api/kid-profiles/${kidId}`, {
         method: "PATCH",
@@ -248,13 +206,12 @@ export default function EditKidProfilePage({
                 required
               />
               <p className="text-xs text-slate-500 mt-1">
-                This name will be used to log into their profile
+                This name will be used to select their profile
               </p>
             </div>
 
-            {/* Age and Grade - Side by side */}
+            {/* Age and Grade */}
             <div className="grid grid-cols-2 gap-4">
-              {/* Age Input */}
               <div>
                 <label htmlFor="age" className="block text-sm font-medium mb-2">
                   Age
@@ -273,7 +230,6 @@ export default function EditKidProfilePage({
                 />
               </div>
 
-              {/* Grade Select */}
               <div>
                 <label htmlFor="grade" className="block text-sm font-medium mb-2">
                   Grade (Optional)
@@ -295,7 +251,44 @@ export default function EditKidProfilePage({
               </div>
             </div>
 
-            {/* ✅ NEW: Avatar Character Selector */}
+            {/* Gender Selection */}
+            <div>
+              <label className="block text-sm font-medium mb-3">
+                Gender
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, gender: "boy" })}
+                  className={`p-4 rounded-lg border-2 transition-all ${
+                    form.gender === "boy"
+                      ? "border-blue-500 bg-blue-50 text-blue-700"
+                      : "border-slate-300 bg-white text-slate-700 hover:border-blue-300"
+                  }`}
+                >
+                  <div className="text-3xl mb-2">👦</div>
+                  <p className="text-sm font-semibold">Boy</p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, gender: "girl" })}
+                  className={`p-4 rounded-lg border-2 transition-all ${
+                    form.gender === "girl"
+                      ? "border-pink-500 bg-pink-50 text-pink-700"
+                      : "border-slate-300 bg-white text-slate-700 hover:border-pink-300"
+                  }`}
+                >
+                  <div className="text-3xl mb-2">👧</div>
+                  <p className="text-sm font-semibold">Girl</p>
+                </button>
+              </div>
+              <p className="text-xs text-slate-500 mt-2">
+                This helps us personalize their avatar and content
+              </p>
+            </div>
+
+            {/* Avatar Character Selector */}
             <div>
               <label className="block text-sm font-medium mb-3">
                 Choose Your Character
@@ -338,207 +331,7 @@ export default function EditKidProfilePage({
               </div>
             </div>
 
-            {/* PIN Protection Section */}
-            <div className="border-t pt-6">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <label className="block text-sm font-medium">
-                    🔐 PIN Protection
-                  </label>
-                  <p className="text-xs text-slate-500 mt-1">
-                    {profileData?.hasPin 
-                      ? "This profile is PIN protected" 
-                      : "Protect this profile with a 4-digit PIN"}
-                  </p>
-                </div>
-                
-                {!profileData?.hasPin && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowPinSection(!showPinSection);
-                      if (!showPinSection) {
-                        setForm({ ...form, pin: "", confirmPin: "", pinHint: "" });
-                      }
-                    }}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                      showPinSection ? "bg-purple-600" : "bg-gray-200"
-                    }`}
-                    aria-label={showPinSection ? "Disable PIN setup" : "Enable PIN setup"}
-                    title={showPinSection ? "Click to disable PIN setup" : "Click to enable PIN setup"}
-                  >
-                    <span className="sr-only">
-                      {showPinSection ? "PIN setup enabled" : "PIN setup disabled"}
-                    </span>
-                    <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                        showPinSection ? "translate-x-6" : "translate-x-1"
-                      }`}
-                    />
-                  </button>
-                )}
-              </div>
-
-              {/* PIN Status for existing PIN */}
-              {profileData?.hasPin && (
-                <div className="bg-purple-50 rounded-lg p-4 mb-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-sm font-medium text-purple-800">
-                      PIN is currently active
-                    </span>
-                    {profileData.isLocked && (
-                      <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full">
-                        🔒 Locked
-                      </span>
-                    )}
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setPinAction(pinAction === "change" ? "none" : "change");
-                        setForm({ ...form, pin: "", confirmPin: "" });
-                      }}
-                      className={`text-sm px-3 py-1.5 rounded-md mr-2 ${
-                        pinAction === "change" 
-                          ? "bg-purple-600 text-white" 
-                          : "bg-white text-purple-600 border border-purple-300"
-                      }`}
-                    >
-                      {pinAction === "change" ? "Cancel Change" : "Change PIN"}
-                    </button>
-                    
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (confirm("Are you sure you want to remove PIN protection?")) {
-                          setPinAction("remove");
-                        }
-                      }}
-                      className="text-sm px-3 py-1.5 rounded-md bg-red-50 text-red-600 border border-red-300 hover:bg-red-100"
-                    >
-                      Remove PIN
-                    </button>
-                  </div>
-
-                  {/* Current PIN Hint */}
-                  <div className="mt-3">
-                    <label htmlFor="pinHint" className="block text-sm font-medium mb-1">
-                      PIN Hint
-                    </label>
-                    <input
-                      type="text"
-                      id="pinHint"
-                      name="pinHint"
-                      value={form.pinHint}
-                      onChange={handleChange}
-                      placeholder="e.g., Your favorite number, Your age twice"
-                      className="w-full border border-slate-300 rounded-md p-2 text-sm"
-                      maxLength={100}
-                    />
-                    <p className="text-xs text-slate-500 mt-1">
-                      Update the hint that shows after 3 wrong attempts
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {/* PIN Setup/Change Fields */}
-              {((showPinSection && !profileData?.hasPin) || pinAction === "change") && (
-                <div className="space-y-4 bg-purple-50 rounded-lg p-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label htmlFor="pin" className="block text-sm font-medium mb-1">
-                        {pinAction === "change" ? "New PIN" : "4-Digit PIN"}
-                      </label>
-                      <input
-                        type="text"
-                        id="pin"
-                        name="pin"
-                        value={form.pin}
-                        onChange={(e) => {
-                          const value = e.target.value.replace(/\D/g, "").slice(0, 4);
-                          setForm({ ...form, pin: value });
-                        }}
-                        placeholder="0000"
-                        className="w-full border border-slate-300 rounded-md p-3 text-center font-mono text-lg"
-                        maxLength={4}
-                        pattern="\d{4}"
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor="confirmPin" className="block text-sm font-medium mb-1">
-                        Confirm PIN
-                      </label>
-                      <input
-                        type="text"
-                        id="confirmPin"
-                        name="confirmPin"
-                        value={form.confirmPin}
-                        onChange={(e) => {
-                          const value = e.target.value.replace(/\D/g, "").slice(0, 4);
-                          setForm({ ...form, confirmPin: value });
-                        }}
-                        placeholder="0000"
-                        className="w-full border border-slate-300 rounded-md p-3 text-center font-mono text-lg"
-                        maxLength={4}
-                        pattern="\d{4}"
-                      />
-                    </div>
-                  </div>
-                  
-                  {!profileData?.hasPin && (
-                    <div>
-                      <label htmlFor="newPinHint" className="block text-sm font-medium mb-1">
-                        PIN Hint (Optional)
-                      </label>
-                      <input
-                        type="text"
-                        id="newPinHint"
-                        name="pinHint"
-                        value={form.pinHint}
-                        onChange={handleChange}
-                        placeholder="e.g., Your favorite number, Your age twice"
-                        className="w-full border border-slate-300 rounded-md p-3"
-                        maxLength={100}
-                      />
-                      <p className="text-xs text-slate-500 mt-1">
-                        This hint will be shown after 3 wrong attempts
-                      </p>
-                    </div>
-                  )}
-
-                  {form.pin && form.confirmPin && form.pin !== form.confirmPin && (
-                    <p className="text-xs text-red-600">PINs don&apos;t match</p>
-                  )}
-                </div>
-              )}
-
-              {/* PIN Removal Confirmation */}
-              {pinAction === "remove" && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                  <p className="text-sm text-red-800 mb-2">
-                    ⚠️ Are you sure you want to remove PIN protection?
-                  </p>
-                  <p className="text-xs text-red-600 mb-3">
-                    Anyone will be able to access this profile without a PIN.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => setPinAction("none")}
-                    className="text-sm px-3 py-1.5 rounded-md bg-white text-slate-600 border border-slate-300 mr-2"
-                  >
-                    Cancel
-                  </button>
-                  <span className="text-sm text-red-600">
-                    PIN will be removed when you save changes
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {/* ✅ UPDATED: Preview with Image */}
+            {/* Preview */}
             <div className="bg-slate-50 rounded-lg p-4">
               <p className="text-sm font-medium text-slate-600 mb-3">Preview</p>
               <div className="flex items-center gap-3">
@@ -556,29 +349,12 @@ export default function EditKidProfilePage({
                   />
                 </div>
                 <div>
-                  <p className="font-medium">{form.name || "Kid&apos;s Name"}</p>
+                  <p className="font-medium">{form.name || "Kid's Name"}</p>
                   <p className="text-sm text-slate-500">
                     {form.age ? `${form.age} years old` : "Age not set"}
                     {form.grade && ` • ${form.grade}`}
+                    {form.gender && ` • ${form.gender === "boy" ? "👦" : "👧"}`}
                   </p>
-                  <div className="flex items-center gap-2 mt-1">
-                    {(profileData?.hasPin && pinAction !== "remove") && (
-                      <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
-                        🔐 Protected
-                      </span>
-                    )}
-                    {pinAction === "remove" && (
-                      <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full">
-                        🔓 PIN will be removed
-                      </span>
-                    )}
-                    {((showPinSection && !profileData?.hasPin && form.pin) || 
-                      (pinAction === "change" && form.pin)) && (
-                      <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
-                        🔐 Will be protected
-                      </span>
-                    )}
-                  </div>
                 </div>
               </div>
             </div>
@@ -607,19 +383,6 @@ export default function EditKidProfilePage({
               </button>
             </div>
           </form>
-        </div>
-
-        {/* Info Box */}
-        <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-          <p className="text-sm text-blue-900">
-            <strong>💡 PIN Protection Tips:</strong>
-          </p>
-          <ul className="text-sm text-blue-900 mt-2 space-y-1 list-disc list-inside">
-            <li>Use a PIN your kid can remember easily</li>
-            <li>The PIN will be required every time they log in</li>
-            <li>After 5 wrong attempts, the profile will be temporarily locked</li>
-            <li>You can always remove or reset the PIN from your parent profile</li>
-          </ul>
         </div>
       </div>
     </div>

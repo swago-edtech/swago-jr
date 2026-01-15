@@ -549,25 +549,25 @@ export default function ApplicationForm() {
                       </select>
                     </div>
 
-                    <div>
-                      <label htmlFor="gender" className="block text-sm font-medium text-slate-700 mb-2">
-                        Gender *
-                      </label>
-                      <select 
-                        id="gender"
-                        name="gender"
-                        value={formData.gender}
-                        onChange={handleFormChange}
-                        required
-                        disabled={isSubmitting}
-                        className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[hsl(var(--swago-purple))] focus:border-transparent disabled:bg-slate-100"
-                      >
-                        <option value="">Select gender</option>
-                        <option value="boy">Boy 👦</option>
-                        <option value="girl">Girl 👧</option>
-                        <option value="other">Other 🧒</option>
-                      </select>
-                    </div>
+                 <div>
+  <label htmlFor="gender" className="block text-sm font-medium text-slate-700 mb-2">
+    Gender *
+  </label>
+  <select 
+    id="gender"
+    name="gender"
+    value={formData.gender}
+    onChange={handleFormChange}
+    required
+    disabled={isSubmitting}
+    className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[hsl(var(--swago-purple))] focus:border-transparent disabled:bg-slate-100"
+  >
+    <option value="">Select gender</option>
+    <option value="boy">Boy 👦</option>
+    <option value="girl">Girl 👧</option>
+  </select>
+</div>
+
                   </div>
                 </div>
               </div>

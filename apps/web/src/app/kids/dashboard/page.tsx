@@ -12,7 +12,7 @@ type SelectedKidProfile = {
   _id: string;
   name: string;
   age: number;
-  avatarColor: string; // Now stores image path
+  avatarColor: string;
 };
 
 type AmbassadorData = {
@@ -45,6 +45,11 @@ export default function KidDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [showReelForm, setShowReelForm] = useState(false);
   const [showBrainGym, setShowBrainGym] = useState(false);
+  const [showMoneyModal, setShowMoneyModal] = useState(false);
+  const [showBadgesModal, setShowBadgesModal] = useState(false);
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
+  const [showReelSuccessModal, setShowReelSuccessModal] = useState(false);
+  const [welcomeData, setWelcomeData] = useState<{ swagoMoney: number; badge: string } | null>(null);
 
   useEffect(() => {
     const storedProfile = localStorage.getItem("selectedKidProfile");
@@ -87,7 +92,8 @@ export default function KidDashboardPage() {
       if (res.ok) {
         const data = await res.json();
         fetchProfileData(profile._id);
-        alert(`🎉 Welcome to the Ambassador Program! You earned ${data.swagoMoney} Swago Money and the "${data.badge}" badge!`);
+        setWelcomeData({ swagoMoney: data.swagoMoney, badge: data.badge });
+        setShowWelcomeModal(true);
       }
     } catch (error) {
       console.error("Failed to activate ambassador:", error);
@@ -97,7 +103,7 @@ export default function KidDashboardPage() {
   const handleReelSubmitSuccess = () => {
     setShowReelForm(false);
     fetchProfileData(profile!._id);
-    alert("🎬 Reel submitted successfully! It's under review.");
+    setShowReelSuccessModal(true);
   };
 
   const handleBrainGymComplete = () => {
@@ -138,6 +144,57 @@ export default function KidDashboardPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-100 to-green-100">
       <main className="container mx-auto px-4 py-6">
+        
+{/* ========== MOBILE PROGRESS BAR (Top) ========== */}
+{isAmbassador && (
+  <motion.div
+    initial={{ opacity: 0, y: -20 }}
+    animate={{ opacity: 1, y: 0 }}
+    className="md:hidden bg-white rounded-2xl shadow-lg p-4 mb-4"
+  >
+    <h3 className="text-sm font-bold text-gray-800 mb-4 text-center">
+      Your Ambassador Journey
+    </h3>
+    
+    {/* Horizontal Progress Bar */}
+    <div className="flex items-start justify-between relative">
+      <div className="absolute top-5 left-0 right-0 h-1 bg-gray-200 z-0">
+        <motion.div
+          className="h-full bg-gradient-to-r from-purple-500 to-pink-500"
+          initial={{ width: 0 }}
+          animate={{ width: `${((currentStep - 1) / 3) * 100}%` }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
+        />
+      </div>
+
+      {steps.map((step, index) => (
+        <div key={step.number} className="flex flex-col items-center z-10 relative flex-1">
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: index * 0.1 }}
+            className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm mb-2 ${
+              step.status === "completed"
+                ? "bg-green-500 text-white"
+                : step.status === "active"
+                ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white"
+                : "bg-gray-300 text-gray-500"
+            }`}
+          >
+            {step.status === "completed" ? "✓" : step.status === "locked" ? "🔒" : step.number}
+          </motion.div>
+
+          <p className={`text-[10px] leading-tight font-medium text-center px-0.5 min-h-[32px] flex items-center justify-center ${
+            step.status === "locked" ? "text-gray-400" : "text-gray-700"
+          }`}>
+            {step.label}
+          </p>
+        </div>
+      ))}
+    </div>
+  </motion.div>
+)}
+
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
           
           {/* ========== LEFT SIDEBAR (40%) ========== */}
@@ -149,13 +206,72 @@ export default function KidDashboardPage() {
               animate={{ opacity: 1, x: 0 }}
               className="bg-white rounded-2xl shadow-lg p-6"
             >
-              {/* Avatar & Name with Swago Money on the right */}
-              <div className="flex items-center justify-between gap-4 mb-4">
-                <div className="flex items-center gap-4">
-                  {/* ✅ FIXED: Avatar with backward compatibility */}
+              {/* Mobile Layout */}
+              <div className="md:hidden">
+                <div className="flex items-start gap-4 mb-4">
+                  {/* Left: Avatar with Name/Age below */}
+                  <div className="flex flex-col items-center flex-shrink-0">
+                    <div className="w-20 h-20 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center relative mb-2">
+                      {profile.avatarColor?.startsWith('#') ? (
+                        <div
+                          className="w-full h-full flex items-center justify-center text-white text-2xl font-bold"
+                          style={{ backgroundColor: profile.avatarColor }}
+                        >
+                          {profile.name.charAt(0).toUpperCase()}
+                        </div>
+                      ) : (
+                        <Image
+                          src={profile.avatarColor || "/images/swoo.png"}
+                          alt={profile.name}
+                          width={80}
+                          height={80}
+                          className="object-cover"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.src = "/images/swoo.png";
+                          }}
+                        />
+                      )}
+                    </div>
+                    <h1 className="text-base font-bold text-gray-800 text-center">
+                      {profile.name}
+                    </h1>
+                    <p className="text-xs text-gray-600">Age {profile.age}</p>
+                  </div>
+
+                  {/* Right: Money & Badges (Compact - Clickable) */}
+                  {isAmbassador && (
+                    <div className="flex-1 space-y-3">
+                      {/* Swago Money - Clickable */}
+                      <button
+                        onClick={() => setShowMoneyModal(true)}
+                        className="w-full bg-gradient-to-r from-teal-500 to-teal-600 text-white px-3 py-2 rounded-lg shadow-sm hover:shadow-md transition-shadow active:scale-95"
+                      >
+                        <p className="text-base font-bold text-center">🪙 {ambassadorData?.swagoMoney || 0}</p>
+                      </button>
+
+                      {/* Badges - Clickable */}
+                      {ambassadorData?.badges && ambassadorData.badges.length > 0 && (
+                        <button
+                          onClick={() => setShowBadgesModal(true)}
+                          className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white px-3 py-2 rounded-lg shadow-sm hover:shadow-md transition-shadow active:scale-95"
+                        >
+                          <p className="text-base font-bold text-center">
+                            🏆 {ambassadorData.badges.length} {ambassadorData.badges.length === 1 ? 'Badge' : 'Badges'}
+                          </p>
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Desktop Layout */}
+              <div className="hidden md:block">
+                <div className="flex items-center gap-4 mb-4">
+                  {/* Avatar */}
                   <div className="w-20 h-20 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center relative flex-shrink-0">
                     {profile.avatarColor?.startsWith('#') ? (
-                      // OLD DATA: Render colored circle
                       <div
                         className="w-full h-full flex items-center justify-center text-white text-2xl font-bold"
                         style={{ backgroundColor: profile.avatarColor }}
@@ -163,7 +279,6 @@ export default function KidDashboardPage() {
                         {profile.name.charAt(0).toUpperCase()}
                       </div>
                     ) : (
-                      // NEW DATA: Render image
                       <Image
                         src={profile.avatarColor || "/images/swoo.png"}
                         alt={profile.name}
@@ -178,24 +293,32 @@ export default function KidDashboardPage() {
                     )}
                   </div>
 
-                  <div>
-                    <h1 className="text-2xl font-bold text-gray-800">
-                      {profile.name} 👋
+                  <div className="flex-1">
+                    <h1 className="text-xl font-bold text-gray-800">
+                      {profile.name}
                     </h1>
                     <p className="text-sm text-gray-600">Age {profile.age}</p>
                   </div>
-                </div>
-                
-                {/* Swago Money on the far right */}
-                {isAmbassador && (
-                  <div className="flex items-center gap-2 bg-gradient-to-r from-teal-500 to-teal-600 text-white px-4 py-2 rounded-lg shadow-sm">
-                    <span className="text-2xl">💰</span>
-                    <div className="text-right">
-                      <p className="text-xs font-medium opacity-90">Swago Money</p>
-                      <p className="text-lg font-bold">{ambassadorData?.swagoMoney || 0}</p>
+
+                  {/* Compact Stats on the right */}
+                  {isAmbassador && (
+                    <div className="flex gap-2">
+                      {/* Swago Money */}
+                      <div className="bg-gradient-to-r from-teal-500 to-teal-600 text-white px-4 py-2 rounded-lg shadow-sm">
+                        <p className="text-lg font-bold">🪙 {ambassadorData?.swagoMoney || 0}</p>
+                      </div>
+
+                      {/* Badges Count */}
+                      {ambassadorData?.badges && ambassadorData.badges.length > 0 && (
+                        <div className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-2 rounded-lg shadow-sm">
+                          <p className="text-lg font-bold">
+                            🏆 {ambassadorData.badges.length}
+                          </p>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
 
               {/* Switch Profile Button */}
@@ -207,13 +330,13 @@ export default function KidDashboardPage() {
               </button>
             </motion.div>
 
-            {/* Swago Money Card */}
+            {/* Swago Money Card (Desktop Only) */}
             {isAmbassador && (
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.1 }}
-                className="bg-gradient-to-br from-teal-500 to-teal-600 rounded-2xl shadow-lg p-6 text-white"
+                className="hidden lg:block bg-gradient-to-br from-teal-500 to-teal-600 rounded-2xl shadow-lg p-6 text-white"
               >
                 <div className="flex items-center gap-3 mb-3">
                   <div className="text-5xl">💰</div>
@@ -237,13 +360,13 @@ export default function KidDashboardPage() {
               </motion.div>
             )}
 
-            {/* Badges Card */}
+            {/* Badges Card (Desktop Only) */}
             {isAmbassador && ambassadorData?.badges && ambassadorData.badges.length > 0 && (
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.2 }}
-                className="bg-white rounded-2xl shadow-lg p-6"
+                className="hidden lg:block bg-white rounded-2xl shadow-lg p-6"
               >
                 <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
                   <span>🏆</span> Your Badges
@@ -267,7 +390,7 @@ export default function KidDashboardPage() {
                         </p>
                       </div>
                       
-                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-1 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-1 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
                         Awarded on {new Date(badge.awardedAt).toLocaleDateString()}
                       </div>
                     </motion.div>
@@ -280,19 +403,19 @@ export default function KidDashboardPage() {
           {/* ========== RIGHT CONTENT AREA (60%) ========== */}
           <div className="lg:col-span-3 space-y-6">
             
-            {/* Progress Bar */}
+            {/* Progress Bar (Desktop Only) */}
             {isAmbassador && (
               <motion.div
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-white rounded-2xl shadow-lg p-6"
+                className="hidden md:block bg-white rounded-2xl shadow-lg p-6"
               >
                 <h3 className="text-lg font-bold text-gray-800 mb-6 text-center">
                   Your Ambassador Journey
                 </h3>
                 
                 {/* Desktop View - Horizontal */}
-                <div className="hidden md:flex items-start justify-between relative">
+                <div className="flex items-start justify-between relative">
                   <div className="absolute top-6 left-0 right-0 h-1 bg-gray-200 z-0">
                     <motion.div
                       className="h-full bg-gradient-to-r from-purple-500 to-pink-500"
@@ -329,45 +452,6 @@ export default function KidDashboardPage() {
                     </div>
                   ))}
                 </div>
-
-                {/* Mobile View - Vertical */}
-                <div className="md:hidden space-y-4">
-                  {steps.map((step, index) => (
-                    <div key={step.number} className="flex items-start gap-4">
-                      <motion.div
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        transition={{ delay: index * 0.1 }}
-                        className={`w-10 h-10 rounded-full flex items-center justify-center font-bold flex-shrink-0 ${
-                          step.status === "completed"
-                            ? "bg-green-500 text-white"
-                            : step.status === "active"
-                            ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white animate-pulse"
-                            : "bg-gray-300 text-gray-500"
-                        }`}
-                      >
-                        {step.status === "completed" ? "✓" : step.status === "locked" ? "🔒" : step.number}
-                      </motion.div>
-
-                      <div className="flex-1 pb-4">
-                        <p
-                          className={`text-sm font-medium ${
-                            step.status === "locked" ? "text-gray-400" : "text-gray-700"
-                          }`}
-                        >
-                          {step.label}
-                        </p>
-                        {index < steps.length - 1 && (
-                          <div className="w-0.5 h-8 bg-gray-200 ml-5 mt-2">
-                            {step.status === "completed" && (
-                              <div className="w-full h-full bg-gradient-to-b from-purple-500 to-pink-500" />
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
               </motion.div>
             )}
 
@@ -381,25 +465,22 @@ export default function KidDashboardPage() {
                     animate={{ opacity: 1, y: 0 }}
                     className="bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl shadow-xl p-8 text-white text-center"
                   >
-                    <div className="text-6xl mb-4">🎬</div>
-                    <h2 className="text-3xl font-bold mb-3">
+                    <h2 className="text-lg md:text-3xl font-bold mb-3">
                       Ready for the First Ambassador Challenge?
                     </h2>
-                    <p className="text-lg mb-6 opacity-90">
-                      Upload your Instagram Reel using the Swago Scarf to unlock the next step!
-                    </p>
                     
-                    <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                    
+                    <div className="flex flex-col sm:flex-col items-center justify-center gap-4">
                       <button
                         onClick={() => setShowReelForm(true)}
-                        className="bg-white text-purple-600 font-bold px-10 py-4 rounded-full hover:bg-gray-100 transition-all text-lg shadow-lg"
+                        className="bg-white text-purple-600 font-bold px-5 md:px-10 py-4 mt-5 rounded-full hover:bg-gray-100 transition-all text-md md:text-lg shadow-lg"
                       >
-                        Upload Reel Now 🚀
+                        Complete the challenge
                       </button>
                       
                       <Link
                         href="/ambassador"
-                        className="bg-white/20 backdrop-blur-sm border-2 border-white text-white font-bold px-8 py-4 rounded-full hover:bg-white/30 transition-all text-lg"
+                        className="bg-white/20 backdrop-blur-sm border-2 border-white text-white font-bold px-4 py-2 rounded-full hover:bg-white/30 transition-all text-md"
                       >
                         Know More
                       </Link>
@@ -454,7 +535,7 @@ export default function KidDashboardPage() {
                       onClick={() => setShowBrainGym(true)}
                       className="bg-white text-green-600 font-bold px-10 py-4 rounded-full hover:bg-gray-100 transition-all text-lg shadow-lg"
                     >
-                      Start Brain Gym 🚀
+                      Start Brain Gym 
                     </button>
                   </motion.div>
                 )}
@@ -490,7 +571,7 @@ export default function KidDashboardPage() {
                       You&apos;ve completed all challenges! Check your Swago Money and badges above.
                     </p>
                     <p className="text-sm opacity-75">
-                      More challenges coming soon! Stay tuned 🚀
+                      More challenges coming soon! Stay tuned 
                     </p>
                   </motion.div>
                 )}
@@ -503,25 +584,24 @@ export default function KidDashboardPage() {
                 className="bg-gradient-to-r from-purple-400 to-pink-400 rounded-3xl shadow-2xl p-12 text-white"
               >
                 <div className="text-center max-w-2xl mx-auto">
-                  <div className="text-8xl mb-6">🌟</div>
-                  <h2 className="text-4xl font-bold mb-4">
+                  <h2 className="text-lg md:text-3xl font-bold mb-4">
                     Join the Swago Ambassador Program!
                   </h2>
-                  <p className="text-xl mb-8 opacity-90">
-                    Become a Swago Ambassador, create content, earn Swago Money, and unlock exclusive rewards!
+                  <p className="text-sm md:text-lg mb-8 opacity-90">
+                    Become a Swago Ambassador, complete challenges, earn Swago Money, and unlock exclusive rewards!
                   </p>
                   
                   <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                     <button
                       onClick={handleActivateAmbassador}
-                      className="bg-white text-purple-600 font-bold px-12 py-5 rounded-full text-xl hover:bg-gray-100 transition-all shadow-lg"
+                      className="bg-white text-purple-600 font-bold px-5 py-5 rounded-full text-sm md:text-xl hover:bg-gray-100 transition-all shadow-lg"
                     >
-                      Start Ambassador Journey 🚀
+                      Start Ambassador Journey 
                     </button>
                     
                     <Link
                       href="/ambassador"
-                      className="bg-white/20 backdrop-blur-sm border-2 border-white text-white font-bold px-10 py-5 rounded-full text-xl hover:bg-white/30 transition-all"
+                      className="bg-white/20 backdrop-blur-sm border-2 border-white text-white font-bold px-5 py-3 rounded-full text-xs md:text-lg hover:bg-white/30 transition-all"
                     >
                       Know More
                     </Link>
@@ -531,6 +611,200 @@ export default function KidDashboardPage() {
             )}
           </div>
         </div>
+
+        {/* ========== MODALS ========== */}
+        
+        {/* Welcome Ambassador Modal */}
+        <AnimatePresence>
+          {showWelcomeModal && welcomeData && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"
+              onClick={() => setShowWelcomeModal(false)}
+            >
+              <motion.div
+                initial={{ scale: 0.8, y: 20 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0.8, y: 20 }}
+                className="bg-gradient-to-br from-purple-500 to-pink-500 rounded-3xl shadow-2xl p-8 text-white max-w-md w-full text-center"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="text-7xl mb-4">🎉</div>
+                <h2 className="text-3xl font-bold mb-4">
+                  Welcome to the Ambassador Program!
+                </h2>
+                <div className="bg-white/20 backdrop-blur rounded-2xl p-6 mb-6">
+                  <p className="text-lg mb-3">You earned:</p>
+                  <div className="flex items-center justify-center gap-4 mb-3">
+                    <div className="bg-white/30 rounded-lg px-4 py-2">
+                      <p className="text-2xl font-bold">🪙 {welcomeData.swagoMoney}</p>
+                      <p className="text-xs">Swago Money</p>
+                    </div>
+                  </div>
+                  <div className="bg-white/30 rounded-lg px-4 py-3">
+                    <p className="text-lg font-bold">{badgeEmojis[welcomeData.badge] || "🎖️"} {welcomeData.badge}</p>
+                    <p className="text-xs">Badge Unlocked</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowWelcomeModal(false)}
+                  className="bg-white text-purple-600 font-bold px-8 py-3 rounded-full hover:bg-gray-100 transition-all shadow-lg"
+                >
+                  Awesome! Let&apos;s Go 
+                </button>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Reel Success Modal */}
+        <AnimatePresence>
+          {showReelSuccessModal && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"
+              onClick={() => setShowReelSuccessModal(false)}
+            >
+              <motion.div
+                initial={{ scale: 0.8, y: 20 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0.8, y: 20 }}
+                className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full text-center"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="text-7xl mb-4">✅</div>
+                <h2 className="text-3xl font-bold text-gray-800 mb-4">
+                  Reel Submitted Successfully!
+                </h2>
+                <p className="text-gray-600 text-lg mb-6">
+                  Your reel is now under review. We&apos;ll notify you once it&apos;s approved!
+                </p>
+                <button
+                  onClick={() => setShowReelSuccessModal(false)}
+                  className="bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold px-8 py-3 rounded-full hover:opacity-90 transition-all shadow-lg"
+                >
+                  Got it!
+                </button>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        
+        {/* Money Modal */}
+        <AnimatePresence>
+          {showMoneyModal && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 md:hidden"
+              onClick={() => setShowMoneyModal(false)}
+            >
+              <motion.div
+                initial={{ scale: 0.9, y: 20 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0.9, y: 20 }}
+                className="bg-gradient-to-br from-teal-500 to-teal-600 rounded-2xl shadow-2xl p-6 text-white max-w-sm w-full"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex justify-between items-start mb-4">
+                  <h3 className="text-xl font-bold">💰 Swago Money</h3>
+                  <button
+                    onClick={() => setShowMoneyModal(false)}
+                    className="text-white/80 hover:text-white text-2xl leading-none"
+                  >
+                    ×
+                  </button>
+                </div>
+                
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="text-6xl">💰</div>
+                  <div>
+                    <p className="text-sm font-medium opacity-90">Your Balance</p>
+                    <motion.p
+                      key={ambassadorData?.swagoMoney}
+                      initial={{ scale: 1.2 }}
+                      animate={{ scale: 1 }}
+                      className="text-5xl font-bold"
+                    >
+                      {ambassadorData?.swagoMoney || 0}
+                    </motion.p>
+                  </div>
+                </div>
+                
+                <div className="bg-white/20 backdrop-blur rounded-lg p-4">
+                  <p className="font-medium text-orange-100 text-sm">
+                    💡 Use Swago Money for discounts, blind bags &amp; special rewards.
+                  </p>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Badges Modal */}
+        <AnimatePresence>
+          {showBadgesModal && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 md:hidden"
+              onClick={() => setShowBadgesModal(false)}
+            >
+              <motion.div
+                initial={{ scale: 0.9, y: 20 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0.9, y: 20 }}
+                className="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full max-h-[80vh] overflow-y-auto"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex justify-between items-start mb-4">
+                  <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                    <span>🏆</span> Your Badges
+                  </h3>
+                  <button
+                    onClick={() => setShowBadgesModal(false)}
+                    className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
+                  >
+                    ×
+                  </button>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-3">
+                  {ambassadorData?.badges?.map((badge, index) => (
+                    <motion.div
+                      key={badge.name}
+                      initial={{ scale: 0, rotate: -180 }}
+                      animate={{ scale: 1, rotate: 0 }}
+                      transition={{ delay: index * 0.1, type: "spring" }}
+                    >
+                      <div className="bg-gradient-to-br from-purple-100 to-pink-100 rounded-xl p-4 flex flex-col items-center gap-2 border-2 border-purple-300">
+                        <div className="text-4xl">
+                          {badgeEmojis[badge.name] || "🎖️"}
+                        </div>
+                        <p className="text-xs font-bold text-gray-800 text-center">
+                          {badge.name}
+                        </p>
+                        <p className="text-xs text-gray-600 text-center">
+                          {new Date(badge.awardedAt).toLocaleDateString('en-IN', {
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric'
+                          })}
+                        </p>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </main>
     </div>
   );

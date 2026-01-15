@@ -18,7 +18,6 @@ export default function JourneyStepsSection() {
       emoji: "🎬",
       title: "Complete the Entry Challenge",
       description: "Your child will do one fun, pressure-free task to enter the journey.",
-      descriptionBold: "This challenge will help them build courage, confidence, self-expression, and brain-gym coordination.",
       color: "from-pink-500 to-orange-500",
     },
   ];
@@ -65,15 +64,31 @@ export default function JourneyStepsSection() {
                 </h3>
 
                 {/* Description */}
-                <div className="text-slate-600 leading-relaxed text-center">
-                  <p>{step.description}</p>
-                  {step.descriptionBold && (
-                    <p className="font-bold mt-2">{step.descriptionBold}</p>
-                  )}
-                </div>
+                <p className="text-slate-600 leading-relaxed text-center">
+                  {step.description}
+                </p>
               </motion.div>
             ))}
           </div>
+
+          {/* Bold Message Below Both Boxes */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+            className="mt-8 text-center"
+          >
+            <p className="text-lg font-bold text-slate-700 max-w-3xl mx-auto">
+             ⭐ 🌟 ⭐
+            </p>
+            <p className="text-lg font-bold text-slate-700 max-w-3xl mx-auto ">
+             This challenge will help them build courage, confidence, self-expression, and brain-gym coordination.  
+            </p>
+            <p className="text-lg font-bold text-slate-700 max-w-3xl mx-auto">
+             ⭐⭐
+            </p>
+          </motion.div>
 
           {/* CTA Button */}
           <div className="text-center mt-12">

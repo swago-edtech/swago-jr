@@ -38,13 +38,12 @@ const KidProfileSchema = new mongoose.Schema(
       type: String, // Color hex or image path
       default: "🧒",
     },
-    // ✅ Gender for avatar selection
     gender: {
       type: String,
       enum: ["boy", "girl", "other"],
       default: "other",
     },
-    // PIN Security Fields
+    // ⚠️ DEPRECATED: PIN fields kept for backward compatibility only
     pin: {
       type: String,
       default: null,
@@ -61,7 +60,7 @@ const KidProfileSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
-    // Content & Progress
+    // ⚠️ DEPRECATED: Product unlock fields kept for backward compatibility only
     unlockedProducts: [
       {
         productId: {
@@ -90,7 +89,7 @@ const KidProfileSchema = new mongoose.Schema(
       type: Date,
       default: Date.now,
     },
-    // ✅ Ambassador Program Fields
+    // ✅ Ambassador Program Fields (ACTIVE)
     ambassador: {
       isAmbassador: {
         type: Boolean,
@@ -114,7 +113,7 @@ const KidProfileSchema = new mongoose.Schema(
       }],
       currentStep: {
         type: Number,
-        default: 1, // Step 1: Profile Created
+        default: 1,
         min: 1,
         max: 4,
       },
@@ -154,33 +153,10 @@ const KidProfileSchema = new mongoose.Schema(
 // Compound index
 KidProfileSchema.index({ userId: 1, username: 1 });
 
-// Method to check if profile is locked
-KidProfileSchema.methods.isLocked = function() {
-  if (!this.lockedUntil) return false;
-  return this.lockedUntil > new Date();
-};
-
-// Method to reset PIN attempts
-KidProfileSchema.methods.resetAttempts = function() {
-  this.pinAttempts = 0;
-  this.lockedUntil = null;
-  return this.save();
-};
-
-// Method to increment failed attempts
-KidProfileSchema.methods.incrementAttempts = function() {
-  this.pinAttempts += 1;
-  if (this.pinAttempts >= 5) {
-    this.lockedUntil = new Date(Date.now() + 30 * 60 * 1000);
-  }
-  return this.save();
-};
-
-// ✅ Ambassador helper methods
+// ✅ Ambassador helper methods (KEEP)
 KidProfileSchema.methods.awardSwagoMoney = function(amount: number, reason: string) {
   this.ambassador.swagoMoney += amount;
   this.ambassador.totalEarnings += amount;
-  // You can log transaction here if needed
   return this.save();
 };
 
@@ -192,14 +168,13 @@ KidProfileSchema.methods.awardBadge = function(badgeName: string) {
   return this.save();
 };
 
-// ✅ FIXED: Initialize ambassador with currentStep = 2
 KidProfileSchema.methods.initializeAmbassador = function() {
   if (!this.ambassador.isAmbassador) {
     this.ambassador.isAmbassador = true;
     this.ambassador.status = "profile_created";
-    this.ambassador.swagoMoney = 50; // Initial reward
+    this.ambassador.swagoMoney = 50;
     this.ambassador.totalEarnings = 50;
-    this.ambassador.currentStep = 2; // ✅ FIX: Changed from 1 to 2 to unlock Entry Challenge
+    this.ambassador.currentStep = 2;
     this.ambassador.joinedAt = new Date();
     this.ambassador.badges = [{ name: "Swago Saviour", awardedAt: new Date() }];
     this.ambassador.entryChallenge = {

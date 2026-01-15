@@ -2,7 +2,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB, KidProfile, User } from "@swago/database";
 import { getLoginSession } from "@/lib/auth";
-import bcrypt from "bcryptjs";
 
 // GET - List all kid profiles for the logged-in parent
 export async function GET() {
@@ -20,7 +19,7 @@ export async function GET() {
 
     await connectDB();
 
-    // ✅ FIX: Get user by phone OR email based on session
+    // Get user by phone OR email based on session
     let user;
     if (session.email) {
       console.log("🔍 Finding user by email:", session.email);
@@ -51,9 +50,6 @@ export async function GET() {
       grade: profile.grade,
       avatarColor: profile.avatar,
       gender: profile.gender,
-      hasPin: !!profile.pin,
-      isLocked: profile.lockedUntil ? profile.lockedUntil > new Date() : false,
-      unlockedProducts: profile.unlockedProducts.map((p: { productId: string }) => p.productId),
       createdAt: profile.createdAt,
     }));
 
@@ -67,7 +63,7 @@ export async function GET() {
   }
 }
 
-// POST - Create a new kid profile with optional PIN and gender
+// POST - Create a new kid profile
 export async function POST(request: NextRequest) {
   try {
     const session = await getLoginSession();
@@ -84,7 +80,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { name, age, avatarColor, grade, gender, pin, pinHint } = await request.json();
+    const { name, age, avatarColor, grade, gender } = await request.json();
 
     // Validation
     if (!name || !age || !avatarColor) {
@@ -108,19 +104,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate PIN if provided
-    if (pin) {
-      if (!/^\d{4}$/.test(pin)) {
-        return NextResponse.json(
-          { error: "PIN must be exactly 4 digits" },
-          { status: 400 }
-        );
-      }
-    }
-
     await connectDB();
 
-    // ✅ FIX: Get user by phone OR email based on session
+    // Get user by phone OR email based on session
     let user;
     if (session.email) {
       user = await User.findOne({ email: session.email });
@@ -154,13 +140,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Hash PIN if provided
-    let hashedPin = null;
-    if (pin) {
-      const salt = await bcrypt.genSalt(10);
-      hashedPin = await bcrypt.hash(pin, salt);
-    }
-
     // Create new profile
     const newProfile = new KidProfile({
       userId: user._id,
@@ -169,11 +148,6 @@ export async function POST(request: NextRequest) {
       grade: grade || undefined,
       avatar: avatarColor,
       gender: gender || "other",
-      pin: hashedPin,
-      pinHint: pin ? pinHint || null : null,
-      pinAttempts: 0,
-      lockedUntil: null,
-      unlockedProducts: [],
       progress: {},
     });
 
@@ -187,8 +161,6 @@ export async function POST(request: NextRequest) {
       grade: newProfile.grade,
       avatarColor: newProfile.avatar,
       gender: newProfile.gender,
-      hasPin: !!hashedPin,
-      unlockedProducts: [],
       createdAt: newProfile.createdAt,
     };
 

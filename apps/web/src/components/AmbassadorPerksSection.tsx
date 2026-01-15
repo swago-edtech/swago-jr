@@ -6,19 +6,19 @@ import { motion } from "framer-motion";
 export default function AmbassadorPerksSection() {
   const perks = [
     {
-      text: "Your child gets special confidence and AI masterclasses that help them speak up, express themselves, and think smart.",
+      text: "➡️ Your child gets special confidence and AI masterclasses that help them speak up, express themselves, and think smart.",
     },
     {
-      text: "They receive fun little monthly challenges that quietly build focus, coordination, courage, and leadership.",
+      text: "➡️ They receive fun little monthly challenges that quietly build focus, coordination, courage, and leadership.",
     },
     {
-      text: "They become a Swago Junior Researcher, getting to try new Swago boxes and activities before others and share what they think.",
+      text: "➡️ They become a Swago Junior Researcher, getting to try new Swago boxes and activities before others and share what they think.",
     },
     {
-      text: "They unlock member-only rewards, discounts and small surprises, making them feel like a special insider in the Swago world.",
+      text: "➡️ They unlock member-only rewards, discounts and small surprises, making them feel like a special insider in the Swago world.",
     },
     {
-      text: "Some children will even be featured as Swago Kids in our stories, campaigns, or packaging, celebrating their journey, not just their performance.",
+      text: "➡️ Some children will even be featured as Swago Kids in our stories, campaigns, or packaging, celebrating their journey, not just their performance.",
     },
   ];
 
@@ -40,9 +40,8 @@ export default function AmbassadorPerksSection() {
 
             {/* Badge */}
             <div className="inline-block bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-8 py-4 rounded-2xl shadow-lg mb-4">
-              <p className="text-2xl font-bold flex items-center justify-center gap-2">
-                <span>🏆</span>
-                <span>Official Swago Kid Brand Ambassador Status</span>
+              <p className="text-xl font-bold flex items-center justify-center gap-2">
+                <span> Official Swago Kid Brand Ambassador Status 🏆</span>
               </p>
             </div>
 
@@ -54,10 +53,12 @@ export default function AmbassadorPerksSection() {
           {/* Main Content Box */}
           <div className="bg-white rounded-2xl shadow-lg p-8 md:p-12">
             {/* Section Title with Emoji */}
-            <h3 className="text-2xl md:text-3xl font-bold text-slate-800 mb-6 flex items-center justify-center gap-3">
-              <span className="text-3xl">🌈</span>
-              <span>What Your Child Gets as Official Swago Kid Brand Ambassador</span>
+            <h3 className="text-xl md:text-3xl font-bold text-slate-800 mb-6 flex items-center justify-center gap-3">
+              
+              <span>What Your Child Gets as Official Swago Kid Brand Ambassador </span>
+        
             </h3>
+             
 
             {/* Intro Paragraph */}
             <p className="text-lg text-slate-700 mb-8 text-center leading-relaxed">
@@ -75,10 +76,7 @@ export default function AmbassadorPerksSection() {
                   transition={{ duration: 0.5, delay: index * 0.1 }}
                   className="flex items-start gap-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-5 hover:shadow-md transition-shadow"
                 >
-                  {/* Arrow Icon */}
-                  <div className="flex-shrink-0 text-2xl text-purple-600 mt-0.5">
-                    ➡️
-                  </div>
+                 
                   
                   {/* Text */}
                   <p className="text-slate-700 leading-relaxed">
@@ -92,10 +90,11 @@ export default function AmbassadorPerksSection() {
           {/* Bottom Message */}
           <div className="bg-gradient-to-r from-purple-300 to-pink-400 rounded-2xl p-8 md:p-10 text-center text-white shadow-xl">
             <p className="text-lg md:text-xl font-medium mb-3 opacity-90">
-              And beyond all this, your child starts to build something deeper:
+              And beyond all this, your child starts to build something deeper: <br/>
+              the feeling that
             </p>
-            <p className="text-3xl md:text-5xl font-bold">
-              the feeling that <span className="text-yellow-300">&quot;Yes, I can.&quot;</span>
+            <p className="text-lg md:text-xl font-medium">
+               <span className="text-yellow-300 text-3xl md:text-5xl font-bold">&quot;Yes, I can.&quot;</span>
             </p>
           </div>
         </motion.div>
