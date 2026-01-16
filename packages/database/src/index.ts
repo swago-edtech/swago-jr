@@ -1,3 +1,5 @@
+// packages/database/src/index.ts
+
 // Import and re-export models (can't use export * with default exports)
 export { default as User } from './models/User';
 export { default as Order } from './models/Order';
@@ -10,7 +12,8 @@ export { default as AmbassadorApplication } from './models/AmbassadorApplication
 export { default as Waitlist } from './models/Waitlist';
 export { default as ContactSubmission } from './models/ContactSubmission';
 export { default as LotteryCode } from './models/LotteryCode';
-export { default as LotteryCodeBatch } from './models/LotteryCodeBatch'; // 🆕 NEW
+export { default as LotteryCodeBatch } from './models/LotteryCodeBatch';
+export { default as Announcement } from './models/Announcement'; // ✅ NEW
 
 // Export database connection
 export { default as connectDB } from './connection';

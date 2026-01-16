@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Cancellation Policy | Swago Junior',
-  description: 'Learn about our cancellation policy for Swago Junior educational kits',
+  title: 'Cancellation Policy | Swago ',
+  description: 'Learn about our cancellation policy for Swago  educational kits',
 };
 
 export default function CancellationPolicyPage() {
@@ -24,7 +24,7 @@ export default function CancellationPolicyPage() {
           {/* Introduction */}
           <div>
             <p className="text-lg text-slate-600 leading-relaxed">
-              At Swago Junior, we begin processing your order immediately to ensure fast delivery of our premium educational kits. 
+              At Swago , we begin processing your order immediately to ensure fast delivery of our premium educational kits. 
               This policy explains our cancellation terms and the reasons behind our approach.
             </p>
           </div>

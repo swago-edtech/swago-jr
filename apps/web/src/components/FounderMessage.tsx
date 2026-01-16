@@ -3,20 +3,22 @@
 import React from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
+import Link from "next/link";
 
 export default function FounderMessage() {
   return (
-    <section className="py-5 px-4 ">
-      <div className="max-w-7xl mx-auto">
+    <section>
+
+      <div className="w-full md:max-w-8xl mx-(-2)">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="bg-pink-100 rounded-2xl overflow-hidden shadow-lg grid grid-cols-1 lg:grid-cols-2"
+          className="bg-pink-100  overflow-hidden shadow-lg grid grid-cols-1 lg:grid-cols-2"
         >
           {/* Left Side - Image */}
-          <div className="relative h-[450px] lg:h-[700px]">
+          <div className="relative h-[450px] md:h-full ">
             <Image
               src="/images/SwatiGoyal.jpeg"
               alt="Swati Goyal - Founder of Swago"
@@ -27,8 +29,9 @@ export default function FounderMessage() {
           </div>
 
           {/* Right Side - Content */}
-          <div className="p-8 md:p-12 flex flex-col justify-center">
+          <div className="p-2 md:p-4 flex flex-col justify-center">
             <div className="space-y-5 text-slate-900 leading-relaxed text-[15px]">
+              <p>Dear Parents,</p>
               <p>
                 <b>Swago </b> began with a simple question I asked myself as a mother:
                 <br />
@@ -99,6 +102,42 @@ export default function FounderMessage() {
           </div>
         </motion.div>
       </div>
+      {/* Content */}
+              <div className="relative z-10 pt-8 md:pt-12 text-center">
+                {/* Badge */}
+                <div className="inline-block mb-6 px-4 py-1.5 bg-purple-100 rounded-full text-xs font-bold text-purple-700">
+                  Limited Spots Available
+                </div>
+      
+                {/* Title - Simple Design */}
+                <h2 className="text-2xl md:text-3xl font-bold mb-8 text-slate-800">
+                  Join our Swago Kid Brand Ambassador Program
+                </h2>
+      
+                {/* CTA Button */}
+                <Link
+                  href="/ambassador"
+                  className="inline-block btn-shine bg-gradient-to-r from-[hsl(var(--swago-purple))] to-[hsl(var(--swago-pink))] text-white font-bold text-base md:text-lg px-8 py-3.5 rounded-full shadow-xl hover:scale-105 transition-all duration-300"
+                >
+                  <span className="flex items-center gap-2">
+                    Start Your Journey
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth={3}
+                      stroke="currentColor"
+                      className="w-5 h-5"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"
+                      />
+                    </svg>
+                  </span>
+                </Link>
+              </div>
     </section>
   );
 }

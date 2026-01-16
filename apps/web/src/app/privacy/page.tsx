@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Privacy Policy | Swago Junior',
-  description: 'Learn how Swago Junior protects your privacy and handles your personal information',
+  title: 'Privacy Policy | Swago ',
+  description: 'Learn how Swago  protects your privacy and handles your personal information',
 };
 
 export default function PrivacyPage() {
@@ -24,7 +24,7 @@ export default function PrivacyPage() {
           {/* Introduction */}
           <div>
             <p className="text-lg text-slate-600 leading-relaxed mb-4">
-              At Swago Junior, we respect your privacy and are committed to protecting your personal information. 
+              At Swago , we respect your privacy and are committed to protecting your personal information. 
               This policy explains how we collect, use, and safeguard your data when you use our website and purchase our educational kits.
             </p>
             <p className="text-slate-600">

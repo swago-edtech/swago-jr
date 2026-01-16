@@ -40,7 +40,7 @@ export default function ApplicationForm() {
   useEffect(() => {
     if (!isLoadingUser && user) {
       console.log("✅ User already logged in, redirecting to /kids");
-      router.push('/kids');
+      router.push('/kids/dashboard');
     }
   }, [user, isLoadingUser, router]);
 
@@ -306,7 +306,7 @@ export default function ApplicationForm() {
                 Redirecting to Kids Dashboard in 3 seconds...
               </p>
               <button
-                onClick={() => router.push("/kids")}
+                onClick={() => router.push("/kids/dashboard")}
                 className="inline-block bg-gradient-to-r from-[hsl(var(--swago-purple))] to-[hsl(var(--swago-pink))] text-white font-bold px-8 py-3 rounded-full hover:opacity-90 transition-opacity"
               >
                 Go to Dashboard Now →
@@ -595,7 +595,7 @@ export default function ApplicationForm() {
                 disabled={isSubmitting}
                 className="w-full btn-shine bg-gradient-to-r from-[hsl(var(--swago-purple))] to-[hsl(var(--swago-pink))] text-white font-bold py-4 px-6 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed text-lg"
               >
-                {isSubmitting ? 'Sending OTP...' : '🚀 Enter the Swagoverse'}
+                {isSubmitting ? 'Sending OTP...' : ' Enter the Swagoverse'}
               </button>
             </form>
           </div>

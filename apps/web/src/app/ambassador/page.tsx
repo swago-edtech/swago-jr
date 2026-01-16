@@ -44,9 +44,6 @@ export default function AmbassadorPage() {
       {/* Entry Challenge Details */}
       <EntryChallengeDetails />
 
-      {/* What Happens After */}
-      <AmbassadorBenefitsSection />
-
       {/* Ambassador Perks at 500 Swago Money */}
       <AmbassadorPerksSection />
 

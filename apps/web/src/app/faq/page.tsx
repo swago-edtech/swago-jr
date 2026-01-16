@@ -93,7 +93,7 @@ export default function FAQPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
           >
-            Find answers to common questions about Swago Junior
+            Find answers to common questions about Swago 
           </motion.p>
         </div>
       </div>

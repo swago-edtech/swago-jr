@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Shipping & Delivery Policy | Swago Junior',
-  description: 'Learn about our shipping options, delivery times, and policies for Swago Junior educational kits',
+  title: 'Shipping & Delivery Policy | Swago ',
+  description: 'Learn about our shipping options, delivery times, and policies for Swago educational kits',
 };
 
 export default function ShippingPage() {
@@ -24,7 +24,7 @@ export default function ShippingPage() {
           {/* Introduction */}
           <div>
             <p className="text-lg text-slate-600 leading-relaxed">
-              We&#39;re committed to getting your Swago Junior learning kits to you safely and promptly. 
+              We&#39;re committed to getting your Swago learning kits to you safely and promptly. 
               Here&#39;s everything you need to know about our shipping and delivery process.
             </p>
           </div>

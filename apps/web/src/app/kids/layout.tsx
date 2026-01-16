@@ -2,7 +2,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Swago Junior - Kids Zone",
+  title: "Swago - Kids Zone",
   description: "Fun learning games and activities for kids",
 };
 

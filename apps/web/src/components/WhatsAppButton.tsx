@@ -7,7 +7,7 @@ export default function WhatsAppButton() {
   
   // WhatsApp number (without + or spaces for the URL)
   const whatsappNumber = "916283883397";
-  const defaultMessage = "Hi! I'm interested in Swago Junior products.";
+  const defaultMessage = "Hi! I'm interested in Swago products.";
   
   const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(defaultMessage)}`;
 

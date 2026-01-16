@@ -32,7 +32,7 @@ export default function Home() {
               </h2>
               <p className="text-lg text-gray-700 mb-8 max-w-2xl mx-auto">
                 Kids can access their personalized learning space, play educational games, 
-                and unlock content with their Swago Junior product codes!
+                and unlock content with their Swago product codes!
               </p>
               
               <Link

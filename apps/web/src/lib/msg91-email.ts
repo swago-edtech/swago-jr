@@ -57,7 +57,7 @@ export async function sendOrderConfirmationEmail(
       ],
       from: {
         email: "no-reply@support.swagojr.com",
-        name: "Swago Junior"
+        name: "Swago"
       },
       domain: "support.swagojr.com",
       template_id: "swagojr_order_confirmation2"

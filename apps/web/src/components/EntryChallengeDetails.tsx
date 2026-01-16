@@ -5,9 +5,7 @@ import { motion } from "framer-motion";
 
 export default function EntryChallengeDetails() {
   const steps = [
-    { icon: "🎵", text: "Play the Swago Brain-Gym Song" },
-    { icon: "💃", text: "Try the fun brain-gym movements" },
-    { icon: "🌟", text: "Move, dance or act in your own way" },
+    { icon: "💃", text: "Try the fun brain-gym movements or move, dance or act in your own way" },
     { icon: "📹", text: "Record a short, playful video" },
     { icon: "📲", text: "Post as Instagram Reel" },
     { icon: "🏷️", text: "Tag & Collab @swagojr", hasLink: true },
@@ -51,28 +49,48 @@ export default function EntryChallengeDetails() {
             We will share a <strong>fun Swago Brain-Gym Song</strong> and a demo video.
             Your child simply needs to:
           </p>
-                      {/* Steps Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
-              {steps.map((step, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  whileInView={{ opacity: 1, scale: 1 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.4, delay: index * 0.1 }}
-                  className="bg-white rounded-xl p-5 shadow-md flex items-center gap-3 hover:shadow-lg transition-shadow"
-                >
-                  <div className="text-3xl flex-shrink-0">{step.icon}</div>
-                  <p className="text-slate-700 font-medium text-sm">
-                    {renderStepText(step)}
-                  </p>
-                </motion.div>
-              ))}
-            </div>
+
+          {/* Action Buttons */}
+          <div className="flex flex items-center justify-center gap-4 mb-10">
+            <a
+              href="https://youtu.be/t8WBBk1UIis"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bg-gradient-to-r from-purple-500 to-purple-600 text-white font-bold text-md md:text-lg px-8 py-4 rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 flex items-center gap-2"
+            >
+              <span>Play Song</span>
+            </a>
+            <a
+              href="https://youtu.be/t8WBBk1UIis"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bg-gradient-to-r from-orange-500 to-pink-500 text-white font-bold text-md md:text-lg px-8 py-4 rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 flex items-center gap-2"
+            >
+              <span>Watch Demo</span>
+            </a>
+          </div>
+
+          {/* Steps Grid - 2x2 Layout on Desktop */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10 max-w-4xl mx-auto">
+            {steps.map((step, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, scale: 0.9 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4, delay: index * 0.1 }}
+                className="bg-white rounded-xl p-5 shadow-md flex items-center gap-3 hover:shadow-lg transition-shadow"
+              >
+                <div className="text-3xl flex-shrink-0">{step.icon}</div>
+                <p className="text-slate-700 font-medium text-sm">
+                  {renderStepText(step)}
+                </p>
+              </motion.div>
+            ))}
+          </div>
 
           {/* No Pressure Message */}
           <div className="bg-white rounded-2xl p-8 shadow-lg border-4 border-yellow-200">
-
             <h3 className="text-2xl font-bold text-slate-800 mb-4 text-center">
               That&apos;s it!
             </h3>

@@ -1,13 +1,16 @@
+// apps/admin/components/AdminSidebar.tsx
+
 'use client';
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { LayoutDashboard, ShoppingBag, Package, Users, MessageSquare, X, Menu, HelpCircle, TrendingUp, Award, ChevronDown, ChevronRight, Mail, Ticket } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, Package, Users, MessageSquare, X, Menu, HelpCircle, TrendingUp, Award, ChevronDown, ChevronRight, Mail, Ticket, Megaphone } from 'lucide-react';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Analytics', href: '/analytics', icon: TrendingUp },
+  { name: 'Announcement', href: '/announcement', icon: Megaphone }, // ✅ NEW
   { name: 'Orders', href: '/orders', icon: ShoppingBag },
   { name: 'Reviews', href: '/reviews', icon: MessageSquare },
   { name: 'Products', href: '/products', icon: Package },
@@ -19,11 +22,10 @@ const navigation = [
     name: 'Ambassadors', 
     icon: Award,
     submenu: [
-      { name: 'Reel Submissions', href: '/ambassadors/reels' }, // ✅ NEW
+      { name: 'Reel Submissions', href: '/ambassadors/reels' },
     ]
   },
 ];
-
 
 export default function AdminSidebar() {
   const pathname = usePathname();
@@ -115,7 +117,7 @@ export default function AdminSidebar() {
         {/* Header */}
         <div className="p-6 flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold">Swago Junior</h1>
+            <h1 className="text-2xl font-bold">Swago </h1>
             <p className="text-gray-400 text-sm mt-1">Admin Panel</p>
           </div>
           

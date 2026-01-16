@@ -87,7 +87,7 @@ export default function ContactPage() {
               <h2 className="text-3xl font-bold text-slate-800 mb-6">Get in Touch</h2>
               <p className="text-slate-600 text-lg mb-8">
                 We&#39;d love to hear from you! Whether you have questions about our products, 
-                need help with an order, or want to learn more about how Swago Junior can 
+                need help with an order, or want to learn more about how Swago can 
                 benefit your child&#39;s learning.
               </p>
             </div>
@@ -123,7 +123,7 @@ export default function ContactPage() {
                 <div>
                   <h3 className="font-semibold text-slate-800 mb-1">Address</h3>
                   <p className="text-slate-600">
-                    Swago Junior<br />
+                    Swago <br />
                     India
                   </p>
                 </div>

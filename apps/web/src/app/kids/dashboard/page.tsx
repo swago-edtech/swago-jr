@@ -145,55 +145,55 @@ export default function KidDashboardPage() {
     <div className="min-h-screen bg-gradient-to-b from-blue-100 to-green-100">
       <main className="container mx-auto px-4 py-6">
         
-{/* ========== MOBILE PROGRESS BAR (Top) ========== */}
-{isAmbassador && (
-  <motion.div
-    initial={{ opacity: 0, y: -20 }}
-    animate={{ opacity: 1, y: 0 }}
-    className="md:hidden bg-white rounded-2xl shadow-lg p-4 mb-4"
-  >
-    <h3 className="text-sm font-bold text-gray-800 mb-4 text-center">
-      Your Ambassador Journey
-    </h3>
-    
-    {/* Horizontal Progress Bar */}
-    <div className="flex items-start justify-between relative">
-      <div className="absolute top-5 left-0 right-0 h-1 bg-gray-200 z-0">
-        <motion.div
-          className="h-full bg-gradient-to-r from-purple-500 to-pink-500"
-          initial={{ width: 0 }}
-          animate={{ width: `${((currentStep - 1) / 3) * 100}%` }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
-        />
-      </div>
-
-      {steps.map((step, index) => (
-        <div key={step.number} className="flex flex-col items-center z-10 relative flex-1">
+        {/* ========== MOBILE PROGRESS BAR (Top) ========== */}
+        {isAmbassador && (
           <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: index * 0.1 }}
-            className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm mb-2 ${
-              step.status === "completed"
-                ? "bg-green-500 text-white"
-                : step.status === "active"
-                ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white"
-                : "bg-gray-300 text-gray-500"
-            }`}
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="md:hidden bg-white rounded-2xl shadow-lg p-4 mb-4"
           >
-            {step.status === "completed" ? "✓" : step.status === "locked" ? "🔒" : step.number}
-          </motion.div>
+            <h3 className="text-sm font-bold text-gray-800 mb-4 text-center">
+              Your Ambassador Journey
+            </h3>
+            
+            {/* Horizontal Progress Bar */}
+            <div className="flex items-start justify-between relative">
+              <div className="absolute top-5 left-0 right-0 h-1 bg-gray-200 z-0">
+                <motion.div
+                  className="h-full bg-gradient-to-r from-purple-500 to-pink-500"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${((currentStep - 1) / 3) * 100}%` }}
+                  transition={{ duration: 0.5, ease: "easeOut" }}
+                />
+              </div>
 
-          <p className={`text-[10px] leading-tight font-medium text-center px-0.5 min-h-[32px] flex items-center justify-center ${
-            step.status === "locked" ? "text-gray-400" : "text-gray-700"
-          }`}>
-            {step.label}
-          </p>
-        </div>
-      ))}
-    </div>
-  </motion.div>
-)}
+              {steps.map((step, index) => (
+                <div key={step.number} className="flex flex-col items-center z-10 relative flex-1">
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: index * 0.1 }}
+                    className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm mb-2 ${
+                      step.status === "completed"
+                        ? "bg-green-500 text-white"
+                        : step.status === "active"
+                        ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white"
+                        : "bg-gray-300 text-gray-500"
+                    }`}
+                  >
+                    {step.status === "completed" ? "✓" : step.status === "locked" ? "🔒" : step.number}
+                  </motion.div>
+
+                  <p className={`text-[10px] leading-tight font-medium text-center px-0.5 min-h-[32px] flex items-center justify-center ${
+                    step.status === "locked" ? "text-gray-400" : "text-gray-700"
+                  }`}>
+                    {step.label}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
           
@@ -208,8 +208,8 @@ export default function KidDashboardPage() {
             >
               {/* Mobile Layout */}
               <div className="md:hidden">
-                <div className="flex items-start gap-4 mb-4">
-                  {/* Left: Avatar with Name/Age below */}
+                <div className="flex items-start gap-4">
+                  {/* Left: Avatar with Name/Age/Button below */}
                   <div className="flex flex-col items-center flex-shrink-0">
                     <div className="w-20 h-20 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center relative mb-2">
                       {profile.avatarColor?.startsWith('#') ? (
@@ -233,33 +233,49 @@ export default function KidDashboardPage() {
                         />
                       )}
                     </div>
-                    <h1 className="text-base font-bold text-gray-800 text-center">
+                    <h1 className="text-base font-bold text-gray-800 text-center mb-1">
                       {profile.name}
                     </h1>
-                    <p className="text-xs text-gray-600">Age {profile.age}</p>
+                    <p className="text-xs text-gray-600 mb-2">Age {profile.age}</p>
+                    
+                    {/* Switch Profile Button - Below Avatar */}
+                    <button
+                      onClick={handleLogout}
+                      className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1.5 rounded-lg font-medium transition-colors text-xs"
+                    >
+                      Switch Profile
+                    </button>
                   </div>
 
-                  {/* Right: Money & Badges (Compact - Clickable) */}
+                  {/* Right: Money & Badges */}
                   {isAmbassador && (
                     <div className="flex-1 space-y-3">
-                      {/* Swago Money - Clickable */}
-                      <button
-                        onClick={() => setShowMoneyModal(true)}
-                        className="w-full bg-gradient-to-r from-teal-500 to-teal-600 text-white px-3 py-2 rounded-lg shadow-sm hover:shadow-md transition-shadow active:scale-95"
-                      >
-                        <p className="text-base font-bold text-center">🪙 {ambassadorData?.swagoMoney || 0}</p>
-                      </button>
-
-                      {/* Badges - Clickable */}
-                      {ambassadorData?.badges && ambassadorData.badges.length > 0 && (
+                      {/* Swago Money Section */}
+                      <div>
+                        <p className="text-xs font-semibold text-gray-700 mb-1">You earned</p>
                         <button
-                          onClick={() => setShowBadgesModal(true)}
-                          className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white px-3 py-2 rounded-lg shadow-sm hover:shadow-md transition-shadow active:scale-95"
+                          onClick={() => setShowMoneyModal(true)}
+                          className="w-full bg-gradient-to-r from-teal-500 to-teal-600 text-white px-3 py-2 rounded-lg shadow-sm hover:shadow-md transition-shadow active:scale-95"
                         >
-                          <p className="text-base font-bold text-center">
-                            🏆 {ambassadorData.badges.length} {ambassadorData.badges.length === 1 ? 'Badge' : 'Badges'}
-                          </p>
+                          <p className="text-sm font-bold">🪙 {ambassadorData?.swagoMoney || 0} Swago Dollars</p>
                         </button>
+                      </div>
+
+                      {/* Badges Section */}
+                      {ambassadorData?.badges && ambassadorData.badges.length > 0 && (
+                        <div>
+                          <p className="text-xs font-semibold text-gray-700 mb-1">You earned</p>
+                          <button
+                            onClick={() => setShowBadgesModal(true)}
+                            className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white px-3 py-2 rounded-lg shadow-sm hover:shadow-md transition-shadow active:scale-95"
+                          >
+                            {ambassadorData.badges.map(badge => (
+                              <p key={badge.name} className="text-sm font-bold">
+                                {badgeEmojis[badge.name] || "🎖️"} {badge.name} Badge
+                              </p>
+                            ))}
+                          </button>
+                        </div>
                       )}
                     </div>
                   )}
@@ -268,66 +284,80 @@ export default function KidDashboardPage() {
 
               {/* Desktop Layout */}
               <div className="hidden md:block">
-                <div className="flex items-center gap-4 mb-4">
-                  {/* Avatar */}
-                  <div className="w-20 h-20 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center relative flex-shrink-0">
-                    {profile.avatarColor?.startsWith('#') ? (
-                      <div
-                        className="w-full h-full flex items-center justify-center text-white text-2xl font-bold"
-                        style={{ backgroundColor: profile.avatarColor }}
-                      >
-                        {profile.name.charAt(0).toUpperCase()}
+                <div className="flex items-start gap-10">
+                  {/* Left Column: Avatar + Button */}
+                  <div className="flex-col items-center gap-8 flex-shrink-0">
+                    {/* Avatar */}
+                    <div className="flex gap-5">
+                      <div className="w-20 h-20 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center relative">
+                        {profile.avatarColor?.startsWith('#') ? (
+                          <div
+                            className="w-full h-full flex items-center justify-center text-white text-2xl font-bold"
+                            style={{ backgroundColor: profile.avatarColor }}
+                          >
+                            {profile.name.charAt(0).toUpperCase()}
+                          </div>
+                        ) : (
+                          <Image
+                            src={profile.avatarColor || "/images/swoo.png"}
+                            alt={profile.name}
+                            width={80}
+                            height={80}
+                            className="object-cover"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.src = "/images/swoo.png";
+                            }}
+                          />
+                        )}
                       </div>
-                    ) : (
-                      <Image
-                        src={profile.avatarColor || "/images/swoo.png"}
-                        alt={profile.name}
-                        width={80}
-                        height={80}
-                        className="object-cover"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.src = "/images/swoo.png";
-                        }}
-                      />
-                    )}
+                      {/* Middle Column: Name & Age */}
+                      <div className="flex flex-col justify-center">
+                        <h1 className="text-xl font-bold text-gray-800">
+                          {profile.name}
+                        </h1>
+                        <p className="text-sm text-gray-600">Age {profile.age}</p>
+                      </div>
+                    </div>
+                    <br/>
+
+                    {/* Switch Profile Button - Below Avatar in same column */}
+                    <button
+                      onClick={handleLogout}
+                      className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2.5 rounded-lg font-medium transition-colors text-sm"
+                    >
+                      Switch Profile
+                    </button>
                   </div>
 
-                  <div className="flex-1">
-                    <h1 className="text-xl font-bold text-gray-800">
-                      {profile.name}
-                    </h1>
-                    <p className="text-sm text-gray-600">Age {profile.age}</p>
-                  </div>
-
-                  {/* Compact Stats on the right */}
+                  {/* Right Column: Stats Cards */}
                   {isAmbassador && (
-                    <div className="flex gap-2">
-                      {/* Swago Money */}
-                      <div className="bg-gradient-to-r from-teal-500 to-teal-600 text-white px-4 py-2 rounded-lg shadow-sm">
-                        <p className="text-lg font-bold">🪙 {ambassadorData?.swagoMoney || 0}</p>
+                    <div className="flex-1 space-y-3 ml-auto">
+                      {/* Swago Money Section */}
+                      <div>
+                        <p className="text-sm font-semibold text-gray-700 mb-1">You earned</p>
+                        <div className="bg-gradient-to-r from-teal-500 to-teal-600 text-white px-4 py-2 rounded-lg shadow-sm text-center">
+                          <p className="text-sm font-bold">🪙 {ambassadorData?.swagoMoney || 0} Swago Dollars</p>
+                        </div>
                       </div>
 
-                      {/* Badges Count */}
+                      {/* Badges Section */}
                       {ambassadorData?.badges && ambassadorData.badges.length > 0 && (
-                        <div className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-2 rounded-lg shadow-sm">
-                          <p className="text-lg font-bold">
-                            🏆 {ambassadorData.badges.length}
-                          </p>
+                        <div>
+                          <p className="text-sm font-semibold text-gray-700 mb-1">You earned</p>
+                          <div className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-2 rounded-lg shadow-sm text-center">
+                            {ambassadorData.badges.map(badge => (
+                              <p key={badge.name} className="text-sm font-bold">
+                                {badgeEmojis[badge.name] || "🎖️"} {badge.name} Badge
+                              </p>
+                            ))}
+                          </div>
                         </div>
                       )}
                     </div>
                   )}
                 </div>
               </div>
-
-              {/* Switch Profile Button */}
-              <button
-                onClick={handleLogout}
-                className="w-full bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium transition-colors text-sm"
-              >
-                Switch Profile
-              </button>
             </motion.div>
 
             {/* Swago Money Card (Desktop Only) */}
@@ -341,7 +371,7 @@ export default function KidDashboardPage() {
                 <div className="flex items-center gap-3 mb-3">
                   <div className="text-5xl">💰</div>
                   <div>
-                    <p className="text-sm font-medium opacity-90">Swago Money</p>
+                    <p className="text-sm font-medium opacity-90">Swago Dollars</p>
                     <motion.p
                       key={ambassadorData?.swagoMoney}
                       initial={{ scale: 1.2 }}
@@ -354,7 +384,7 @@ export default function KidDashboardPage() {
                 </div>
                 <div className="bg-white/20 backdrop-blur rounded-lg p-3 text-xs">
                   <p className="font-medium text-orange-100">
-                    💡 Use Swago Money for discounts, blind bags &amp; special rewards.
+                    💡 Use Swago Dollars for discounts, blind bags &amp; special rewards.
                   </p>
                 </div>
               </motion.div>
@@ -469,7 +499,6 @@ export default function KidDashboardPage() {
                       Ready for the First Ambassador Challenge?
                     </h2>
                     
-                    
                     <div className="flex flex-col sm:flex-col items-center justify-center gap-4">
                       <button
                         onClick={() => setShowReelForm(true)}
@@ -529,7 +558,7 @@ export default function KidDashboardPage() {
                       Brain Gym Challenge Unlocked!
                     </h2>
                     <p className="text-lg mb-6 opacity-90">
-                      Your reel was approved! Now solve the Brain Gym riddle to earn more Swago Money!
+                      Your reel was approved! Now solve the Brain Gym riddle to earn more Swago Dollars!
                     </p>
                     <button
                       onClick={() => setShowBrainGym(true)}
@@ -568,7 +597,7 @@ export default function KidDashboardPage() {
                       Congratulations, Ambassador!
                     </h2>
                     <p className="text-lg mb-4 opacity-90">
-                      You&apos;ve completed all challenges! Check your Swago Money and badges above.
+                      You&apos;ve completed all challenges! Check your Swago Dollars and badges above.
                     </p>
                     <p className="text-sm opacity-75">
                       More challenges coming soon! Stay tuned 
@@ -588,7 +617,7 @@ export default function KidDashboardPage() {
                     Join the Swago Ambassador Program!
                   </h2>
                   <p className="text-sm md:text-lg mb-8 opacity-90">
-                    Become a Swago Ambassador, complete challenges, earn Swago Money, and unlock exclusive rewards!
+                    Become a Swago Ambassador, complete challenges, earn Swago Dollars, and unlock exclusive rewards!
                   </p>
                   
                   <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -640,7 +669,7 @@ export default function KidDashboardPage() {
                   <div className="flex items-center justify-center gap-4 mb-3">
                     <div className="bg-white/30 rounded-lg px-4 py-2">
                       <p className="text-2xl font-bold">🪙 {welcomeData.swagoMoney}</p>
-                      <p className="text-xs">Swago Money</p>
+                      <p className="text-xs">Swago Dollars</p>
                     </div>
                   </div>
                   <div className="bg-white/30 rounded-lg px-4 py-3">
@@ -712,7 +741,7 @@ export default function KidDashboardPage() {
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="flex justify-between items-start mb-4">
-                  <h3 className="text-xl font-bold">💰 Swago Money</h3>
+                  <h3 className="text-xl font-bold">💰 Swago Dollars</h3>
                   <button
                     onClick={() => setShowMoneyModal(false)}
                     className="text-white/80 hover:text-white text-2xl leading-none"
@@ -738,7 +767,7 @@ export default function KidDashboardPage() {
                 
                 <div className="bg-white/20 backdrop-blur rounded-lg p-4">
                   <p className="font-medium text-orange-100 text-sm">
-                    💡 Use Swago Money for discounts, blind bags &amp; special rewards.
+                    💡 Use Swago Dollars for discounts, blind bags &amp; special rewards.
                   </p>
                 </div>
               </motion.div>

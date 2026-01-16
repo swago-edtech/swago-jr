@@ -8,35 +8,35 @@ const elements = [
     icon: "/images/swoo.png",
     name: "Smart Tech",
     letter: "S",
-    description: "Fun learning through technology and games.",
+    description: "Upskilling in AI & future technology.",
     color: "hsl(var(--swago-pink))",
   },
   {
     icon: "/images/william.png",
     name: "Willpower",
     letter: "W",
-    description: "Building resilience and focus.",
+    description: "Building resilience and discipline.",
     color: "hsl(var(--swago-teal))",
   },
   {
     icon: "/images/aron.png",
     name: "Ambition",
     letter: "A",
-    description: "Encouraging big goals and dreams.",
+    description: "Developing leadership qualities.",
     color: "hsl(var(--swago-sky-blue))",
   },
   {
     icon: "/images/gibbson.png",
     name: "Growth",
     letter: "G",
-    description: "Fostering curiosity and continuous learning.",
+    description: "Confident communication and expression.",
     color: "hsl(var(--swago-orange))",
   },
   {
     icon: "/images/oswald.png",
     name: "Optimization",
     letter: "O",
-    description: "Improving skills and finding better ways to learn.",
+    description: "Optimizing brain power and focus.",
     color: "hsl(var(--swago-purple))",
   },
 ];
@@ -58,20 +58,23 @@ export default function CoreElements() {
               className="group flex flex-col items-center"
             >
               <div className="relative flex items-center justify-center mb-4">
-                {/* Just the Image - No circle background */}
+                {/* Colored glow on hover */}
+                <div
+                  className="absolute w-24 h-24 rounded-full opacity-0 blur-xl transition-all duration-300 ease-out group-hover:opacity-30 group-hover:scale-125"
+                  style={{ backgroundColor: element.color }}
+                ></div>
+                
+                {/* Image with right-side shadow + hover scale */}
                 <Image
                   src={element.icon}
                   alt={element.name}
-                  width={96}  // w-24 = 96px
-                  height={96} // h-24 = 96px
-                  className="relative z-10"
+                  width={96}
+                  height={96}
+                  className="relative z-10 transition-all duration-300 ease-out group-hover:scale-110"
+                  style={{
+                    filter: "drop-shadow(8px 8px 12px rgba(0, 0, 0, 0.25))",
+                  }}
                 />
-                
-                {/* Hover effect circle - behind the image */}
-                <div
-                  className="absolute w-24 h-24 rounded-full border-2 opacity-0 scale-75 group-hover:opacity-100 group-hover:scale-125 transition-all duration-300 ease-in-out"
-                  style={{ borderColor: element.color }}
-                ></div>
               </div>
               
               <h3 className="text-xl font-bold">{element.name}</h3>

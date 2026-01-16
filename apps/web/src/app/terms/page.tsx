@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Terms & Conditions | Swago Junior',
-  description: 'Terms and conditions for using Swago Junior services and purchasing our educational kits',
+  title: 'Terms & Conditions | Swago ',
+  description: 'Terms and conditions for using Swago services and purchasing our educational kits',
 };
 
 export default function TermsPage() {
@@ -24,7 +24,7 @@ export default function TermsPage() {
           {/* Introduction */}
           <div className="mb-12">
             <p className="text-lg text-slate-600 leading-relaxed">
-              Welcome to Swago Junior! These Terms and Conditions (&quot;Terms&quot;) govern your use of our website, 
+              Welcome to Swago! These Terms and Conditions (&quot;Terms&quot;) govern your use of our website, 
               services, and the purchase of our educational learning kits. By accessing our website or 
               purchasing our products, you agree to be bound by these Terms.
             </p>
@@ -55,14 +55,14 @@ export default function TermsPage() {
               <h2 className="text-3xl font-bold text-slate-800 mb-6">1. Acceptance of Terms</h2>
               <div className="space-y-4 text-slate-600">
                 <p>
-                  By accessing and using the Swago Junior website (www.swagojunior.com) and purchasing our products, 
+                  By accessing and using the Swago website (www.swagojr.com) and purchasing our products, 
                   you acknowledge that you have read, understood, and agree to be bound by these Terms and Conditions.
                 </p>
                 <p>
                   If you do not agree with any part of these terms, you must not use our website or purchase our products.
                 </p>
                 <p>
-                  These terms apply to all visitors, users, and customers of Swago Junior services.
+                  These terms apply to all visitors, users, and customers of Swago services.
                 </p>
               </div>
             </section>
@@ -177,8 +177,8 @@ export default function TermsPage() {
               <h2 className="text-3xl font-bold text-slate-800 mb-6">6. Intellectual Property Rights</h2>
               <div className="space-y-4 text-slate-600">
                 <p>
-                  All content on the Swago Junior website, including but not limited to text, graphics, 
-                  logos, images, product designs, and educational materials, are the property of Swago Junior 
+                  All content on the Swago website, including but not limited to text, graphics, 
+                  logos, images, product designs, and educational materials, are the property of Swago 
                   and are protected by intellectual property laws.
                 </p>
                 <h3 className="text-xl font-semibold text-slate-800">Permitted Use</h3>
@@ -280,7 +280,7 @@ export default function TermsPage() {
                   </div>
                 </div>
                  <div className="mt-4">
-                  <strong>Address:</strong> Swago Junior, India
+                  <strong>Address:</strong> Swago , India
                 </div>
               </div>
             </section>

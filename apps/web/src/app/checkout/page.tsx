@@ -272,7 +272,7 @@ export default function CheckoutPage() {
         key: config.keyId,
         amount: razorpayOrder.amount,
         currency: razorpayOrder.currency,
-        name: "Swago Junior",
+        name: "Swago ",
         description: "Learning Kits Purchase",
         order_id: razorpayOrder.id,
         handler: async function (response) {

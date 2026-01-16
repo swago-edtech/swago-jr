@@ -32,7 +32,7 @@ export default function OrderConfirmationEmail({
   return (
     <Html>
       <Head />
-      <Preview>Swago Junior Order Confirmation</Preview>
+      <Preview>Swago Order Confirmation</Preview>
       <Body style={main}>
         <Container style={container}>
           <Heading style={h1}>Thank you for your order!</Heading>

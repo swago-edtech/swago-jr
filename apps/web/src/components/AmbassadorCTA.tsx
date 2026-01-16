@@ -16,13 +16,30 @@ export default function AmbassadorCTA() {
               <br />
               <br />
               Our world is built around five core skills that matter in real life:{" "}
-              <span className="font-semibold text-pink-600">Smart Tech</span>,{" "}
-              <span className="font-semibold text-teal-600">Willpower</span>,{" "}
-              <span className="font-semibold text-blue-600">Ambition</span>,{" "}
-              <span className="font-semibold text-orange-600">Growth Mindset</span>, and{" "}
-              <span className="font-semibold text-purple-600">Optimization</span>.
-              <br />
-              <br />
+            </p>
+            
+            {/* Centered container with left-aligned text */}
+            <div className="flex justify-center my-4">
+              <div className="text-left">
+                <div className="mb-1">
+                  <span className="font-semibold text-pink-600">S - Smart Tech</span>,
+                </div>
+                <div className="mb-1">
+                  <span className="font-semibold text-teal-600">W - Willpower</span>,
+                </div>
+                <div className="mb-1">
+                  <span className="font-semibold text-blue-600">A - Ambition</span>,
+                </div>
+                <div className="mb-1">
+                  <span className="font-semibold text-orange-600">G - Growth</span>,
+                </div>
+                <div>
+                  <span className="font-semibold text-purple-600">O - Optimization</span>.
+                </div>
+              </div>
+            </div>
+
+            <p className="text-slate-800 text-base md:text-lg leading-relaxed max-w-5xl mx-auto text-center mt-4">
               Through our playful Swago Smart Boxes, simple challenges, and everyday moments, 
               children learn to think, move, try, and express in ways that slowly build self-belief.
               <br />
