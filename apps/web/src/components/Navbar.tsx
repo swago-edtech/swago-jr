@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { useSharedContext } from "@/context/SharedContext";
+import { useSharedContext, USER_EVENTS } from "@/context/SharedContext"; // ✅ Added USER_EVENTS
 import { useState, useEffect, useRef } from "react";
 import Logo from "./Logo";
 import { motion, AnimatePresence, Variants } from "framer-motion";
@@ -28,7 +28,9 @@ export default function Navbar() {
   const elementDropdownRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
+  // ✅ UPDATED: Dispatch logout event to clear context
   const handleLogout = async () => {
+    window.dispatchEvent(new CustomEvent(USER_EVENTS.LOGOUT));
     await fetch("/api/logout", { method: "POST" });
     window.location.href = "/";
   };

@@ -4,11 +4,30 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 export function middleware(request: NextRequest) {
+  const pathname = request.nextUrl.pathname;
+  
+  // ✅ Protected routes that require authentication
+  const protectedRoutes = ['/kids', '/orders', '/profile'];
+  const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
+  
+  // ✅ Check authentication for protected routes
+  if (isProtectedRoute) {
+    const sessionCookie = request.cookies.get('session');
+    
+    if (!sessionCookie || !sessionCookie.value) {
+      // User not logged in - redirect to login
+      const loginUrl = new URL('/login', request.url);
+      // Save where they wanted to go so we can redirect back after login
+      loginUrl.searchParams.set('redirect', pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+  }
+  
   // Clone the request headers
   const requestHeaders = new Headers(request.headers);
   
   // Add pathname to headers so layout can access it
-  requestHeaders.set("x-pathname", request.nextUrl.pathname);
+  requestHeaders.set("x-pathname", pathname);
 
   // Return response with modified headers
   return NextResponse.next({

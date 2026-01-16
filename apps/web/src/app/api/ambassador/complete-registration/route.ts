@@ -60,6 +60,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     console.log("📥 Registration request received:", {
       email: body.parentEmail,
+      phone: body.parentPhone,
       city: body.city,
       childName: body.childName,
       childAge: body.childAge,
@@ -106,13 +107,22 @@ export async function POST(request: NextRequest) {
     const normalizedEmail = parentEmail.toLowerCase().trim();
     const formattedPhone = formatPhoneForStorage(parentPhone);
 
-    // Check if user already exists
+    // ✅ Check if user already exists (email OR phone)
     console.log("🔍 Checking if user exists...");
-    const existingUser = await User.findOne({ email: normalizedEmail });
-    if (existingUser) {
-      console.error("❌ User already exists:", normalizedEmail);
+    const existingUserByEmail = await User.findOne({ email: normalizedEmail });
+    if (existingUserByEmail) {
+      console.error("❌ User already exists with email:", normalizedEmail);
       return NextResponse.json(
-        { error: "An account with this email already exists. Please login instead." },
+        { success: false, error: "An account with this email already exists. Please sign in instead." },
+        { status: 400 }
+      );
+    }
+
+    const existingUserByPhone = await User.findOne({ phone: formattedPhone });
+    if (existingUserByPhone) {
+      console.error("❌ User already exists with phone:", formattedPhone);
+      return NextResponse.json(
+        { success: false, error: "An account with this phone number already exists. Please sign in instead." },
         { status: 400 }
       );
     }
@@ -123,7 +133,7 @@ export async function POST(request: NextRequest) {
       email: normalizedEmail,
       phone: formattedPhone,
       name: parentName.trim(),
-      address: city.trim(),  // ✅ ADDED: Save city to address field
+      address: city.trim(),
       authMethod: "email",
       cart: [],
       wishlist: [],
@@ -134,15 +144,15 @@ export async function POST(request: NextRequest) {
       _id: newUser._id,
       email: newUser.email,
       name: newUser.name,
-      address: newUser.address,  // ✅ Log the saved address
+      phone: newUser.phone,
+      address: newUser.address,
     });
 
-  // ✅ UPDATED: Determine avatar image based on gender
-const avatarColor = 
-  gender === "boy" ? "/images/kid_boy1.png" :
-  gender === "girl" ? "/images/kid_girl1.png" :
-  "/images/swoo.png"; // Default for "other"
-
+    // ✅ Determine avatar image based on gender
+    const avatarColor = 
+      gender === "boy" ? "/images/kid_boy1.png" :
+      gender === "girl" ? "/images/kid_girl1.png" :
+      "/images/swoo.png";
 
     // Create kid profile with ambassador program auto-activated
     console.log("🧒 Creating kid profile...");
@@ -162,7 +172,6 @@ const avatarColor =
       avatar: avatarColor,
       unlockedProducts: [],
       progress: {},
-      // Auto-activate Ambassador Program
       ambassador: {
         isAmbassador: true,
         status: "profile_created",
@@ -213,7 +222,7 @@ const avatarColor =
         email: newUser.email,
         phone: newUser.phone,
         name: newUser.name,
-        address: newUser.address,  // ✅ ADDED: Return address in response
+        address: newUser.address,
         authMethod: newUser.authMethod,
         wishlist: [],
         orders: [],
@@ -245,9 +254,30 @@ const avatarColor =
 
     console.log("🎉 Registration completed successfully!");
     return response;
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("❌ Ambassador registration error:", error);
-    const message = error instanceof Error ? error.message : "Unknown error";
+    
+    // ✅ Handle MongoDB duplicate key errors
+    if (
+      error && 
+      typeof error === 'object' && 
+      'code' in error && 
+      error.code === 11000 &&
+      'keyPattern' in error
+    ) {
+      const field = Object.keys((error as { keyPattern: Record<string, unknown> }).keyPattern)[0];
+      const fieldName = field === 'email' ? 'email address' : field === 'phone' ? 'phone number' : field;
+      
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: `An account with this ${fieldName} already exists. Please sign in instead.`
+        },
+        { status: 400 }
+      );
+    }
+    
+    const message = error instanceof Error ? error.message : "Registration failed. Please try again.";
     return NextResponse.json(
       { success: false, error: message },
       { status: 500 }

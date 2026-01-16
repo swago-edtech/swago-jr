@@ -80,9 +80,9 @@ type SharedContextType = {
   selectedKid: SelectedKid | null;
   setSelectedKid: (kid: SelectedKid | null) => void;
   clearSelectedKid: () => void;
-  isCartSidebarOpen: boolean;         // ✅ NEW
-  openCartSidebar: () => void;        // ✅ NEW
-  closeCartSidebar: () => void;       // ✅ NEW
+  isCartSidebarOpen: boolean;
+  openCartSidebar: () => void;
+  closeCartSidebar: () => void;
 };
 
 const SharedContext = createContext<SharedContextType | undefined>(undefined);
@@ -108,7 +108,7 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
   const [isLoadingUser, setIsLoadingUser] = useState(true);
   const [wishlist, setWishlist] = useState<(number | string)[]>([]);
   const [selectedKid, setSelectedKidState] = useState<SelectedKid | null>(null);
-  const [isCartSidebarOpen, setIsCartSidebarOpen] = useState(false); // ✅ NEW
+  const [isCartSidebarOpen, setIsCartSidebarOpen] = useState(false);
   
   const cartSyncTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastSyncedCartRef = useRef<string>('');
@@ -298,6 +298,7 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
         setUser(null);
         setWishlist([]);
         setIsLoadingUser(false);
+        clearSelectedKid(); // ✅ ADDED THIS LINE
       }
     };
 
@@ -493,7 +494,7 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // ✅ NEW: Cart Sidebar Functions
+  // ✅ Cart Sidebar Functions
   const openCartSidebar = () => {
     setIsCartSidebarOpen(true);
   };
@@ -523,9 +524,9 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
         selectedKid,
         setSelectedKid,
         clearSelectedKid,
-        isCartSidebarOpen,      // ✅ NEW
-        openCartSidebar,        // ✅ NEW
-        closeCartSidebar        // ✅ NEW
+        isCartSidebarOpen,
+        openCartSidebar,
+        closeCartSidebar
       }}
     >
       {children}
