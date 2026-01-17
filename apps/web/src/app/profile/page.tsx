@@ -62,6 +62,13 @@ export default function ProfilePage() {
     }
   };
 
+  // ✅ Logout handler (same logic as Navbar)
+  const handleLogout = async () => {
+    window.dispatchEvent(new CustomEvent(USER_EVENTS.LOGOUT));
+    await fetch("/api/logout", { method: "POST" });
+    window.location.href = "/";
+  };
+
   const handleParentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSavingParent(true);
@@ -129,7 +136,18 @@ export default function ProfilePage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-8">My Profile</h1>
+      {/* ✅ Header with Logout Button */}
+  {/* ✅ Header with Logout Button - Mobile & Desktop */}
+<div className="flex justify-between items-center mb-8">
+  <h1 className="text-3xl font-bold">My Profile</h1>
+  <button
+    onClick={handleLogout}
+    className="text-white bg-[hsl(var(--swago-orange))] hover:opacity-90 px-4 sm:px-6 py-2 rounded-lg font-bold transition-all duration-200 shadow-md hover:shadow-lg text-sm sm:text-base whitespace-nowrap"
+  >
+    Logout
+  </button>
+</div>
+
 
       {/* Parent Info Card */}
       <div className="bg-white p-6 rounded-xl shadow-sm border mb-8">

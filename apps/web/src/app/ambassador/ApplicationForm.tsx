@@ -7,6 +7,9 @@ import { useSharedContext, USER_EVENTS } from '@/context/SharedContext';
 
 type FormMode = 'register' | 'login';
 
+// ✅ MSG91 types are already defined globally in packages/types/src/index.ts
+// No need to redeclare - just use them directly via window object
+
 export default function ApplicationForm() {
   const router = useRouter();
   const { setUser, user, isLoadingUser } = useSharedContext();
@@ -17,6 +20,7 @@ export default function ApplicationForm() {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [scriptLoaded, setScriptLoaded] = useState(false);
+  const [widgetReady, setWidgetReady] = useState(false);
   const [otp, setOtp] = useState("");
   
   const [formData, setFormData] = useState({
@@ -58,11 +62,29 @@ export default function ApplicationForm() {
     }
   }, [step, router]);
 
+  // ✅ FIXED: Widget initialization with method polling
   useEffect(() => {
     if (!scriptLoaded) return;
 
+    // ✅ Validate environment variables first
+    if (!EMAIL_WIDGET_ID || !TOKEN_AUTH) {
+      console.error("❌ MSG91 credentials missing:", {
+        widgetId: EMAIL_WIDGET_ID ? "✓" : "✗",
+        tokenAuth: TOKEN_AUTH ? "✓" : "✗"
+      });
+      setError("Configuration error. Please refresh the page.");
+      setWidgetReady(true); // Show form anyway
+      return;
+    }
+
+    let checkCount = 0;
+    const maxChecks = 10;
+    let isInitialized = false;
+
     const initWidget = () => {
-      console.log("🔄 Attempting widget initialization...");
+      if (isInitialized) return;
+      
+      console.log(`🔄 Attempting widget initialization...`);
       
       if (typeof window.initSendOTP === "function") {
         try {
@@ -71,25 +93,71 @@ export default function ApplicationForm() {
             tokenAuth: TOKEN_AUTH,
             exposeMethods: true,
             success: (data) => {
-              console.log("✅ Email widget initialized successfully:", data);
+              console.log("✅ Widget success callback fired:", data);
+              isInitialized = true;
+              setWidgetReady(true);
             },
             failure: (error) => {
-              console.error("❌ Email widget init failed:", error);
+              console.error("❌ Widget failure callback:", error);
             },
           });
+
+          // ✅ Don't rely on callbacks - poll for methods instead
+          const checkMethods = () => {
+            checkCount++;
+            console.log(`🔍 Checking for sendOtp method... (${checkCount}/${maxChecks})`);
+            console.log('window.sendOtp:', typeof window.sendOtp);
+            console.log('window.verifyOtp:', typeof window.verifyOtp);
+            
+            if (window.sendOtp && window.verifyOtp) {
+              console.log("✅ Widget methods detected successfully!");
+              isInitialized = true;
+              setWidgetReady(true);
+            } else if (checkCount < maxChecks) {
+              setTimeout(checkMethods, 500);
+            } else {
+              console.warn("⚠️ Widget methods not found after max checks");
+              console.log("Form will be shown anyway - widget may still work");
+              setWidgetReady(true); // Show form anyway
+            }
+          };
+
+          // Start checking for methods after a short delay
+          setTimeout(checkMethods, 1000);
+          
         } catch (error) {
-          console.error("❌ Email widget init error:", error);
+          console.error("❌ Widget init error:", error);
+          setWidgetReady(true); // Show form anyway
         }
       } else {
-        console.log("⏳ initSendOTP not available, retrying...");
-        setTimeout(initWidget, 1000);
+        console.log("⏳ initSendOTP not available yet...");
+        if (checkCount < 3) {
+          checkCount++;
+          setTimeout(initWidget, 1000);
+        } else {
+          console.warn("⚠️ initSendOTP never became available");
+          setWidgetReady(true); // Show form anyway
+        }
       }
     };
 
-    setTimeout(initWidget, 200);
+    // ✅ Start initialization after delay
+    setTimeout(initWidget, 500);
   }, [scriptLoaded, EMAIL_WIDGET_ID, TOKEN_AUTH]);
 
-  // ✅ UPDATED: Handle form changes with phone number validation
+  // ✅ Fallback: Auto-show form after 8 seconds no matter what
+  useEffect(() => {
+    if (scriptLoaded && !widgetReady && step === 'form') {
+      const timeout = setTimeout(() => {
+        console.log("⏰ Timeout reached - showing form");
+        setWidgetReady(true);
+      }, 8000);
+      
+      return () => clearTimeout(timeout);
+    }
+  }, [scriptLoaded, widgetReady, step]);
+
+  // ✅ Handle form changes with phone number validation
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
     
@@ -153,7 +221,7 @@ export default function ApplicationForm() {
 
         // ✅ User exists, send OTP
         if (!window.sendOtp) {
-          setError("Widget not loaded. Please refresh the page.");
+          setError("Verification service not ready. Please refresh the page.");
           setIsSubmitting(false);
           return;
         }
@@ -170,7 +238,7 @@ export default function ApplicationForm() {
           },
           (error) => {
             console.error("❌ Email OTP error:", error);
-            setError(error.message || "Failed to send OTP");
+            setError(error?.message || "Failed to send OTP");
             setIsSubmitting(false);
           }
         );
@@ -243,7 +311,7 @@ export default function ApplicationForm() {
         return;
       }
 
-      // ✅ NEW: Check if phone already exists
+      // ✅ Check if phone already exists
       const phoneCheckRes = await fetch("/api/check-user", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -263,7 +331,7 @@ export default function ApplicationForm() {
 
       // Send OTP via MSG91 widget
       if (!window.sendOtp) {
-        setError("Widget not loaded. Please refresh the page.");
+        setError("Verification service not ready. Please refresh the page.");
         setIsSubmitting(false);
         return;
       }
@@ -280,7 +348,7 @@ export default function ApplicationForm() {
         },
         (error) => {
           console.error("❌ Email OTP error:", error);
-          setError(error.message || "Failed to send OTP");
+          setError(error?.message || "Failed to send OTP");
           setIsSubmitting(false);
         }
       );
@@ -303,7 +371,7 @@ export default function ApplicationForm() {
 
     try {
       if (!window.verifyOtp) {
-        setError("Widget not loaded. Please refresh the page.");
+        setError("Verification service not ready. Please refresh the page.");
         setIsSubmitting(false);
         return;
       }
@@ -313,18 +381,18 @@ export default function ApplicationForm() {
         async (data) => {
           console.log("✅ Email OTP verified:", data);
 
-          const accessToken = data.message || data.token || data.access_token;
+          const accessToken = data?.message || data?.token || data?.access_token;
           if (!accessToken) {
             setError("Verification failed. No token received.");
             setIsSubmitting(false);
             return;
           }
 
-          // ✅ LOGIN MODE: Just verify and login
+          // ✅ LOGIN MODE: Call ambassador verify-otp route
           if (mode === 'login') {
             setMessage("Logging you in...");
 
-            const res = await fetch("/api/verify-otp", {
+            const res = await fetch("/api/ambassador/verify-otp", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
@@ -364,7 +432,7 @@ export default function ApplicationForm() {
               accessToken,
               parentName: formData.parentName.trim(),
               parentEmail: formData.parentEmail.toLowerCase().trim(),
-              parentPhone: "+91" + formData.parentPhone.trim(), // ✅ Add +91 prefix
+              parentPhone: "+91" + formData.parentPhone.trim(),
               city: formData.city.trim(),
               childName: formData.childName.trim(),
               childAge: parseInt(formData.childAge),
@@ -388,7 +456,7 @@ export default function ApplicationForm() {
         },
         (error) => {
           console.error("❌ Widget verifyOtp error:", error);
-          setError(error.message || "Invalid OTP");
+          setError(error?.message || "Invalid OTP");
           setIsSubmitting(false);
         }
       );
@@ -398,6 +466,27 @@ export default function ApplicationForm() {
       setIsSubmitting(false);
     }
   };
+
+  // ✅ Loading state with timeout (max 8 seconds)
+  if (scriptLoaded && !widgetReady && step === 'form' && !error) {
+    return (
+      <>
+        <Script
+          src="https://verify.msg91.com/otp-provider.js"
+          onLoad={handleWidgetLoad}
+        />
+        <div className="bg-slate-50 py-16">
+          <div className="container mx-auto px-4">
+            <div className="max-w-3xl mx-auto bg-white p-8 rounded-2xl shadow-lg text-center">
+              <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-purple-600 mx-auto mb-4"></div>
+              <p className="text-slate-600 mb-2">Initializing verification service...</p>
+              <p className="text-xs text-slate-400">This should only take a few seconds</p>
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
 
   // Success Screen
   if (step === 'success') {
@@ -638,7 +727,7 @@ export default function ApplicationForm() {
                           />
                         </div>
 
-                        {/* ✅ UPDATED: Split phone input with +91 */}
+                        {/* ✅ Split phone input with +91 */}
                         <div>
                           <label htmlFor="parentPhone" className="block text-sm font-medium text-slate-700 mb-2">
                             Phone *
