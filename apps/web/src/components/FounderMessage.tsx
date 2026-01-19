@@ -117,7 +117,7 @@ export default function FounderMessage() {
                 {/* CTA Button */}
                 <Link
                   href="/ambassador"
-                  className="inline-block btn-shine bg-gradient-to-r from-[hsl(var(--swago-purple))] to-[hsl(var(--swago-pink))] text-white font-bold text-base md:text-lg px-8 py-3.5 rounded-full shadow-xl hover:scale-105 transition-all duration-300"
+                  className="inline-block btn-shine bg-[hsl(var(--swago-purple))] text-white font-bold text-base md:text-lg px-8 py-3.5 rounded-full shadow-xl hover:scale-105 transition-all duration-300"
                 >
                   <span className="flex items-center gap-2">
                     Start Your Journey

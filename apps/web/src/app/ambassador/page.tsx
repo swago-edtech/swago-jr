@@ -1,9 +1,7 @@
 import Link from "next/link";
-import { HiShieldCheck } from "react-icons/hi2";
 import HeroJourneyIntro from "@/components/HeroJourneyIntro";
 import JourneyStepsSection from "@/components/JourneyStepsSection";
 import EntryChallengeDetails from "@/components/EntryChallengeDetails";
-import AmbassadorBenefitsSection from "@/components/AmbassadorBenefitsSection";
 import AmbassadorPerksSection from "@/components/AmbassadorPerksSection";
 
 export const metadata = {
@@ -28,7 +26,7 @@ export default function AmbassadorPage() {
     </p>
     <Link
       href="/ambassador/register"
-      className="inline-block btn-shine bg-gradient-to-r from-[hsl(var(--swago-purple))] to-[hsl(var(--swago-pink))] text-white font-bold px-8 py-4 rounded-full shadow-lg hover:shadow-xl transition-all text-lg"
+      className="inline-block btn-shine bg-[hsl(var(--swago-purple))]  text-white font-bold px-8 py-4 rounded-full shadow-lg hover:shadow-xl transition-all text-lg"
     >
        Create Your Child&apos;s Swago Hero Profile 
     </Link>

@@ -56,7 +56,7 @@ export default function EntryChallengeDetails() {
               href="https://youtu.be/t8WBBk1UIis"
               target="_blank"
               rel="noopener noreferrer"
-              className="bg-gradient-to-r from-purple-500 to-purple-600 text-white font-bold text-md md:text-lg px-8 py-4 rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 flex items-center gap-2"
+              className="bg-purple-600 text-white font-bold text-md md:text-lg px-8 py-4 rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 flex items-center gap-2"
             >
               <span>Play Song</span>
             </a>
@@ -64,7 +64,7 @@ export default function EntryChallengeDetails() {
               href="https://youtu.be/t8WBBk1UIis"
               target="_blank"
               rel="noopener noreferrer"
-              className="bg-gradient-to-r from-orange-500 to-pink-500 text-white font-bold text-md md:text-lg px-8 py-4 rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 flex items-center gap-2"
+              className="bg-orange-500 text-white font-bold text-md md:text-lg px-8 py-4 rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 flex items-center gap-2"
             >
               <span>Watch Demo</span>
             </a>
@@ -101,9 +101,9 @@ export default function EntryChallengeDetails() {
                 <span>❎ No judgement</span>
               </div>
               <p className="text-lg text-slate-700 mt-4">
-                Shy, silly, slow, playful or imperfect — <strong className="text-purple-600">all are welcome</strong>.
+                Shy, silly, slow, playful or imperfect  <br/> <strong className="text-orange-600">all are welcome</strong>.
               </p>
-              <p className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-orange-600 mt-4">
+              <p className="text-xl font-bold text-transparent bg-clip-text bg-purple-600 mt-4">
                 Because at Swago, we celebrate effort, not perfection.
               </p>
             </div>

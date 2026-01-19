@@ -14,30 +14,8 @@ export default function AmbassadorCTA() {
               At Swago, we help children grow into confident, curious, and capable human beings, 
               not through pressure, but through play.
               <br />
-              <br />
-              Our world is built around five core skills that matter in real life:{" "}
             </p>
             
-            {/* Centered container with left-aligned text */}
-            <div className="flex justify-center my-4">
-              <div className="text-left">
-                <div className="mb-1">
-                  <span className="font-semibold text-pink-600">S - Smart Tech</span>,
-                </div>
-                <div className="mb-1">
-                  <span className="font-semibold text-teal-600">W - Willpower</span>,
-                </div>
-                <div className="mb-1">
-                  <span className="font-semibold text-blue-600">A - Ambition</span>,
-                </div>
-                <div className="mb-1">
-                  <span className="font-semibold text-orange-600">G - Growth</span>,
-                </div>
-                <div>
-                  <span className="font-semibold text-purple-600">O - Optimization</span>.
-                </div>
-              </div>
-            </div>
 
             <p className="text-slate-800 text-base md:text-lg leading-relaxed max-w-5xl mx-auto text-center mt-4">
               Through our playful Swago Smart Boxes, simple challenges, and everyday moments, 
@@ -54,7 +32,7 @@ export default function AmbassadorCTA() {
         {/* Content */}
         <div className="relative z-10 pt-8 md:pt-12 text-center">
           {/* Badge */}
-          <div className="inline-block mb-6 px-4 py-1.5 bg-purple-100 rounded-full text-xs font-bold text-purple-700">
+          <div className="inline-block mb-6 px-4 py-1.5 bg-orange-100 rounded-full text-xs font-bold text-orange-600">
             Limited Spots Available
           </div>
 
@@ -66,7 +44,7 @@ export default function AmbassadorCTA() {
           {/* CTA Button */}
           <Link
             href="/ambassador"
-            className="inline-block btn-shine bg-gradient-to-r from-[hsl(var(--swago-purple))] to-[hsl(var(--swago-pink))] text-white font-bold text-base md:text-lg px-8 py-3.5 rounded-full shadow-xl hover:scale-105 transition-all duration-300"
+            className="inline-block btn-shine bg-[hsl(var(--swago-orange))] text-white font-bold text-base md:text-lg px-8 py-3.5 rounded-full shadow-xl hover:scale-105 transition-all duration-300"
           >
             <span className="flex items-center gap-2">
               Start Your Journey
