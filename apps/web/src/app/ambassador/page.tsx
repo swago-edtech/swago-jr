@@ -47,7 +47,7 @@ export default function AmbassadorPage() {
 
       {/* Safety Section */}
       <div className="container mx-auto px-4 py-5 ">
-        <div className="max-w-6xl mx-auto bg-gradient-to-r from-[hsl(var(--swago-teal))]/10 to-[hsl(var(--swago-purple))]/10 p-8 rounded-2xl">
+        <div className="max-w-6xl mx-auto bg-[hsl(var(--swago-orange))]/10 p-8 rounded-2xl">
           <div className="flex items-start gap-4">
             
             <div>
@@ -67,7 +67,7 @@ export default function AmbassadorPage() {
 
       {/* Final CTA */}
       <div className="container mx-auto px-4 py-5 max-w-6xl mx-auto">
-        <div className="relative rounded-2xl overflow-hidden p-12 text-center bg-gradient-to-r from-[hsl(var(--swago-purple))] to-[hsl(var(--swago-pink))]">
+        <div className="relative rounded-2xl overflow-hidden p-12 text-center bg-[hsl(var(--swago-orange))]">
           <div className="flex flex-col items-center text-white">
             <h2 className="text-2xl md:text-4xl font-bold mb-4">Ready to Begin?</h2>
             <p className="text-md md:text-xl opacity-90 max-w-2xl mb-6">

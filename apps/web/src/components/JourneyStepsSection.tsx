@@ -11,14 +11,14 @@ export default function JourneyStepsSection() {
       emoji: "🦸",
       title: "Create Your Child's Swago Hero Profile",
       description: "This creates your child's digital identity inside the Swagoverse.",
-      color: "from-purple-500 to-purple-600",
+      color: "[hsl(var(--swago-purple))]",
     },
     {
       number: "2",
       emoji: "🎬",
       title: "Complete the Entry Challenge",
       description: "Your child will do one fun, pressure-free task to enter the journey.",
-      color: "from-pink-500 to-orange-500",
+      color: "[hsl(var(--swago-orange))]",
     },
   ];
 
@@ -46,11 +46,11 @@ export default function JourneyStepsSection() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.6, delay: index * 0.2 }}
-                className="relative bg-gradient-to-br from-slate-50 to-white border-2 border-slate-200 rounded-2xl p-8 hover:shadow-xl transition-shadow"
+                className="relative bg-gradient-to-br from-[hsl(var(--swago-purple))]/10 to-[hsl(var(--swago-orange))]/10 border-2 border-slate-200 rounded-2xl p-8 hover:shadow-xl transition-shadow"
               >
                 {/* Step Number Badge */}
                 <div
-                  className={`absolute -top-4 -left-4 w-12 h-12 bg-gradient-to-r ${step.color} rounded-full flex items-center justify-center text-white font-bold text-xl shadow-lg`}
+                  className={`absolute -top-4 -left-4 w-12 h-12 bg-${step.color} rounded-full flex items-center justify-center text-white font-bold text-xl shadow-lg`}
                 >
                   {step.number}
                 </div>
@@ -94,7 +94,7 @@ export default function JourneyStepsSection() {
           <div className="text-center mt-12">
             <Link
               href="/ambassador/register"
-              className="inline-block btn-shine bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold text-lg px-10 py-4 rounded-full shadow-xl hover:scale-105 transition-transform"
+              className="inline-block btn-shine bg-[hsl(var(--swago-orange))] text-white font-bold text-lg px-10 py-4 rounded-full shadow-xl hover:scale-105 transition-transform"
             >
               <span className="flex items-center gap-2">
                 Start Your Journey Now

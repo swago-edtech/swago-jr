@@ -111,9 +111,11 @@ export default function KidDashboardPage() {
     fetchProfileData(profile!._id);
   };
 
-  const handleLogout = () => {
+  const handleSwitchProfile = () => {
+    console.log("🔄 Switching profile...");
     localStorage.removeItem("selectedKidProfile");
-    router.push("/kids");
+    console.log("✅ Profile cleared, redirecting to profile selection");
+    window.location.href = "/kids";
   };
 
   if (loading || !profile) {
@@ -160,7 +162,7 @@ export default function KidDashboardPage() {
             <div className="flex items-start justify-between relative">
               <div className="absolute top-5 left-0 right-0 h-1 bg-gray-200 z-0">
                 <motion.div
-                  className="h-full bg-gradient-to-r from-purple-500 to-pink-500"
+                  className="h-full bg-[hsl(var(--swago-purple))]"
                   initial={{ width: 0 }}
                   animate={{ width: `${((currentStep - 1) / 3) * 100}%` }}
                   transition={{ duration: 0.5, ease: "easeOut" }}
@@ -177,7 +179,7 @@ export default function KidDashboardPage() {
                       step.status === "completed"
                         ? "bg-green-500 text-white"
                         : step.status === "active"
-                        ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white"
+                        ? "bg-[hsl(var(--swago-purple))] text-white"
                         : "bg-gray-300 text-gray-500"
                     }`}
                   >
@@ -238,10 +240,10 @@ export default function KidDashboardPage() {
                     </h1>
                     <p className="text-xs text-gray-600 mb-2">Age {profile.age}</p>
                     
-                    {/* Switch Profile Button - Below Avatar */}
+                    {/* ✅ Switch Profile Button */}
                     <button
-                      onClick={handleLogout}
-                      className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1.5 rounded-lg font-medium transition-colors text-xs"
+                      onClick={handleSwitchProfile}
+                      className="bg-[hsl(var(--swago-purple))] hover:opacity-90 text-white px-3 py-1.5 rounded-lg font-medium transition-all text-xs"
                     >
                       Switch Profile
                     </button>
@@ -255,7 +257,7 @@ export default function KidDashboardPage() {
                         <p className="text-xs font-semibold text-gray-700 mb-1">You earned</p>
                         <button
                           onClick={() => setShowMoneyModal(true)}
-                          className="w-full bg-gradient-to-r from-teal-500 to-teal-600 text-white px-3 py-2 rounded-lg shadow-sm hover:shadow-md transition-shadow active:scale-95"
+                          className="w-full bg-teal-500 text-white px-3 py-2 rounded-lg shadow-sm hover:bg-teal-600 transition-colors active:scale-95"
                         >
                           <p className="text-sm font-bold">🪙 {ambassadorData?.swagoMoney || 0} Swago Dollars</p>
                         </button>
@@ -267,7 +269,7 @@ export default function KidDashboardPage() {
                           <p className="text-xs font-semibold text-gray-700 mb-1">You earned</p>
                           <button
                             onClick={() => setShowBadgesModal(true)}
-                            className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white px-3 py-2 rounded-lg shadow-sm hover:shadow-md transition-shadow active:scale-95"
+                            className="w-full bg-[hsl(var(--swago-orange))] text-white px-3 py-2 rounded-lg shadow-sm hover:opacity-90 transition-opacity active:scale-95"
                           >
                             {ambassadorData.badges.map(badge => (
                               <p key={badge.name} className="text-sm font-bold">
@@ -321,10 +323,10 @@ export default function KidDashboardPage() {
                     </div>
                     <br/>
 
-                    {/* Switch Profile Button - Below Avatar in same column */}
+                    {/* ✅ Switch Profile Button */}
                     <button
-                      onClick={handleLogout}
-                      className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2.5 rounded-lg font-medium transition-colors text-sm"
+                      onClick={handleSwitchProfile}
+                      className="bg-[hsl(var(--swago-purple))] hover:opacity-90 text-white px-6 py-2.5 rounded-lg font-medium transition-all text-sm"
                     >
                       Switch Profile
                     </button>
@@ -336,7 +338,7 @@ export default function KidDashboardPage() {
                       {/* Swago Money Section */}
                       <div>
                         <p className="text-sm font-semibold text-gray-700 mb-1">You earned</p>
-                        <div className="bg-gradient-to-r from-teal-500 to-teal-600 text-white px-4 py-2 rounded-lg shadow-sm text-center">
+                        <div className="bg-teal-500 text-white px-4 py-2 rounded-lg shadow-sm text-center">
                           <p className="text-sm font-bold">🪙 {ambassadorData?.swagoMoney || 0} Swago Dollars</p>
                         </div>
                       </div>
@@ -345,7 +347,7 @@ export default function KidDashboardPage() {
                       {ambassadorData?.badges && ambassadorData.badges.length > 0 && (
                         <div>
                           <p className="text-sm font-semibold text-gray-700 mb-1">You earned</p>
-                          <div className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-2 rounded-lg shadow-sm text-center">
+                          <div className="bg-[hsl(var(--swago-orange))] text-white px-4 py-2 rounded-lg shadow-sm text-center">
                             {ambassadorData.badges.map(badge => (
                               <p key={badge.name} className="text-sm font-bold">
                                 {badgeEmojis[badge.name] || "🎖️"} {badge.name} Badge
@@ -366,7 +368,7 @@ export default function KidDashboardPage() {
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.1 }}
-                className="hidden lg:block bg-gradient-to-br from-teal-500 to-teal-600 rounded-2xl shadow-lg p-6 text-white"
+                className="hidden lg:block bg-teal-500 rounded-2xl shadow-lg p-6 text-white"
               >
                 <div className="flex items-center gap-3 mb-3">
                   <div className="text-5xl">💰</div>
@@ -383,7 +385,7 @@ export default function KidDashboardPage() {
                   </div>
                 </div>
                 <div className="bg-white/20 backdrop-blur rounded-lg p-3 text-xs">
-                  <p className="font-medium text-orange-100">
+                  <p className="font-medium text-white/90">
                     💡 Use Swago Dollars for discounts, blind bags &amp; special rewards.
                   </p>
                 </div>
@@ -411,7 +413,7 @@ export default function KidDashboardPage() {
                       transition={{ delay: index * 0.1, type: "spring" }}
                       className="relative group"
                     >
-                      <div className="bg-gradient-to-br from-purple-100 to-pink-100 rounded-xl p-4 flex flex-col items-center gap-2 min-w-[100px] border-2 border-purple-300 hover:border-purple-500 transition-all hover:scale-105 cursor-pointer">
+                      <div className="bg-[hsl(var(--swago-orange))]/10 rounded-xl p-4 flex flex-col items-center gap-2 min-w-[100px] border-2 border-[hsl(var(--swago-orange))]/30 hover:border-[hsl(var(--swago-orange))] transition-all hover:scale-105 cursor-pointer">
                         <div className="text-3xl">
                           {badgeEmojis[badge.name] || "🎖️"}
                         </div>
@@ -448,7 +450,7 @@ export default function KidDashboardPage() {
                 <div className="flex items-start justify-between relative">
                   <div className="absolute top-6 left-0 right-0 h-1 bg-gray-200 z-0">
                     <motion.div
-                      className="h-full bg-gradient-to-r from-purple-500 to-pink-500"
+                      className="h-full bg-[hsl(var(--swago-purple))]"
                       initial={{ width: 0 }}
                       animate={{ width: `${((currentStep - 1) / 3) * 100}%` }}
                       transition={{ duration: 0.5, ease: "easeOut" }}
@@ -465,7 +467,7 @@ export default function KidDashboardPage() {
                           step.status === "completed"
                             ? "bg-green-500 text-white"
                             : step.status === "active"
-                            ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white animate-pulse"
+                            ? "bg-[hsl(var(--swago-purple))] text-white animate-pulse"
                             : "bg-gray-300 text-gray-500"
                         }`}
                       >
@@ -493,7 +495,7 @@ export default function KidDashboardPage() {
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl shadow-xl p-8 text-white text-center"
+                    className="bg-[hsl(var(--swago-purple))] rounded-2xl shadow-xl p-8 text-white text-center"
                   >
                     <h2 className="text-lg md:text-3xl font-bold mb-3">
                       Ready for the First Ambassador Challenge?
@@ -502,7 +504,7 @@ export default function KidDashboardPage() {
                     <div className="flex flex-col sm:flex-col items-center justify-center gap-4">
                       <button
                         onClick={() => setShowReelForm(true)}
-                        className="bg-white text-purple-600 font-bold px-5 md:px-10 py-4 mt-5 rounded-full hover:bg-gray-100 transition-all text-md md:text-lg shadow-lg"
+                        className="bg-white text-[hsl(var(--swago-purple))] font-bold px-5 md:px-10 py-4 mt-5 rounded-full hover:bg-gray-100 transition-all text-md md:text-lg shadow-lg"
                       >
                         Complete the challenge
                       </button>
@@ -551,7 +553,7 @@ export default function KidDashboardPage() {
                   <motion.div
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="bg-gradient-to-r from-green-500 to-teal-500 rounded-2xl shadow-xl p-8 text-white text-center"
+                    className="bg-green-500 rounded-2xl shadow-xl p-8 text-white text-center"
                   >
                     <div className="text-6xl mb-4">🧠</div>
                     <h2 className="text-3xl font-bold mb-3">
@@ -564,7 +566,7 @@ export default function KidDashboardPage() {
                       onClick={() => setShowBrainGym(true)}
                       className="bg-white text-green-600 font-bold px-10 py-4 rounded-full hover:bg-gray-100 transition-all text-lg shadow-lg"
                     >
-                      Start Brain Gym 
+                      Start Brain Gym 🧠
                     </button>
                   </motion.div>
                 )}
@@ -590,7 +592,7 @@ export default function KidDashboardPage() {
                   <motion.div
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="bg-gradient-to-r from-yellow-400 to-orange-400 rounded-2xl shadow-xl p-8 text-white text-center"
+                    className="bg-[hsl(var(--swago-orange))] rounded-2xl shadow-xl p-8 text-white text-center"
                   >
                     <div className="text-7xl mb-4">🎉</div>
                     <h2 className="text-3xl font-bold mb-3">
@@ -600,7 +602,7 @@ export default function KidDashboardPage() {
                       You&apos;ve completed all challenges! Check your Swago Dollars and badges above.
                     </p>
                     <p className="text-sm opacity-75">
-                      More challenges coming soon! Stay tuned 
+                      More challenges coming soon! Stay tuned 🚀
                     </p>
                   </motion.div>
                 )}
@@ -610,7 +612,7 @@ export default function KidDashboardPage() {
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-gradient-to-r from-purple-400 to-pink-400 rounded-3xl shadow-2xl p-12 text-white"
+                className="bg-[hsl(var(--swago-purple))] rounded-3xl shadow-2xl p-12 text-white"
               >
                 <div className="text-center max-w-2xl mx-auto">
                   <h2 className="text-lg md:text-3xl font-bold mb-4">
@@ -623,9 +625,9 @@ export default function KidDashboardPage() {
                   <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                     <button
                       onClick={handleActivateAmbassador}
-                      className="bg-white text-purple-600 font-bold px-5 py-5 rounded-full text-sm md:text-xl hover:bg-gray-100 transition-all shadow-lg"
+                      className="bg-white text-[hsl(var(--swago-purple))] font-bold px-5 py-5 rounded-full text-sm md:text-xl hover:bg-gray-100 transition-all shadow-lg"
                     >
-                      Start Ambassador Journey 
+                      Start Ambassador Journey 🚀
                     </button>
                     
                     <Link
@@ -657,7 +659,7 @@ export default function KidDashboardPage() {
                 initial={{ scale: 0.8, y: 20 }}
                 animate={{ scale: 1, y: 0 }}
                 exit={{ scale: 0.8, y: 20 }}
-                className="bg-gradient-to-br from-purple-500 to-pink-500 rounded-3xl shadow-2xl p-8 text-white max-w-md w-full text-center"
+                className="bg-[hsl(var(--swago-purple))] rounded-3xl shadow-2xl p-8 text-white max-w-md w-full text-center"
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="text-7xl mb-4">🎉</div>
@@ -679,9 +681,9 @@ export default function KidDashboardPage() {
                 </div>
                 <button
                   onClick={() => setShowWelcomeModal(false)}
-                  className="bg-white text-purple-600 font-bold px-8 py-3 rounded-full hover:bg-gray-100 transition-all shadow-lg"
+                  className="bg-white text-[hsl(var(--swago-purple))] font-bold px-8 py-3 rounded-full hover:bg-gray-100 transition-all shadow-lg"
                 >
-                  Awesome! Let&apos;s Go 
+                  Awesome! Let&apos;s Go 🚀
                 </button>
               </motion.div>
             </motion.div>
@@ -714,7 +716,7 @@ export default function KidDashboardPage() {
                 </p>
                 <button
                   onClick={() => setShowReelSuccessModal(false)}
-                  className="bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold px-8 py-3 rounded-full hover:opacity-90 transition-all shadow-lg"
+                  className="bg-[hsl(var(--swago-purple))] text-white font-bold px-8 py-3 rounded-full hover:opacity-90 transition-all shadow-lg"
                 >
                   Got it!
                 </button>
@@ -737,7 +739,7 @@ export default function KidDashboardPage() {
                 initial={{ scale: 0.9, y: 20 }}
                 animate={{ scale: 1, y: 0 }}
                 exit={{ scale: 0.9, y: 20 }}
-                className="bg-gradient-to-br from-teal-500 to-teal-600 rounded-2xl shadow-2xl p-6 text-white max-w-sm w-full"
+                className="bg-teal-500 rounded-2xl shadow-2xl p-6 text-white max-w-sm w-full"
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="flex justify-between items-start mb-4">
@@ -766,7 +768,7 @@ export default function KidDashboardPage() {
                 </div>
                 
                 <div className="bg-white/20 backdrop-blur rounded-lg p-4">
-                  <p className="font-medium text-orange-100 text-sm">
+                  <p className="font-medium text-white/90 text-sm">
                     💡 Use Swago Dollars for discounts, blind bags &amp; special rewards.
                   </p>
                 </div>
@@ -812,7 +814,7 @@ export default function KidDashboardPage() {
                       animate={{ scale: 1, rotate: 0 }}
                       transition={{ delay: index * 0.1, type: "spring" }}
                     >
-                      <div className="bg-gradient-to-br from-purple-100 to-pink-100 rounded-xl p-4 flex flex-col items-center gap-2 border-2 border-purple-300">
+                      <div className="bg-[hsl(var(--swago-orange))]/10 rounded-xl p-4 flex flex-col items-center gap-2 border-2 border-[hsl(var(--swago-orange))]/30">
                         <div className="text-4xl">
                           {badgeEmojis[badge.name] || "🎖️"}
                         </div>

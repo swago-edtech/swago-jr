@@ -172,8 +172,8 @@ KidProfileSchema.methods.initializeAmbassador = function() {
   if (!this.ambassador.isAmbassador) {
     this.ambassador.isAmbassador = true;
     this.ambassador.status = "profile_created";
-    this.ambassador.swagoMoney = 50;
-    this.ambassador.totalEarnings = 50;
+    this.ambassador.swagoMoney = 20; // ✅ CHANGED: Was 50, now 20
+    this.ambassador.totalEarnings = 20; // ✅ CHANGED: Was 50, now 20
     this.ambassador.currentStep = 2;
     this.ambassador.joinedAt = new Date();
     this.ambassador.badges = [{ name: "Swago Saviour", awardedAt: new Date() }];

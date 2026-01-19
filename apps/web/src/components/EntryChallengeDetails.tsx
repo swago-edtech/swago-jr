@@ -22,7 +22,7 @@ export default function EntryChallengeDetails() {
             href="https://www.instagram.com/swagojr"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-purple-600 hover:text-purple-700 font-bold underline"
+            className="text-[hsl(var(--swago-purple))] hover:text-purple-700 font-bold "
           >
             @swagojr
           </a>
@@ -34,7 +34,7 @@ export default function EntryChallengeDetails() {
   };
 
   return (
-    <section className="py-16 px-4 bg-gradient-to-br from-orange-50 via-pink-50 to-purple-50">
+    <section className="py-16 px-4 bg-[hsl(var(--swago-purple))]/5">
       <div className="max-w-6xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -56,7 +56,7 @@ export default function EntryChallengeDetails() {
               href="https://youtu.be/t8WBBk1UIis"
               target="_blank"
               rel="noopener noreferrer"
-              className="bg-purple-600 text-white font-bold text-md md:text-lg px-8 py-4 rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 flex items-center gap-2"
+              className="bg-[hsl(var(--swago-purple))] text-white font-bold text-md md:text-lg px-8 py-4 rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 flex items-center gap-2"
             >
               <span>Play Song</span>
             </a>
@@ -64,7 +64,7 @@ export default function EntryChallengeDetails() {
               href="https://youtu.be/t8WBBk1UIis"
               target="_blank"
               rel="noopener noreferrer"
-              className="bg-orange-500 text-white font-bold text-md md:text-lg px-8 py-4 rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 flex items-center gap-2"
+              className="bg-[hsl(var(--swago-purple))] text-white font-bold text-md md:text-lg px-8 py-4 rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 flex items-center gap-2"
             >
               <span>Watch Demo</span>
             </a>
@@ -90,7 +90,7 @@ export default function EntryChallengeDetails() {
           </div>
 
           {/* No Pressure Message */}
-          <div className="bg-white rounded-2xl p-8 shadow-lg border-4 border-yellow-200">
+          <div className="bg-white rounded-2xl p-8 shadow-lg border-4 border-[hsl(var(--swago-orange))]">
             <h3 className="text-2xl font-bold text-slate-800 mb-4 text-center">
               That&apos;s it!
             </h3>
@@ -101,9 +101,9 @@ export default function EntryChallengeDetails() {
                 <span>❎ No judgement</span>
               </div>
               <p className="text-lg text-slate-700 mt-4">
-                Shy, silly, slow, playful or imperfect  <br/> <strong className="text-orange-600">all are welcome</strong>.
+                Shy, silly, slow, playful or imperfect  <br/> <strong className="text-[hsl(var(--swago-orange))]">all are welcome</strong>.
               </p>
-              <p className="text-xl font-bold text-transparent bg-clip-text bg-purple-600 mt-4">
+              <p className="text-xl font-bold text-transparent bg-clip-text bg-[hsl(var(--swago-purple))] mt-4">
                 Because at Swago, we celebrate effort, not perfection.
               </p>
             </div>

@@ -9,7 +9,7 @@ type ReelUploadFormProps = {
 
 export default function ReelUploadForm({ kidProfileId, onSuccess }: ReelUploadFormProps) {
   const [reelUrl, setReelUrl] = useState("");
-  const [instagramUsername, setInstagramUsername] = useState(""); // ✅ ADD THIS
+  const [instagramUsername, setInstagramUsername] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -48,7 +48,7 @@ export default function ReelUploadForm({ kidProfileId, onSuccess }: ReelUploadFo
         body: JSON.stringify({ 
           kidProfileId, 
           reelUrl: reelUrl.trim(),
-          instagramUsername: instagramUsername.trim(), // ✅ ADD THIS
+          instagramUsername: instagramUsername.trim(),
         }),
       });
 
@@ -70,7 +70,7 @@ export default function ReelUploadForm({ kidProfileId, onSuccess }: ReelUploadFo
   return (
     <div className="bg-white rounded-2xl shadow-xl p-8">
       <h3 className="text-2xl font-bold text-slate-800 mb-2 text-center">
-         Upload Your Entry Challenge Reel
+        🎬 Upload Your Entry Challenge Reel
       </h3>
       <p className="text-slate-600 text-center mb-6">
         Complete your Swago Ambassador First Challenge!
@@ -83,7 +83,7 @@ export default function ReelUploadForm({ kidProfileId, onSuccess }: ReelUploadFo
       )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* ✅ Instagram Username Field */}
+        {/* Instagram Username Field */}
         <div>
           <label htmlFor="instagramUsername" className="block text-sm font-medium text-slate-700 mb-2">
             Your Instagram Username * <span className="text-xs text-slate-500">(without @)</span>
@@ -96,7 +96,7 @@ export default function ReelUploadForm({ kidProfileId, onSuccess }: ReelUploadFo
               value={instagramUsername}
               onChange={(e) => setInstagramUsername(e.target.value.replace('@', '').replace(' ', ''))}
               disabled={isSubmitting}
-              className="w-full p-3 pl-9 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:bg-slate-100"
+              className="w-full p-3 pl-9 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[hsl(var(--swago-purple))] focus:border-transparent disabled:bg-slate-100"
               placeholder="your_username"
               required
             />
@@ -114,7 +114,7 @@ export default function ReelUploadForm({ kidProfileId, onSuccess }: ReelUploadFo
             value={reelUrl}
             onChange={(e) => setReelUrl(e.target.value)}
             disabled={isSubmitting}
-            className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:bg-slate-100"
+            className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[hsl(var(--swago-purple))] focus:border-transparent disabled:bg-slate-100"
             placeholder="https://www.instagram.com/reel/ABC123..."
             required
           />
@@ -126,7 +126,7 @@ export default function ReelUploadForm({ kidProfileId, onSuccess }: ReelUploadFo
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold py-3 px-6 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full bg-[hsl(var(--swago-purple))] text-white font-bold py-3 px-6 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isSubmitting ? "Submitting..." : "Submit Reel 🚀"}
         </button>

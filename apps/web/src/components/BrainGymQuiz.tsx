@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 
 interface BrainGymQuizProps {
   kidProfileId: string;
@@ -79,7 +79,7 @@ export default function BrainGymQuiz({ kidProfileId, onComplete }: BrainGymQuizP
   if (loading) {
     return (
       <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-purple-600 mx-auto mb-4"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-[hsl(var(--swago-purple))] mx-auto mb-4"></div>
         <p className="text-gray-600">Loading Brain Gym...</p>
       </div>
     );
@@ -91,7 +91,7 @@ export default function BrainGymQuiz({ kidProfileId, onComplete }: BrainGymQuizP
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         className={`rounded-2xl shadow-xl p-8 text-center ${
-          result.correct ? "bg-green-50" : "bg-orange-50"
+          result.correct ? "bg-green-50" : "bg-[hsl(var(--swago-orange))]/10"
         }`}
       >
         <div className="text-6xl mb-4">{result.correct ? "🎉" : "🤔"}</div>
@@ -114,14 +114,14 @@ export default function BrainGymQuiz({ kidProfileId, onComplete }: BrainGymQuizP
         <div>
           <h3 className="text-xl font-bold text-gray-800">Swago Brain Gym</h3>
           <p className="text-sm text-gray-600">
-            Solve this riddle to earn {riddle?.reward || 0} Swago Money!
+            Solve this riddle to earn {riddle?.reward || 0} Swago Dollars!
           </p>
         </div>
       </div>
 
       {riddle && (
         <div className="space-y-6">
-          <div className="bg-purple-50 rounded-lg p-6 border border-purple-200">
+          <div className="bg-[hsl(var(--swago-purple))]/10 rounded-lg p-6 border border-[hsl(var(--swago-purple))]/30">
             <p className="text-lg font-semibold text-gray-800 text-center">
               {riddle.question}
             </p>
@@ -134,8 +134,8 @@ export default function BrainGymQuiz({ kidProfileId, onComplete }: BrainGymQuizP
                 onClick={() => setSelectedAnswer(option)}
                 className={`p-4 rounded-lg border-2 font-semibold text-lg transition-all ${
                   selectedAnswer === option
-                    ? "border-purple-600 bg-purple-100 text-purple-800"
-                    : "border-gray-300 bg-white text-gray-700 hover:border-purple-400"
+                    ? "border-[hsl(var(--swago-purple))] bg-[hsl(var(--swago-purple))]/10 text-[hsl(var(--swago-purple))]"
+                    : "border-gray-300 bg-white text-gray-700 hover:border-[hsl(var(--swago-purple))]/50"
                 }`}
               >
                 {option}
@@ -146,9 +146,9 @@ export default function BrainGymQuiz({ kidProfileId, onComplete }: BrainGymQuizP
           <button
             onClick={handleSubmit}
             disabled={!selectedAnswer || isSubmitting}
-            className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold py-3 rounded-lg hover:from-purple-700 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            className="w-full bg-[hsl(var(--swago-purple))] text-white font-bold py-3 rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
           >
-            {isSubmitting ? "Checking..." : "Submit Answer"}
+            {isSubmitting ? "Checking..." : "Submit Answer 🚀"}
           </button>
         </div>
       )}

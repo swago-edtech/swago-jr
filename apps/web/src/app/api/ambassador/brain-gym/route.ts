@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
 
     await connectDB();
 
-    // ✅ FIXED: Support both phone and email auth
+    // Support both phone and email auth
     const user = session.phone 
       ? await User.findOne({ phone: session.phone })
       : await User.findOne({ email: session.email });
@@ -148,26 +148,46 @@ export async function POST(request: NextRequest) {
     const isCorrect = answer.trim() === TEST_RIDDLE.correctAnswer;
 
     if (isCorrect) {
-      // Award Swago Money
+      // Award Swago Money (keep at 50)
       profile.ambassador.swagoMoney += TEST_RIDDLE.reward;
       profile.ambassador.totalEarnings += TEST_RIDDLE.reward;
       
+      // ✅ FIXED: Changed (b: any) to (b: { name: string })
+      const hasBrainBadge = profile.ambassador.badges.some((b: { name: string }) => b.name === "Brain Champion");
+      if (!hasBrainBadge) {
+        profile.ambassador.badges.push({
+          name: "Brain Champion",
+          awardedAt: new Date(),
+        });
+      }
+      
+      // Update Brain Gym status
       profile.ambassador.brainGym = {
         completed: true,
         answer: answer,
         completedAt: new Date(),
       };
-      profile.ambassador.currentStep = 4; // ✅ FIXED: Unlock Brand Ambassador status
-      profile.ambassador.status = "brand_ambassador"; // ✅ ADDED: Update status
+      
+      profile.ambassador.currentStep = 4;
+      profile.ambassador.status = "brand_ambassador";
+      
+      // ✅ FIXED: Changed (b: any) to (b: { name: string })
+      const hasAmbassadorBadge = profile.ambassador.badges.some((b: { name: string }) => b.name === "Brand Ambassador");
+      if (!hasAmbassadorBadge) {
+        profile.ambassador.badges.push({
+          name: "Brand Ambassador",
+          awardedAt: new Date(),
+        });
+      }
       
       await profile.save();
 
-      console.log(`✅ Brain Gym completed for ${profile.username}. Awarded ${TEST_RIDDLE.reward} Swago Money.`);
+      console.log(`✅ Brain Gym completed for ${profile.username}. Awarded ${TEST_RIDDLE.reward} Swago Money + Brain Champion + Brand Ambassador badges.`);
 
       return NextResponse.json({
         success: true,
         correct: true,
-        message: "Correct! You earned 50 Swago Money! 🎉",
+        message: "Correct! You earned 50 Swago Dollars! 🎉",
         swagoMoney: profile.ambassador.swagoMoney,
       });
     } else {

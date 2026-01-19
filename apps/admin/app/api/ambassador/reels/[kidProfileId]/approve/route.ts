@@ -4,7 +4,7 @@ import { getAdminSession } from "@/lib/auth";
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ kidProfileId: string }> } // ✅ CHANGED: Added Promise type
+  { params }: { params: Promise<{ kidProfileId: string }> }
 ) {
   try {
     const session = await getAdminSession();
@@ -12,7 +12,7 @@ export async function POST(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { kidProfileId } = await params; // ✅ CHANGED: Added await
+    const { kidProfileId } = await params;
     const body = await request.json();
     const { reviewNotes } = body;
 
@@ -29,25 +29,30 @@ export async function POST(
       return NextResponse.json({ error: "No reel submitted" }, { status: 400 });
     }
 
+    // Update challenge status
     profile.ambassador.entryChallenge.status = "approved";
     profile.ambassador.entryChallenge.reviewedAt = new Date();
     profile.ambassador.entryChallenge.reviewNotes = reviewNotes || "Approved";
-    profile.ambassador.swagoMoney += 100;
-    profile.ambassador.totalEarnings += 100;
+    
+    // ✅ CHANGED: Award 30 Swago Money (was 100)
+    profile.ambassador.swagoMoney += 30;
+    profile.ambassador.totalEarnings += 30;
+    
     profile.ambassador.currentStep = 3;
     profile.ambassador.status = "entry_approved";
     
-    const hasBadge = profile.ambassador.badges.some((b: any) => b.name === "Brand Ambassador");
+    // ✅ FIXED: Award "Entry Master" badge (was "Brand Ambassador")
+    const hasBadge = profile.ambassador.badges.some((b: any) => b.name === "Entry Master");
     if (!hasBadge) {
       profile.ambassador.badges.push({
-        name: "Brand Ambassador",
+        name: "Entry Master",
         awardedAt: new Date(),
       });
     }
 
     await profile.save();
 
-    console.log(`✅ Reel approved for ${profile.username}`);
+    console.log(`✅ Reel approved for ${profile.username}. Awarded 30 Swago Dollars + Entry Master badge.`);
 
     return NextResponse.json({
       success: true,

@@ -1,5 +1,3 @@
-// apps/web/src/middleware.ts
-
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
@@ -29,12 +27,21 @@ export function middleware(request: NextRequest) {
   // Add pathname to headers so layout can access it
   requestHeaders.set("x-pathname", pathname);
 
-  // Return response with modified headers
-  return NextResponse.next({
+  // ✅ Create response with modified headers
+  const response = NextResponse.next({
     request: {
       headers: requestHeaders,
     },
   });
+
+  // ✅ FIXED: Disable caching for protected routes in production
+  if (isProtectedRoute) {
+    response.headers.set('Cache-Control', 'no-store, must-revalidate');
+    response.headers.set('CDN-Cache-Control', 'no-store');
+    response.headers.set('Vercel-CDN-Cache-Control', 'no-store');
+  }
+
+  return response;
 }
 
 // Run middleware on all routes

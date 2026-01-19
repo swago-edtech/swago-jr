@@ -9,31 +9,31 @@ export default function AmbassadorPerksSection() {
       icon: "🎓",
       title: "Special Masterclasses",
       text: "Your child gets special confidence and AI masterclasses that help them speak up, express themselves, and think smart.",
-      color: "from-purple-50 to-purple-100",
+      color: "from-[hsl(var(--swago-purple))]/10 to-[hsl(var(--swago-purple))]/5",
     },
     {
       icon: "🎯",
       title: "Monthly Challenges",
       text: "They receive fun little monthly challenges that quietly build focus, coordination, courage, and leadership.",
-      color: "from-pink-50 to-pink-100",
+      color: "from-[hsl(var(--swago-orange))]/10 to-[hsl(var(--swago-orange))]/5",
     },
     {
       icon: "🔬",
       title: "Junior Researcher Status",
       text: "They become a Swago Junior Researcher, getting to try new Swago boxes and activities before others and share what they think.",
-      color: "from-blue-50 to-blue-100",
+      color: "from-[hsl(var(--swago-purple))]/10 to-[hsl(var(--swago-purple))]/5",
     },
     {
       icon: "🎁",
       title: "Exclusive Rewards",
       text: "They unlock member-only rewards, discounts and small surprises, making them feel like a special insider in the Swago world.",
-      color: "from-orange-50 to-orange-100",
+      color: "from-[hsl(var(--swago-orange))]/10 to-[hsl(var(--swago-orange))]/5",
     },
     {
       icon: "⭐",
       title: "Featured Swago Kid",
       text: "Some children will even be featured as Swago Kids in our stories, campaigns, or packaging, celebrating their journey, not just their performance.",
-      color: "from-teal-50 to-teal-100",
+      color: "from-[hsl(var(--swago-purple))]/10 to-[hsl(var(--swago-purple))]/5",
     },
   ];
 
@@ -54,7 +54,7 @@ export default function AmbassadorPerksSection() {
             </h2>
 
             {/* Badge */}
-            <div className="inline-block bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-8 py-4 rounded-2xl shadow-lg mb-4">
+            <div className="inline-block bg-[hsl(var(--swago-orange))] text-white px-8 py-4 rounded-2xl shadow-lg mb-4">
               <p className="text-xl font-bold flex items-center justify-center gap-2">
                 <span>Official Swago Kid Brand Ambassador Status 🏆</span>
               </p>
@@ -136,13 +136,13 @@ export default function AmbassadorPerksSection() {
           </div>
 
           {/* Bottom Message */}
-          <div className="bg-gradient-to-r from-purple-300 to-pink-400 rounded-2xl p-8 md:p-10 text-center text-white shadow-xl">
+          <div className="bg-[hsl(var(--swago-purple))] rounded-2xl p-8 md:p-10 text-center text-white shadow-xl">
             <p className="text-lg md:text-xl font-medium mb-3 opacity-90">
               And beyond all this, your child starts to build something deeper: <br />
               the feeling that
             </p>
             <p className="text-lg md:text-xl font-medium">
-              <span className="text-yellow-300 text-3xl md:text-5xl font-bold">&quot;Yes, I can.&quot;</span>
+              <span className="text-[hsl(var(--swago-orange))] text-3xl md:text-5xl font-bold">&quot;Yes, I can.&quot;</span>
             </p>
           </div>
         </motion.div>

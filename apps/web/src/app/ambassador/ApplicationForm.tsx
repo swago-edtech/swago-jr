@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Script from 'next/script';
 import { useSharedContext, USER_EVENTS } from '@/context/SharedContext';
+import type { MSG91WidgetSuccessData, MSG91WidgetError } from '@swago/types'; // ✅ NEW
 
 type FormMode = 'register' | 'login';
 
@@ -22,6 +23,7 @@ export default function ApplicationForm() {
   const [scriptLoaded, setScriptLoaded] = useState(false);
   const [widgetReady, setWidgetReady] = useState(false);
   const [otp, setOtp] = useState("");
+  const [isMounted, setIsMounted] = useState(false); // ✅ Track client-side mounting
   
   const [formData, setFormData] = useState({
     parentName: "",
@@ -42,6 +44,46 @@ export default function ApplicationForm() {
     console.log("📧 MSG91 Email script loaded");
     setScriptLoaded(true);
   };
+
+  // ✅ Helper: Auto-select first kid profile and redirect
+  const autoSelectFirstProfile = async () => {
+    try {
+      console.log("🔍 Fetching kid profiles for auto-selection...");
+      
+      const res = await fetch("/api/kid-profiles");
+      if (res.ok) {
+        const data = await res.json();
+        const profiles = data.profiles || [];
+        
+        if (profiles.length > 0) {
+          const firstProfile = profiles[0];
+          console.log("✅ Auto-selecting first profile:", firstProfile.name);
+          
+          // Save to localStorage
+          localStorage.setItem("selectedKidProfile", JSON.stringify({
+            _id: firstProfile._id,
+            name: firstProfile.name,
+            age: firstProfile.age,
+            avatarColor: firstProfile.avatarColor,
+          }));
+          
+          return true;
+        } else {
+          console.warn("⚠️ No profiles found");
+          return false;
+        }
+      }
+      return false;
+    } catch (error) {
+      console.error("❌ Failed to auto-select profile:", error);
+      return false;
+    }
+  };
+
+  // ✅ Ensure client-side only rendering
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // ✅ Redirect if user is already logged in
   useEffect(() => {
@@ -92,12 +134,12 @@ export default function ApplicationForm() {
             widgetId: EMAIL_WIDGET_ID,
             tokenAuth: TOKEN_AUTH,
             exposeMethods: true,
-            success: (data) => {
+            success: (data: MSG91WidgetSuccessData) => {
               console.log("✅ Widget success callback fired:", data);
               isInitialized = true;
               setWidgetReady(true);
             },
-            failure: (error) => {
+            failure: (error: MSG91WidgetError) => {
               console.error("❌ Widget failure callback:", error);
             },
           });
@@ -220,8 +262,14 @@ export default function ApplicationForm() {
         }
 
         // ✅ User exists, send OTP
-        if (!window.sendOtp) {
-          setError("Verification service not ready. Please refresh the page.");
+        if (!window.sendOtp || typeof window.sendOtp !== 'function') {
+          console.error("❌ sendOtp not available:", {
+            scriptLoaded,
+            widgetReady,
+            sendOtp: typeof window.sendOtp,
+            initSendOTP: typeof window.initSendOTP
+          });
+          setError("⚠️ Verification service is still loading. Please wait 3 seconds and try again.");
           setIsSubmitting(false);
           return;
         }
@@ -230,13 +278,13 @@ export default function ApplicationForm() {
 
         window.sendOtp(
           formData.parentEmail.toLowerCase().trim(),
-          (data) => {
+          (data: MSG91WidgetSuccessData) => {
             console.log("✅ OTP sent to email:", data);
             setStep("otp");
             setMessage("✅ OTP sent to your email");
             setIsSubmitting(false);
           },
-          (error) => {
+          (error: MSG91WidgetError) => {
             console.error("❌ Email OTP error:", error);
             setError(error?.message || "Failed to send OTP");
             setIsSubmitting(false);
@@ -330,8 +378,14 @@ export default function ApplicationForm() {
       }
 
       // Send OTP via MSG91 widget
-      if (!window.sendOtp) {
-        setError("Verification service not ready. Please refresh the page.");
+      if (!window.sendOtp || typeof window.sendOtp !== 'function') {
+        console.error("❌ sendOtp not available:", {
+          scriptLoaded,
+          widgetReady,
+          sendOtp: typeof window.sendOtp,
+          initSendOTP: typeof window.initSendOTP
+        });
+        setError("⚠️ Verification service is still loading. Please wait 3 seconds and try again.");
         setIsSubmitting(false);
         return;
       }
@@ -340,13 +394,13 @@ export default function ApplicationForm() {
 
       window.sendOtp(
         formData.parentEmail.toLowerCase().trim(),
-        (data) => {
+        (data: MSG91WidgetSuccessData) => {
           console.log("✅ OTP sent to email:", data);
           setStep("otp");
           setMessage("✅ OTP sent to your email");
           setIsSubmitting(false);
         },
-        (error) => {
+        (error: MSG91WidgetError) => {
           console.error("❌ Email OTP error:", error);
           setError(error?.message || "Failed to send OTP");
           setIsSubmitting(false);
@@ -378,7 +432,7 @@ export default function ApplicationForm() {
 
       window.verifyOtp(
         otp,
-        async (data) => {
+        async (data: MSG91WidgetSuccessData) => {
           console.log("✅ Email OTP verified:", data);
 
           const accessToken = data?.message || data?.token || data?.access_token;
@@ -408,12 +462,16 @@ export default function ApplicationForm() {
               setUser(responseData.user);
               window.dispatchEvent(new CustomEvent(USER_EVENTS.LOGIN));
               
-              setMessage("✅ Login successful!");
+              setMessage("✅ Login successful! Loading your profile...");
+              
+              // ✅ AUTO-SELECT FIRST PROFILE
+              const profileSelected = await autoSelectFirstProfile();
+              
               setIsSubmitting(false);
               
-              // Redirect to kids dashboard
+              // Redirect to dashboard (or /kids if no profiles)
               setTimeout(() => {
-                router.push('/kids/dashboard');
+                router.push(profileSelected ? '/kids/dashboard' : '/kids');
               }, 500);
             } else {
               setError(responseData.error || "Login failed");
@@ -446,6 +504,17 @@ export default function ApplicationForm() {
             setUser(responseData.user);
             window.dispatchEvent(new CustomEvent(USER_EVENTS.LOGIN));
             
+            // ✅ AUTO-SAVE THE CREATED KID PROFILE
+            if (responseData.kidProfile) {
+              console.log("✅ Auto-selecting newly created profile:", responseData.kidProfile.name);
+              localStorage.setItem("selectedKidProfile", JSON.stringify({
+                _id: responseData.kidProfile._id,
+                name: responseData.kidProfile.name,
+                age: responseData.kidProfile.age,
+                avatarColor: responseData.kidProfile.avatarColor,
+              }));
+            }
+            
             setMessage("✅ Account created successfully!");
             setStep("success");
             setIsSubmitting(false);
@@ -454,7 +523,7 @@ export default function ApplicationForm() {
             setIsSubmitting(false);
           }
         },
-        (error) => {
+        (error: MSG91WidgetError) => {
           console.error("❌ Widget verifyOtp error:", error);
           setError(error?.message || "Invalid OTP");
           setIsSubmitting(false);
@@ -467,12 +536,13 @@ export default function ApplicationForm() {
     }
   };
 
-  // ✅ Loading state with timeout (max 8 seconds)
-  if (scriptLoaded && !widgetReady && step === 'form' && !error) {
+  // ✅ UPDATED: Loading state - show until mounted AND widget ready
+  if (!isMounted || (scriptLoaded && !widgetReady && step === 'form' && !error)) {
     return (
       <>
         <Script
           src="https://verify.msg91.com/otp-provider.js"
+          strategy="afterInteractive"
           onLoad={handleWidgetLoad}
         />
         <div className="bg-slate-50 py-16">
@@ -494,6 +564,7 @@ export default function ApplicationForm() {
       <>
         <Script
           src="https://verify.msg91.com/otp-provider.js"
+          strategy="afterInteractive"
           onLoad={handleWidgetLoad}
         />
         <div id="application-form" className="bg-slate-50 py-16">
@@ -545,6 +616,7 @@ export default function ApplicationForm() {
       <>
         <Script
           src="https://verify.msg91.com/otp-provider.js"
+          strategy="afterInteractive"
           onLoad={handleWidgetLoad}
         />
         <div id="application-form" className="bg-slate-50 py-16">
@@ -624,6 +696,7 @@ export default function ApplicationForm() {
     <>
       <Script
         src="https://verify.msg91.com/otp-provider.js"
+        strategy="afterInteractive"
         onLoad={handleWidgetLoad}
         onError={() => {
           console.error("❌ Failed to load MSG91 widget");
