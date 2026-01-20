@@ -5,13 +5,13 @@ export default function Logo() {
   return (
     <Link href="/" aria-label="Go to homepage">
       <Image
-        src="/logo.jpg"
+        src="/Swago_logo.png"
         alt="Swago Logo"
         // 1. Use the actual dimensions to maintain the correct aspect ratio
-        width={484}
-        height={186}
+        width={2902}
+        height={1145}
         // 2. Use CSS classes to control the displayed size in the navbar
-        className="h-10 w-auto" // This makes the logo 40px tall; the width adjusts automatically
+        className="h-12 w-auto" // This makes the logo 40px tall; the width adjusts automatically
       />
     </Link>
   );
