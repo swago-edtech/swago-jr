@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { useSharedContext, USER_EVENTS } from "@/context/SharedContext"; // ✅ Added USER_EVENTS
+import { useSharedContext, USER_EVENTS } from "@/context/SharedContext";
 import { useState, useEffect, useRef } from "react";
 import Logo from "./Logo";
 import { motion, AnimatePresence, Variants } from "framer-motion";
@@ -202,68 +202,87 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* Mobile: User Menu on right */}
-        <div className="md:hidden relative" ref={userMenuRef}>
-          {user ? (
-            <>
-              <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} type="button" aria-label="Open user menu" onClick={() => setUserMenuOpen(!isUserMenuOpen)} className="flex items-center p-1 rounded-full">
-                <HiUserCircle className="w-6 h-6 text-slate-500" />
-              </motion.button>
-              <AnimatePresence>
-                {isUserMenuOpen && (
-                  <motion.div 
-                    className="absolute top-full right-0 mt-2 w-56 bg-white text-slate-800 rounded-md shadow-lg z-20 border border-slate-200 border-t-4 border-t-[hsl(var(--swago-purple))]"
-                    variants={dropdownVariants}
-                    initial="hidden"
-                    animate="visible"
-                    exit="exit"
-                  >
-                    <div className="px-4 py-3 border-b">
-                      <p className="text-sm">Signed in as</p>
-                      <p className="text-sm font-medium truncate">
-                        {user.name || user.email || user.phone}
-                      </p>
-                    </div>
-                    
-                    {/* Kids Zone in mobile user menu */}
-                    {selectedKid ? (
-                      <Link 
-                        href="/kids/dashboard" 
-                        onClick={() => setUserMenuOpen(false)} 
-                        className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-purple-50 hover:text-[hsl(var(--swago-purple))] border-b"
-                      >
-                        <div
-                          className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold"
-                          style={{ backgroundColor: selectedKid.avatarColor }}
+        {/* ✅ NEW: Mobile Cart Icon (next to profile) */}
+        <div className="md:hidden flex items-center gap-3">
+          {/* Cart Icon - Mobile */}
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={openCartSidebar}
+            className="relative p-1"
+            aria-label="Open cart"
+          >
+            <HiShoppingCart className="w-6 h-6 text-[hsl(var(--swago-pink))]" />
+            {itemCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-[hsl(var(--swago-pink))] text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">
+                {itemCount}
+              </span>
+            )}
+          </motion.button>
+
+          {/* User Menu - Mobile */}
+          <div className="relative" ref={userMenuRef}>
+            {user ? (
+              <>
+                <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} type="button" aria-label="Open user menu" onClick={() => setUserMenuOpen(!isUserMenuOpen)} className="flex items-center p-1 rounded-full">
+                  <HiUserCircle className="w-6 h-6 text-slate-500" />
+                </motion.button>
+                <AnimatePresence>
+                  {isUserMenuOpen && (
+                    <motion.div 
+                      className="absolute top-full right-0 mt-2 w-56 bg-white text-slate-800 rounded-md shadow-lg z-20 border border-slate-200 border-t-4 border-t-[hsl(var(--swago-purple))]"
+                      variants={dropdownVariants}
+                      initial="hidden"
+                      animate="visible"
+                      exit="exit"
+                    >
+                      <div className="px-4 py-3 border-b">
+                        <p className="text-sm">Signed in as</p>
+                        <p className="text-sm font-medium truncate">
+                          {user.name || user.email || user.phone}
+                        </p>
+                      </div>
+                      
+                      {/* Kids Zone in mobile user menu */}
+                      {selectedKid ? (
+                        <Link 
+                          href="/kids/dashboard" 
+                          onClick={() => setUserMenuOpen(false)} 
+                          className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-purple-50 hover:text-[hsl(var(--swago-purple))] border-b"
                         >
-                          {selectedKid.name.charAt(0).toUpperCase()}
-                        </div>
-                        <span className="font-bold">{selectedKid.name}&apos;s Dashboard</span>
-                      </Link>
-                    ) : (
-                      <Link 
-                        href="/kids" 
-                        onClick={() => setUserMenuOpen(false)} 
-                        className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-purple-50 hover:text-[hsl(var(--swago-purple))] font-bold border-b"
-                      >
-                        <span>🎮</span> Kids Zone
-                      </Link>
-                    )}
-                    
-                    <Link href="/profile" onClick={() => setUserMenuOpen(false)} className="block w-full text-left px-4 py-2.5 text-sm hover:bg-slate-100 hover:text-[hsl(var(--swago-purple))]">My Profile</Link>
-                    <Link href="/orders" onClick={() => setUserMenuOpen(false)} className="block w-full text-left px-4 py-2.5 text-sm hover:bg-slate-100 hover:text-[hsl(var(--swago-purple))]">My Orders</Link>
-                    <button onClick={handleLogout} className="block w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50">Logout</button>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </>
-          ) : (
-            <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-              <Link href="/login" aria-label="Login" className="flex items-center p-1 rounded-full">
-                <HiUserCircle className="w-6 h-6 text-slate-500" />
-              </Link>
-            </motion.div>
-          )}
+                          <div
+                            className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold"
+                            style={{ backgroundColor: selectedKid.avatarColor }}
+                          >
+                            {selectedKid.name.charAt(0).toUpperCase()}
+                          </div>
+                          <span className="font-bold">{selectedKid.name}&apos;s Dashboard</span>
+                        </Link>
+                      ) : (
+                        <Link 
+                          href="/kids" 
+                          onClick={() => setUserMenuOpen(false)} 
+                          className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-purple-50 hover:text-[hsl(var(--swago-purple))] font-bold border-b"
+                        >
+                          <span>🎮</span> Kids Zone
+                        </Link>
+                      )}
+                      
+                      <Link href="/profile" onClick={() => setUserMenuOpen(false)} className="block w-full text-left px-4 py-2.5 text-sm hover:bg-slate-100 hover:text-[hsl(var(--swago-purple))]">My Profile</Link>
+                      <Link href="/orders" onClick={() => setUserMenuOpen(false)} className="block w-full text-left px-4 py-2.5 text-sm hover:bg-slate-100 hover:text-[hsl(var(--swago-purple))]">My Orders</Link>
+                      <button onClick={handleLogout} className="block w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50">Logout</button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </>
+            ) : (
+              <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+                <Link href="/login" aria-label="Login" className="flex items-center p-1 rounded-full">
+                  <HiUserCircle className="w-6 h-6 text-slate-500" />
+                </Link>
+              </motion.div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -277,19 +296,7 @@ export default function Navbar() {
             exit={{ opacity: 0, y: -10 }}
           >
             <div className="flex flex-col p-4 space-y-2">
-              {/* Cart moved to main menu */}
-              <button 
-                onClick={() => {
-                  openCartSidebar();
-                  setMobileMenuOpen(false);
-                }}
-                className="flex items-center gap-3 p-3 hover:bg-pink-50 rounded-md text-[hsl(var(--swago-pink))] font-bold"
-              >
-                <HiShoppingCart className="w-5 h-5" />
-                <span>Cart</span>
-                {itemCount > 0 && <span className="ml-auto bg-[hsl(var(--swago-pink))] text-white rounded-full px-2 py-0.5 text-xs">{itemCount}</span>}
-              </button>
-
+              {/* Wishlist in hamburger menu */}
               <Link href="/wishlist" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 p-3 hover:bg-pink-50 rounded-md">
                 <HiHeart className="w-5 h-5" />
                 <span>Wishlist</span>

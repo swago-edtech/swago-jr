@@ -1,13 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { useSharedContext, Product } from "@/context/SharedContext";
+import { useSharedContext, Product, CartItem } from "@/context/SharedContext";
 import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import ReviewList from "./ReviewList";
-// ✅ Import react-icons
 import { AiFillHeart, AiOutlineHeart } from "react-icons/ai";
 import { RiShareForwardFill } from "react-icons/ri";
 
@@ -63,12 +62,42 @@ export default function ProductPageClient({ product }: { product: Product }) {
   const [direction, setDirection] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [openAccordion, setOpenAccordion] = useState<string | null>("description");
-  const [showFullName, setShowFullName] = useState(false); // ✅ NEW: For name expansion
-  const { addToCart, isWishlisted, addToWishlist, removeFromWishlist, user, openCartSidebar } = useSharedContext();
+  const [showFullName, setShowFullName] = useState(false);
+  const { cart, addToCart, isWishlisted, addToWishlist, removeFromWishlist, user, openCartSidebar, increaseQty, decreaseQty } = useSharedContext();
 
-  // Support both ID formats
-  const productId = product.id || parseInt(product._id?.replace('hardcoded-', '') || '0');
-  const isLiked = isWishlisted(productId);
+  // ✅ FIXED: Use the SAME logic as ProductCard
+  const getProductIdentifier = (): string | number => {
+    if (product._id && !product._id.startsWith('hardcoded-')) {
+      return product._id; // DB products (MongoDB ObjectId)
+    }
+    
+    if (product.id) {
+      return product.id; // Hardcoded products (numeric ID)
+    }
+    
+    if (product._id?.startsWith('hardcoded-')) {
+      return parseInt(product._id.replace('hardcoded-', ''));
+    }
+    
+    return 0;
+  };
+
+  const productIdentifier = getProductIdentifier();
+  const isLiked = isWishlisted(productIdentifier);
+
+  // ✅ NEW: Create numeric ID for ReviewList (reviews use numeric IDs)
+  const numericProductId = typeof productIdentifier === 'number' 
+    ? productIdentifier 
+    : parseInt(productIdentifier) || 0;
+
+  // ✅ Check if item is in cart and get quantity (SAME as ProductCard)
+  const getProductId = (item: CartItem): string => {
+    return item.productId?.toString() || item._id?.toString() || item.id?.toString() || '';
+  };
+  
+  const cartItem = cart.find(item => getProductId(item) === productIdentifier.toString());
+  const quantityInCart = cartItem?.quantity || 0;
+  const isInCart = quantityInCart > 0;
 
   // Stock status
   const stock = product.stock;
@@ -87,7 +116,7 @@ export default function ProductPageClient({ product }: { product: Product }) {
     ? Math.round(((originalPrice - product.price) / originalPrice) * 100)
     : 0;
 
-  // ✅ NEW: Truncate product name to first 4 words
+  // Truncate product name to first 4 words
   const words = product.name.split(' ');
   const isLongName = words.length > 4;
   const displayName = showFullName ? product.name : (isLongName ? words.slice(0, 4).join(' ') + '...' : product.name);
@@ -115,19 +144,27 @@ export default function ProductPageClient({ product }: { product: Product }) {
 
   const handleWishlistClick = () => {
     if (isLiked) {
-      removeFromWishlist(productId);
+      removeFromWishlist(productIdentifier);
     } else {
-      addToWishlist(productId);
+      addToWishlist(productIdentifier);
     }
   };
 
-  // ✅ Handle share button
   const handleShareClick = async () => {
-    const productUrl = product.slug 
-      ? `${window.location.origin}/product/${product.slug}` 
-      : `${window.location.origin}/product/${product._id || product.id}`;
+    let shareIdentifier: string | number;
     
-    // Try native share API first (mobile)
+    if (product.id !== undefined && product.id !== null && typeof product.id === 'number') {
+      shareIdentifier = product.id;
+    } else if (product.slug) {
+      shareIdentifier = product.slug;
+    } else {
+      shareIdentifier = product._id || '';
+    }
+    
+    const productUrl = `${window.location.origin}/product/${shareIdentifier}`;
+    
+    console.log('📤 Sharing:', productUrl);
+    
     if (navigator.share) {
       try {
         await navigator.share({
@@ -135,12 +172,10 @@ export default function ProductPageClient({ product }: { product: Product }) {
           text: `Check out ${product.name} on Swago Jr!`,
           url: productUrl,
         });
-        console.log('✅ Shared successfully');
       } catch (err) {
         console.log('Share cancelled or failed:', err);
       }
     } else {
-      // Fallback: Copy to clipboard
       try {
         await navigator.clipboard.writeText(productUrl);
         alert('Product link copied to clipboard!');
@@ -153,18 +188,29 @@ export default function ProductPageClient({ product }: { product: Product }) {
   const handleBuyNow = () => {
     if (isOutOfStock) return;
     addToCart(product, quantity);
-    router.push("/cart");
+    
+    if (typeof window !== 'undefined' && window.innerWidth > 768) {
+      openCartSidebar();
+    } else {
+      router.push("/cart");
+    }
   };
 
-  // Handle add to cart with auto-open (desktop only)
   const handleAddToCart = () => {
     if (isOutOfStock) return;
     addToCart(product, quantity);
     
-    // Auto-open sidebar only on desktop/tablet (screen width > 768px)
     if (typeof window !== 'undefined' && window.innerWidth > 768) {
       openCartSidebar();
     }
+  };
+
+  const handleIncrease = () => {
+    increaseQty(productIdentifier);
+  };
+
+  const handleDecrease = () => {
+    decreaseQty(productIdentifier);
   };
 
   const renderListContent = (text: string | undefined) => {
@@ -193,9 +239,7 @@ export default function ProductPageClient({ product }: { product: Product }) {
           
           {/* Image Gallery Section */}
           <div className="md:col-span-2">
-            {/* ✅ UPDATED: Reduced height for mobile */}
             <div className="relative w-full h-[20rem] md:h-[32rem] bg-slate-100 rounded-lg overflow-hidden shadow-lg group">
-              {/* Stock Badge on Image */}
               {isOutOfStock && (
                 <div className="absolute top-4 left-4 bg-red-500 text-white text-xs md:text-sm font-bold px-3 md:px-4 py-1 md:py-2 rounded-full z-10">
                   Out of Stock
@@ -207,9 +251,7 @@ export default function ProductPageClient({ product }: { product: Product }) {
                 </div>
               )}
 
-              {/* ✅ NEW: Action buttons on image (Share + Wishlist) */}
               <div className="absolute top-4 right-4 flex gap-2 z-10">
-                {/* Share Button */}
                 <button 
                   onClick={handleShareClick}
                   className="p-2 rounded-full bg-white/80 backdrop-blur-sm hover:bg-white transition"
@@ -219,7 +261,6 @@ export default function ProductPageClient({ product }: { product: Product }) {
                   <RiShareForwardFill className="w-5 h-5 md:w-6 md:h-6 text-slate-600" />
                 </button>
                 
-                {/* Wishlist Button */}
                 <button 
                   onClick={handleWishlistClick}
                   className="p-2 rounded-full bg-white/80 backdrop-blur-sm hover:bg-white transition"
@@ -278,7 +319,6 @@ export default function ProductPageClient({ product }: { product: Product }) {
               )}
             </div>
 
-            {/* Thumbnails */}
             <div className="grid grid-cols-4 gap-4 mt-4">
               {product.images.map((img, index) => (
                 <button
@@ -298,7 +338,6 @@ export default function ProductPageClient({ product }: { product: Product }) {
           </div>
 
           <div className="md:col-span-3">
-            {/* ✅ UPDATED: Product name with Read more/Show less */}
             <div className="mb-2">
               <h1 className="text-2xl md:text-4xl font-bold text-zoom-in">
                 {displayName}
@@ -318,7 +357,6 @@ export default function ProductPageClient({ product }: { product: Product }) {
                 Age: {ageCategory}
               </span>
               
-              {/* Stock Status Badge */}
               {stock !== undefined && (
                 <>
                   {isOutOfStock ? (
@@ -338,7 +376,6 @@ export default function ProductPageClient({ product }: { product: Product }) {
               )}
             </div>
 
-            {/* Price section with percentage badge */}
             <div className="flex items-center gap-2 md:gap-3 flex-wrap my-4">
               <p className="text-2xl md:text-3xl font-bold text-slate-900 text-pop-bounce">
                 ₹{product.price}
@@ -348,7 +385,6 @@ export default function ProductPageClient({ product }: { product: Product }) {
                   <span className="text-lg md:text-xl text-slate-400 line-through">
                     ₹{originalPrice}
                   </span>
-                  {/* Percentage Off Badge */}
                   <span className="inline-block bg-red-500 text-white text-xs md:text-sm font-bold px-2 md:px-3 py-0.5 md:py-1 rounded">
                     {percentOff}% OFF
                   </span>
@@ -356,7 +392,8 @@ export default function ProductPageClient({ product }: { product: Product }) {
               )}
             </div>
 
-            {!isOutOfStock && (
+            {/* Show quantity selector ONLY if NOT in cart */}
+            {!isOutOfStock && !isInCart && (
               <div className="flex items-center gap-4 mb-6 flex-wrap">
                 <label className="font-semibold text-sm md:text-base">Quantity:</label>
                 <div className="flex items-center border rounded-lg">
@@ -396,18 +433,43 @@ export default function ProductPageClient({ product }: { product: Product }) {
               </div>
             )}
 
+            {/* ✅ FIXED: Buttons - quantity controls replace Add to Cart when in cart */}
             <div className="flex gap-3 md:gap-4">
-              <button 
-                onClick={handleAddToCart}
-                disabled={isOutOfStock}
-                className={`flex-1 font-bold py-2.5 md:py-3 rounded-lg text-sm md:text-base transition ${
-                  isOutOfStock
-                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    : 'btn-shine btn-text-pop bg-[hsl(var(--swago-purple))] text-white'
-                }`}
-              >
-                <span>{isOutOfStock ? 'Out of Stock' : 'Add to Cart'}</span>
-              </button>
+              {!isInCart ? (
+                <button 
+                  onClick={handleAddToCart}
+                  disabled={isOutOfStock}
+                  className={`flex-1 font-bold py-2.5 md:py-3 rounded-lg text-sm md:text-base transition ${
+                    isOutOfStock
+                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      : 'btn-shine btn-text-pop bg-[hsl(var(--swago-purple))] text-white'
+                  }`}
+                >
+                  <span>{isOutOfStock ? 'Out of Stock' : 'Add to Cart'}</span>
+                </button>
+              ) : (
+                <div className="flex-1 flex items-center justify-center gap-2 border-2 border-[hsl(var(--swago-purple))] rounded-lg bg-purple-50 py-1.5 md:py-2">
+                  <button
+                    onClick={handleDecrease}
+                    className="px-3 md:px-4 py-1 hover:bg-purple-100 transition text-[hsl(var(--swago-purple))] font-bold text-lg md:text-xl"
+                    aria-label="Decrease quantity"
+                  >
+                    −
+                  </button>
+                  <span className="font-bold text-lg md:text-xl text-[hsl(var(--swago-purple))] min-w-[2rem] text-center">
+                    {quantityInCart}
+                  </span>
+                  <button
+                    onClick={handleIncrease}
+                    className="px-3 md:px-4 py-1 hover:bg-purple-100 transition text-[hsl(var(--swago-purple))] font-bold text-lg md:text-xl"
+                    aria-label="Increase quantity"
+                    disabled={stock !== undefined && quantityInCart >= stock}
+                  >
+                    +
+                  </button>
+                </div>
+              )}
+              
               <button 
                 onClick={handleBuyNow} 
                 disabled={isOutOfStock}
@@ -417,7 +479,7 @@ export default function ProductPageClient({ product }: { product: Product }) {
                     : 'btn-shine btn-text-pop bg-[hsl(var(--swago-orange))] text-white'
                 }`}
               >
-                <span>{isOutOfStock ? 'Out of Stock' : 'Buy It Now'}</span>
+                <span>{isOutOfStock ? 'Out of Stock' : isInCart ? 'View Cart' : 'Buy It Now'}</span>
               </button>
             </div>
 
@@ -434,7 +496,7 @@ export default function ProductPageClient({ product }: { product: Product }) {
         </div>
 
         <div className="mt-16 border-t pt-12">
-          <ReviewList productId={productId} currentUserId={user?.phone} />
+          <ReviewList productId={numericProductId} currentUserId={user?.phone} />
         </div>
       </div>
 

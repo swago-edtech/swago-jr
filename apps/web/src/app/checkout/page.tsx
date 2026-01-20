@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { useSharedContext } from "@/context/SharedContext";
 import { useRouter } from "next/navigation";
 import Script from "next/script";
-//import PhoneInput, { getCountryCallingCode } from 'react-phone-number-input';
 import PhoneInput from 'react-phone-number-input';
 import 'react-phone-number-input/style.css';
 import { isPossiblePhoneNumber, parsePhoneNumber } from 'react-phone-number-input';
@@ -57,6 +56,46 @@ type Discount = {
   savedAmount: number;
 };
 
+// ✅ Indian States List
+const INDIAN_STATES = [
+  "Andhra Pradesh",
+  "Arunachal Pradesh",
+  "Assam",
+  "Bihar",
+  "Chhattisgarh",
+  "Goa",
+  "Gujarat",
+  "Haryana",
+  "Himachal Pradesh",
+  "Jharkhand",
+  "Karnataka",
+  "Kerala",
+  "Madhya Pradesh",
+  "Maharashtra",
+  "Manipur",
+  "Meghalaya",
+  "Mizoram",
+  "Nagaland",
+  "Odisha",
+  "Punjab",
+  "Rajasthan",
+  "Sikkim",
+  "Tamil Nadu",
+  "Telangana",
+  "Tripura",
+  "Uttar Pradesh",
+  "Uttarakhand",
+  "West Bengal",
+  "Andaman and Nicobar Islands",
+  "Chandigarh",
+  "Dadra and Nagar Haveli and Daman and Diu",
+  "Delhi",
+  "Jammu and Kashmir",
+  "Ladakh",
+  "Lakshadweep",
+  "Puducherry"
+];
+
 export default function CheckoutPage() {
   const [processing, setProcessing] = useState(false);
   const [form, setForm] = useState({ 
@@ -79,7 +118,6 @@ export default function CheckoutPage() {
   const [couponLoading, setCouponLoading] = useState(false);
   const [couponMessage, setCouponMessage] = useState("");
   
-  // ✅ NEW: State for pincode features
   const [isIndianNumber, setIsIndianNumber] = useState(true);
   const [pincodeLoading, setPincodeLoading] = useState(false);
   const [pincodeError, setPincodeError] = useState("");
@@ -96,7 +134,7 @@ export default function CheckoutPage() {
     }
   }, [user]);
 
-  // ✅ NEW: Detect if phone is Indian
+  // ✅ Detect if phone is Indian
   useEffect(() => {
     if (form.phone) {
       try {
@@ -108,7 +146,7 @@ export default function CheckoutPage() {
     }
   }, [form.phone]);
 
-  // ✅ NEW: Auto-fill city/state from pincode (India only)
+  // ✅ Auto-fill city/state from pincode (India only)
   useEffect(() => {
     if (!isIndianNumber || form.pincode.length !== 6) return;
 
@@ -143,7 +181,7 @@ export default function CheckoutPage() {
     return () => clearTimeout(debounce);
   }, [form.pincode, isIndianNumber]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
@@ -373,7 +411,6 @@ export default function CheckoutPage() {
     );
   }
 
-  // ✅ Updated validation - pincode only required for India
   const isFormValid = form.name && form.email && form.phone && 
                      isPossiblePhoneNumber(form.phone || '') &&
                      form.age && form.address && 
@@ -518,24 +555,23 @@ export default function CheckoutPage() {
                   </div>
                 </div>
 
-                {/* ✅ Phone Number with Country Selector */}
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">
                     Phone Number *
                   </label>
                   <PhoneInput
-                  international
-                  defaultCountry="IN"
-                  value={form.phone}
-                  onChange={(value) => setForm({ ...form, phone: value || '' })}
-                  placeholder="Enter phone number"
-                  numberInputProps={{
-                    className: "w-full border border-slate-300 rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  }}
-                  countrySelectProps={{
-                    className: "border-slate-300 rounded-l-md"
+                    international
+                    defaultCountry="IN"
+                    value={form.phone}
+                    onChange={(value) => setForm({ ...form, phone: value || '' })}
+                    placeholder="Enter phone number"
+                    numberInputProps={{
+                      className: "w-full border border-slate-300 rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     }}
-                    />
+                    countrySelectProps={{
+                      className: "border-slate-300 rounded-l-md"
+                    }}
+                  />
 
                   {form.phone && !isPossiblePhoneNumber(form.phone) && (
                     <p className="text-red-500 text-xs mt-1">Please enter a valid phone number</p>
@@ -637,19 +673,37 @@ export default function CheckoutPage() {
                     />
                   </div>
 
+                  {/* ✅ State Dropdown for India, Text Input for International */}
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">
                       State *
                     </label>
-                    <input
-                      type="text"
-                      name="state"
-                      value={form.state}
-                      onChange={handleChange}
-                      placeholder="State"
-                      className="w-full border border-slate-300 rounded-md p-3"
-                      required
-                    />
+                    {isIndianNumber ? (
+                      <select
+                        name="state"
+                        value={form.state}
+                        onChange={handleChange}
+                        className="w-full border border-slate-300 rounded-md p-3 bg-white"
+                        required
+                      >
+                        <option value="">Select State</option>
+                        {INDIAN_STATES.map((state) => (
+                          <option key={state} value={state}>
+                            {state}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        type="text"
+                        name="state"
+                        value={form.state}
+                        onChange={handleChange}
+                        placeholder="State/Province"
+                        className="w-full border border-slate-300 rounded-md p-3"
+                        required
+                      />
+                    )}
                   </div>
                 </div>
               </div>
