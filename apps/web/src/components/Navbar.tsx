@@ -91,7 +91,7 @@ export default function Navbar() {
           
           <motion.div className="relative" ref={elementDropdownRef} whileHover={{ y: -2 }}>
             <button onClick={() => setElementDropdownOpen(!isElementDropdownOpen)} className="transition-colors hover:text-[hsl(var(--swago-purple))] flex items-center gap-1">
-              Swago Elements <HiChevronDown className="w-5 h-5" />
+              Shop by Categories <HiChevronDown className="w-5 h-5" />
             </button>
             <AnimatePresence>
               {isElementDropdownOpen && (
@@ -102,7 +102,7 @@ export default function Navbar() {
                   animate="visible"
                   exit="exit"
                 >
-                  <Link href="/products" onClick={() => setElementDropdownOpen(false)} className="block px-3 py-1.5 text-sm rounded-sm font-semibold hover:bg-slate-100 hover:text-[hsl(var(--swago-orange))]">All Elements</Link>
+                  <Link href="/products" onClick={() => setElementDropdownOpen(false)} className="block px-3 py-1.5 text-sm rounded-sm font-semibold hover:bg-slate-100 hover:text-[hsl(var(--swago-orange))]">All Categories</Link>
                   <Link href="/products?elements=S" onClick={() => setElementDropdownOpen(false)} className="block px-3 py-1.5 text-sm rounded-sm hover:bg-slate-100 hover:text-[hsl(var(--swago-orange))]">S – Smart Tech</Link>
                   <Link href="/products?elements=W" onClick={() => setElementDropdownOpen(false)} className="block px-3 py-1.5 text-sm rounded-sm hover:bg-slate-100 hover:text-[hsl(var(--swago-orange))]">W – Willpower</Link>
                   <Link href="/products?elements=A" onClick={() => setElementDropdownOpen(false)} className="block px-3 py-1.5 text-sm rounded-sm hover:bg-slate-100 hover:text-[hsl(var(--swago-orange))]">A – Ambition</Link>

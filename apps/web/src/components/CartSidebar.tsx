@@ -417,7 +417,7 @@ export default function CartSidebar() {
                     </div>
                     <div className="flex justify-between text-gray-600">
                       <span>Shipping Fee</span>
-                      <span className="text-green-600 font-semibold">₹90 FREE</span>
+                      <span className="text-green-600 font-semibold">₹<del>90</del> FREE</span>
                     </div>
                     <div className="border-t pt-2 flex justify-between text-base font-bold text-gray-900">
                       <span>To Pay Subtotal</span>

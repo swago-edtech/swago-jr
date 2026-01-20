@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, FormEvent } from 'react';
-import { FiPhone, FiMail, FiMapPin } from 'react-icons/fi';
+import { FiPhone, FiMail, FiMapPin, FiX } from 'react-icons/fi';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
@@ -24,7 +25,6 @@ export default function ContactPage() {
     });
     // Clear error when user starts typing
     if (error) setError('');
-    if (success) setSuccess(false);
   };
 
   const handleSubmit = async (e: FormEvent) => {
@@ -59,15 +59,91 @@ export default function ContactPage() {
 
       // Auto-hide success message after 5 seconds
       setTimeout(() => setSuccess(false), 5000);
-      } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
-      } finally {
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
+    } finally {
       setLoading(false);
     }
   };
 
   return (
     <div className="min-h-screen bg-white">
+      {/* ✅ NEW: Success Popup Modal */}
+      <AnimatePresence>
+        {success && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSuccess(false)}
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
+            />
+            
+            {/* Modal */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              transition={{ type: "spring", duration: 0.5 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            >
+              <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 relative">
+                {/* Close Button */}
+                <button
+                  onClick={() => setSuccess(false)}
+                  className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition"
+                  aria-label="Close"
+                >
+                  <FiX className="w-6 h-6" />
+                </button>
+
+                {/* Success Icon */}
+                <div className="flex justify-center mb-4">
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+                    className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center"
+                  >
+                    <svg
+                      className="w-8 h-8 text-green-600"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M5 13l4 4L19 7"
+                      />
+                    </svg>
+                  </motion.div>
+                </div>
+
+                {/* Success Message */}
+                <h3 className="text-2xl font-bold text-slate-800 text-center mb-2">
+                  Message Sent Successfully!
+                </h3>
+                <p className="text-slate-600 text-center mb-6">
+                  Thank you for reaching out to us. We&#39;ll get back to you within 24 hours.
+                </p>
+
+                {/* Close Button */}
+                <button
+                  onClick={() => setSuccess(false)}
+                  className="w-full bg-[hsl(var(--swago-purple))] text-white font-bold py-3 rounded-lg hover:opacity-90 transition"
+                >
+                  Got it!
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
       {/* Hero Section */}
       <div className="bg-gradient-to-r from-[hsl(var(--swago-purple))] to-purple-600 text-white py-16">
         <div className="container mx-auto px-4 text-center">
@@ -134,20 +210,16 @@ export default function ContactPage() {
           {/* Contact Form */}
           <div className="bg-slate-50 p-8 rounded-2xl">
             <h2 className="text-2xl font-bold text-slate-800 mb-6">Send us a Message</h2>
-            
-            {/* Success Message */}
-            {success && (
-              <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg text-green-800">
-                <p className="font-medium">✓ Message sent successfully!</p>
-                <p className="text-sm mt-1">We&#39;ll get back to you within 24 hours.</p>
-              </div>
-            )}
 
-            {/* Error Message */}
+            {/* Error Message (Keep inline) */}
             {error && (
-              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-800">
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-800"
+              >
                 <p className="font-medium">✗ {error}</p>
-              </div>
+              </motion.div>
             )}
 
             <form onSubmit={handleSubmit} className="space-y-6">

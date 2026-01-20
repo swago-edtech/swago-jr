@@ -5,9 +5,12 @@ import { Product, CartItem, useSharedContext } from "@/context/SharedContext";
 import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
+// ✅ NEW: Import react-icons
+import { AiFillHeart, AiOutlineHeart } from "react-icons/ai";
+import { RiShareForwardFill } from "react-icons/ri";
 
 export default function ProductCard({ product }: { product: Product }) {
-  const { cart, addToCart, addToWishlist, removeFromWishlist, isWishlisted, openCartSidebar, increaseQty, decreaseQty } = useSharedContext(); // ✅ ADDED cart, increaseQty, decreaseQty
+  const { cart, addToCart, addToWishlist, removeFromWishlist, isWishlisted, openCartSidebar, increaseQty, decreaseQty } = useSharedContext();
   
   const getProductIdentifier = (): string | number => {
     if (product._id && !product._id.startsWith('hardcoded-')) {
@@ -30,13 +33,14 @@ export default function ProductCard({ product }: { product: Product }) {
 
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isHovering, setIsHovering] = useState(false);
+  const [showFullName, setShowFullName] = useState(false); // ✅ NEW: For name expansion
 
   // Get stock status
   const stock = product.stock;
   const isOutOfStock = stock !== undefined && stock === 0;
   const isLowStock = stock !== undefined && stock > 0 && stock < 10;
 
-  // ✅ NEW: Check if item is in cart and get quantity
+  // Check if item is in cart and get quantity
   const getProductId = (item: CartItem): string => {
     return item.productId?.toString() || item._id?.toString() || item.id?.toString() || '';
   };
@@ -74,6 +78,38 @@ export default function ProductCard({ product }: { product: Product }) {
     }
   };
 
+  // ✅ NEW: Handle share button
+  const handleShareClick = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    
+    const productUrl = product.slug 
+      ? `${window.location.origin}/product/${product.slug}` 
+      : `${window.location.origin}/product/${product._id || product.id}`;
+    
+    // Try native share API first (mobile)
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: product.name,
+          text: `Check out ${product.name} on Swago Jr!`,
+          url: productUrl,
+        });
+        console.log('✅ Shared successfully');
+      } catch (err) {
+        console.log('Share cancelled or failed:', err);
+      }
+    } else {
+      // Fallback: Copy to clipboard
+      try {
+        await navigator.clipboard.writeText(productUrl);
+        alert('Product link copied to clipboard!');
+      } catch (err) {
+        console.error('Failed to copy:', err);
+      }
+    }
+  };
+
   // Handle add to cart with auto-open sidebar (desktop only)
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -93,23 +129,40 @@ export default function ProductCard({ product }: { product: Product }) {
     }
   };
 
-  // ✅ NEW: Handle quantity increase
+  // Handle quantity increase
   const handleIncrease = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     increaseQty(productIdentifier);
   };
 
-  // ✅ NEW: Handle quantity decrease
+  // Handle quantity decrease
   const handleDecrease = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     decreaseQty(productIdentifier);
   };
 
+  // ✅ NEW: Toggle full name
+  const handleReadMoreClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setShowFullName(!showFullName);
+  };
+
   // Support both naming conventions
   const ageCategory = product.ageCategory || product.age_category || '';
   const originalPrice = product.originalPrice || product.original_price;
+
+  // Calculate percentage off
+  const percentOff = originalPrice 
+    ? Math.round(((originalPrice - product.price) / originalPrice) * 100)
+    : 0;
+
+  // ✅ NEW: Truncate product name to first 4 words
+  const words = product.name.split(' ');
+  const isLongName = words.length > 4;
+  const displayName = showFullName ? product.name : (isLongName ? words.slice(0, 4).join(' ') + '...' : product.name);
 
   // Build product URL (support both slug and id)
   const productUrl = product.slug 
@@ -133,18 +186,32 @@ export default function ProductCard({ product }: { product: Product }) {
             className="object-cover transition-transform duration-300 group-hover:scale-105" 
           />
           
-          {/* Wishlist Button */}
-          <button 
-            onClick={handleWishlistClick}
-            className="absolute top-3 right-3 p-2 rounded-full bg-white/80 backdrop-blur-sm hover:bg-white transition z-10"
-            aria-label="Add to wishlist"
-          >
-            {isLiked ? (
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6 text-[hsl(var(--swago-pink))]"><path d="M11.645 20.91a.75.75 0 0 1-1.29 0C8.125 18.172 4.5 14.51 4.5 10.5c0-2.897 2.353-5.25 5.25-5.25c.928 0 1.78.243 2.508.663c.728-.42 1.58-.663 2.508-.663c2.897 0 5.25 2.353 5.25 5.25c0 4.01-3.625 7.672-5.855 10.41a.75.75 0 0 1-1.29 0Z" /></svg>
-            ) : (
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 text-slate-600"><path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" /></svg>
-            )}
-          </button>
+          {/* ✅ UPDATED: Action buttons with react-icons */}
+          <div className="absolute top-3 right-3 flex gap-2 z-10">
+            {/* Share Button */}
+            <button 
+              onClick={handleShareClick}
+              className="p-2 rounded-full bg-white/80 backdrop-blur-sm hover:bg-white transition"
+              aria-label="Share product"
+              title="Share product"
+            >
+              <RiShareForwardFill className="w-6 h-6 text-slate-600" />
+            </button>
+            
+            {/* Wishlist Button */}
+            <button 
+              onClick={handleWishlistClick}
+              className="p-2 rounded-full bg-white/80 backdrop-blur-sm hover:bg-white transition"
+              aria-label={isLiked ? "Remove from wishlist" : "Add to wishlist"}
+              title={isLiked ? "Remove from wishlist" : "Add to wishlist"}
+            >
+              {isLiked ? (
+                <AiFillHeart className="w-6 h-6 text-[hsl(var(--swago-pink))]" />
+              ) : (
+                <AiOutlineHeart className="w-6 h-6 text-slate-600" />
+              )}
+            </button>
+          </div>
 
           {/* Stock Badges */}
           {isOutOfStock && (
@@ -161,27 +228,53 @@ export default function ProductCard({ product }: { product: Product }) {
         
         <div className="p-4 flex flex-col flex-grow">
           <div className="flex-grow">
-            <h3 className="text-base font-semibold text-slate-800 mb-2 h-12 line-clamp-2 text-zoom-in">
-              {product.name}
+            {/* ✅ UPDATED: Product name with Read more */}
+            <h3 className="text-base font-semibold text-slate-800 mb-2 min-h-12 text-zoom-in">
+              {displayName}
+              {isLongName && !showFullName && (
+                <button
+                  onClick={handleReadMoreClick}
+                  className="text-[hsl(var(--swago-purple))] text-sm ml-1 hover:underline"
+                >
+                  Read more
+                </button>
+              )}
+              {isLongName && showFullName && (
+                <button
+                  onClick={handleReadMoreClick}
+                  className="text-[hsl(var(--swago-purple))] text-sm ml-1 hover:underline"
+                >
+                  Show less
+                </button>
+              )}
             </h3>
           </div>
           
           <div className="mt-auto pt-3">
-            <div className="flex justify-between items-center mb-3">
-              <p className="text-pop">
-                <span className="text-lg font-bold text-slate-900">₹{product.price}</span>
-                {originalPrice && (
-                  <span className="text-sm text-slate-400 line-through ml-2">
-                    ₹{originalPrice}
-                  </span>
-                )}
-              </p>
-              <span className="inline-block bg-[hsl(var(--swago-teal))] text-white text-xs font-semibold px-2.5 py-0.5 rounded-full">
+            {/* Price section with percentage badge */}
+            <div className="flex justify-between items-start mb-3">
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-lg font-bold text-slate-900 text-pop">₹{product.price}</span>
+                  {originalPrice && (
+                    <>
+                      <span className="text-sm text-slate-400 line-through">
+                        ₹{originalPrice}
+                      </span>
+                      {/* Percentage Off Badge */}
+                      <span className="inline-block bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded">
+                        {percentOff}% OFF
+                      </span>
+                    </>
+                  )}
+                </div>
+              </div>
+              <span className="inline-block bg-[hsl(var(--swago-teal))] text-white text-xs font-semibold px-2.5 py-0.5 rounded-full whitespace-nowrap">
                 Age: {ageCategory}
               </span>
             </div>
             
-            {/* ✅ UPDATED: Show Add to Cart OR Quantity Controls */}
+            {/* Show Add to Cart OR Quantity Controls */}
             {!isInCart ? (
               // Show "Add to Cart" button when item is NOT in cart
               <motion.button 

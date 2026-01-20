@@ -38,7 +38,7 @@ export default function Footer() {
             </p>
             <p className="flex items-start gap-3">
               <EmailIcon />
-              <span>swago.club@gmail.com</span>
+              <span>support@swagojr.com</span>
             </p>
           </div>
         </div>
@@ -54,7 +54,7 @@ export default function Footer() {
 
         {/* Column 3: Shop by Elements */}
         <div>
-          <h3 className="font-bold text-slate-800 uppercase tracking-wider mb-4">Shop by Elements</h3>
+          <h3 className="font-bold text-slate-800 uppercase tracking-wider mb-4">Shop by Categories</h3>
           <ul className="space-y-2 text-sm">
             {swagoElements.map(element => (
               <li key={element.id}>

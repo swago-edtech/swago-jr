@@ -7,6 +7,9 @@ import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import ReviewList from "./ReviewList";
+// ✅ Import react-icons
+import { AiFillHeart, AiOutlineHeart } from "react-icons/ai";
+import { RiShareForwardFill } from "react-icons/ri";
 
 const CheckIcon = () => (
   <svg className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor">
@@ -60,7 +63,8 @@ export default function ProductPageClient({ product }: { product: Product }) {
   const [direction, setDirection] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [openAccordion, setOpenAccordion] = useState<string | null>("description");
-  const { addToCart, isWishlisted, addToWishlist, removeFromWishlist, user, openCartSidebar } = useSharedContext(); // ✅ UPDATED: Added openCartSidebar
+  const [showFullName, setShowFullName] = useState(false); // ✅ NEW: For name expansion
+  const { addToCart, isWishlisted, addToWishlist, removeFromWishlist, user, openCartSidebar } = useSharedContext();
 
   // Support both ID formats
   const productId = product.id || parseInt(product._id?.replace('hardcoded-', '') || '0');
@@ -77,6 +81,16 @@ export default function ProductPageClient({ product }: { product: Product }) {
   const originalPrice = product.originalPrice || product.original_price;
   const benefits = product.benefits;
   const boxContents = product.boxContents || product.box_contents;
+
+  // Calculate percentage off
+  const percentOff = originalPrice 
+    ? Math.round(((originalPrice - product.price) / originalPrice) * 100)
+    : 0;
+
+  // ✅ NEW: Truncate product name to first 4 words
+  const words = product.name.split(' ');
+  const isLongName = words.length > 4;
+  const displayName = showFullName ? product.name : (isLongName ? words.slice(0, 4).join(' ') + '...' : product.name);
 
   const handleNextImage = () => {
     setDirection(1);
@@ -107,13 +121,42 @@ export default function ProductPageClient({ product }: { product: Product }) {
     }
   };
 
+  // ✅ Handle share button
+  const handleShareClick = async () => {
+    const productUrl = product.slug 
+      ? `${window.location.origin}/product/${product.slug}` 
+      : `${window.location.origin}/product/${product._id || product.id}`;
+    
+    // Try native share API first (mobile)
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: product.name,
+          text: `Check out ${product.name} on Swago Jr!`,
+          url: productUrl,
+        });
+        console.log('✅ Shared successfully');
+      } catch (err) {
+        console.log('Share cancelled or failed:', err);
+      }
+    } else {
+      // Fallback: Copy to clipboard
+      try {
+        await navigator.clipboard.writeText(productUrl);
+        alert('Product link copied to clipboard!');
+      } catch (err) {
+        console.error('Failed to copy:', err);
+      }
+    }
+  };
+
   const handleBuyNow = () => {
     if (isOutOfStock) return;
     addToCart(product, quantity);
     router.push("/cart");
   };
 
-  // ✅ UPDATED: Handle add to cart with auto-open (desktop only)
+  // Handle add to cart with auto-open (desktop only)
   const handleAddToCart = () => {
     if (isOutOfStock) return;
     addToCart(product, quantity);
@@ -150,18 +193,46 @@ export default function ProductPageClient({ product }: { product: Product }) {
           
           {/* Image Gallery Section */}
           <div className="md:col-span-2">
-            <div className="relative w-full h-[32rem] bg-slate-100 rounded-lg overflow-hidden shadow-lg group">
+            {/* ✅ UPDATED: Reduced height for mobile */}
+            <div className="relative w-full h-[20rem] md:h-[32rem] bg-slate-100 rounded-lg overflow-hidden shadow-lg group">
               {/* Stock Badge on Image */}
               {isOutOfStock && (
-                <div className="absolute top-4 left-4 bg-red-500 text-white text-sm font-bold px-4 py-2 rounded-full z-10">
+                <div className="absolute top-4 left-4 bg-red-500 text-white text-xs md:text-sm font-bold px-3 md:px-4 py-1 md:py-2 rounded-full z-10">
                   Out of Stock
                 </div>
               )}
               {isLowStock && !isOutOfStock && (
-                <div className="absolute top-4 left-4 bg-orange-500 text-white text-sm font-bold px-4 py-2 rounded-full z-10">
+                <div className="absolute top-4 left-4 bg-orange-500 text-white text-xs md:text-sm font-bold px-3 md:px-4 py-1 md:py-2 rounded-full z-10">
                   Only {stock} left!
                 </div>
               )}
+
+              {/* ✅ NEW: Action buttons on image (Share + Wishlist) */}
+              <div className="absolute top-4 right-4 flex gap-2 z-10">
+                {/* Share Button */}
+                <button 
+                  onClick={handleShareClick}
+                  className="p-2 rounded-full bg-white/80 backdrop-blur-sm hover:bg-white transition"
+                  aria-label="Share product"
+                  title="Share product"
+                >
+                  <RiShareForwardFill className="w-5 h-5 md:w-6 md:h-6 text-slate-600" />
+                </button>
+                
+                {/* Wishlist Button */}
+                <button 
+                  onClick={handleWishlistClick}
+                  className="p-2 rounded-full bg-white/80 backdrop-blur-sm hover:bg-white transition"
+                  aria-label={isLiked ? "Remove from wishlist" : "Add to wishlist"}
+                  title={isLiked ? "Remove from wishlist" : "Add to wishlist"}
+                >
+                  {isLiked ? (
+                    <AiFillHeart className="w-5 h-5 md:w-6 md:h-6 text-[hsl(var(--swago-pink))]" />
+                  ) : (
+                    <AiOutlineHeart className="w-5 h-5 md:w-6 md:h-6 text-slate-600" />
+                  )}
+                </button>
+              </div>
 
               <AnimatePresence initial={false} custom={direction}>
                 <motion.div
@@ -227,28 +298,23 @@ export default function ProductPageClient({ product }: { product: Product }) {
           </div>
 
           <div className="md:col-span-3">
-            <div className="flex justify-between items-start">
-              <h1 className="text-4xl font-bold text-zoom-in">{product.name}</h1>
-              <button 
-                onClick={handleWishlistClick} 
-                className="p-2" 
-                aria-label={isLiked ? "Remove from Wishlist" : "Add to Wishlist"}
-                title={isLiked ? "Remove from Wishlist" : "Add to Wishlist"}
-              >
-                {isLiked ? (
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8 text-[hsl(var(--swago-pink))]">
-                    <path d="M11.645 20.91a.75.75 0 0 1-1.29 0C8.125 18.172 4.5 14.51 4.5 10.5c0-2.897 2.353-5.25 5.25-5.25c.928 0 1.78.243 2.508.663c.728-.42 1.58-.663 2.508-.663c2.897 0 5.25 2.353 5.25 5.25c0 4.01-3.625 7.672-5.855 10.41a.75.75 0 0 1-1.29 0Z" />
-                  </svg>
-                ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8 text-slate-400">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" />
-                  </svg>
+            {/* ✅ UPDATED: Product name with Read more/Show less */}
+            <div className="mb-2">
+              <h1 className="text-2xl md:text-4xl font-bold text-zoom-in">
+                {displayName}
+                {isLongName && (
+                  <button
+                    onClick={() => setShowFullName(!showFullName)}
+                    className="text-[hsl(var(--swago-purple))] text-base md:text-lg ml-2 hover:underline"
+                  >
+                    {showFullName ? 'Show less' : 'Read more'}
+                  </button>
                 )}
-              </button>
+              </h1>
             </div>
             
-            <div className="mt-2 flex items-center gap-3">
-              <span className="inline-flex items-center bg-[hsl(var(--swago-teal))] text-white text-sm font-semibold px-3 py-1 rounded-full">
+            <div className="mt-2 flex items-center gap-3 flex-wrap">
+              <span className="inline-flex items-center bg-[hsl(var(--swago-teal))] text-white text-xs md:text-sm font-semibold px-2 md:px-3 py-1 rounded-full">
                 Age: {ageCategory}
               </span>
               
@@ -256,15 +322,15 @@ export default function ProductPageClient({ product }: { product: Product }) {
               {stock !== undefined && (
                 <>
                   {isOutOfStock ? (
-                    <span className="inline-flex items-center bg-red-100 text-red-700 text-sm font-semibold px-3 py-1 rounded-full">
+                    <span className="inline-flex items-center bg-red-100 text-red-700 text-xs md:text-sm font-semibold px-2 md:px-3 py-1 rounded-full">
                       Out of Stock
                     </span>
                   ) : isLowStock ? (
-                    <span className="inline-flex items-center bg-orange-100 text-orange-700 text-sm font-semibold px-3 py-1 rounded-full">
+                    <span className="inline-flex items-center bg-orange-100 text-orange-700 text-xs md:text-sm font-semibold px-2 md:px-3 py-1 rounded-full">
                       Only {stock} left
                     </span>
                   ) : (
-                    <span className="inline-flex items-center bg-green-100 text-green-700 text-sm font-semibold px-3 py-1 rounded-full">
+                    <span className="inline-flex items-center bg-green-100 text-green-700 text-xs md:text-sm font-semibold px-2 md:px-3 py-1 rounded-full">
                       In Stock ({stock} available)
                     </span>
                   )}
@@ -272,33 +338,42 @@ export default function ProductPageClient({ product }: { product: Product }) {
               )}
             </div>
 
-            <p className="text-3xl font-bold text-slate-900 my-4 text-pop-bounce">
-              ₹{product.price}
+            {/* Price section with percentage badge */}
+            <div className="flex items-center gap-2 md:gap-3 flex-wrap my-4">
+              <p className="text-2xl md:text-3xl font-bold text-slate-900 text-pop-bounce">
+                ₹{product.price}
+              </p>
               {originalPrice && (
-                <span className="text-xl text-slate-400 line-through ml-2">
-                  ₹{originalPrice}
-                </span>
+                <>
+                  <span className="text-lg md:text-xl text-slate-400 line-through">
+                    ₹{originalPrice}
+                  </span>
+                  {/* Percentage Off Badge */}
+                  <span className="inline-block bg-red-500 text-white text-xs md:text-sm font-bold px-2 md:px-3 py-0.5 md:py-1 rounded">
+                    {percentOff}% OFF
+                  </span>
+                </>
               )}
-            </p>
+            </div>
 
             {!isOutOfStock && (
-              <div className="flex items-center gap-4 mb-6">
-                <label className="font-semibold">Quantity:</label>
+              <div className="flex items-center gap-4 mb-6 flex-wrap">
+                <label className="font-semibold text-sm md:text-base">Quantity:</label>
                 <div className="flex items-center border rounded-lg">
                   <button 
                     type="button" 
                     onClick={() => setQuantity((q) => Math.max(1, q - 1))} 
-                    className="px-4 py-2 text-lg hover:bg-gray-50"
+                    className="px-3 md:px-4 py-1.5 md:py-2 text-base md:text-lg hover:bg-gray-50"
                     aria-label="Decrease quantity" 
                     title="Decrease quantity"
                   > 
                     - 
                   </button>
-                  <span className="px-4 py-2 text-lg font-semibold">{quantity}</span>
+                  <span className="px-3 md:px-4 py-1.5 md:py-2 text-base md:text-lg font-semibold">{quantity}</span>
                   <button 
                     type="button" 
                     onClick={() => setQuantity((q) => Math.min(maxQuantity, q + 1))} 
-                    className="px-4 py-2 text-lg hover:bg-gray-50"
+                    className="px-3 md:px-4 py-1.5 md:py-2 text-base md:text-lg hover:bg-gray-50"
                     aria-label="Increase quantity"
                     title="Increase quantity"
                     disabled={quantity >= maxQuantity}
@@ -307,7 +382,7 @@ export default function ProductPageClient({ product }: { product: Product }) {
                   </button>
                 </div>
                 {stock !== undefined && quantity >= stock && (
-                  <span className="text-sm text-orange-600 font-medium">
+                  <span className="text-xs md:text-sm text-orange-600 font-medium">
                     Max available: {stock}
                   </span>
                 )}
@@ -315,17 +390,17 @@ export default function ProductPageClient({ product }: { product: Product }) {
             )}
 
             {isOutOfStock && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-                <p className="text-red-700 font-semibold">This product is currently out of stock.</p>
-                <p className="text-red-600 text-sm mt-1">Please check back later or contact us for availability.</p>
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3 md:p-4 mb-6">
+                <p className="text-red-700 font-semibold text-sm md:text-base">This product is currently out of stock.</p>
+                <p className="text-red-600 text-xs md:text-sm mt-1">Please check back later or contact us for availability.</p>
               </div>
             )}
 
-            <div className="flex gap-4">
+            <div className="flex gap-3 md:gap-4">
               <button 
                 onClick={handleAddToCart}
                 disabled={isOutOfStock}
-                className={`flex-1 font-bold py-3 rounded-lg text-base transition ${
+                className={`flex-1 font-bold py-2.5 md:py-3 rounded-lg text-sm md:text-base transition ${
                   isOutOfStock
                     ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                     : 'btn-shine btn-text-pop bg-[hsl(var(--swago-purple))] text-white'
@@ -336,7 +411,7 @@ export default function ProductPageClient({ product }: { product: Product }) {
               <button 
                 onClick={handleBuyNow} 
                 disabled={isOutOfStock}
-                className={`flex-1 font-bold py-3 rounded-lg text-base transition ${
+                className={`flex-1 font-bold py-2.5 md:py-3 rounded-lg text-sm md:text-base transition ${
                   isOutOfStock
                     ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                     : 'btn-shine btn-text-pop bg-[hsl(var(--swago-orange))] text-white'
