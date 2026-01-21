@@ -1,3 +1,5 @@
+// packages/database/src/models/ContactSubmission.ts
+
 import mongoose from "mongoose";
 
 const ContactSubmissionSchema = new mongoose.Schema(
@@ -51,10 +53,8 @@ const ContactSubmissionSchema = new mongoose.Schema(
   }
 );
 
-// Index for filtering by status
-ContactSubmissionSchema.index({ status: 1, createdAt: -1 });
-ContactSubmissionSchema.index({ email: 1 });
-ContactSubmissionSchema.index({ isViewed: 1 }); // NEW: Index for notification queries
+// ❌ REMOVED: All .index() calls
+// Indexes are now created manually via migration scripts
 
 const ContactSubmission =
   mongoose.models.ContactSubmission ||

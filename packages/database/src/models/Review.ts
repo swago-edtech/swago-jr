@@ -1,3 +1,5 @@
+// packages/database/src/models/Review.ts
+
 import mongoose from "mongoose";
 
 const ReviewSchema = new mongoose.Schema(
@@ -5,7 +7,7 @@ const ReviewSchema = new mongoose.Schema(
     productId: { 
       type: Number, 
       required: true,
-      index: true // For fast product lookup
+      // ❌ REMOVED: index: true
     },
     userId: { 
       type: mongoose.Schema.Types.ObjectId, 
@@ -80,11 +82,8 @@ const ReviewSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Compound indexes for efficient queries
-ReviewSchema.index({ productId: 1, status: 1 }); // Get approved reviews for a product
-ReviewSchema.index({ userId: 1, productId: 1 }, { unique: true }); // One review per user per product
-ReviewSchema.index({ orderId: 1 }); // Check if order already reviewed
-ReviewSchema.index({ status: 1, createdAt: -1 }); // Admin moderation queue
+// ❌ REMOVED: All .index() calls
+// Indexes are now created manually via migration scripts
 
 const Review = mongoose.models.Review || mongoose.model("Review", ReviewSchema);
 export default Review;

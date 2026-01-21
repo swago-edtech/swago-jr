@@ -1,3 +1,5 @@
+// packages/database/src/models/AmbassadorApplication.ts
+
 import mongoose from "mongoose";
 
 const AmbassadorApplicationSchema = new mongoose.Schema(
@@ -26,7 +28,7 @@ const AmbassadorApplicationSchema = new mongoose.Schema(
     parentEmail: { 
       type: String, 
       required: true,
-      unique: true,
+      // ❌ REMOVED: unique: true,
       lowercase: true,
       trim: true
     },
@@ -66,9 +68,8 @@ const AmbassadorApplicationSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Indexes
-AmbassadorApplicationSchema.index({ status: 1, createdAt: -1 });
-AmbassadorApplicationSchema.index({ createdAt: -1 });
+// ❌ REMOVED: All .index() calls
+// Indexes are now created manually via migration scripts
 
 export default mongoose.models.AmbassadorApplication || 
   mongoose.model("AmbassadorApplication", AmbassadorApplicationSchema);

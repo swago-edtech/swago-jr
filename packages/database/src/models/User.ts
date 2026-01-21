@@ -1,3 +1,5 @@
+// packages/database/src/models/User.ts
+
 import mongoose from "mongoose";
 
 const UserSchema = new mongoose.Schema(
@@ -7,14 +9,14 @@ const UserSchema = new mongoose.Schema(
     // Sparse unique indexes allow null values (admin has no phone, customer has no email)
     phone: { 
       type: String, 
-      unique: true,
-      sparse: true
+      // ❌ REMOVED: unique: true,
+      // ❌ REMOVED: sparse: true
     },
     
     email: { 
       type: String, 
-      unique: true,
-      sparse: true
+      // ❌ REMOVED: unique: true,
+      // ❌ REMOVED: sparse: true
     },
     
     // ✅ NEW: Track authentication method
@@ -105,9 +107,8 @@ const UserSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-
-// Additional indexes
-UserSchema.index({ isAdmin: 1 });
+// ❌ REMOVED: All .index() calls
+// Indexes are now created manually via migration scripts
 
 const User = mongoose.models.User || mongoose.model("User", UserSchema);
 export default User;

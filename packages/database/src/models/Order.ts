@@ -39,8 +39,8 @@ const OrderSchema = new mongoose.Schema(
     total: { type: Number, required: true },
     razorpay_payment_id: { 
       type: String, 
-      unique: true,
-      sparse: true
+      // ❌ REMOVED: unique: true,
+      // ❌ REMOVED: sparse: true
     },
     razorpay_order_id: { type: String },
     couponCode: { type: String },
@@ -59,14 +59,7 @@ const OrderSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// ✅ UPDATED: Critical index for user's orders lookup by userId
-OrderSchema.index({ userId: 1, createdAt: -1 });     
-
-// Keep phone index for backward compatibility
-OrderSchema.index({ phone: 1, createdAt: -1 });     
-
-// Admin panel indexes
-OrderSchema.index({ createdAt: -1 });               
-OrderSchema.index({ status: 1, createdAt: -1 });    
+// ❌ REMOVED: All .index() calls
+// Indexes are now created manually via migration scripts
 
 export default mongoose.models.Order || mongoose.model("Order", OrderSchema);

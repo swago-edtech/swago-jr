@@ -1,3 +1,5 @@
+// packages/database/src/models/FAQ.ts
+
 import mongoose from "mongoose";
 
 const FAQSchema = new mongoose.Schema(
@@ -42,12 +44,7 @@ const FAQSchema = new mongoose.Schema(
   }
 );
 
-// Indexes for performance
-FAQSchema.index({ isActive: 1, order: 1 });
-FAQSchema.index({ category: 1, isActive: 1 });
-FAQSchema.index({ category: 1, order: 1 });
-
-// Text search index for question
-FAQSchema.index({ question: "text", answer: "text" });
+// ❌ REMOVED: All .index() calls
+// Indexes are now created manually via migration scripts
 
 export default mongoose.models.FAQ || mongoose.model("FAQ", FAQSchema);

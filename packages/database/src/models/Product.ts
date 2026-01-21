@@ -1,3 +1,5 @@
+// packages/database/src/models/Product.ts
+
 import mongoose from "mongoose";
 
 const ProductSchema = new mongoose.Schema(
@@ -104,7 +106,7 @@ const ProductSchema = new mongoose.Schema(
     // SEO & Routing
     slug: {
       type: String,
-      unique: true,
+      // ❌ REMOVED: unique: true,
       trim: true,
       lowercase: true
     }
@@ -115,20 +117,15 @@ const ProductSchema = new mongoose.Schema(
   }
 );
 
-// Indexes for fast queries
-ProductSchema.index({ isActive: 1, createdAt: -1 });
-ProductSchema.index({ stock: 1 });
-ProductSchema.index({ isFeatured: 1, isActive: 1 });
-ProductSchema.index({ ageCategory: 1, isActive: 1 });
-ProductSchema.index({ coreElements: 1, isActive: 1 });
-ProductSchema.index({ shortForms: 1 }); // 🆕 NEW: Index for short form lookups
+// ❌ REMOVED: All .index() calls
+// Indexes are now created manually via migration scripts
 
-// Virtual field for available stock
+// ✅ KEEP: Virtual field for available stock
 ProductSchema.virtual('availableStock').get(function() {
   return Math.max(0, this.stock - this.reservedStock);
 });
 
-// Auto-generate slug from name before saving
+// ✅ KEEP: Auto-generate slug from name before saving
 ProductSchema.pre('save', function(next) {
   if (this.isModified('name') || !this.slug) {
     this.slug = this.name
@@ -140,12 +137,12 @@ ProductSchema.pre('save', function(next) {
   next();
 });
 
-// Validate at least one image exists
+// ✅ KEEP: Validate at least one image exists
 ProductSchema.path('images').validate(function(images) {
   return images && images.length > 0;
 }, 'At least one image is required');
 
-// Validate at least one core element
+// ✅ KEEP: Validate at least one core element
 ProductSchema.path('coreElements').validate(function(elements) {
   return elements && elements.length > 0;
 }, 'At least one core element is required');

@@ -1,3 +1,5 @@
+// packages/database/src/models/LotteryCodeBatch.ts
+
 import mongoose from "mongoose";
 
 const LotteryCodeBatchSchema = new mongoose.Schema(
@@ -5,7 +7,7 @@ const LotteryCodeBatchSchema = new mongoose.Schema(
     batchNumber: {
       type: String,
       required: true,
-      unique: true,
+      // ❌ REMOVED: unique: true,
       // Format: BATCH-{shortForm}-{YYYYMMDD}-{counter}
       // Example: BATCH-TST-20260106-001
     },
@@ -91,12 +93,8 @@ const LotteryCodeBatchSchema = new mongoose.Schema(
   }
 );
 
-// Indexes
-
-LotteryCodeBatchSchema.index({ productId: 1 });
-LotteryCodeBatchSchema.index({ shortForm: 1 });
-LotteryCodeBatchSchema.index({ status: 1 });
-LotteryCodeBatchSchema.index({ generatedAt: -1 });
+// ❌ REMOVED: All .index() calls
+// Indexes are now created manually via migration scripts
 
 const LotteryCodeBatch = 
   mongoose.models.LotteryCodeBatch || 

@@ -1,3 +1,5 @@
+// packages/database/src/models/ProductCode.ts
+
 import mongoose from "mongoose";
 
 const ProductCodeSchema = new mongoose.Schema(
@@ -5,10 +7,10 @@ const ProductCodeSchema = new mongoose.Schema(
     code: {
       type: String,
       required: true,
-      unique: true, // Each code is unique
+      // ❌ REMOVED: unique: true,
       trim: true,
       uppercase: true,
-      index: true, // Fast lookup by code
+      // ❌ REMOVED: index: true,
     },
     productId: {
       type: Number,
@@ -19,12 +21,12 @@ const ProductCodeSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Order",
       required: true,
-      index: true,
+      // ❌ REMOVED: index: true,
     },
     isUsed: {
       type: Boolean,
       default: false,
-      index: true, // Fast lookup for unused codes
+      // ❌ REMOVED: index: true,
     },
     usedBy: {
       type: mongoose.Schema.Types.ObjectId,
@@ -37,11 +39,8 @@ const ProductCodeSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Index for finding codes by order
-ProductCodeSchema.index({ orderId: 1, productId: 1 });
-
-// Index for finding used codes by kid
-ProductCodeSchema.index({ usedBy: 1 });
+// ❌ REMOVED: All .index() calls
+// Indexes are now created manually via migration scripts
 
 const ProductCode =
   mongoose.models.ProductCode || mongoose.model("ProductCode", ProductCodeSchema);

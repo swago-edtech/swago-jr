@@ -1,3 +1,5 @@
+// packages/database/src/models/LotteryCode.ts
+
 import mongoose from "mongoose";
 
 const LotteryCodeSchema = new mongoose.Schema(
@@ -6,15 +8,15 @@ const LotteryCodeSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Product",
       required: [true, "Product ID is required"],
-      index: true,
+      // ❌ REMOVED: index: true,
     },
     code: {
       type: String,
       required: [true, "Code is required"],
-      unique: true,
+      // ❌ REMOVED: unique: true,
       uppercase: true,
       trim: true,
-      index: true,
+      // ❌ REMOVED: index: true,
     },
     // 🆕 NEW: Track which short form was used for this code
     shortForm: {
@@ -22,12 +24,12 @@ const LotteryCodeSchema = new mongoose.Schema(
       required: [true, "Short form is required"],
       uppercase: true,
       trim: true,
-      index: true,
+      // ❌ REMOVED: index: true,
     },
     isUsed: {
       type: Boolean,
       default: false,
-      index: true,
+      // ❌ REMOVED: index: true,
     },
     usedBy: {
       type: mongoose.Schema.Types.ObjectId,
@@ -44,14 +46,8 @@ const LotteryCodeSchema = new mongoose.Schema(
   }
 );
 
-// Compound index for fast queries: find unused codes for a product
-LotteryCodeSchema.index({ productId: 1, isUsed: 1 });
-
-// Index for user's lottery codes
-LotteryCodeSchema.index({ usedBy: 1, usedAt: -1 });
-
-// 🆕 NEW: Compound index for product + short form queries
-LotteryCodeSchema.index({ productId: 1, shortForm: 1 });
+// ❌ REMOVED: All .index() calls
+// Indexes are now created manually via migration scripts
 
 const LotteryCode =
   mongoose.models.LotteryCode ||

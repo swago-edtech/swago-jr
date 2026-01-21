@@ -150,10 +150,10 @@ const KidProfileSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Compound index
-KidProfileSchema.index({ userId: 1, username: 1 });
+// ❌ REMOVED: .index() call
+// Indexes are now created manually via migration scripts
 
-// ✅ Ambassador helper methods (KEEP)
+// ✅ Ambassador helper methods (KEEP - these are instance methods, not indexes)
 KidProfileSchema.methods.awardSwagoMoney = function(amount: number, reason: string) {
   this.ambassador.swagoMoney += amount;
   this.ambassador.totalEarnings += amount;

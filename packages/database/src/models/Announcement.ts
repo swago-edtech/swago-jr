@@ -32,7 +32,7 @@ const AnnouncementSchema = new mongoose.Schema(
   }
 );
 
-// Index for quick lookup
-AnnouncementSchema.index({ isActive: 1 });
+// ❌ REMOVED: .index() call
+// Indexes are now created manually via migration scripts
 
 export default mongoose.models.Announcement || mongoose.model("Announcement", AnnouncementSchema);

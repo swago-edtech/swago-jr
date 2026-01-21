@@ -1,6 +1,8 @@
 // packages/database/src/connection.ts
 
-import mongoose, { Mongoose } from "mongoose";
+/// <reference types="node" />
+
+import mongoose, { Mongoose, ConnectOptions } from "mongoose";
 
 const MONGODB_URI = process.env.MONGODB_URI as string;
 
@@ -16,27 +18,30 @@ async function connectDB(): Promise<Mongoose> {
 
   // If connecting, wait for it
   if (mongoose.connection.readyState === 2) {
-    await new Promise((resolve) => {
-      mongoose.connection.once('connected', resolve);
+    await new Promise<void>((resolve) => {
+      mongoose.connection.once('connected', () => resolve());
     });
     return mongoose;
   }
 
+  // ✅ SECURITY FIX: Disable automatic index creation globally
+  mongoose.set('autoIndex', false);
+
   // Otherwise, create new connection WITH OPTIMIZED POOLING
-  const opts = {
+  const opts: ConnectOptions = {
     bufferCommands: false,
-    maxPoolSize: 100,              // ← INCREASE to 100 (safe with 500 limit)
-    minPoolSize: 20,               // ← Keep 20 ready connections
+    maxPoolSize: 100,
+    minPoolSize: 20,
     socketTimeoutMS: 45000,
     serverSelectionTimeoutMS: 10000,
-    maxIdleTimeMS: 30000,          // ← Close idle after 30s
-    waitQueueTimeoutMS: 5000,      // ← Fail fast if no connection available
-    retryWrites: true,             // ← Automatic retry on write failures
-    retryReads: true,              // ← Automatic retry on read failures
+    maxIdleTimeMS: 30000,
+    waitQueueTimeoutMS: 5000,
+    retryWrites: true,
+    retryReads: true,
   };
 
   await mongoose.connect(MONGODB_URI, opts);
-  console.log('✅ MongoDB connected with pool size:', opts.maxPoolSize);
+  console.log('✅ MongoDB connected (autoIndex: OFF - manual indexes required)');
   
   return mongoose;
 }
