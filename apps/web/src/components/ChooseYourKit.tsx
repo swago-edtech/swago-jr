@@ -6,13 +6,13 @@ import Image from "next/image";
 const categories = [
   {
     age: '5-7',
-    bgColor: 'bg-teal-500', 
+    bgColor: 'bg-[hsl(var(--swago-orange))]', 
     href: '/products?age=5-7',
-    imageSrc: '/images/gibbson_jump.gif', // src for the 5-7 category
+    imageSrc: '/images/age-5-7.png', // src for the 5-7 category
   },
   {
     age: '8-10',
-    bgColor: 'bg-orange-400',
+    bgColor: 'bg-[hsl(var(--swago-purple))]',
     href: '/products?age=8-10',
     imageSrc: '/images/age-8-10.png', // src for the 8-10 category
   }
@@ -24,7 +24,7 @@ export default function ChooseYourKit() {
     <section className="py-16 bg-white"> 
       <div className="container mx-auto px-4 text-center">
         <h2 className="text-4xl font-bold mb-4 uppercase">
-          Shop by <span className="text-purple-700">Age</span>
+          Shop by Age
         </h2>
         
         {/* MODIFICATION 2: Reduced margin-bottom from mb-16 to mb-12 */}

@@ -262,14 +262,14 @@ export default function ProductCard({ product }: { product: Product }) {
                         ₹{originalPrice}
                       </span>
                       {/* Percentage Off Badge */}
-                      <span className="inline-block bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded">
+                      <span className="inline-block bg-[hsl(var(--swago-orange))] text-white text-xs font-bold px-2 py-0.5 rounded">
                         {percentOff}% OFF
                       </span>
                     </>
                   )}
                 </div>
               </div>
-              <span className="inline-block bg-[hsl(var(--swago-teal))] text-white text-xs font-semibold px-2.5 py-0.5 rounded-full whitespace-nowrap">
+              <span className="inline-block bg-[hsl(var(--swago-purple))] text-white text-xs font-semibold px-2.5 py-0.5 rounded-full whitespace-nowrap">
                 Age: {ageCategory}
               </span>
             </div>

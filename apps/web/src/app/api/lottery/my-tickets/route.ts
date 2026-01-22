@@ -1,8 +1,10 @@
-import { NextResponse } from 'next/server';
-import { connectDB, User } from '@swago/database';
+// apps/web/src/app/api/lottery/my-tickets/route.ts
+
+import { NextRequest, NextResponse } from 'next/server';
+import { connectDB, KidProfile } from '@swago/database';
 import { getLoginSession } from '@/lib/auth';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     // 1. Check authentication
     const session = await getLoginSession();
@@ -17,43 +19,50 @@ export async function GET() {
         success: true,
         tickets: [],
         total: 0,
+        kidProfile: null,
       });
     }
 
-    // 2. Get user from database
-    await connectDB();
-    
-    let user = null;
-    if (session.phone) {
-      user = await User.findOne({ phone: session.phone }).select('lotteryTickets');
-    } else if (session.email) {
-      user = await User.findOne({ email: session.email }).select('lotteryTickets');
+    // 🆕 NEW: Get kidProfileId from query params
+    const searchParams = request.nextUrl.searchParams;
+    const kidProfileId = searchParams.get('kidProfileId');
+
+    if (!kidProfileId) {
+      return NextResponse.json({ 
+        error: 'Kid profile ID is required' 
+      }, { status: 400 });
     }
 
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    // 2. Connect to database
+    await connectDB();
+
+    // 🆕 CHANGED: Fetch from KidProfile, not User
+    const kidProfile = await KidProfile.findById(kidProfileId)
+      .select('username age avatar lotteryTickets ambassador.swagoMoney');
+
+    if (!kidProfile) {
+      return NextResponse.json({ 
+        error: 'Kid profile not found' 
+      }, { status: 404 });
     }
 
     // 3. Get lottery tickets (most recent first)
-    interface TicketType {
-      codeId: string;
-      code: string;
-      productId: string;
-      productName: string;
-      shortForm: string;
-      redeemedAt: Date | string;
-    }
-    
-    const tickets = (user.lotteryTickets || []) as TicketType[];
-    const sortedTickets = tickets.sort((a, b) => {
+    const tickets = (kidProfile.lotteryTickets || []).sort((a: any, b: any) => {
       return new Date(b.redeemedAt).getTime() - new Date(a.redeemedAt).getTime();
     });
 
-    // 4. Return tickets
+    // 4. Return tickets with kid profile info
     return NextResponse.json({
       success: true,
-      tickets: sortedTickets,
-      total: sortedTickets.length,
+      tickets: tickets,
+      total: tickets.length,
+      kidProfile: {
+        _id: kidProfile._id,
+        name: kidProfile.username,
+        age: kidProfile.age,
+        avatar: kidProfile.avatar,
+        swagoMoney: kidProfile.ambassador?.swagoMoney || 0,
+      },
     });
 
   } catch (error) {

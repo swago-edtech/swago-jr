@@ -3,21 +3,26 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectDB, KidProfile, User } from "@swago/database";
 import { getLoginSession } from "@/lib/auth";
 
+
 // GET - List all kid profiles for the logged-in parent
 export async function GET() {
   try {
     const session = await getLoginSession();
 
+
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
 
     // For demo users, return empty profiles
     if (session.isDemo) {
       return NextResponse.json({ profiles: [] });
     }
 
+
     await connectDB();
+
 
     // Get user by phone OR email based on session
     let user;
@@ -29,18 +34,23 @@ export async function GET() {
       user = await User.findOne({ phone: session.phone });
     }
 
+
     if (!user) {
       console.error("❌ User not found for session:", session);
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
+
     console.log("✅ User found:", user._id);
+
 
     const profiles = await KidProfile.find({ userId: user._id })
       .select("-__v")
       .sort({ createdAt: -1 });
 
+
     console.log(`📋 Found ${profiles.length} kid profile(s)`);
+
 
     // Transform to match frontend expectations
     const transformedProfiles = profiles.map(profile => ({
@@ -53,6 +63,7 @@ export async function GET() {
       createdAt: profile.createdAt,
     }));
 
+
     return NextResponse.json({ profiles: transformedProfiles });
   } catch (error) {
     console.error("GET kid profiles error:", error);
@@ -63,14 +74,17 @@ export async function GET() {
   }
 }
 
+
 // POST - Create a new kid profile
 export async function POST(request: NextRequest) {
   try {
     const session = await getLoginSession();
 
+
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
 
     // Demo users can't create profiles
     if (session.isDemo) {
@@ -80,7 +94,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
+
     const { name, age, avatarColor, grade, gender } = await request.json();
+
 
     // Validation
     if (!name || !age || !avatarColor) {
@@ -90,12 +106,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+
     if (age < 3 || age > 18) {
       return NextResponse.json(
         { error: "Age must be between 3 and 18" },
         { status: 400 }
       );
     }
+
 
     if (gender && !["boy", "girl", "other"].includes(gender)) {
       return NextResponse.json(
@@ -104,7 +122,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
+
     await connectDB();
+
 
     // Get user by phone OR email based on session
     let user;
@@ -114,9 +134,11 @@ export async function POST(request: NextRequest) {
       user = await User.findOne({ phone: session.phone });
     }
 
+
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
+
 
     // Check if parent already has 2 profiles
     const existingCount = await KidProfile.countDocuments({ userId: user._id });
@@ -127,18 +149,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
+
     // Check if username already exists for this parent
-    const existingProfile = await KidProfile.findOne({ 
-      userId: user._id, 
-      username: name.trim() 
+    const existingProfile = await KidProfile.findOne({
+      userId: user._id,
+      username: name.trim()
     });
-    
+   
     if (existingProfile) {
       return NextResponse.json(
         { error: "You already have a kid profile with this name" },
         { status: 400 }
       );
     }
+
 
     // Create new profile
     const newProfile = new KidProfile({
@@ -151,7 +175,9 @@ export async function POST(request: NextRequest) {
       progress: {},
     });
 
+
     await newProfile.save();
+
 
     // Transform response to match frontend
     const responseProfile = {
@@ -163,6 +189,7 @@ export async function POST(request: NextRequest) {
       gender: newProfile.gender,
       createdAt: newProfile.createdAt,
     };
+
 
     return NextResponse.json(
       { message: "Profile created successfully", profile: responseProfile },

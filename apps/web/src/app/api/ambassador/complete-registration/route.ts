@@ -175,8 +175,8 @@ export async function POST(request: NextRequest) {
       ambassador: {
         isAmbassador: true,
         status: "profile_created",
-        swagoMoney: 50,
-        totalEarnings: 50,
+        swagoMoney: 20,
+        totalEarnings: 20,
         currentStep: 2,
         badges: [
           { 

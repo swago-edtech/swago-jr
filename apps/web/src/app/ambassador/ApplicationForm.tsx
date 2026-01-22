@@ -586,7 +586,7 @@ export default function ApplicationForm() {
                 <div className="flex flex-col gap-2">
                   <div className="flex items-center justify-center gap-2 text-yellow-600 font-bold">
                     <span className="text-2xl">💰</span>
-                    <span className="text-xl">50 Swago Money</span>
+                    <span className="text-xl">20 Swago Dollars</span>
                   </div>
                   <div className="flex items-center justify-center gap-2 text-purple-600 font-bold">
                     <span className="text-2xl">🦸</span>
@@ -599,7 +599,7 @@ export default function ApplicationForm() {
               </p>
               <button
                 onClick={() => router.push("/kids/dashboard")}
-                className="inline-block bg-gradient-to-r from-[hsl(var(--swago-purple))] to-[hsl(var(--swago-pink))] text-white font-bold px-8 py-3 rounded-full hover:opacity-90 transition-opacity"
+                className="inline-block bg-[hsl(var(--swago-orange))]  text-white font-bold px-8 py-3 rounded-full hover:opacity-90 transition-opacity"
               >
                 Go to Dashboard Now →
               </button>
@@ -941,7 +941,7 @@ export default function ApplicationForm() {
               <button 
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full btn-shine bg-gradient-to-r from-[hsl(var(--swago-purple))] to-[hsl(var(--swago-pink))] text-white font-bold py-4 px-6 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed text-lg"
+                className="w-full btn-shine bg-[hsl(var(--swago-purple))]  text-white font-bold py-4 px-6 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed text-lg"
               >
                 {isSubmitting 
                   ? 'Sending OTP...' 

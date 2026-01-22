@@ -353,14 +353,14 @@ export default function ProductPageClient({ product }: { product: Product }) {
             </div>
             
             <div className="mt-2 flex items-center gap-3 flex-wrap">
-              <span className="inline-flex items-center bg-[hsl(var(--swago-teal))] text-white text-xs md:text-sm font-semibold px-2 md:px-3 py-1 rounded-full">
+              <span className="inline-flex items-center bg-[hsl(var(--swago-purple))] text-white text-xs md:text-sm font-semibold px-2 md:px-3 py-1 rounded-full">
                 Age: {ageCategory}
               </span>
               
               {stock !== undefined && (
                 <>
                   {isOutOfStock ? (
-                    <span className="inline-flex items-center bg-red-100 text-red-700 text-xs md:text-sm font-semibold px-2 md:px-3 py-1 rounded-full">
+                    <span className="inline-flex items-center bg-[hsl(var(--swago-orange))] text-gray-700 text-xs md:text-sm font-semibold px-2 md:px-3 py-1 rounded-full">
                       Out of Stock
                     </span>
                   ) : isLowStock ? (
@@ -385,7 +385,7 @@ export default function ProductPageClient({ product }: { product: Product }) {
                   <span className="text-lg md:text-xl text-slate-400 line-through">
                     ₹{originalPrice}
                   </span>
-                  <span className="inline-block bg-red-500 text-white text-xs md:text-sm font-bold px-2 md:px-3 py-0.5 md:py-1 rounded">
+                  <span className="inline-block bg-[hsl(var(--swago-orange))] text-white text-xs md:text-sm font-bold px-2 md:px-3 py-0.5 md:py-1 rounded">
                     {percentOff}% OFF
                   </span>
                 </>
@@ -501,7 +501,7 @@ export default function ProductPageClient({ product }: { product: Product }) {
       </div>
 
       <div className="text-center pt-8 pb-16">
-        <Link href="/products" className="btn-shine btn-text-pop inline-block bg-[hsl(var(--swago-teal))] text-white font-bold px-8 py-3 rounded-full shadow-lg">
+        <Link href="/products" className="btn-shine btn-text-pop inline-block bg-[hsl(var(--swago-orange))] text-white font-bold px-8 py-3 rounded-full shadow-lg">
           <span>View More Products</span>
         </Link>
       </div>

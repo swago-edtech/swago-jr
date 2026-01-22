@@ -88,7 +88,7 @@ const getProductKey = (product: ProductLike): string => {
         {/* The "Show More" button that links to all products */}
         <Link 
           href="/products" 
-          className="btn-shine inline-block bg-[hsl(var(--swago-pink))] text-white font-bold px-8 py-3 rounded-full shadow-lg"
+          className="btn-shine inline-block bg-[hsl(var(--swago-orange))] text-white font-bold px-8 py-3 rounded-full shadow-lg"
         >
           Show More Kits
         </Link>

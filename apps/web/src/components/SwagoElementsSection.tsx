@@ -8,42 +8,42 @@ const elements = [
   { 
     letter: "S", 
     name: "Smart Tech",
-    bgColor: "bg-pink-500",
-    shadowColor: "bg-pink-700",
-    textColor: "text-pink-500",
-    description: "Explore coding, science, and logic with our interactive tech kits."
+    bgColor: "bg-[hsl(var(--swago-pink))]/90",
+    shadowColor: "bg-[hsl(var(--swago-pink))]",
+    textColor: "text-[hsl(var(--swago-pink))]",
+    description: "Upskilling in AI and future technology"
   },
   { 
     letter: "W", 
     name: "Willpower", 
-    bgColor: "bg-cyan-400",
-    shadowColor: "bg-cyan-600",
-    textColor: "text-cyan-500",
-    description: "Build confidence and creativity through guided journals and fun games."
+    bgColor: "bg-[hsl(var(--swago-teal))]/90",
+    shadowColor: "bg-[hsl(var(--swago-teal))]",
+    textColor: "text-[hsl(var(--swago-teal))]",
+    description: "Building resilience and discipline"
   },
   { 
     letter: "A", 
     name: "Ambition", 
-    bgColor: "bg-blue-500",
-    shadowColor: "bg-blue-700",
-    textColor: "text-blue-500",
-    description: "Set goals and chase big dreams with our vision boards and activities."
+    bgColor: "bg-[hsl(var(--swago-sky-blue))]/90",
+    shadowColor: "bg-[hsl(var(--swago-sky-blue))]",
+    textColor: "text-[hsl(var(--swago-sky-blue))]",
+    description: "Developing leadership qualities"
   },
   { 
     letter: "G", 
     name: "Growth", 
-    bgColor: "bg-orange-400",
-    shadowColor: "bg-orange-600",
-    textColor: "text-orange-500",
-    description: "Master foundational skills in reading, writing, and coordination."
+    bgColor: "bg-[hsl(var(--swago-orange))]/90",
+    shadowColor: "bg-[hsl(var(--swago-orange))]",
+    textColor: "text-[hsl(var(--swago-orange))]",
+    description: "Confident communication and expression"
   },
   { 
     letter: "O", 
     name: "Optimization", 
-    bgColor: "bg-purple-500",
-    shadowColor: "bg-purple-700",
-    textColor: "text-purple-500",
-    description: "Sharpen problem-solving skills with fun puzzles and brain-teasers."
+    bgColor: "bg-[hsl(var(--swago-purple))]/90",
+    shadowColor: "bg-[hsl(var(--swago-purple))]",
+    textColor: "text-[hsl(var(--swago-purple))]",
+    description: "Optimizing brain power and focus"
   },
 ];
 

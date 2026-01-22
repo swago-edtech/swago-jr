@@ -61,7 +61,7 @@ export default function WishlistPage() {
         <div className="text-center py-16">
             <h2 className="text-xl font-bold">Your wishlist is empty.</h2>
             <p className="text-slate-500 mt-2 mb-6">Explore our kits and add your favorites by clicking the heart icon!</p>
-            <Link href="/products" className="inline-block bg-[hsl(var(--swago-pink))] text-white font-bold px-6 py-3 rounded-lg hover:opacity-90 transition">
+            <Link href="/products" className="inline-block bg-[hsl(var(--swago-orange))] text-white font-bold px-6 py-3 rounded-lg hover:opacity-90 transition">
                 Explore Kits
             </Link>
         </div>

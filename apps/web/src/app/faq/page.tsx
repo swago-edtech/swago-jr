@@ -23,11 +23,11 @@ const CATEGORIES = {
 
 const CATEGORY_COLORS: Record<string, string> = {
   general: "from-gray-400 to-gray-500",
-  shipping: "from-blue-400 to-blue-500",
-  payment: "from-green-400 to-green-500",
-  products: "from-purple-400 to-purple-500",
-  returns: "from-orange-400 to-orange-500",
-  account: "from-pink-400 to-pink-500",
+  shipping: "from-[hsl(var(--swago-sky-blue))] to-blue-500",
+  payment: "from-[hsl(var(--swago-teal))] to-green-500",
+  products: "from-[hsl(var(--swago-purple))] to-purple-500",
+  returns: "from-[hsl(var(--swago-orange))] to-orange-500",
+  account: "from-[hsl(var(--swago-pink))] to-pink-500",
 };
 
 export default function FAQPage() {
@@ -77,7 +77,7 @@ export default function FAQPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
       {/* Hero Section */}
-      <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white py-16">
+      <div className="bg-[hsl(var(--swago-orange))] text-white py-16">
         <div className="container mx-auto px-4 text-center">
           <motion.h1
             className="text-4xl md:text-5xl font-bold mb-4"
@@ -133,7 +133,7 @@ export default function FAQPage() {
                 onClick={() => setSelectedCategory(key)}
                 className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
                   selectedCategory === key
-                    ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg"
+                    ? "bg-[hsl(var(--swago-purple))] text-white shadow-lg"
                     : "bg-white text-slate-700 hover:bg-slate-100 border border-slate-200"
                 }`}
               >
@@ -226,7 +226,7 @@ export default function FAQPage() {
         {/* Contact Section */}
 {/* Contact Section */}
 <motion.div
-  className="mt-12 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg p-8 text-center border border-purple-100"
+  className="mt-12 bg-[hsl(var(--swago-orange))]/10 rounded-lg p-8 text-center border border-purple-100"
   initial={{ opacity: 0, y: 20 }}
   animate={{ opacity: 1, y: 0 }}
   transition={{ duration: 0.5, delay: 0.6 }}
@@ -240,14 +240,14 @@ export default function FAQPage() {
   <div className="flex flex-col sm:flex-row gap-4 justify-center">
     <a
       href="mailto:swago.club@gmail.com"
-      className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-3 rounded-lg font-medium hover:shadow-lg transition-shadow"
+      className="inline-flex items-center gap-2 bg-[hsl(var(--swago-purple))] text-white px-6 py-3 rounded-lg font-medium hover:shadow-lg transition-shadow"
     >
       <EmailIcon />
       Email Us
     </a>
     <a
       href="tel:+916283883397"
-      className="inline-flex items-center gap-2 bg-white text-purple-600 px-6 py-3 rounded-lg font-medium border-2 border-purple-600 hover:bg-purple-50 transition-colors"
+      className="inline-flex items-center gap-2 bg-white text-[hsl(var(--swago-orange))] px-6 py-3 rounded-lg font-medium border-2 border-[hsl(var(--swago-orange))] hover:bg-purple-50 transition-colors"
     >
       <PhoneIcon />
       Call Us

@@ -84,8 +84,8 @@ export default function HeroCarousel() {
             // UPDATED CLASSNAMES BELOW
             className={`w-3 h-3 rounded-full transition-all duration-300 shadow-sm ${
               index === selectedIndex 
-                ? "bg-pink-600 w-6"           // Active: Deep Purple + Wide
-                : "bg-pink-200 hover:bg-pink-400" // Inactive: Light Purple
+                ? "bg-[hsl(var(--swago-purple))] w-6"           // Active: Deep Purple + Wide
+                : "bg-purple-200 hover:bg-purple-400" // Inactive: Light Purple
             }`}
             aria-label={`Go to slide ${index + 1}`}
           />

@@ -146,6 +146,47 @@ const KidProfileSchema = new mongoose.Schema(
       },
       joinedAt: Date,
     },
+    
+    // 🆕 NEW: Lottery Tickets
+    lotteryTickets: [{
+      codeId: { 
+        type: mongoose.Schema.Types.ObjectId, 
+        ref: "LotteryCode",
+        required: true 
+      },
+      code: { 
+        type: String,
+        required: true,
+        uppercase: true,
+      },
+      productId: { 
+        type: mongoose.Schema.Types.ObjectId, 
+        ref: "Product",
+        required: true 
+      },
+      productName: {
+        type: String,
+        required: true
+      },
+      shortForm: {
+        type: String,
+        required: true,
+        uppercase: true,
+      },
+      ticketType: {
+        type: String,
+        enum: ["Golden Ticket", "Diamond Ticket"],
+        required: true
+      },
+      swagoMoneyEarned: {
+        type: Number,
+        default: 10
+      },
+      redeemedAt: { 
+        type: Date, 
+        default: Date.now 
+      }
+    }],
   },
   { timestamps: true }
 );
@@ -172,8 +213,8 @@ KidProfileSchema.methods.initializeAmbassador = function() {
   if (!this.ambassador.isAmbassador) {
     this.ambassador.isAmbassador = true;
     this.ambassador.status = "profile_created";
-    this.ambassador.swagoMoney = 20; // ✅ CHANGED: Was 50, now 20
-    this.ambassador.totalEarnings = 20; // ✅ CHANGED: Was 50, now 20
+    this.ambassador.swagoMoney = 20;
+    this.ambassador.totalEarnings = 20;
     this.ambassador.currentStep = 2;
     this.ambassador.joinedAt = new Date();
     this.ambassador.badges = [{ name: "Swago Saviour", awardedAt: new Date() }];
@@ -185,6 +226,59 @@ KidProfileSchema.methods.initializeAmbassador = function() {
       completed: false,
     };
   }
+  return this.save();
+};
+
+// 🆕 NEW: Lottery redemption helper method
+KidProfileSchema.methods.redeemLotteryCode = function(codeData: {
+  codeId: any;
+  code: string;
+  productId: any;
+  productName: string;
+  shortForm: string;
+  ticketType: string;
+}) {
+  const reward = 10; // Fixed reward for now
+  
+  // Initialize ambassador object if it doesn't exist
+  if (!this.ambassador) {
+    this.ambassador = {
+      isAmbassador: false,
+      status: "not_started",
+      swagoMoney: 0,
+      totalEarnings: 0,
+      badges: [],
+      currentStep: 1,
+      entryChallenge: {
+        submitted: false,
+        status: "not_submitted",
+      },
+      brainGym: {
+        completed: false,
+      },
+    };
+  }
+  
+  // Add ticket to lotteryTickets array
+  if (!this.lotteryTickets) {
+    this.lotteryTickets = [];
+  }
+  
+  this.lotteryTickets.push({
+    codeId: codeData.codeId,
+    code: codeData.code,
+    productId: codeData.productId,
+    productName: codeData.productName,
+    shortForm: codeData.shortForm,
+    ticketType: codeData.ticketType,
+    swagoMoneyEarned: reward,
+    redeemedAt: new Date(),
+  });
+  
+  // Award Swago Money
+  this.ambassador.swagoMoney += reward;
+  this.ambassador.totalEarnings += reward;
+  
   return this.save();
 };
 

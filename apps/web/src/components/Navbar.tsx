@@ -75,7 +75,7 @@ export default function Navbar() {
             <AnimatePresence>
               {isAgeDropdownOpen && (
                 <motion.div 
-                  className="absolute top-full right-0 mt-2 w-40 bg-white rounded-md shadow-lg z-20 border border-slate-200 p-1 border-t-4 border-t-[hsl(var(--swago-teal))]"
+                  className="absolute top-full right-0 mt-2 w-40 bg-white rounded-md shadow-lg z-20 border border-slate-200 p-1 border-t-4 border-t-[hsl(var(--swago-orange))]"
                   variants={dropdownVariants}
                   initial="hidden"
                   animate="visible"
@@ -121,7 +121,7 @@ export default function Navbar() {
             {selectedKid ? (
               <Link
                 href="/kids/dashboard"
-                className="flex items-center gap-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-2 rounded-full text-sm shadow-md font-bold"
+                className="flex items-center gap-2 bg-[hsl(var(--swago-purple))] py-2 rounded-full text-sm shadow-md font-bold"
               >
                 <div
                   className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold"
@@ -134,10 +134,10 @@ export default function Navbar() {
             ) : (
               <Link
                 href="/kids"
-                className="bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold px-4 py-2 rounded-full text-sm shadow-md flex items-center gap-2"
+                className="bg-[hsl(var(--swago-purple))] font-bold px-4 py-2 rounded-full text-sm shadow-md flex items-center gap-2"
               >
-                <span>🎮</span>
-                <span>Kids Zone</span>
+                
+                <span className="text-white">Kids Zone</span>
               </Link>
             )}
           </motion.div>
@@ -146,20 +146,20 @@ export default function Navbar() {
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
             <button 
               onClick={openCartSidebar}
-              className="flex items-center gap-2 text-white font-bold bg-[hsl(var(--swago-pink))] px-4 py-2 rounded-full text-sm shadow-md"
+              className="flex items-center gap-2 text-white font-bold bg-[hsl(var(--swago-purple))] px-4 py-2 rounded-full text-sm shadow-md"
             >
               <HiShoppingCart className="w-5 h-5" />
               <span className="hidden sm:inline">Cart</span>
-              {itemCount > 0 && <span className="bg-white text-[hsl(var(--swago-pink))] rounded-full px-2 text-xs">{itemCount}</span>}
+              {itemCount > 0 && <span className="bg-white text-[hsl(var(--swago-purple))] rounded-full px-2 text-xs">{itemCount}</span>}
             </button>
           </motion.div>
 
           {/* Wishlist - Desktop */}
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-            <Link href="/wishlist" className="flex items-center gap-2 text-white font-bold bg-[hsl(var(--swago-pink))] px-4 py-2 rounded-full text-sm shadow-md">
+            <Link href="/wishlist" className="flex items-center gap-2 text-white font-bold bg-[hsl(var(--swago-purple))] px-4 py-2 rounded-full text-sm shadow-md">
               <HiHeart className="w-5 h-5" />
               <span className="hidden sm:inline">Wishlist</span>
-              {wishlist.length > 0 && <span className="bg-white text-[hsl(var(--swago-pink))] rounded-full px-2 text-xs">{wishlist.length}</span>}
+              {wishlist.length > 0 && <span className="bg-white text-[hsl(var(--swago-purple))] rounded-full px-2 text-xs">{wishlist.length}</span>}
             </Link>
           </motion.div>
 
@@ -212,9 +212,9 @@ export default function Navbar() {
             className="relative p-1"
             aria-label="Open cart"
           >
-            <HiShoppingCart className="w-6 h-6 text-[hsl(var(--swago-pink))]" />
+            <HiShoppingCart className="w-6 h-6 text-[hsl(var(--swago-purple))]" />
             {itemCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-[hsl(var(--swago-pink))] text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">
+              <span className="absolute -top-1 -right-1 bg-[hsl(var(--swago-orange))] text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">
                 {itemCount}
               </span>
             )}
