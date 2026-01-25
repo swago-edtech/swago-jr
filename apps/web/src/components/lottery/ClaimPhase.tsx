@@ -10,7 +10,7 @@ interface ClaimPhaseProps {
   ticketType: 'SSR' | 'SDC';
   kidProfileId: string;
   onBack: () => void;
-  onSuccess: (data: any) => void;
+  onSuccess: (data: unknown) => void;
 }
 
 const TICKET_INFO = {
@@ -56,7 +56,7 @@ export default function ClaimPhase({
     }
 
     // Remove "SWAGO" temporarily for easier formatting
-    let codePart = value.replace(/^SWAGO/, '');
+    const codePart = value.replace(/^SWAGO/, '');
     
     // Auto-format with dashes
     let formatted = 'SWAGO';
@@ -253,7 +253,7 @@ export default function ClaimPhase({
         {/* What You'll Get */}
         <div className="bg-gradient-to-br from-yellow-50 to-orange-50 border-2 border-orange-200 rounded-xl p-5 mb-6">
           <p className="text-sm font-semibold text-orange-800 mb-3">
-            🎁 What you'll get:
+            🎁 What you&apos;ll get:
           </p>
           <ul className="space-y-2">
             <li className="flex items-center gap-2 text-sm text-slate-700">

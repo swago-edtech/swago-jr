@@ -23,6 +23,11 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    interface LotteryTicket {
+  redeemedAt: Date | string;
+  // you can add more fields later if needed
+}
+
     // 🆕 NEW: Get kidProfileId from query params
     const searchParams = request.nextUrl.searchParams;
     const kidProfileId = searchParams.get('kidProfileId');
@@ -47,7 +52,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 3. Get lottery tickets (most recent first)
-    const tickets = (kidProfile.lotteryTickets || []).sort((a: any, b: any) => {
+    const tickets = (kidProfile.lotteryTickets || []).sort((a: LotteryTicket, b: LotteryTicket) => {
       return new Date(b.redeemedAt).getTime() - new Date(a.redeemedAt).getTime();
     });
 

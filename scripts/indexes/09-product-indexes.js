@@ -1,6 +1,12 @@
 // scripts/indexes/09-product-indexes.js
 
-require('dotenv').config({ path: '../../.env.local' });
+// require('dotenv').config({ path: '../../.env.local' });
+
+const path = require('path');
+require('dotenv').config({
+  path: path.resolve(__dirname, '../../.env.local')
+});
+console.log("ENV KEYS:", Object.keys(process.env).filter(k => k.includes("MONGO")));
 const mongoose = require('mongoose');
 
 async function createProductIndexes() {

@@ -25,11 +25,17 @@ interface KidProfile {
   avatarColor?: string;
 }
 
+interface KidInfo {
+  name: string;
+  swagoMoney: number;
+  // Add other properties your kidInfo object contains
+}
+
 export default function MyTicketsPage() {
   const [kidProfiles, setKidProfiles] = useState<KidProfile[]>([]);
   const [selectedKidId, setSelectedKidId] = useState<string | null>(null);
   const [tickets, setTickets] = useState<Ticket[]>([]);
-  const [kidInfo, setKidInfo] = useState<any>(null);
+  const [kidInfo, setKidInfo] = useState<KidInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -114,7 +120,7 @@ export default function MyTicketsPage() {
             My Lottery Tickets
           </h1>
           <p className="text-slate-600">
-            View all your claimed tickets for this week's draw
+            View all your claimed tickets for this week&apos;s draw
           </p>
         </div>
 
