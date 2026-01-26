@@ -4,42 +4,8 @@ import { connectDB, Order, User, Product } from "@swago/database";
 import crypto from "crypto";
 import { z } from "zod";
 import { sendOrderConfirmationEmail } from "@/lib/msg91-email";
-import mongoose from "mongoose";
 import { isValidObjectId } from "mongoose";
 import { invalidateProductCache } from "@/lib/productCache";
-
-
-
-type CartItem = {
-  id?: number;
-  _id?: string;
-  name: string;
-  price: number;
-  quantity: number;
-  image?: string;
-};
-
-
-
-type OrderItem = {
-  productId: number | string;
-  name: string;
-  price: number;
-  quantity: number;
-  image: string;
-};
-
-
-
-// ✅ Type for order object items from database
-interface OrderItemFromDb {
-  productId: number | string;
-  name: string;
-  price: number;
-  quantity: number;
-  image?: string;
-  _id?: string;
-}
 
 
 
@@ -56,67 +22,45 @@ interface ProductDocument {
 }
 
 
+// ✅ Type for order object items from database
+interface OrderItemFromDb {
+  productId: number | string;
+  name: string;
+  price: number;
+  quantity: number;
+  image?: string;
+  _id?: string;
+}
 
-const orderDetailsSchema = z.object({
-  name: z.string().trim().min(1, "Name is required"),
-  email: z.string().email("A valid email is required"),
-  phone: z.string().min(10, "Phone is required"),
-  age: z.string().trim().min(1, "Age is required"),
-  address: z.string().trim().min(3, "Address must be at least 3 characters"),
-  city: z.string().trim().min(2, "City is required"),
-  state: z.string().trim().min(2, "State is required"),
-  pincode: z.string().min(1, "Pincode/Postal code is required"),
-  cart: z.array(z.object({
-    id: z.number().optional(),
-    _id: z.string().optional(),
-    name: z.string(),
-    price: z.number(),
-    quantity: z.number(),
-    image: z.string().optional(),
-  })).min(1),
-  coupon: z.object({
-    code: z.string(),
-    description: z.string(),
-    type: z.string(),
-    value: z.number(),
-  }).nullable().optional(),
-  discount: z.object({
-    amount: z.number(),
-    originalAmount: z.number(),
-    finalAmount: z.number(),
-    savedAmount: z.number(),
-  }).nullable().optional(),
-  originalAmount: z.number(),
-  finalAmount: z.number(),
+
+const verifyPaymentSchema = z.object({
+  razorpay_payment_id: z.string().min(1),
+  razorpay_order_id: z.string().min(1),
+  razorpay_signature: z.string().min(1),
+  orderId: z.string().optional(),  // ✅ Our custom orderId
 });
 
 
-
 // ========================================
-// ✅ UPDATED: Helper to detect hardcoded products
+// ✅ Helper to detect hardcoded products
 // ========================================
 function isHardcodedProduct(productId: string | number | undefined): boolean {
   if (!productId) return false;
-  
-  // Handle numeric IDs (1, 2, 3...)
+
   if (typeof productId === 'number') {
     return productId >= 1 && productId <= 100;
   }
-  
-  // Handle string IDs
+
   const idString = productId.toString();
-  
-  // Check for "hardcoded-X" format
+
   if (idString.startsWith('hardcoded-')) {
     const numericPart = parseInt(idString.replace('hardcoded-', ''), 10);
     return !isNaN(numericPart) && numericPart >= 1 && numericPart <= 100;
   }
-  
-  // Check for pure numeric strings ("1", "2", "3"...)
+
   const numericId = Number(idString);
   return !isNaN(numericId) && numericId >= 1 && numericId <= 100;
 }
-
 
 
 // ========================================
@@ -125,22 +69,19 @@ function isHardcodedProduct(productId: string | number | undefined): boolean {
 async function getProductById(id: string | number): Promise<ProductDocument | null> {
   try {
     const idString = id.toString();
-    
-    // Try slug first
+
     let product = await Product.findOne({ slug: idString });
-    
-    // Try MongoDB _id if valid ObjectId
+
     if (!product && isValidObjectId(idString)) {
       product = await Product.findOne({ _id: idString });
     }
-    
+
     return product as ProductDocument | null;
   } catch (error) {
     console.error('Error fetching product:', error);
     return null;
   }
 }
-
 
 
 export async function POST(req: Request) {
@@ -151,19 +92,18 @@ export async function POST(req: Request) {
     }
 
 
-
     const body = await req.json();
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, orderDetails } = body;
 
-
-
-    const validation = orderDetailsSchema.safeParse(orderDetails);
+    // Validate required fields
+    const validation = verifyPaymentSchema.safeParse(body);
     if (!validation.success) {
       return NextResponse.json({ error: validation.error.format() }, { status: 400 });
     }
 
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = body;
 
 
+    // Verify signature
     const secret = process.env.RAZORPAY_KEY_SECRET!;
     const generated_signature = crypto
       .createHmac("sha256", secret)
@@ -171,150 +111,103 @@ export async function POST(req: Request) {
       .digest("hex");
 
 
-
     if (generated_signature !== razorpay_signature) {
       return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
     }
 
 
-
     await connectDB();
-    
-    // Find user by login credentials (phone OR email)
-    let user = null;
-    if (session.phone) {
-      user = await User.findOne({ phone: session.phone });
-    } else if (session.email) {
-      user = await User.findOne({ email: session.email });
+
+    // ========================================
+    // ✅ NEW: Find existing order by razorpay_order_id
+    // ========================================
+    console.log('🔍 Looking for order with razorpay_order_id:', razorpay_order_id);
+
+    const order = await Order.findOne({ razorpay_order_id: razorpay_order_id });
+
+    if (!order) {
+      console.error('❌ Order not found for razorpay_order_id:', razorpay_order_id);
+      return NextResponse.json({
+        error: "Order not found. Please contact support.",
+        razorpay_order_id: razorpay_order_id
+      }, { status: 404 });
     }
-    
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
 
+    console.log('✅ Found order:', order.orderId, 'Current status:', order.status);
 
-
-    const existingOrder = await Order.findOne({ razorpay_payment_id });
-
-
-
-    if (existingOrder) {
-      console.log('✅ Order already created by webhook:', existingOrder._id);
-      
-      // Ensure userId is set (for old orders from webhook)
-      if (!existingOrder.userId) {
-        existingOrder.userId = new mongoose.Types.ObjectId(user._id);
-        await existingOrder.save();
-        console.log('✅ Added userId to existing order');
-      }
-      
-      if (!user.orders.includes(existingOrder._id)) {
-        try {
-          user.orders.push(existingOrder._id);
-          await user.save();
-          console.log('✅ Added order to user orders list');
-        } catch (linkError) {
-          console.error('⚠️ Could not link existing order to user:', linkError);
-        }
-      }
-      
-      // Update phone for email-only users
-      if (!user.phone && orderDetails.phone) {
-        try {
-          user.phone = orderDetails.phone;
-          await user.save();
-          console.log('✅ First order: Added phone to email-only user profile:', orderDetails.phone);
-        } catch (phoneError: unknown) {
-          const err = phoneError as { code?: number };
-          if (err.code === 11000) {
-            console.log('⚠️ Phone already in use by another user, skipping update');
-          } else {
-            console.error('⚠️ Error updating phone:', phoneError);
-          }
-        }
-      }
-      
-      // Update email for phone-only users
-      if (!user.email && orderDetails.email) {
-        try {
-          user.email = orderDetails.email;
-          await user.save();
-          console.log('✅ Updated user email');
-        } catch (emailError: unknown) {
-          const err = emailError as { code?: number };
-          if (err.code === 11000) {
-            console.log('⚠️ Email already in use by another user, skipping update');
-          } else {
-            console.error('⚠️ Error updating email:', emailError);
-          }
-        }
-      }
-      
-      return NextResponse.json({ 
-        success: true, 
-        orderId: existingOrder._id,
-        orderNumber: existingOrder._id.toString().slice(-6),
-        source: 'webhook'
+    // Check if already processed
+    if (order.status === 'Paid') {
+      console.log('✅ Order already marked as Paid:', order.orderId);
+      return NextResponse.json({
+        success: true,
+        orderId: order.orderId,
+        mongoOrderId: order._id.toString(),
+        source: 'already_processed'
       });
     }
 
+    // ========================================
+    // ✅ UPDATE ORDER STATUS TO PAID
+    // ========================================
+    order.status = 'Paid';
+    order.razorpay_payment_id = razorpay_payment_id;
+    order.paymentAttempts = (order.paymentAttempts || 0) + 1;
+    order.lastPaymentAttempt = new Date();
+    order.createdVia = 'frontend';
+    await order.save();
 
-
-    console.log('⚠️ Webhook order not found, creating via verify route (backup)');
-
+    console.log('✅ Order updated to Paid:', order.orderId);
 
 
     // ========================================
-    // ✅ STOCK MANAGEMENT: Process stock reduction
+    // ✅ STOCK MANAGEMENT: Convert reserved to sold
     // ========================================
-    console.log('🔄 Processing stock for', orderDetails.cart.length, 'items via verify route');
-    
-    for (const item of orderDetails.cart) {
-      const productId = item._id || item.id;
+    console.log('🔄 Processing stock for', order.items.length, 'items');
+
+    for (const item of order.items) {
+      const productId = item.productId;
       if (!productId) {
         console.log('⚠️ Skipping item with no ID:', item.name);
         continue;
       }
 
-      // ✅ Skip hardcoded products
+      // Skip hardcoded products
       if (isHardcodedProduct(productId)) {
-        console.log(`⏭️ Skipping stock update for hardcoded product: ${item.name} (ID: ${productId})`);
+        console.log(`⏭️ Skipping stock update for hardcoded product: ${item.name}`);
         continue;
       }
 
       const product = await getProductById(productId);
-      
+
       if (!product) {
         console.log(`⚠️ Product not found: ${item.name} (ID: ${productId})`);
         continue;
       }
 
-
-
       const quantity = item.quantity || 1;
-      
+
       // Store old values for logging
       const oldStock = product.stock;
       const oldReserved = product.reservedStock || 0;
       const oldSold = product.totalSold || 0;
-      
+
       // Reduce actual stock
       product.stock = Math.max(0, product.stock - quantity);
-      
-      // Release reserved stock (if any)
+
+      // Release reserved stock
       product.reservedStock = Math.max(0, (product.reservedStock || 0) - quantity);
-      
+
       // Increase total sold
       product.totalSold = (product.totalSold || 0) + quantity;
-      
+
       await product.save();
-      
+
       console.log(`✅ ${product.name} (verify route):`);
       console.log(`   📦 Stock: ${oldStock} → ${product.stock} (reduced by ${quantity})`);
       console.log(`   🔒 Reserved: ${oldReserved} → ${product.reservedStock}`);
       console.log(`   📊 Total Sold: ${oldSold} → ${product.totalSold}`);
-      
-      // ✅ Invalidate product cache
+
+      // Invalidate product cache
       try {
         invalidateProductCache(product.slug || '');
         invalidateProductCache(product._id.toString());
@@ -322,118 +215,53 @@ export async function POST(req: Request) {
         console.error('⚠️ Cache invalidation failed (non-critical):', cacheError);
       }
     }
-    
-    console.log('✅ Stock updated successfully via verify route');
+
+    console.log('✅ Stock updated successfully');
     // ========================================
 
 
+    // ========================================
+    // ✅ UPDATE USER PROFILE IF NEEDED
+    // ========================================
+    const user = await User.findById(order.userId);
 
-    // Update phone for email-only users
-    if (!user.phone && orderDetails.phone) {
-      try {
-        user.phone = orderDetails.phone;
-        await user.save();
-        console.log('✅ First order: Added phone to email-only user profile:', orderDetails.phone);
-      } catch (phoneError: unknown) {
-        const err = phoneError as { code?: number };
-        if (err.code === 11000) {
-          console.log('⚠️ Phone already in use by another user');
-        } else {
-          console.error('⚠️ Error updating phone:', phoneError);
+    if (user) {
+      // Update phone for email-only users
+      if (!user.phone && order.phone) {
+        try {
+          user.phone = order.phone;
+          await user.save();
+          console.log('✅ Added phone to user profile:', order.phone);
+        } catch (phoneError: unknown) {
+          const err = phoneError as { code?: number };
+          if (err.code === 11000) {
+            console.log('⚠️ Phone already in use by another user');
+          }
+        }
+      }
+
+      // Update email for phone-only users
+      if (!user.email && order.email) {
+        try {
+          user.email = order.email;
+          await user.save();
+          console.log('✅ Added email to user profile:', order.email);
+        } catch (emailError: unknown) {
+          const err = emailError as { code?: number };
+          if (err.code === 11000) {
+            console.log('⚠️ Email already in use by another user');
+          }
         }
       }
     }
 
 
-
-    // Update email for phone-only users
-    if (!user.email && orderDetails.email) {
-      try {
-        user.email = orderDetails.email;
-        await user.save();
-        console.log('✅ Updated user email before order creation');
-      } catch (emailError: unknown) {
-        const err = emailError as { code?: number };
-        if (err.code === 11000) {
-          console.log('⚠️ Email already in use by another user');
-        } else {
-          console.error('⚠️ Error updating user email:', emailError);
-        }
-      }
-    }
-
-
-
-    const orderItems: OrderItem[] = orderDetails.cart.map((item: CartItem) => ({
-      productId: item._id || item.id || 0,
-      name: item.name,
-      price: item.price,
-      quantity: item.quantity,
-      image: item.image || '',
-    }));
-
-
-
-    const calculatedSubtotal = orderItems.reduce(
-      (sum: number, item: OrderItem) => sum + (item.price * item.quantity), 
-      0
-    );
-    
-    const subtotal = orderDetails.originalAmount || calculatedSubtotal;
-    const discountAmount = orderDetails.discount?.savedAmount || 0;
-    const total = orderDetails.finalAmount || (subtotal - discountAmount);
-
-
-
-    // Create order with proper ObjectId userId
-    const newOrder = await Order.create({
-      userId: new mongoose.Types.ObjectId(user._id),
-      phone: orderDetails.phone,
-      email: orderDetails.email,
-      name: orderDetails.name,
-      age: orderDetails.age,
-      address: orderDetails.address,
-      city: orderDetails.city,
-      state: orderDetails.state,
-      pincode: orderDetails.pincode,
-      status: "Paid",
-      razorpay_payment_id: razorpay_payment_id,
-      razorpay_order_id: razorpay_order_id,
-      items: orderItems,
-      subtotal: subtotal,
-      discount: discountAmount,
-      total: total,
-      createdVia: 'frontend',
-      ...(orderDetails.coupon && {
-        couponCode: orderDetails.coupon.code,
-        couponDetails: orderDetails.coupon,
-      }),
-    });
-
-
-
-    console.log('✅ Order created via verify route with userId:', newOrder._id);
-    console.log('✅ userId type:', typeof newOrder.userId, newOrder.userId);
-
-
+    // ========================================
+    // ✅ SEND CONFIRMATION EMAIL
+    // ========================================
+    const orderObject = order.toObject();
 
     try {
-      user.orders.push(newOrder._id);
-      await user.save();
-      console.log('✅ Order linked to user');
-    } catch (linkError) {
-      console.error('⚠️ Could not link order to user (order still exists):', linkError);
-    }
-
-
-
-    const orderObject = newOrder.toObject();
-    const orderTotal = orderObject.total || total;
-
-
-
-    try {
-      // ✅ FIXED: Proper typing instead of any
       const itemsHtml = orderObject.items.map((item: OrderItemFromDb) => `
         <tr class="item-row">
           <td class="item-name">${item.name}</td>
@@ -442,35 +270,31 @@ export async function POST(req: Request) {
         </tr>
       `).join('');
 
-
-
       await sendOrderConfirmationEmail({
         name: orderObject.name,
-        orderNumber: orderObject._id.toString().slice(-6),
+        orderNumber: orderObject.orderId || orderObject._id.toString().slice(-6),  // ✅ Use orderId
         orderDate: new Date(orderObject.createdAt).toLocaleString('en-IN'),
         email: orderObject.email,
         items: itemsHtml,
-        totalAmount: orderTotal.toFixed(2),
+        totalAmount: orderObject.total.toFixed(2),
         address: orderObject.address,
         city: orderObject.city,
         state: orderObject.state,
         pincode: orderObject.pincode,
       });
-      
-      console.log('✅ Email sent via verify route');
+
+      console.log('✅ Confirmation email sent');
     } catch (emailError) {
-      console.error('⚠️ Email failed in verify route:', emailError);
+      console.error('⚠️ Email failed (order still completed):', emailError);
     }
 
 
-
-    return NextResponse.json({ 
-      success: true, 
-      orderId: newOrder._id,
-      orderNumber: orderObject._id.toString().slice(-6),
+    return NextResponse.json({
+      success: true,
+      orderId: order.orderId,
+      mongoOrderId: order._id.toString(),
       source: 'frontend'
     });
-
 
 
   } catch (error) {

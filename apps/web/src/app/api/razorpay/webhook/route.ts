@@ -1,36 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
-import mongoose from 'mongoose';
 import { connectDB, Order, User, Product } from '@swago/database';
 import type { RazorpayWebhookPayload } from '@swago/types';
 import { sendOrderConfirmationEmail } from '@/lib/msg91-email';
 import { isValidObjectId } from 'mongoose';
 import { invalidateProductCache } from "@/lib/productCache";
-
-
-
-// Type matching SharedContext CartItem
-type CartItem = {
-  id?: number;
-  _id?: string;
-  productId?: number;
-  name: string;
-  price: number;
-  quantity: number;
-  images?: string[];
-  image?: string;
-};
-
-
-
-// Order item type
-type OrderItem = {
-  productId: number | string;
-  name: string;
-  price: number;
-  quantity: number;
-  image: string;
-};
 
 
 
@@ -60,18 +34,10 @@ interface ProductDocument {
 
 
 
-// Coupon details type
-type CouponDetails = {
-  code: string;
-  description: string;
-  type: string;
-  value: number;
-} | null;
-
-
-
 // ✅ Extended notes type
 type ExtendedRazorpayNotes = {
+  orderId?: string;           // ✅ NEW: Our custom order ID
+  mongoOrderId?: string;      // ✅ NEW: MongoDB ObjectId
   loginPhone?: string;
   loginEmail?: string;
   phone?: string;
@@ -96,40 +62,23 @@ type ExtendedRazorpayNotes = {
 
 
 
-// Safe JSON parser
-function safeJsonParse<T>(jsonString: string | null | undefined, fallback: T): T {
-  if (!jsonString) return fallback;
-  try {
-    return JSON.parse(jsonString);
-  } catch (error) {
-    console.error('⚠️ JSON parse error:', error);
-    return fallback;
-  }
-}
-
-
-
 // ========================================
-// ✅ UPDATED: Helper to detect hardcoded products
+// ✅ Helper to detect hardcoded products
 // ========================================
 function isHardcodedProduct(productId: string | number | undefined): boolean {
   if (!productId) return false;
-  
-  // Handle numeric IDs (1, 2, 3...)
+
   if (typeof productId === 'number') {
     return productId >= 1 && productId <= 100;
   }
-  
-  // Handle string IDs
+
   const idString = productId.toString();
-  
-  // Check for "hardcoded-X" format
+
   if (idString.startsWith('hardcoded-')) {
     const numericPart = parseInt(idString.replace('hardcoded-', ''), 10);
     return !isNaN(numericPart) && numericPart >= 1 && numericPart <= 100;
   }
-  
-  // Check for pure numeric strings ("1", "2", "3"...)
+
   const numericId = Number(idString);
   return !isNaN(numericId) && numericId >= 1 && numericId <= 100;
 }
@@ -142,15 +91,13 @@ function isHardcodedProduct(productId: string | number | undefined): boolean {
 async function getProductById(id: string | number): Promise<ProductDocument | null> {
   try {
     const idString = id.toString();
-    
-    // Try slug first
+
     let product = await Product.findOne({ slug: idString });
-    
-    // Try MongoDB _id if valid ObjectId
+
     if (!product && isValidObjectId(idString)) {
       product = await Product.findOne({ _id: idString });
     }
-    
+
     return product as ProductDocument | null;
   } catch (error) {
     console.error('Error fetching product:', error);
@@ -164,17 +111,17 @@ export async function POST(req: NextRequest) {
   const timestamp = new Date().toISOString();
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log(`🔔 [${timestamp}] Webhook received`);
-  
+
   try {
     const signature = req.headers.get('x-razorpay-signature');
     console.log('🔐 Signature present:', !!signature);
-    
+
     const body = await req.text();
     console.log('📦 Body length:', body.length, 'bytes');
-    
+
     const isValid = verifyWebhookSignature(body, signature);
     console.log('✅ Signature valid:', isValid);
-    
+
     if (!isValid) {
       console.log('❌ Webhook rejected: Invalid signature');
       console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
@@ -185,7 +132,7 @@ export async function POST(req: NextRequest) {
 
     const event = JSON.parse(body);
     console.log('📋 Event type:', event.event);
-    console.log('🆔 Event ID:', event.payload?.payment?.entity?.id || 'N/A');
+    console.log('🆔 Payment ID:', event.payload?.payment?.entity?.id || 'N/A');
 
 
 
@@ -257,232 +204,170 @@ function verifyWebhookSignature(body: string, signature: string | null): boolean
 
 async function handlePaymentCaptured(payload: RazorpayWebhookPayload) {
   const payment = payload.payment.entity;
-  
+
   console.log('💳 Payment ID:', payment.id);
-  console.log('🆔 Order ID:', payment.order_id);
+  console.log('🆔 Razorpay Order ID:', payment.order_id);
   console.log('💰 Amount:', payment.amount / 100, 'INR');
   console.log('📧 Email:', payment.email);
   console.log('📱 Contact:', payment.contact);
-  
+
   try {
     await connectDB();
     console.log('✅ Database connected');
 
+    const notes = (payment.notes || {}) as ExtendedRazorpayNotes;
+    console.log('📝 Notes - orderId:', notes.orderId);
+    console.log('📝 Notes - mongoOrderId:', notes.mongoOrderId);
 
 
-    const existingOrder = await Order.findOne({
-      razorpay_payment_id: payment.id
-    });
+    // ========================================
+    // ✅ NEW: Find existing order (not create)
+    // ========================================
+    let order = null;
 
+    // Try to find by our orderId first
+    if (notes.orderId) {
+      order = await Order.findOne({ orderId: notes.orderId });
+      console.log('🔍 Lookup by orderId:', notes.orderId, 'Found:', !!order);
+    }
 
+    // Fallback to razorpay_order_id
+    if (!order && payment.order_id) {
+      order = await Order.findOne({ razorpay_order_id: payment.order_id });
+      console.log('🔍 Lookup by razorpay_order_id:', payment.order_id, 'Found:', !!order);
+    }
 
-    if (existingOrder) {
-      console.log('⚠️ Duplicate webhook - Order already exists:', existingOrder._id);
-      console.log('📅 Original order created:', existingOrder.createdAt);
+    // Fallback to payment_id (for duplicate check)
+    if (!order) {
+      order = await Order.findOne({ razorpay_payment_id: payment.id });
+      if (order) {
+        console.log('⚠️ Duplicate webhook - Order found by payment_id:', order.orderId);
+        return;
+      }
+    }
+
+    if (!order) {
+      console.error('❌ Order not found in database');
+      console.error('   orderId:', notes.orderId);
+      console.error('   razorpay_order_id:', payment.order_id);
       return;
     }
 
 
+    // Already processed?
+    if (order.status === 'Paid') {
+      console.log('✅ Order already Paid (duplicate webhook):', order.orderId);
+      return;
+    }
 
-    console.log('🆕 Creating new order...');
 
-
-
-    const notes = (payment.notes || {}) as ExtendedRazorpayNotes;
-    console.log('📝 Notes found:', Object.keys(notes).length > 0);
-    console.log('👤 Customer:', notes.name);
-    console.log('📍 City:', notes.city);
-    console.log('🔒 Stock reserved:', notes.stock_reserved === 'true' ? 'Yes' : 'No');
-    
-    const cartItems = safeJsonParse<CartItem[]>(notes.items, []);
-    
     // ========================================
-    // ✅ STOCK MANAGEMENT: Convert reserved to actual reduction
+    // ✅ UPDATE ORDER STATUS TO PAID
     // ========================================
-    console.log('🔄 Processing stock for', cartItems.length, 'items');
-    
-    for (const item of cartItems) {
-      const productId = item._id || item.id || item.productId;
+    order.status = 'Paid';
+    order.razorpay_payment_id = payment.id;
+    order.webhookProcessed = true;
+    order.webhookReceivedAt = new Date();
+    order.createdVia = 'webhook';
+    order.paymentAttempts = (order.paymentAttempts || 0) + 1;
+    order.lastPaymentAttempt = new Date();
+    await order.save();
+
+    console.log('✅ Order updated via webhook:', order.orderId);
+
+
+    // ========================================
+    // ✅ STOCK MANAGEMENT: Convert reserved to sold
+    // ========================================
+    console.log('🔄 Processing stock for', order.items.length, 'items');
+
+    for (const item of order.items) {
+      const productId = item.productId;
       if (!productId) {
         console.log('⚠️ Skipping item with no ID:', item.name);
         continue;
       }
 
-      // ✅ Skip hardcoded products
+      // Skip hardcoded products
       if (isHardcodedProduct(productId)) {
-        console.log(`⏭️ Skipping stock update for hardcoded product: ${item.name} (ID: ${productId})`);
+        console.log(`⏭️ Skipping stock update for hardcoded product: ${item.name}`);
         continue;
       }
 
       const product = await getProductById(productId);
-      
+
       if (!product) {
         console.log(`⚠️ Product not found: ${item.name} (ID: ${productId})`);
         continue;
       }
 
-
-
       const quantity = item.quantity || 1;
-      
-      // Store old values for logging
+
       const oldStock = product.stock;
       const oldReserved = product.reservedStock || 0;
       const oldSold = product.totalSold || 0;
-      
+
       // Reduce actual stock
       product.stock = Math.max(0, product.stock - quantity);
-      
+
       // Release reserved stock
       product.reservedStock = Math.max(0, (product.reservedStock || 0) - quantity);
-      
+
       // Increase total sold
       product.totalSold = (product.totalSold || 0) + quantity;
-      
+
       await product.save();
-      
+
       console.log(`✅ ${product.name}:`);
-      console.log(`   📦 Stock: ${oldStock} → ${product.stock} (reduced by ${quantity})`);
+      console.log(`   📦 Stock: ${oldStock} → ${product.stock}`);
       console.log(`   🔒 Reserved: ${oldReserved} → ${product.reservedStock}`);
       console.log(`   📊 Total Sold: ${oldSold} → ${product.totalSold}`);
-      
-      // ✅ Invalidate product cache
+
       try {
         invalidateProductCache(product.slug || '');
         invalidateProductCache(product._id.toString());
       } catch (cacheError) {
-        console.error('⚠️ Cache invalidation failed (non-critical):', cacheError);
+        console.error('⚠️ Cache invalidation failed:', cacheError);
       }
     }
-    
-    console.log('✅ Stock updated successfully for all items');
+
+    console.log('✅ Stock updated successfully');
+
+
     // ========================================
-    
-    const orderItems: OrderItem[] = cartItems.map((item: CartItem) => ({
-      productId: item._id || item.id || item.productId || 0,
-      name: item.name || 'Unknown Product',
-      price: item.price || 0,
-      quantity: item.quantity || 1,
-      image: item.images?.[0] || item.image || '',
-    }));
-    
-    console.log('🛒 Order items:', orderItems.length);
-    if (orderItems.length > 0) {
-      console.log('🔍 First item:', orderItems[0].name);
-    }
-    
-    const couponDetails = safeJsonParse<CouponDetails>(notes.couponDetails, null);
-    if (couponDetails) {
-      console.log('🎟️ Coupon applied:', couponDetails.code);
-    }
+    // ✅ UPDATE USER PROFILE
+    // ========================================
+    const user = await User.findById(order.userId);
 
-
-
-    const orderPhone = notes.phone || payment.contact || '';
-    console.log('📱 Order/Delivery phone:', orderPhone);
-
-
-
-    // Find user by login credentials
-    let user = null;
-    
-    if (notes.loginPhone) {
-      user = await User.findOne({ phone: notes.loginPhone });
-      console.log('👤 User lookup by login phone:', notes.loginPhone, 'Found:', !!user);
-    }
-    
-    if (!user && notes.loginEmail) {
-      user = await User.findOne({ email: notes.loginEmail });
-      console.log('👤 User lookup by login email:', notes.loginEmail, 'Found:', !!user);
-    }
-    
-    if (!user && orderPhone) {
-      user = await User.findOne({ phone: orderPhone });
-      console.log('👤 Fallback: User lookup by delivery phone:', orderPhone, 'Found:', !!user);
-    }
-    
-    if (!user && notes.email) {
-      user = await User.findOne({ email: notes.email });
-      console.log('👤 Fallback: User lookup by delivery email:', notes.email, 'Found:', !!user);
-    }
-
-
-
-    if (!user) {
-      console.log('❌ User not found. Cannot create order without user.');
-      console.log('Login credentials:', { phone: notes.loginPhone, email: notes.loginEmail });
-      return;
-    }
-
-
-
-    const newOrder = await Order.create({
-      userId: new mongoose.Types.ObjectId(user._id),
-      phone: orderPhone,
-      email: notes.email || payment.email || '',
-      name: notes.name || '',
-      age: notes.age || '',
-      address: notes.address || '',
-      city: notes.city || '',
-      state: notes.state || '',
-      pincode: notes.pincode || '',
-      status: 'Paid',
-      razorpay_payment_id: payment.id,
-      razorpay_order_id: payment.order_id,
-      items: orderItems,
-      subtotal: parseFloat(notes.subtotal || '0'),
-      discount: parseFloat(notes.discount || '0'),
-      total: payment.amount / 100,
-      couponCode: couponDetails?.code,
-      couponDetails: couponDetails,
-      createdVia: 'webhook',
-      webhookProcessed: true,
-      webhookReceivedAt: new Date()
-    });
-
-
-
-    console.log('✅ Order created:', newOrder._id);
-    console.log('💵 Order total:', newOrder.total, 'INR');
-
-
-
-    // Update user profile
-    if (!user.phone && orderPhone) {
-      try {
-        user.phone = orderPhone;
-        console.log('✅ Added phone to user profile:', orderPhone);
-      } catch (phoneError: unknown) {
-        const err = phoneError as { code?: number };
-        if (err.code === 11000) {
-          console.log('⚠️ Phone already in use');
+    if (user) {
+      if (!user.phone && order.phone) {
+        try {
+          user.phone = order.phone;
+          console.log('✅ Added phone to user:', order.phone);
+        } catch (e) {
+          console.log('⚠️ Could not add phone');
         }
       }
-    }
-    
-    if (!user.email && notes.email) {
-      try {
-        user.email = notes.email;
-        console.log('✅ Added email to user profile:', notes.email);
-      } catch (emailError: unknown) {
-        const err = emailError as { code?: number };
-        if (err.code === 11000) {
-          console.log('⚠️ Email already in use');
+
+      if (!user.email && order.email) {
+        try {
+          user.email = order.email;
+          console.log('✅ Added email to user:', order.email);
+        } catch (e) {
+          console.log('⚠️ Could not add email');
         }
       }
+
+      await user.save();
     }
-    
-    user.orders.push(newOrder._id);
-    await user.save();
-    console.log('✅ User updated with new order');
 
 
-
-    // Send confirmation email
+    // ========================================
+    // ✅ SEND CONFIRMATION EMAIL
+    // ========================================
     console.log('📧 Sending confirmation email...');
-    const orderObject = newOrder.toObject();
-    
-    // ✅ FIXED: Proper typing instead of any
+    const orderObject = order.toObject();
+
     const itemsHtml = orderObject.items.map((item: OrderItemFromDb) => `
       <tr class="item-row">
         <td class="item-name">${item.name}</td>
@@ -491,12 +376,10 @@ async function handlePaymentCaptured(payload: RazorpayWebhookPayload) {
       </tr>
     `).join('');
 
-
-
     try {
       await sendOrderConfirmationEmail({
         name: orderObject.name,
-        orderNumber: orderObject._id.toString().slice(-6),
+        orderNumber: orderObject.orderId || orderObject._id.toString().slice(-6),  // ✅ Use orderId
         orderDate: new Date(orderObject.createdAt).toLocaleString('en-IN'),
         email: orderObject.email,
         items: itemsHtml,
@@ -508,15 +391,13 @@ async function handlePaymentCaptured(payload: RazorpayWebhookPayload) {
       });
       console.log('✅ Confirmation email sent');
     } catch (emailError) {
-      console.error('⚠️ Email failed (order still created):', emailError);
+      console.error('⚠️ Email failed (order still completed):', emailError);
     }
-
 
 
   } catch (error) {
     console.error('💥 Error in handlePaymentCaptured:', error);
     console.error('Payment ID:', payment.id);
-    console.error('Stack:', (error as Error).stack);
     throw error;
   }
 }
@@ -525,82 +406,87 @@ async function handlePaymentCaptured(payload: RazorpayWebhookPayload) {
 
 async function handlePaymentFailed(payload: RazorpayWebhookPayload) {
   const payment = payload.payment.entity;
-  
+
   console.log('❌ Payment failed');
   console.log('💳 Payment ID:', payment.id);
-  console.log('🆔 Order ID:', payment.order_id);
+  console.log('🆔 Razorpay Order ID:', payment.order_id);
   console.log('💰 Amount:', payment.amount / 100, 'INR');
-  console.log('📧 Email:', payment.email);
   console.log('⚠️ Error code:', payment.error_code);
   console.log('📝 Error description:', payment.error_description);
-  console.log('🔍 Error reason:', payment.error_reason);
-  
-  // ========================================
-  // ✅ STOCK MANAGEMENT: Release reserved stock
-  // ========================================
+
   try {
     await connectDB();
-    
-    const notes = (payment.notes || {}) as ExtendedRazorpayNotes;
-    const stockReserved = notes.stock_reserved === 'true';
-    
-    if (!stockReserved) {
-      console.log('ℹ️ No stock was reserved for this order');
-      return;
-    }
-    
-    const cartItems = safeJsonParse<CartItem[]>(notes.items, []);
-    
-    if (cartItems.length === 0) {
-      console.log('ℹ️ No cart items to process');
-      return;
-    }
-    
-    console.log('🔓 Releasing reserved stock for', cartItems.length, 'items');
-    
-    for (const item of cartItems) {
-      const productId = item._id || item.id || item.productId;
-      if (!productId) {
-        console.log('⚠️ Skipping item with no ID');
-        continue;
-      }
 
-      // ✅ Skip hardcoded products
+    const notes = (payment.notes || {}) as ExtendedRazorpayNotes;
+
+
+    // ========================================
+    // ✅ NEW: Find and update order to Failed
+    // ========================================
+    let order = null;
+
+    if (notes.orderId) {
+      order = await Order.findOne({ orderId: notes.orderId });
+    }
+
+    if (!order && payment.order_id) {
+      order = await Order.findOne({ razorpay_order_id: payment.order_id });
+    }
+
+    if (!order) {
+      console.log('⚠️ Order not found for failed payment');
+      return;
+    }
+
+    // Only update if still Pending
+    if (order.status === 'Pending') {
+      order.status = 'Failed';
+      order.paymentAttempts = (order.paymentAttempts || 0) + 1;
+      order.lastPaymentAttempt = new Date();
+      await order.save();
+      console.log('❌ Order marked as Failed:', order.orderId);
+    } else {
+      console.log('ℹ️ Order status is', order.status, '- not updating to Failed');
+    }
+
+
+    // ========================================
+    // ✅ RELEASE RESERVED STOCK
+    // ========================================
+    console.log('🔓 Releasing reserved stock for', order.items.length, 'items');
+
+    for (const item of order.items) {
+      const productId = item.productId;
+      if (!productId) continue;
+
       if (isHardcodedProduct(productId)) {
-        console.log(`⏭️ Skipping stock release for hardcoded product: ${item.name} (ID: ${productId})`);
+        console.log(`⏭️ Skipping stock release for hardcoded product: ${item.name}`);
         continue;
       }
 
       const product = await getProductById(productId);
-      if (!product) {
-        console.log(`⚠️ Product not found: ${item.name}`);
-        continue;
-      }
-
-
+      if (!product) continue;
 
       const quantity = item.quantity || 1;
       const oldReserved = product.reservedStock || 0;
-      
+
       // Release reserved stock
       product.reservedStock = Math.max(0, (product.reservedStock || 0) - quantity);
       await product.save();
-      
-      console.log(`🔓 ${product.name}: Reserved ${oldReserved} → ${product.reservedStock} (released ${quantity})`);
-      
-      // ✅ Invalidate product cache
+
+      console.log(`🔓 ${product.name}: Reserved ${oldReserved} → ${product.reservedStock}`);
+
       try {
         invalidateProductCache(product.slug || '');
         invalidateProductCache(product._id.toString());
       } catch (cacheError) {
-        console.error('⚠️ Cache invalidation failed (non-critical):', cacheError);
+        console.error('⚠️ Cache invalidation failed:', cacheError);
       }
     }
-    
+
     console.log('✅ All reserved stock released');
-    
+
   } catch (error) {
-    console.error('⚠️ Error releasing reserved stock:', error);
+    console.error('⚠️ Error in handlePaymentFailed:', error);
   }
-  // ========================================
 }

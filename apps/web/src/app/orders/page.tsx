@@ -8,6 +8,31 @@ import ReviewForm from "@/components/ReviewForm";
 import { products } from "@swago/utils";
 import { useFormattedDate } from "@/hooks/useFormattedDate";
 
+// ✅ Razorpay types (local to avoid duplicate global declarations)
+interface RazorpayOptions {
+  key: string;
+  amount: number;
+  currency: string;
+  name: string;
+  description: string;
+  order_id: string;
+  handler: (response: RazorpayResponse) => void;
+  prefill: { name: string; email: string; contact: string };
+  notes: Record<string, string>;
+  theme: { color: string };
+}
+
+interface RazorpayResponse {
+  razorpay_payment_id: string;
+  razorpay_order_id: string;
+  razorpay_signature: string;
+}
+
+interface RazorpayInstance {
+  open: () => void;
+  on: (event: string, handler: (response: { error: { description: string } }) => void) => void;
+}
+
 type OrderItem = {
   name: string;
   quantity: number;
@@ -16,10 +41,41 @@ type OrderItem = {
 
 type Order = {
   _id: string;
+  orderId?: string;
   status: string;
   createdAt: string;
   items: OrderItem[];
+  total?: number;
+  razorpay_order_id?: string;
+  name?: string;
+  email?: string;
+  phone?: string;
 };
+
+// ✅ Payment window expiry time in minutes
+const PAYMENT_EXPIRY_MINUTES = 10;
+
+// ✅ Check if order can still be paid
+function canRetryPayment(order: Order): { canPay: boolean; reason: string; minutesLeft: number } {
+  const status = order.status?.toLowerCase();
+
+  // Only Pending or Failed orders can be retried
+  if (status !== 'pending' && status !== 'failed') {
+    return { canPay: false, reason: 'Order already processed', minutesLeft: 0 };
+  }
+
+  // Check expiry
+  const createdAt = new Date(order.createdAt).getTime();
+  const now = Date.now();
+  const expiryTime = createdAt + (PAYMENT_EXPIRY_MINUTES * 60 * 1000);
+  const minutesLeft = Math.max(0, Math.ceil((expiryTime - now) / 60000));
+
+  if (now > expiryTime) {
+    return { canPay: false, reason: 'Payment window expired', minutesLeft: 0 };
+  }
+
+  return { canPay: true, reason: '', minutesLeft };
+}
 
 export default function OrdersPage() {
   const { user } = useSharedContext();
@@ -27,9 +83,10 @@ export default function OrdersPage() {
   const [loading, setLoading] = useState(true);
   const [reviewingOrder, setReviewingOrder] = useState<string | null>(null);
   const [reviewingProduct, setReviewingProduct] = useState<{ name: string; id: number } | null>(null);
+  const [payingOrderId, setPayingOrderId] = useState<string | null>(null);
+  const [paymentMessage, setPaymentMessage] = useState<string>("");
 
   useEffect(() => {
-    // Fetch orders from dedicated endpoint
     const fetchOrders = async () => {
       if (!user) {
         setLoading(false);
@@ -56,6 +113,16 @@ export default function OrdersPage() {
     fetchOrders();
   }, [user]);
 
+  // ✅ Refresh orders periodically to update expiry countdown
+  useEffect(() => {
+    const interval = setInterval(() => {
+      // Force re-render to update countdown
+      setOrders(prev => [...prev]);
+    }, 30000); // Every 30 seconds
+
+    return () => clearInterval(interval);
+  }, []);
+
   const getProductIdByName = (productName: string): number | null => {
     const product = products.find((p) => p.name === productName);
     return product ? product.id : null;
@@ -77,6 +144,99 @@ export default function OrdersPage() {
   const handleCancelReview = () => {
     setReviewingOrder(null);
     setReviewingProduct(null);
+  };
+
+  // ✅ Handle retry payment
+  const handleRetryPayment = async (order: Order) => {
+    if (!order.razorpay_order_id) {
+      setPaymentMessage("Cannot retry: Missing payment order ID");
+      return;
+    }
+
+    setPayingOrderId(order._id);
+    setPaymentMessage("Opening payment...");
+
+    try {
+      // Get Razorpay config
+      const configRes = await fetch("/api/razorpay/config");
+      if (!configRes.ok) {
+        setPaymentMessage("Failed to load payment configuration");
+        setPayingOrderId(null);
+        return;
+      }
+      const config = await configRes.json();
+
+      const orderTotal = order.total || order.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+
+      const options: RazorpayOptions = {
+        key: config.keyId,
+        amount: Math.round(orderTotal * 100),
+        currency: "INR",
+        name: "Swago",
+        description: `Payment for Order ${order.orderId || order._id.slice(-6)}`,
+        order_id: order.razorpay_order_id,
+        handler: async function (response) {
+          setPaymentMessage("Verifying payment...");
+
+          const verificationRes = await fetch("/api/payment/verify", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_signature: response.razorpay_signature,
+              orderId: order.orderId,
+            }),
+          });
+
+          if (verificationRes.ok) {
+            setPaymentMessage("✅ Payment successful!");
+            // Refresh orders
+            const refreshRes = await fetch('/api/orders');
+            if (refreshRes.ok) {
+              const data = await refreshRes.json();
+              setOrders(data.orders || []);
+            }
+          } else {
+            setPaymentMessage("❌ Payment verification failed");
+          }
+
+          setTimeout(() => {
+            setPayingOrderId(null);
+            setPaymentMessage("");
+          }, 3000);
+        },
+        prefill: {
+          name: order.name || "",
+          email: order.email || "",
+          contact: order.phone || "",
+        },
+        notes: {
+          orderId: order.orderId || order._id,
+        },
+        theme: {
+          color: "#3b82f6",
+        },
+      };
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const RazorpayConstructor = (window as any).Razorpay as new (options: RazorpayOptions) => RazorpayInstance;
+      const paymentObject = new RazorpayConstructor(options);
+
+      paymentObject.on("payment.failed", function (response) {
+        setPaymentMessage(`❌ Payment failed: ${response.error.description}`);
+        setTimeout(() => {
+          setPayingOrderId(null);
+          setPaymentMessage("");
+        }, 3000);
+      });
+
+      paymentObject.open();
+    } catch (error) {
+      console.error("Retry payment error:", error);
+      setPaymentMessage("❌ An error occurred");
+      setPayingOrderId(null);
+    }
   };
 
   if (loading) {
@@ -154,6 +314,9 @@ export default function OrdersPage() {
             key={order._id}
             order={order}
             onWriteReview={handleWriteReview}
+            onRetryPayment={handleRetryPayment}
+            isProcessing={payingOrderId === order._id}
+            paymentMessage={payingOrderId === order._id ? paymentMessage : ""}
           />
         ))}
       </div>
@@ -161,30 +324,118 @@ export default function OrdersPage() {
   );
 }
 
+// ✅ Status badge with colors
+function StatusBadge({ status }: { status: string }) {
+  const statusLower = status?.toLowerCase() || 'pending';
+
+  const configs: Record<string, { bg: string; text: string }> = {
+    pending: { bg: 'bg-yellow-100', text: 'text-yellow-800' },
+    paid: { bg: 'bg-green-100', text: 'text-green-800' },
+    shipped: { bg: 'bg-purple-100', text: 'text-purple-800' },
+    delivered: { bg: 'bg-green-100', text: 'text-green-800' },
+    failed: { bg: 'bg-red-100', text: 'text-red-800' },
+    abandoned: { bg: 'bg-gray-100', text: 'text-gray-600' },
+    cancelled: { bg: 'bg-red-100', text: 'text-red-800' },
+  };
+
+  const config = configs[statusLower] || configs.pending;
+
+  return (
+    <span className={`text-sm font-semibold ${config.bg} ${config.text} px-3 py-1 rounded-full`}>
+      {status}
+    </span>
+  );
+}
+
 // OrderCard component
-function OrderCard({ 
-  order, 
-  onWriteReview 
-}: { 
-  order: Order; 
+function OrderCard({
+  order,
+  onWriteReview,
+  onRetryPayment,
+  isProcessing,
+  paymentMessage,
+}: {
+  order: Order;
   onWriteReview: (orderId: string, productName: string) => void;
+  onRetryPayment: (order: Order) => void;
+  isProcessing: boolean;
+  paymentMessage: string;
 }) {
   const isDelivered = order.status.toLowerCase().includes("deliver");
   const orderDate = useFormattedDate(order.createdAt, 'clean');
+  const { canPay, reason, minutesLeft } = canRetryPayment(order);
+  const isPendingOrFailed = ['pending', 'failed'].includes(order.status?.toLowerCase() || '');
 
   return (
     <div className="bg-white p-6 rounded-xl shadow-sm border">
       <div className="flex justify-between items-start mb-4">
         <div>
-          <p className="text-sm text-slate-500">Order ID: {order._id}</p>
+          <p className="text-sm text-slate-500">
+            Order ID: {order.orderId || `#${order._id.slice(-6)}`}
+          </p>
           <p className="text-sm text-slate-500">
             Date: {orderDate}
           </p>
         </div>
-        <span className="text-sm font-semibold bg-blue-100 text-blue-800 px-3 py-1 rounded-full">
-          {order.status}
-        </span>
+        <StatusBadge status={order.status} />
       </div>
+
+      {/* ✅ Payment Retry Section for Pending/Failed orders */}
+      {isPendingOrFailed && (
+        <div className={`mb-4 p-4 rounded-lg ${canPay ? 'bg-yellow-50 border border-yellow-200' : 'bg-gray-50 border border-gray-200'}`}>
+          {canPay ? (
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div>
+                <p className="font-medium text-yellow-800">
+                  ⏳ Payment pending
+                </p>
+                <p className="text-sm text-yellow-600">
+                  {minutesLeft} minute{minutesLeft !== 1 ? 's' : ''} left to complete payment
+                </p>
+              </div>
+              <button
+                onClick={() => onRetryPayment(order)}
+                disabled={isProcessing}
+                className="inline-flex items-center justify-center gap-2 bg-green-600 text-white px-5 py-2.5 rounded-lg hover:bg-green-700 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isProcessing ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                    Pay Now
+                  </>
+                )}
+              </button>
+            </div>
+          ) : (
+            <div className="text-center">
+              <p className="font-medium text-gray-600">
+                ⌛ {reason}
+              </p>
+              <p className="text-sm text-gray-500 mt-1">
+                This order has expired. Please place a new order.
+              </p>
+            </div>
+          )}
+
+          {/* Payment status message */}
+          {paymentMessage && (
+            <p className="mt-3 text-sm font-medium text-center text-blue-600">
+              {paymentMessage}
+            </p>
+          )}
+        </div>
+      )}
+
       <hr className="my-4" />
 
       {/* Items List */}
@@ -256,7 +507,7 @@ function OrderCard({
       <div className="mt-4 pt-4 border-t flex justify-between items-center">
         <span className="font-semibold">Order Total:</span>
         <span className="text-xl font-bold">
-          ₹{order.items.reduce((total, item) => total + item.price * item.quantity, 0).toFixed(2)}
+          ₹{(order.total || order.items.reduce((total, item) => total + item.price * item.quantity, 0)).toFixed(2)}
         </span>
       </div>
     </div>

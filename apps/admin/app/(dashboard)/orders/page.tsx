@@ -5,10 +5,10 @@ import OrderDateCell from './OrderDateCell'; // ✨ NEW: Client component for da
 
 async function getOrders() {
   await connectDB();
-  
+
   const orders = await Order.find()
     .sort({ createdAt: -1 })
-    .select('name phone email total status items createdAt razorpay_payment_id')
+    .select('orderId name phone email total status items createdAt razorpay_payment_id')
     .lean();
 
   return JSON.parse(JSON.stringify(orders));
@@ -74,8 +74,13 @@ export default async function OrdersPage() {
                   <tr key={order._id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-mono text-gray-900">
-                        #{order._id.slice(-6)}
+                        {order.orderId || `#${order._id.slice(-6)}`}
                       </div>
+                      {order.orderId && (
+                        <div className="text-xs text-gray-400">
+                          #{order._id.slice(-6)}
+                        </div>
+                      )}
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-sm font-medium text-gray-900">{order.name}</div>
@@ -125,13 +130,16 @@ export default async function OrdersPage() {
 function StatusBadge({ status }: { status: string }) {
   const statusConfig: Record<string, { bg: string; text: string; label: string }> = {
     pending: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Pending' },
+    paid: { bg: 'bg-green-100', text: 'text-green-800', label: 'Paid' },
     confirmed: { bg: 'bg-blue-100', text: 'text-blue-800', label: 'Confirmed' },
     shipped: { bg: 'bg-purple-100', text: 'text-purple-800', label: 'Shipped' },
     delivered: { bg: 'bg-green-100', text: 'text-green-800', label: 'Delivered' },
     cancelled: { bg: 'bg-red-100', text: 'text-red-800', label: 'Cancelled' },
+    failed: { bg: 'bg-red-100', text: 'text-red-800', label: 'Failed' },
+    abandoned: { bg: 'bg-gray-100', text: 'text-gray-600', label: 'Abandoned' },
   };
 
-  const config = statusConfig[status] || statusConfig.pending;
+  const config = statusConfig[status?.toLowerCase()] || statusConfig.pending;
 
   return (
     <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${config.bg} ${config.text}`}>

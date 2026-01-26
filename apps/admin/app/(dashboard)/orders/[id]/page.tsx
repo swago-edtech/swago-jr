@@ -44,7 +44,7 @@ export default async function OrderDetailPage({
       <div className="flex justify-between items-start">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Order Details</h1>
-          <p className="text-gray-600 mt-1">Order ID: #{order._id.slice(-8)}</p>
+          <p className="text-gray-600 mt-1">Order ID:  {order.orderId || `#${order._id.slice(-6)}`}</p>
         </div>
         <UpdateOrderStatus orderId={order._id} currentStatus={order.status} />
       </div>

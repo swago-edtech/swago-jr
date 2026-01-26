@@ -6,7 +6,6 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { FiArrowLeft } from "react-icons/fi";
-import Image from "next/image";
 
 interface Ticket {
   codeId: string;
@@ -26,9 +25,11 @@ interface KidProfile {
 }
 
 interface KidInfo {
-  name: string;
+  _id: string;
+  username: string;
+  age: number;
+  avatar?: string;
   swagoMoney: number;
-  // Add other properties your kidInfo object contains
 }
 
 export default function MyTicketsPage() {
@@ -39,12 +40,10 @@ export default function MyTicketsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch kid profiles
   useEffect(() => {
     fetchKidProfiles();
   }, []);
 
-  // Fetch tickets when kid is selected
   useEffect(() => {
     if (selectedKidId) {
       fetchTickets(selectedKidId);
@@ -59,14 +58,14 @@ export default function MyTicketsPage() {
       if (res.ok && data.profiles) {
         setKidProfiles(data.profiles);
         
-        // Auto-select first kid
         if (data.profiles.length > 0) {
           setSelectedKidId(data.profiles[0]._id);
         }
       } else {
         setError(data.error || 'Failed to load kid profiles');
       }
-    } catch (err) {
+    } catch (error) {
+      console.error('Failed to load kid profiles:', error);
       setError('Failed to load kid profiles');
     } finally {
       setLoading(false);
@@ -85,7 +84,8 @@ export default function MyTicketsPage() {
       } else {
         setError(data.error || 'Failed to load tickets');
       }
-    } catch (err) {
+    } catch (error) {
+      console.error('Failed to load tickets:', error);
       setError('Failed to load tickets');
     } finally {
       setLoading(false);
@@ -158,7 +158,7 @@ export default function MyTicketsPage() {
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-gradient-to-r from-[hsl(var(--swago-purple))] to-[hsl(var(--swago-pink))] text-white rounded-2xl p-6 mb-6 shadow-lg"
+            className="bg-[hsl(var(--swago-purple))] text-white rounded-2xl p-6 mb-6 shadow-lg"
           >
             <div className="flex items-center justify-between">
               <div>
@@ -197,8 +197,8 @@ export default function MyTicketsPage() {
               Claim your first ticket by entering a box code
             </p>
             <Link
-              href="/lottery"
-              className="inline-block bg-gradient-to-r from-[hsl(var(--swago-purple))] to-[hsl(var(--swago-pink))] text-white px-8 py-3 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all"
+              href="/lottery-code"
+              className="inline-block bg-[hsl(var(--swago-purple))] text-white px-8 py-3 rounded-xl font-bold shadow-lg hover:opacity-90 transition-all"
             >
               Claim Ticket
             </Link>

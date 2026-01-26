@@ -75,8 +75,8 @@ export default function SelectionPhase({ onNext }: SelectionPhaseProps) {
           className="w-full px-4 py-3 rounded-xl border-2 border-slate-300 bg-white font-medium text-slate-800 focus:border-[hsl(var(--swago-purple))] focus:ring-2 focus:ring-[hsl(var(--swago-purple))]/20 outline-none transition-all"
         >
           <option value="">Choose your ticket type...</option>
-          <option value="SSR">💎 Diamond Ticket - Seek Rush (SWAGO-SSR-XXXXXX)</option>
-          <option value="SDC">🏆 Golden Ticket - Scarf Dumb Charades (SWAGO-SDC-XXXXXX)</option>
+          <option value="SSR">💎 Diamond Ticket </option>
+          <option value="SDC">🏆 Golden Ticket </option>
         </select>
       </div>
 

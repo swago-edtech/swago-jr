@@ -98,12 +98,12 @@ const INDIAN_STATES = [
 
 export default function CheckoutPage() {
   const [processing, setProcessing] = useState(false);
-  const [form, setForm] = useState({ 
-    name: "", 
-    age: "", 
+  const [form, setForm] = useState({
+    name: "",
+    age: "",
     email: "",
     phone: "",
-    address: "", 
+    address: "",
     city: "",
     state: "",
     pincode: ""
@@ -117,7 +117,7 @@ export default function CheckoutPage() {
   const [discount, setDiscount] = useState<Discount | null>(null);
   const [couponLoading, setCouponLoading] = useState(false);
   const [couponMessage, setCouponMessage] = useState("");
-  
+
   const [isIndianNumber, setIsIndianNumber] = useState(true);
   const [pincodeLoading, setPincodeLoading] = useState(false);
   const [pincodeError, setPincodeError] = useState("");
@@ -254,7 +254,7 @@ export default function CheckoutPage() {
       });
 
       const validateData = await validateRes.json();
-      
+
       if (!validateData.valid) {
         setMessage(validateData.error || '❌ Validation failed. Please check your details.');
         setProcessing(false);
@@ -263,12 +263,12 @@ export default function CheckoutPage() {
       }
 
       console.log('✅ Validation passed');
-      setMessage("Creating payment order...");
+      setMessage("Creating your order...");
 
       const res = await fetch("/api/payment/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           totalAmount: finalAmount,
           orderDetails: {
             name: form.name,
@@ -289,12 +289,19 @@ export default function CheckoutPage() {
       });
 
       if (!res.ok) {
-        setMessage("❌ Failed to create payment order.");
+        const errorData = await res.json();
+        setMessage(errorData.error || "❌ Failed to create order.");
         setProcessing(false);
         return;
       }
 
       const razorpayOrder = await res.json();
+
+      // ✅ NEW: Get our custom orderId from response
+      const orderId = razorpayOrder.orderId;
+      console.log('📦 Order created:', orderId);
+
+      setMessage(`Order ${orderId} created. Opening payment...`);
 
       const configRes = await fetch("/api/razorpay/config");
       if (!configRes.ok) {
@@ -304,8 +311,6 @@ export default function CheckoutPage() {
       }
       const config = await configRes.json();
 
-      setMessage("Opening payment gateway...");
-
       const options: RazorpayOptions = {
         key: config.keyId,
         amount: razorpayOrder.amount,
@@ -314,8 +319,8 @@ export default function CheckoutPage() {
         description: "Learning Kits Purchase",
         order_id: razorpayOrder.id,
         handler: async function (response) {
-          setMessage("Verifying payment...");
-          
+          setMessage(`Verifying payment for ${orderId}...`);
+
           const verificationRes = await fetch("/api/payment/verify", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -323,25 +328,19 @@ export default function CheckoutPage() {
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_order_id: response.razorpay_order_id,
               razorpay_signature: response.razorpay_signature,
-              orderDetails: {
-                ...form,
-                cart,
-                coupon: appliedCoupon,
-                discount: discount,
-                originalAmount: total,
-                finalAmount: finalAmount,
-              },
+              orderId: orderId,  // ✅ Pass our orderId
             }),
           });
 
           if (verificationRes.ok) {
-            setMessage("✅ Payment successful! Redirecting...");
+            const result = await verificationRes.json();
+            setMessage(`✅ Payment successful! Order ${result.orderId} confirmed. Redirecting...`);
             clearCart();
             setTimeout(() => {
               router.push("/orders");
-            }, 1000);
+            }, 1500);
           } else {
-            setMessage("❌ Payment verification failed. Please contact support.");
+            setMessage(`❌ Payment verification failed for ${orderId}. Please contact support.`);
             setProcessing(false);
           }
         },
@@ -352,6 +351,7 @@ export default function CheckoutPage() {
         },
         notes: {
           address: form.address,
+          orderId: orderId,  // ✅ Include orderId in Razorpay notes
         },
         theme: {
           color: "#3b82f6",
@@ -359,9 +359,9 @@ export default function CheckoutPage() {
       };
 
       const paymentObject = new window.Razorpay(options);
-      
+
       paymentObject.on("payment.failed", function (response) {
-        setMessage(`❌ Payment failed. Error: ${response.error.description}`);
+        setMessage(`❌ Payment failed for ${orderId}. Error: ${response.error.description}`);
         setProcessing(false);
       });
 
@@ -376,7 +376,7 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     if (isLoadingUser) return;
-    
+
     if (!user) {
       router.push("/login?redirect=/checkout");
     }
@@ -411,29 +411,29 @@ export default function CheckoutPage() {
     );
   }
 
-  const isFormValid = form.name && form.email && form.phone && 
-                     isPossiblePhoneNumber(form.phone || '') &&
-                     form.age && form.address && 
-                     form.city && form.state &&
-                     (isIndianNumber ? (form.pincode && form.pincode.length === 6) : true);
+  const isFormValid = form.name && form.email && form.phone &&
+    isPossiblePhoneNumber(form.phone || '') &&
+    form.age && form.address &&
+    form.city && form.state &&
+    (isIndianNumber ? (form.pincode && form.pincode.length === 6) : true);
 
   return (
     <>
-      <Script 
+      <Script
         src="https://checkout.razorpay.com/v1/checkout.js"
         strategy="lazyOnload"
       />
 
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold text-center mb-8">Complete Your Purchase</h1>
-        
+
         <div className="max-w-3xl mx-auto">
           <div className="bg-white rounded-xl shadow-lg border overflow-hidden">
-            
+
             {/* Section 1: Order Summary & Coupon */}
             <div className="bg-slate-50 p-6 border-b">
               <h2 className="text-xl font-bold mb-4">Order Summary</h2>
-              
+
               <div className="bg-white rounded-lg border p-4 mb-4">
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
@@ -521,7 +521,7 @@ export default function CheckoutPage() {
             {/* Section 2: Delivery Details */}
             <div className="p-6 border-b">
               <h2 className="text-xl font-bold mb-6">Delivery Details</h2>
-              
+
               <div className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
@@ -712,7 +712,7 @@ export default function CheckoutPage() {
             {/* Section 3: Payment */}
             <div className="p-6">
               <h2 className="text-xl font-bold mb-4">Payment</h2>
-              
+
               <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
                 <div className="flex items-center justify-between mb-4">
                   <div>
@@ -743,13 +743,12 @@ export default function CheckoutPage() {
               </div>
 
               {message && (
-                <div className={`rounded-lg p-3 text-center ${
-                  message.includes('✅') 
-                    ? 'bg-green-100 text-green-700' 
-                    : message.includes('❌') 
-                    ? 'bg-red-100 text-red-700'
-                    : 'bg-blue-100 text-blue-700'
-                }`}>
+                <div className={`rounded-lg p-3 text-center ${message.includes('✅')
+                    ? 'bg-green-100 text-green-700'
+                    : message.includes('❌')
+                      ? 'bg-red-100 text-red-700'
+                      : 'bg-blue-100 text-blue-700'
+                  }`}>
                   <p className="text-sm">{message}</p>
                 </div>
               )}

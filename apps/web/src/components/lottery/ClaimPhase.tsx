@@ -3,14 +3,27 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useState, ChangeEvent } from "react";
+import { useState, useRef, KeyboardEvent } from "react";
 import { FiArrowLeft } from "react-icons/fi";
+
+interface SuccessData {
+  ticket: {
+    code: string;
+    productName: string;
+    ticketType: string;
+    swagoMoneyEarned: number;
+  };
+  kidProfile: {
+    username: string;
+    swagoMoney: number;
+  };
+}
 
 interface ClaimPhaseProps {
   ticketType: 'SSR' | 'SDC';
   kidProfileId: string;
   onBack: () => void;
-  onSuccess: (data: unknown) => void;
+  onSuccess: (data: SuccessData) => void;
 }
 
 const TICKET_INFO = {
@@ -34,64 +47,58 @@ export default function ClaimPhase({
   onBack, 
   onSuccess 
 }: ClaimPhaseProps) {
-  const [code, setCode] = useState("");
+  const [codes, setCodes] = useState<string[]>(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const ticketInfo = TICKET_INFO[ticketType];
 
-  // Format code as user types: SWAGO-XXX-XXXXXX
-  const handleCodeChange = (e: ChangeEvent<HTMLInputElement>) => {
-    let value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const handleCodeChange = (index: number, value: string) => {
+    const sanitized = value.toUpperCase().replace(/[^A-Z0-9]/g, '');
     
-    // Auto-add "SWAGO-" prefix if not present
-    if (!value.startsWith('SWAGO')) {
-      if (value.length > 0 && 'SWAGO'.startsWith(value)) {
-        // User is typing "SWAGO"
-        value = value;
-      } else if (value.length > 0) {
-        // User started typing code directly
-        value = 'SWAGO' + value;
-      }
-    }
-
-    // Remove "SWAGO" temporarily for easier formatting
-    const codePart = value.replace(/^SWAGO/, '');
-    
-    // Auto-format with dashes
-    let formatted = 'SWAGO';
-    
-    if (codePart.length > 0) {
-      // Add first dash and ticket type (SSR/SDC)
-      formatted += '-' + codePart.substring(0, 3);
-      
-      if (codePart.length > 3) {
-        // Add second dash and remaining characters
-        formatted += '-' + codePart.substring(3, 9);
-      }
-    }
-
-    // Limit to format: SWAGO-XXX-XXXXXX (max 17 chars)
-    if (formatted.length <= 17) {
-      setCode(formatted);
+    if (sanitized.length <= 1) {
+      const newCodes = [...codes];
+      newCodes[index] = sanitized;
+      setCodes(newCodes);
       setError(null);
+
+      if (sanitized.length === 1 && index < 5) {
+        inputRefs.current[index + 1]?.focus();
+      }
     }
   };
 
-  // Validate code format
-  const isValidFormat = /^SWAGO-(SSR|SDC)-[A-Z0-9]{6}$/.test(code);
-  const isCorrectType = code.includes(`-${ticketType}-`);
-
-  // Submit code
-  const handleSubmit = async () => {
-    // Validation
-    if (!isValidFormat) {
-      setError('Invalid code format. Use: SWAGO-XXX-XXXXXX');
-      return;
+  const handleKeyDown = (index: number, e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace' && codes[index] === '' && index > 0) {
+      inputRefs.current[index - 1]?.focus();
     }
+  };
 
-    if (!isCorrectType) {
-      setError(`This code is not for ${ticketInfo.name}. Please check your selection.`);
+  const handlePaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const pastedText = e.clipboardData.getData('text').toUpperCase().replace(/[^A-Z0-9]/g, '');
+    const newCodes = [...codes];
+    
+    for (let i = 0; i < Math.min(pastedText.length, 6); i++) {
+      newCodes[i] = pastedText[i];
+    }
+    
+    setCodes(newCodes);
+    const lastIndex = Math.min(pastedText.length, 5);
+    inputRefs.current[lastIndex]?.focus();
+  };
+
+  const getFullCode = () => {
+    return `SWAGO-${ticketType}-${codes.join('')}`;
+  };
+
+  const isCodeComplete = codes.every(code => code.length === 1);
+  const fullCode = getFullCode();
+
+  const handleSubmit = async () => {
+    if (!isCodeComplete) {
+      setError('Please enter all 6 characters');
       return;
     }
 
@@ -103,7 +110,7 @@ export default function ClaimPhase({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          code: code,
+          code: fullCode,
           kidProfileId: kidProfileId,
         }),
       });
@@ -115,8 +122,8 @@ export default function ClaimPhase({
       } else {
         setError(data.error || 'Failed to redeem code');
       }
-    } catch (err) {
-      console.error('Error redeeming code:', err);
+    } catch (error) {
+      console.error('Error redeeming code:', error);
       setError('Network error. Please check your connection.');
     } finally {
       setLoading(false);
@@ -163,74 +170,63 @@ export default function ClaimPhase({
         {/* Instructions */}
         <div className="mb-6">
           <h2 className="text-2xl font-bold text-slate-800 mb-2">
-            Enter Your Box Code
+            Enter Your Lottery Code
           </h2>
-          <p className="text-slate-600">
-            Find the code inside your {ticketInfo.product} box and enter it below.
+          <p className="text-slate-600 text-sm">
+            Code is printed inside your Swago box
           </p>
         </div>
 
-        {/* Code Input */}
+        {/* Code Input - Compact for Mobile */}
         <div className="mb-6">
-          <label className="block text-sm font-semibold text-slate-700 mb-2">
-            Lottery Code
-          </label>
-          
-          <input
-            type="text"
-            value={code}
-            onChange={handleCodeChange}
-            placeholder={`SWAGO-${ticketType}-XXXXXX`}
-            disabled={loading}
-            className={`
-              w-full px-4 py-4 text-xl font-mono font-bold text-center
-              rounded-xl border-3 transition-all
-              focus:outline-none focus:ring-4
-              ${error 
-                ? 'border-red-300 bg-red-50 focus:ring-red-200' 
-                : 'border-slate-300 bg-slate-50 focus:ring-[hsl(var(--swago-purple))]/20 focus:border-[hsl(var(--swago-purple))]'
-              }
-              disabled:opacity-50 disabled:cursor-not-allowed
-            `}
-          />
+          <div className="flex items-center justify-center gap-0.5 md:gap-2">
+            {/* SWAGO (readonly) */}
+            <div className="px-1.5 py-1.5 md:px-3 md:py-3 bg-slate-100 border-2 border-slate-300 rounded-md md:rounded-lg">
+              <span className="text-[10px] md:text-lg font-mono font-bold text-slate-500">SWAGO</span>
+            </div>
+            
+            {/* Dash */}
+            <span className="text-sm md:text-2xl font-bold text-slate-400 px-0.5">-</span>
+            
+            {/* SSR/SDC (readonly) */}
+            <div className="px-1.5 py-1.5 md:px-3 md:py-3 bg-slate-100 border-2 border-slate-300 rounded-md md:rounded-lg">
+              <span className="text-[10px] md:text-lg font-mono font-bold text-slate-500">{ticketType}</span>
+            </div>
+            
+            {/* Dash */}
+            <span className="text-sm md:text-2xl font-bold text-slate-400 px-0.5">-</span>
 
-          {/* Format Helper */}
-          <div className="flex items-center justify-between mt-2">
-            <p className="text-xs text-slate-500">
-              Format: SWAGO-{ticketType}-XXXXXX
-            </p>
-            {code && (
-              <p className={`text-xs font-medium ${isValidFormat && isCorrectType ? 'text-green-600' : 'text-slate-400'}`}>
-                {code.length}/17 characters
-              </p>
-            )}
+            {/* 6 Input Boxes */}
+            {codes.map((code, index) => (
+              <input
+                key={index}
+                ref={(el) => {inputRefs.current[index] = el;}}
+                type="text"
+                value={code}
+                onChange={(e) => handleCodeChange(index, e.target.value)}
+                onKeyDown={(e) => handleKeyDown(index, e)}
+                onPaste={index === 0 ? handlePaste : undefined}
+                maxLength={1}
+                disabled={loading}
+                className={`
+                  w-8 h-8 md:w-14 md:h-14 text-center text-base md:text-2xl font-mono font-bold
+                  rounded-md md:rounded-lg border-2 transition-all
+                  focus:outline-none focus:ring-2
+                  ${error 
+                    ? 'border-red-300 bg-red-50 focus:ring-red-200' 
+                    : 'border-slate-300 bg-white focus:ring-[hsl(var(--swago-purple))]/30 focus:border-[hsl(var(--swago-purple))]'
+                  }
+                  ${code ? 'text-slate-800' : 'text-slate-400'}
+                  disabled:opacity-50 disabled:cursor-not-allowed
+                `}
+              />
+            ))}
           </div>
 
-          {/* Validation Feedback */}
-          {code.length > 5 && (
-            <div className="mt-3 space-y-2">
-              <div className="flex items-center gap-2">
-                {isValidFormat ? (
-                  <span className="text-green-600">✓</span>
-                ) : (
-                  <span className="text-slate-400">○</span>
-                )}
-                <span className={`text-sm ${isValidFormat ? 'text-green-600 font-medium' : 'text-slate-500'}`}>
-                  Valid format
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                {isCorrectType ? (
-                  <span className="text-green-600">✓</span>
-                ) : (
-                  <span className="text-slate-400">○</span>
-                )}
-                <span className={`text-sm ${isCorrectType ? 'text-green-600 font-medium' : 'text-slate-500'}`}>
-                  Matches {ticketInfo.name}
-                </span>
-              </div>
-            </div>
-          )}
+          {/* Helper Text */}
+          <p className="text-center text-xs text-slate-500 mt-3">
+            Enter the 6-character code from your box
+          </p>
         </div>
 
         {/* Error Message */}
@@ -273,13 +269,13 @@ export default function ClaimPhase({
 
         {/* Submit Button */}
         <motion.button
-          whileHover={isValidFormat && isCorrectType && !loading ? { scale: 1.02 } : {}}
-          whileTap={isValidFormat && isCorrectType && !loading ? { scale: 0.98 } : {}}
+          whileHover={isCodeComplete && !loading ? { scale: 1.02 } : {}}
+          whileTap={isCodeComplete && !loading ? { scale: 0.98 } : {}}
           onClick={handleSubmit}
-          disabled={!isValidFormat || !isCorrectType || loading}
+          disabled={!isCodeComplete || loading}
           className={`
             w-full py-4 rounded-xl font-black text-lg shadow-lg transition-all
-            ${isValidFormat && isCorrectType && !loading
+            ${isCodeComplete && !loading
               ? 'bg-[hsl(var(--swago-purple))] text-white hover:shadow-xl cursor-pointer'
               : 'bg-slate-200 text-slate-400 cursor-not-allowed'
             }

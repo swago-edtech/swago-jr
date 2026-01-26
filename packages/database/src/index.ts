@@ -12,7 +12,8 @@ export { default as AmbassadorApplication } from './models/AmbassadorApplication
 export { default as ContactSubmission } from './models/ContactSubmission';
 export { default as LotteryCode } from './models/LotteryCode';
 export { default as LotteryCodeBatch } from './models/LotteryCodeBatch';
-export { default as Announcement } from './models/Announcement'; // ✅ NEW
+export { default as Announcement } from './models/Announcement';
+export { default as OrderCounter } from './models/OrderCounter'; // ✅ NEW: For order ID generation
 
 // Export database connection
 export { default as connectDB } from './connection';
