@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -16,40 +16,52 @@ const avatarOptions = [
   { name: "Girl Hero", image: "/images/kid_girl1.png" },
 ];
 
-const gradeOptions = [
-  "Pre-K",
-  "Kindergarten",
-  "Grade 1",
-  "Grade 2",
-  "Grade 3",
-  "Grade 4",
-  "Grade 5",
-  "Grade 6",
-  "Grade 7",
-  "Grade 8",
-];
-
 export default function NewKidProfilePage() {
-  const { user } = useSharedContext();
+  const { user, isLoadingUser } = useSharedContext();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [step, setStep] = useState<"form" | "success">("form");
+  const [createdProfile, setCreatedProfile] = useState<{
+    name: string;
+    swagoMoney: number;
+    badges: string[];
+  } | null>(null);
 
   const [form, setForm] = useState({
     name: "",
     age: "",
-    grade: "",
     gender: "boy",
+    city: "",
     avatarColor: avatarOptions[0].image,
   });
 
+  // Redirect if not logged in
+  useEffect(() => {
+    if (!isLoadingUser && !user) {
+      router.push("/login?redirect=/profile/kids/new");
+    }
+  }, [user, isLoadingUser, router]);
+
+  // Pre-fill city from user address
+  useEffect(() => {
+    if (user?.address) {
+      setForm(prev => ({ ...prev, city: user.address || "" }));
+    }
+  }, [user?.address]);
+
+  // Auto-redirect after success
+  useEffect(() => {
+    if (step === "success") {
+      const timer = setTimeout(() => {
+        router.push("/kids/dashboard");
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [step, router]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!user) {
-      router.push("/login?redirect=/profile/kids/new");
-      return;
-    }
 
     if (!form.name.trim()) {
       setError("Please enter the kid's name");
@@ -59,6 +71,11 @@ export default function NewKidProfilePage() {
     const age = parseInt(form.age);
     if (isNaN(age) || age < 3 || age > 18) {
       setError("Please enter a valid age between 3 and 18");
+      return;
+    }
+
+    if (!form.city.trim()) {
+      setError("Please enter your city");
       return;
     }
 
@@ -72,8 +89,8 @@ export default function NewKidProfilePage() {
         body: JSON.stringify({
           name: form.name.trim(),
           age: age,
-          grade: form.grade || undefined,
           gender: form.gender,
+          city: form.city.trim(),
           avatarColor: form.avatarColor,
         }),
       });
@@ -81,7 +98,22 @@ export default function NewKidProfilePage() {
       const data = await res.json();
 
       if (res.ok) {
-        router.push("/profile");
+        // Auto-select the created profile
+        if (data.profile) {
+          localStorage.setItem("selectedKidProfile", JSON.stringify({
+            _id: data.profile._id,
+            name: data.profile.name,
+            age: data.profile.age,
+            avatarColor: data.profile.avatarColor,
+          }));
+
+          setCreatedProfile({
+            name: data.profile.name,
+            swagoMoney: data.profile.ambassador?.swagoMoney || 20,
+            badges: data.profile.ambassador?.badges || ["Swago Saviour"],
+          });
+        }
+        setStep("success");
       } else {
         setError(data.error || "Failed to create profile. Please try again.");
       }
@@ -98,220 +130,266 @@ export default function NewKidProfilePage() {
     setError("");
   };
 
-  return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="max-w-lg mx-auto">
-        <div className="mb-8">
-          <Link
-            href="/profile"
-            className="text-sm text-slate-600 hover:text-slate-900 inline-flex items-center gap-1 mb-4"
-          >
-            ← Back to Profile
-          </Link>
-          <h1 className="text-3xl font-bold">Create Kid Profile</h1>
-          <p className="text-slate-600 mt-2">
-            Add a kid profile for games, activities, and the Ambassador Program
-          </p>
+  if (isLoadingUser) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-purple-600 mx-auto"></div>
+          <p className="mt-4 text-slate-600">Loading...</p>
         </div>
+      </div>
+    );
+  }
 
-        <div className="bg-white p-8 rounded-xl shadow-lg border">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Name Input */}
-            <div>
-              <label htmlFor="name" className="block text-sm font-medium mb-2">
-                Kid&apos;s Name (Username)
-              </label>
-              <input
-                type="text"
-                id="name"
-                name="name"
-                value={form.name}
-                onChange={handleChange}
-                placeholder="Enter kid's name"
-                className="w-full border border-slate-300 rounded-md p-3"
-                maxLength={50}
-                required
-              />
-              <p className="text-xs text-slate-500 mt-1">
-                This name will be used to select their profile
-              </p>
+  if (!user) {
+    return null; // Will redirect
+  }
+
+  // Success Screen
+  if (step === "success" && createdProfile) {
+    return (
+      <div className="min-h-screen bg-slate-50 py-16">
+        <div className="container mx-auto px-4">
+          <div className="max-w-2xl mx-auto bg-white p-8 rounded-2xl shadow-lg text-center">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
             </div>
-
-            {/* Age and Grade */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="age" className="block text-sm font-medium mb-2">
-                  Age
-                </label>
-                <input
-                  type="number"
-                  id="age"
-                  name="age"
-                  value={form.age}
-                  onChange={handleChange}
-                  placeholder="Age (3-18)"
-                  className="w-full border border-slate-300 rounded-md p-3"
-                  min="3"
-                  max="18"
-                  required
-                />
-              </div>
-
-              <div>
-                <label htmlFor="grade" className="block text-sm font-medium mb-2">
-                  Grade (Optional)
-                </label>
-                <select
-                  id="grade"
-                  name="grade"
-                  value={form.grade}
-                  onChange={handleChange}
-                  className="w-full border border-slate-300 rounded-md p-3"
-                >
-                  <option value="">Select Grade</option>
-                  {gradeOptions.map((grade) => (
-                    <option key={grade} value={grade}>
-                      {grade}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <p className="text-xs text-slate-500 -mt-3">
-              Content recommendations will be based on age and grade
+            <h2 className="text-3xl font-bold text-slate-800 mb-4">Welcome to the Swagoverse! 🎉</h2>
+            <p className="text-lg text-slate-600 mb-4">
+              Profile created successfully!
             </p>
-
-            {/* Gender Selection */}
-            <div>
-              <label className="block text-sm font-medium mb-3">
-                Gender
-              </label>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setForm({ ...form, gender: "boy" })}
-                  className={`p-4 rounded-lg border-2 transition-all ${
-                    form.gender === "boy"
-                      ? "border-blue-500 bg-blue-50 text-blue-700"
-                      : "border-slate-300 bg-white text-slate-700 hover:border-blue-300"
-                  }`}
-                >
-                  <div className="text-3xl mb-2">👦</div>
-                  <p className="text-sm font-semibold">Boy</p>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setForm({ ...form, gender: "girl" })}
-                  className={`p-4 rounded-lg border-2 transition-all ${
-                    form.gender === "girl"
-                      ? "border-pink-500 bg-pink-50 text-pink-700"
-                      : "border-slate-300 bg-white text-slate-700 hover:border-pink-300"
-                  }`}
-                >
-                  <div className="text-3xl mb-2">👧</div>
-                  <p className="text-sm font-semibold">Girl</p>
-                </button>
-              </div>
-              <p className="text-xs text-slate-500 mt-2">
-                This helps us personalize their avatar and content
+            <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg p-6 mb-6">
+              <p className="text-lg font-semibold text-slate-800 mb-2">
+                🎁 {createdProfile.name} received:
               </p>
-            </div>
-
-            {/* Avatar Character Selector */}
-            <div>
-              <label className="block text-sm font-medium mb-3">
-                Choose Your Character
-              </label>
-              <div className="grid grid-cols-4 gap-3">
-                {avatarOptions.map((avatar) => (
-                  <button
-                    key={avatar.image}
-                    type="button"
-                    onClick={() => setForm({ ...form, avatarColor: avatar.image })}
-                    className={`relative p-2 rounded-xl border-2 transition-all hover:scale-105 ${
-                      form.avatarColor === avatar.image
-                        ? "border-purple-500 bg-purple-50 shadow-lg"
-                        : "border-slate-300 bg-white hover:border-purple-300"
-                    }`}
-                  >
-                    <div className="w-full aspect-square rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center relative">
-                      <Image
-                        src={avatar.image}
-                        alt={avatar.name}
-                        width={80}
-                        height={80}
-                        className="object-cover"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.src = "/images/swoo.png";
-                        }}
-                      />
-                    </div>
-                    <p className="text-xs font-medium text-center mt-1 truncate">
-                      {avatar.name}
-                    </p>
-                    {form.avatarColor === avatar.image && (
-                      <div className="absolute -top-2 -right-2 bg-purple-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">
-                        ✓
-                      </div>
-                    )}
-                  </button>
-                ))}
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center justify-center gap-2 text-yellow-600 font-bold">
+                  <span className="text-2xl">💰</span>
+                  <span className="text-xl">{createdProfile.swagoMoney} Swago Dollars</span>
+                </div>
+                <div className="flex items-center justify-center gap-2 text-purple-600 font-bold">
+                  <span className="text-2xl">🦸</span>
+                  <span className="text-lg">{createdProfile.badges[0]} Badge</span>
+                </div>
               </div>
             </div>
+            <p className="text-sm text-slate-600 mb-6">
+              Redirecting to Kids Dashboard in 3 seconds...
+            </p>
+            <button
+              onClick={() => router.push("/kids/dashboard")}
+              className="inline-block bg-[hsl(var(--swago-orange))] text-white font-bold px-8 py-3 rounded-full hover:opacity-90 transition-opacity"
+            >
+              Go to Dashboard Now →
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-            {/* Preview */}
-            <div className="bg-slate-50 rounded-lg p-4">
-              <p className="text-sm font-medium text-slate-600 mb-3">Preview</p>
-              <div className="flex items-center gap-3">
-                <div className="w-14 h-14 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center relative">
-                  <Image
-                    src={form.avatarColor || "/images/swoo.png"}
-                    alt={form.name || "Avatar"}
-                    width={56}
-                    height={56}
-                    className="object-cover"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.src = "/images/swoo.png";
-                    }}
-                  />
-                </div>
+  return (
+    <div className="min-h-screen bg-slate-50 py-8">
+      <div className="container mx-auto px-4">
+        <div className="max-w-2xl mx-auto">
+          {/* Header */}
+          <div className="mb-8 text-center">
+            <Link
+              href="/profile"
+              className="text-sm text-slate-600 hover:text-slate-900 inline-flex items-center gap-1 mb-4"
+            >
+              ← Back to Profile
+            </Link>
+            <h1 className="text-3xl font-bold text-slate-800">Create Kid Profile 🌟</h1>
+            <p className="text-slate-600 mt-2">
+              Create a profile and enter the Swagoverse!
+            </p>
+          </div>
 
+          <div className="bg-white p-8 rounded-2xl shadow-lg">
+            {/* Parent Info Section (Pre-filled, Read-only) */}
+            <div className="border-b pb-6 mb-6">
+              <h3 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+                👨‍👩‍👧 Parent Information
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <p className="font-medium">{form.name || "Kid's Name"}</p>
-                  <p className="text-sm text-slate-500">
-                    {form.age ? `${form.age} years old` : "Age not set"}
-                    {form.grade && ` • ${form.grade}`}
-                    {form.gender && ` • ${form.gender === "boy" ? "👦" : "👧"}`}
+                  <label className="block text-sm font-medium text-slate-500 mb-1">Name</label>
+                  <p className="p-3 bg-slate-50 rounded-lg text-slate-700 font-medium">
+                    {user.name || "Not set"}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-500 mb-1">Phone</label>
+                  <p className="p-3 bg-slate-50 rounded-lg text-slate-700 font-medium">
+                    {user.phone || "Not set"}
+                  </p>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-slate-500 mb-1">Email</label>
+                  <p className="p-3 bg-slate-50 rounded-lg text-slate-700 font-medium">
+                    {user.email || "Not set"}
                   </p>
                 </div>
               </div>
             </div>
 
-            {error && (
-              <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm">
-                {error}
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* City Input */}
+              <div>
+                <label htmlFor="city" className="block text-sm font-medium text-slate-700 mb-2">
+                  City *
+                </label>
+                <input
+                  type="text"
+                  id="city"
+                  name="city"
+                  value={form.city}
+                  onChange={handleChange}
+                  placeholder="Enter your city"
+                  className="w-full border border-slate-300 rounded-lg p-3 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  required
+                />
               </div>
-            )}
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-[hsl(var(--swago-purple))] text-white font-bold py-3 rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? "Creating Profile..." : "Create Profile"}
-            </button>
-          </form>
-        </div>
+              {/* Child Details Section */}
+              <div className="border-t pt-6">
+                <h3 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+                  🧒 Child Details
+                </h3>
 
-        <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-          <p className="text-sm text-blue-900">
-            <strong>💡 Note:</strong> The username must be unique for each kid in your account.
-            Kids will use this name to select their profile.
-          </p>
+                {/* Name Input */}
+                <div className="mb-4">
+                  <label htmlFor="name" className="block text-sm font-medium text-slate-700 mb-2">
+                    Child&apos;s Name *
+                  </label>
+                  <input
+                    type="text"
+                    id="name"
+                    name="name"
+                    value={form.name}
+                    onChange={handleChange}
+                    placeholder="Enter child's name"
+                    className="w-full border border-slate-300 rounded-lg p-3 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    maxLength={50}
+                    required
+                  />
+                </div>
+
+                {/* Age and Gender */}
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label htmlFor="age" className="block text-sm font-medium text-slate-700 mb-2">
+                      Age *
+                    </label>
+                    <select
+                      id="age"
+                      name="age"
+                      value={form.age}
+                      onChange={handleChange}
+                      className="w-full border border-slate-300 rounded-lg p-3 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      required
+                    >
+                      <option value="">Select age</option>
+                      {[3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18].map(age => (
+                        <option key={age} value={age}>{age} years</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label htmlFor="gender" className="block text-sm font-medium text-slate-700 mb-2">
+                      Gender *
+                    </label>
+                    <select
+                      id="gender"
+                      name="gender"
+                      value={form.gender}
+                      onChange={handleChange}
+                      className="w-full border border-slate-300 rounded-lg p-3 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      required
+                    >
+                      <option value="boy">Boy 👦</option>
+                      <option value="girl">Girl 👧</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Avatar Character Selector */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-3">
+                  Choose Your Character
+                </label>
+                <div className="grid grid-cols-4 gap-3">
+                  {avatarOptions.map((avatar) => (
+                    <button
+                      key={avatar.image}
+                      type="button"
+                      onClick={() => setForm({ ...form, avatarColor: avatar.image })}
+                      className={`relative p-2 rounded-xl border-2 transition-all hover:scale-105 ${form.avatarColor === avatar.image
+                          ? "border-purple-500 bg-purple-50 shadow-lg"
+                          : "border-slate-300 bg-white hover:border-purple-300"
+                        }`}
+                    >
+                      <div className="w-full aspect-square rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center relative">
+                        <Image
+                          src={avatar.image}
+                          alt={avatar.name}
+                          width={80}
+                          height={80}
+                          className="object-cover"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.src = "/images/swoo.png";
+                          }}
+                        />
+                      </div>
+                      <p className="text-xs font-medium text-center mt-1 truncate">
+                        {avatar.name}
+                      </p>
+                      {form.avatarColor === avatar.image && (
+                        <div className="absolute -top-2 -right-2 bg-purple-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">
+                          ✓
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Rewards Preview */}
+              <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg p-4">
+                <p className="text-sm font-medium text-slate-600 mb-2">🎁 Your child will receive:</p>
+                <div className="flex flex-wrap gap-4">
+                  <div className="flex items-center gap-2 text-yellow-600 font-semibold">
+                    <span>💰</span>
+                    <span>20 Swago Dollars</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-purple-600 font-semibold">
+                    <span>🦸</span>
+                    <span>Swago Saviour Badge</span>
+                  </div>
+                </div>
+              </div>
+
+              {error && (
+                <div className="bg-red-50 text-red-600 p-4 rounded-lg text-sm border border-red-200">
+                  {error}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full btn-shine bg-[hsl(var(--swago-purple))] text-white font-bold py-4 rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed text-lg"
+              >
+                {loading ? "Creating Profile..." : "🚀 Enter the Swagoverse"}
+              </button>
+            </form>
+          </div>
         </div>
       </div>
     </div>

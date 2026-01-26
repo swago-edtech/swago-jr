@@ -22,6 +22,8 @@ export default function LoginForm() {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [scriptLoaded, setScriptLoaded] = useState(false);
+  const [widgetReady, setWidgetReady] = useState(false);
+  const [isMounted, setIsMounted] = useState(false); // ✅ Track client-side mounting
   const router = useRouter();
   const { setUser, cart } = useSharedContext();
 
@@ -41,12 +43,74 @@ export default function LoginForm() {
     setScriptLoaded(true);
   };
 
+  // ✅ Track client-side mounting and handle widget conflicts
+  useEffect(() => {
+    setIsMounted(true);
+
+    // ✅ Check if a different widget type was previously loaded
+    const loadedWidgetType = sessionStorage.getItem('msg91_widget_type');
+
+    // If EMAIL widget was loaded and methods exist, we MUST reload to switch to PHONE
+    if (loadedWidgetType === 'email' && window.sendOtp) {
+      console.log("🔄 EMAIL widget detected, reloading for PHONE widget...");
+      sessionStorage.setItem('msg91_widget_type', 'phone');
+      window.location.reload();
+      return;
+    }
+
+    // Mark that we want the PHONE widget
+    sessionStorage.setItem('msg91_widget_type', 'phone');
+
+    // If widget is already initialized for PHONE, use it
+    if (typeof window.initSendOTP === "function") {
+      console.log("🔄 Initializing PHONE widget...");
+      try {
+        window.initSendOTP({
+          widgetId: WIDGET_ID,
+          tokenAuth: TOKEN_AUTH,
+          exposeMethods: true,
+          success: () => {
+            console.log("✅ PHONE widget initialized");
+            setWidgetReady(true);
+            setScriptLoaded(true);
+          },
+          failure: (error) => {
+            console.error("❌ Widget init failed:", error);
+          },
+        });
+
+        // Method polling
+        let checkCount = 0;
+        const checkMethods = () => {
+          checkCount++;
+          if (window.sendOtp && window.verifyOtp) {
+            console.log("✅ Widget methods ready");
+            setWidgetReady(true);
+            setScriptLoaded(true);
+          } else if (checkCount < 10) {
+            setTimeout(checkMethods, 500);
+          }
+        };
+        setTimeout(checkMethods, 500);
+      } catch (error) {
+        console.error("❌ Widget error:", error);
+      }
+    }
+  }, [WIDGET_ID, TOKEN_AUTH]);
+
+  // ✅ IMPROVED: Widget initialization with method polling (from ambassador form)
   useEffect(() => {
     if (!scriptLoaded) return;
 
+    let checkCount = 0;
+    const maxChecks = 10;
+    let isInitialized = false;
+
     const initWidget = () => {
+      if (isInitialized) return;
+
       console.log("🔄 Attempting widget initialization...");
-      
+
       if (typeof window.initSendOTP === "function") {
         try {
           window.initSendOTP({
@@ -54,23 +118,63 @@ export default function LoginForm() {
             tokenAuth: TOKEN_AUTH,
             exposeMethods: true,
             success: (data) => {
-              console.log("✅ Widget initialized successfully:", data);
+              console.log("✅ Widget success callback fired:", data);
+              isInitialized = true;
+              setWidgetReady(true);
             },
             failure: (error) => {
-              console.error("❌ Widget init failed:", error);
+              console.error("❌ Widget failure callback:", error);
             },
           });
+
+          // ✅ Poll for methods instead of relying solely on callbacks
+          const checkMethods = () => {
+            checkCount++;
+            console.log(`🔍 Checking for sendOtp method... (${checkCount}/${maxChecks})`);
+
+            if (window.sendOtp && window.verifyOtp) {
+              console.log("✅ Widget methods detected successfully!");
+              isInitialized = true;
+              setWidgetReady(true);
+            } else if (checkCount < maxChecks) {
+              setTimeout(checkMethods, 500);
+            } else {
+              console.warn("⚠️ Widget methods not found after max checks");
+              setWidgetReady(true); // Show form anyway
+            }
+          };
+
+          setTimeout(checkMethods, 1000);
         } catch (error) {
           console.error("❌ Widget init error:", error);
+          setWidgetReady(true); // Show form anyway
         }
       } else {
-        console.log("⏳ initSendOTP not available, retrying...");
-        setTimeout(initWidget, 1000);
+        console.log("⏳ initSendOTP not available yet...");
+        if (checkCount < 3) {
+          checkCount++;
+          setTimeout(initWidget, 1000);
+        } else {
+          console.warn("⚠️ initSendOTP never became available");
+          setWidgetReady(true); // Show form anyway
+        }
       }
     };
 
-    setTimeout(initWidget, 200);
+    setTimeout(initWidget, 500);
   }, [scriptLoaded, WIDGET_ID, TOKEN_AUTH]);
+
+  // ✅ NEW: Fallback timeout - show form after 8 seconds no matter what
+  useEffect(() => {
+    if (scriptLoaded && !widgetReady && step === "form") {
+      const timeout = setTimeout(() => {
+        console.log("⏰ Timeout reached - showing form");
+        setWidgetReady(true);
+      }, 8000);
+
+      return () => clearTimeout(timeout);
+    }
+  }, [scriptLoaded, widgetReady, step]);
 
   const sendOtp = async () => {
     if (!phone) {
@@ -108,7 +212,7 @@ export default function LoginForm() {
       const checkRes = await fetch("/api/check-user", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           identifier: "+91" + phone,
           authMethod: "phone"
         })
@@ -211,10 +315,10 @@ export default function LoginForm() {
         const res = await fetch("/api/verify-otp", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ 
-            phone: "+91" + phone, 
-            otp: code, 
-            isDemo: true 
+          body: JSON.stringify({
+            phone: "+91" + phone,
+            otp: code,
+            isDemo: true
           }),
         });
 
@@ -266,8 +370,8 @@ export default function LoginForm() {
 
           if (res.ok && responseData.success) {
             setUser(responseData.user);
-            const successMsg = authMode === "signup" 
-              ? "✅ Account created successfully!" 
+            const successMsg = authMode === "signup"
+              ? "✅ Account created successfully!"
               : "✅ Login successful!";
             setMessage(successMsg);
             window.dispatchEvent(new CustomEvent(USER_EVENTS.LOGIN));
@@ -301,181 +405,190 @@ export default function LoginForm() {
         }}
       />
 
-      <div className="max-w-md w-full bg-white p-8 rounded-xl shadow-lg border">
-        <h1 className="text-3xl font-bold text-center mb-6">
-          {authMode === "signup" ? "Create Account" : "Welcome Back"}
-        </h1>
+      {/* ✅ Loading state - only shows after mounted, before widget is ready */}
+      {isMounted && !widgetReady && step === "form" && (
+        <div className="max-w-md w-full bg-white p-8 rounded-xl shadow-lg border text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-purple-600 mx-auto mb-4"></div>
+          <p className="text-slate-600 mb-2">Initializing verification service...</p>
+          <p className="text-xs text-slate-400">This should only take a few seconds</p>
+        </div>
+      )}
 
-        {step === "form" && (
-          <div className="flex mb-6 bg-gray-100 rounded-lg p-1">
-            <button
-              onClick={() => setAuthMode("signup")}
-              className={`flex-1 py-2 px-4 rounded-md font-medium transition-colors ${
-                authMode === "signup"
+      {/* ✅ Main form - show when widget is ready OR in OTP step */}
+      {(widgetReady || step === "otp") && (
+        <div className="max-w-md w-full bg-white p-8 rounded-xl shadow-lg border">
+          <h1 className="text-3xl font-bold text-center mb-6">
+            {authMode === "signup" ? "Create Account" : "Welcome Back"}
+          </h1>
+
+          {step === "form" && (
+            <div className="flex mb-6 bg-gray-100 rounded-lg p-1">
+              <button
+                onClick={() => setAuthMode("signup")}
+                className={`flex-1 py-2 px-4 rounded-md font-medium transition-colors ${authMode === "signup"
                   ? "bg-white text-[hsl(var(--swago-purple))] shadow-sm"
                   : "text-gray-600 hover:text-gray-800"
-              }`}
-            >
-              New User
-            </button>
-            <button
-              onClick={() => setAuthMode("signin")}
-              className={`flex-1 py-2 px-4 rounded-md font-medium transition-colors ${
-                authMode === "signin"
+                  }`}
+              >
+                New User
+              </button>
+              <button
+                onClick={() => setAuthMode("signin")}
+                className={`flex-1 py-2 px-4 rounded-md font-medium transition-colors ${authMode === "signin"
                   ? "bg-white text-[hsl(var(--swago-purple))] shadow-sm"
                   : "text-gray-600 hover:text-gray-800"
-              }`}
-            >
-              Already a User
-            </button>
-          </div>
-        )}
+                  }`}
+              >
+                Already a User
+              </button>
+            </div>
+          )}
 
-        {process.env.NODE_ENV === "development" && (
-          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-center">
-            <p className="text-xs text-blue-600">
-              💡 <strong>Demo:</strong> Use {DEMO_PHONE} → OTP: {DEMO_OTP_HINT}
-            </p>
-          </div>
-        )}
+          {process.env.NODE_ENV === "development" && (
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-center">
+              <p className="text-xs text-blue-600">
+                💡 <strong>Demo:</strong> Use {DEMO_PHONE} → OTP: {DEMO_OTP_HINT}
+              </p>
+            </div>
+          )}
 
-        {step === "form" && (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Phone Number <span className="text-red-500">*</span>
-              </label>
-              <div className="flex gap-2">
-                <div className="w-20">
+          {step === "form" && (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Phone Number <span className="text-red-500">*</span>
+                </label>
+                <div className="flex gap-2">
+                  <div className="w-20">
+                    <input
+                      type="text"
+                      value="+91"
+                      disabled
+                      aria-label="Country code"
+                      title="India country code"
+                      className="w-full border border-slate-300 rounded-md p-3 bg-gray-50 text-gray-700 font-medium text-center"
+                    />
+                  </div>
                   <input
-                    type="text"
-                    value="+91"
-                    disabled
-                    aria-label="Country code"
-                    title="India country code"
-                    className="w-full border border-slate-300 rounded-md p-3 bg-gray-50 text-gray-700 font-medium text-center"
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/\D/g, "");
+                      if (value.length <= 10) {
+                        setPhone(value);
+                      }
+                    }}
+                    placeholder="Enter 10-digit number"
+                    maxLength={10}
+                    aria-label="Phone number"
+                    className="flex-1 border border-slate-300 rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-purple-500"
                   />
                 </div>
-                <input
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => {
-                    const value = e.target.value.replace(/\D/g, "");
-                    if (value.length <= 10) {
-                      setPhone(value);
-                    }
-                  }}
-                  placeholder="Enter 10-digit number"
-                  maxLength={10}
-                  aria-label="Phone number"
-                  className="flex-1 border border-slate-300 rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
               </div>
-            </div>
 
-            {authMode === "signup" && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Full Name <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Enter your full name"
-                  className="w-full border border-slate-300 rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
-              </div>
-            )}
-
-            {authMode === "signup" && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Email Address <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="your.email@example.com"
-                  className="w-full border border-slate-300 rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
-              </div>
-            )}
-
-            <button
-              onClick={sendOtp}
-              disabled={loading || !phone || phone.length !== 10}
-              className="w-full bg-[hsl(var(--swago-purple))] text-white font-bold py-3 rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
-            >
-              {loading ? "Sending..." : "Send OTP"}
-            </button>
-
-            <div className="text-center pt-4 border-t border-gray-200">
-              <button
-               onClick={() => router.push("/login/email")}
-               className="text-sm text-gray-600 hover:text-[hsl(var(--swago-purple))] transition-colors">
-                Not in India? Use Email Login →
-                </button>
-            </div>
-          </div>
-        )}
-
-        {step === "otp" && (
-          <div className="space-y-4">
-            <div className="text-center text-sm text-gray-600 mb-2">
-              OTP sent to: <strong>+91{phone}</strong>
-              {authMode === "signup" && name && (
-                <div className="mt-1 text-xs text-gray-500">
-                  Creating account for: {name}
+              {authMode === "signup" && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Full Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Enter your full name"
+                    className="w-full border border-slate-300 rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
                 </div>
               )}
+
+              {authMode === "signup" && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Email Address <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="your.email@example.com"
+                    className="w-full border border-slate-300 rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+              )}
+
+              <button
+                onClick={sendOtp}
+                disabled={loading || !phone || phone.length !== 10}
+                className="w-full bg-[hsl(var(--swago-purple))] text-white font-bold py-3 rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
+              >
+                {loading ? "Sending..." : "Send OTP"}
+              </button>
+
+              <div className="text-center pt-4 border-t border-gray-200">
+                <button
+                  onClick={() => router.push("/login/email")}
+                  className="text-sm text-gray-600 hover:text-[hsl(var(--swago-purple))] transition-colors">
+                  Not in India? Use Email Login →
+                </button>
+              </div>
             </div>
+          )}
 
-            <input
-              type="text"
-              value={code}
-              onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-              placeholder="Enter 6-digit OTP"
-              maxLength={6}
-              className="w-full border border-slate-300 rounded-md p-3 text-center text-2xl tracking-widest focus:outline-none focus:ring-2 focus:ring-green-500"
-            />
+          {step === "otp" && (
+            <div className="space-y-4">
+              <div className="text-center text-sm text-gray-600 mb-2">
+                OTP sent to: <strong>+91{phone}</strong>
+                {authMode === "signup" && name && (
+                  <div className="mt-1 text-xs text-gray-500">
+                    Creating account for: {name}
+                  </div>
+                )}
+              </div>
 
-            <button
-              onClick={verifyOtp}
-              disabled={loading || code.length < 6}
-              className="w-full bg-green-500 text-white font-bold py-3 rounded-lg hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {loading ? "Verifying..." : authMode === "signup" ? "Create Account" : "Sign In"}
-            </button>
+              <input
+                type="text"
+                value={code}
+                onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+                placeholder="Enter 6-digit OTP"
+                maxLength={6}
+                className="w-full border border-slate-300 rounded-md p-3 text-center text-2xl tracking-widest focus:outline-none focus:ring-2 focus:ring-green-500"
+              />
 
-            <button
-              onClick={() => {
-                setStep("form");
-                setCode("");
-                setMessage("");
-              }}
-              className="w-full text-sm text-gray-600 hover:text-gray-800 underline"
-            >
-              Change phone number
-            </button>
-          </div>
-        )}
+              <button
+                onClick={verifyOtp}
+                disabled={loading || code.length < 6}
+                className="w-full bg-green-500 text-white font-bold py-3 rounded-lg hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {loading ? "Verifying..." : authMode === "signup" ? "Create Account" : "Sign In"}
+              </button>
 
-        {message && (
-          <p
-            className={`mt-4 text-center text-sm ${
-              message.includes("✅")
+              <button
+                onClick={() => {
+                  setStep("form");
+                  setCode("");
+                  setMessage("");
+                }}
+                className="w-full text-sm text-gray-600 hover:text-gray-800 underline"
+              >
+                Change phone number
+              </button>
+            </div>
+          )}
+
+          {message && (
+            <p
+              className={`mt-4 text-center text-sm ${message.includes("✅")
                 ? "text-green-600"
                 : message.includes("🚧")
-                ? "text-blue-600"
-                : "text-red-600"
-            }`}
-          >
-            {message}
-          </p>
-        )}
-      </div>
+                  ? "text-blue-600"
+                  : "text-red-600"
+                }`}
+            >
+              {message}
+            </p>
+          )}
+        </div>
+      )}
     </>
   );
 }

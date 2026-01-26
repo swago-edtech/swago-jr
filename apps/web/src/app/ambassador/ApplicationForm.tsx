@@ -14,7 +14,7 @@ type FormMode = 'register' | 'login';
 export default function ApplicationForm() {
   const router = useRouter();
   const { setUser, user, isLoadingUser } = useSharedContext();
-  
+
   const [mode, setMode] = useState<FormMode>('register');
   const [step, setStep] = useState<'form' | 'otp' | 'success'>('form');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -24,7 +24,7 @@ export default function ApplicationForm() {
   const [widgetReady, setWidgetReady] = useState(false);
   const [otp, setOtp] = useState("");
   const [isMounted, setIsMounted] = useState(false); // ✅ Track client-side mounting
-  
+
   const [formData, setFormData] = useState({
     parentName: "",
     parentEmail: "",
@@ -49,16 +49,16 @@ export default function ApplicationForm() {
   const autoSelectFirstProfile = async () => {
     try {
       console.log("🔍 Fetching kid profiles for auto-selection...");
-      
+
       const res = await fetch("/api/kid-profiles");
       if (res.ok) {
         const data = await res.json();
         const profiles = data.profiles || [];
-        
+
         if (profiles.length > 0) {
           const firstProfile = profiles[0];
           console.log("✅ Auto-selecting first profile:", firstProfile.name);
-          
+
           // Save to localStorage
           localStorage.setItem("selectedKidProfile", JSON.stringify({
             _id: firstProfile._id,
@@ -66,7 +66,7 @@ export default function ApplicationForm() {
             age: firstProfile.age,
             avatarColor: firstProfile.avatarColor,
           }));
-          
+
           return true;
         } else {
           console.warn("⚠️ No profiles found");
@@ -80,10 +80,60 @@ export default function ApplicationForm() {
     }
   };
 
-  // ✅ Ensure client-side only rendering
+  // ✅ Ensure client-side only rendering AND handle widget conflicts
   useEffect(() => {
     setIsMounted(true);
-  }, []);
+
+    // ✅ Check if a different widget type was previously loaded
+    const loadedWidgetType = sessionStorage.getItem('msg91_widget_type');
+
+    // If PHONE widget was loaded and methods exist, we MUST reload to switch to EMAIL
+    if (loadedWidgetType === 'phone' && window.sendOtp) {
+      console.log("🔄 PHONE widget detected, reloading for EMAIL widget...");
+      sessionStorage.setItem('msg91_widget_type', 'email');
+      window.location.reload();
+      return;
+    }
+
+    // Mark that we want the EMAIL widget
+    sessionStorage.setItem('msg91_widget_type', 'email');
+
+    // If widget methods exist already (same session), use them
+    if (typeof window.initSendOTP === "function" && EMAIL_WIDGET_ID && TOKEN_AUTH) {
+      console.log("🔄 Initializing EMAIL widget...");
+      try {
+        window.initSendOTP({
+          widgetId: EMAIL_WIDGET_ID,
+          tokenAuth: TOKEN_AUTH,
+          exposeMethods: true,
+          success: () => {
+            console.log("✅ EMAIL widget initialized");
+            setWidgetReady(true);
+            setScriptLoaded(true);
+          },
+          failure: (error) => {
+            console.error("❌ Widget init failed:", error);
+          },
+        });
+
+        // Method polling
+        let checkCount = 0;
+        const checkMethods = () => {
+          checkCount++;
+          if (window.sendOtp && window.verifyOtp) {
+            console.log("✅ Widget methods ready");
+            setWidgetReady(true);
+            setScriptLoaded(true);
+          } else if (checkCount < 10) {
+            setTimeout(checkMethods, 500);
+          }
+        };
+        setTimeout(checkMethods, 500);
+      } catch (error) {
+        console.error("❌ Widget error:", error);
+      }
+    }
+  }, [EMAIL_WIDGET_ID, TOKEN_AUTH]);
 
   // ✅ Redirect if user is already logged in
   useEffect(() => {
@@ -99,7 +149,7 @@ export default function ApplicationForm() {
       const timer = setTimeout(() => {
         router.push('/kids/dashboard');
       }, 3000);
-      
+
       return () => clearTimeout(timer);
     }
   }, [step, router]);
@@ -125,9 +175,9 @@ export default function ApplicationForm() {
 
     const initWidget = () => {
       if (isInitialized) return;
-      
+
       console.log(`🔄 Attempting widget initialization...`);
-      
+
       if (typeof window.initSendOTP === "function") {
         try {
           window.initSendOTP({
@@ -150,7 +200,7 @@ export default function ApplicationForm() {
             console.log(`🔍 Checking for sendOtp method... (${checkCount}/${maxChecks})`);
             console.log('window.sendOtp:', typeof window.sendOtp);
             console.log('window.verifyOtp:', typeof window.verifyOtp);
-            
+
             if (window.sendOtp && window.verifyOtp) {
               console.log("✅ Widget methods detected successfully!");
               isInitialized = true;
@@ -166,7 +216,7 @@ export default function ApplicationForm() {
 
           // Start checking for methods after a short delay
           setTimeout(checkMethods, 1000);
-          
+
         } catch (error) {
           console.error("❌ Widget init error:", error);
           setWidgetReady(true); // Show form anyway
@@ -194,7 +244,7 @@ export default function ApplicationForm() {
         console.log("⏰ Timeout reached - showing form");
         setWidgetReady(true);
       }, 8000);
-      
+
       return () => clearTimeout(timeout);
     }
   }, [scriptLoaded, widgetReady, step]);
@@ -202,7 +252,7 @@ export default function ApplicationForm() {
   // ✅ Handle form changes with phone number validation
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
-    
+
     if (type === 'checkbox') {
       setFormData(prev => ({
         ...prev,
@@ -226,7 +276,7 @@ export default function ApplicationForm() {
   const handleSendOTP = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    
+
     // ✅ LOGIN MODE: Check if user exists first
     if (mode === 'login') {
       if (!formData.parentEmail || !formData.parentEmail.includes("@")) {
@@ -242,7 +292,7 @@ export default function ApplicationForm() {
         const checkRes = await fetch("/api/check-user", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ 
+          body: JSON.stringify({
             identifier: formData.parentEmail.toLowerCase().trim(),
             authMethod: "email"
           }),
@@ -340,7 +390,7 @@ export default function ApplicationForm() {
       const checkRes = await fetch("/api/check-user", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           identifier: formData.parentEmail.toLowerCase().trim(),
           authMethod: "email"
         }),
@@ -363,7 +413,7 @@ export default function ApplicationForm() {
       const phoneCheckRes = await fetch("/api/check-user", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           identifier: "+91" + formData.parentPhone.trim(),
           authMethod: "phone"
         }),
@@ -461,14 +511,14 @@ export default function ApplicationForm() {
             if (res.ok && responseData.success) {
               setUser(responseData.user);
               window.dispatchEvent(new CustomEvent(USER_EVENTS.LOGIN));
-              
+
               setMessage("✅ Login successful! Loading your profile...");
-              
+
               // ✅ AUTO-SELECT FIRST PROFILE
               const profileSelected = await autoSelectFirstProfile();
-              
+
               setIsSubmitting(false);
-              
+
               // Redirect to dashboard (or /kids if no profiles)
               setTimeout(() => {
                 router.push(profileSelected ? '/kids/dashboard' : '/kids');
@@ -503,7 +553,7 @@ export default function ApplicationForm() {
           if (res.ok && responseData.success) {
             setUser(responseData.user);
             window.dispatchEvent(new CustomEvent(USER_EVENTS.LOGIN));
-            
+
             // ✅ AUTO-SAVE THE CREATED KID PROFILE
             if (responseData.kidProfile) {
               console.log("✅ Auto-selecting newly created profile:", responseData.kidProfile.name);
@@ -514,7 +564,7 @@ export default function ApplicationForm() {
                 avatarColor: responseData.kidProfile.avatarColor,
               }));
             }
-            
+
             setMessage("✅ Account created successfully!");
             setStep("success");
             setIsSubmitting(false);
@@ -629,7 +679,7 @@ export default function ApplicationForm() {
                 We&apos;ve sent a 6-digit code to <br />
                 <strong>{formData.parentEmail}</strong>
               </p>
-              
+
               {error && (
                 <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
                   {error}
@@ -647,9 +697,9 @@ export default function ApplicationForm() {
                   <label htmlFor="otp" className="block text-sm font-medium text-slate-700 mb-2">
                     Enter OTP
                   </label>
-                  <input 
+                  <input
                     id="otp"
-                    type="text" 
+                    type="text"
                     value={otp}
                     onChange={(e) => {
                       const value = e.target.value.replace(/\D/g, '').slice(0, 6);
@@ -662,13 +712,13 @@ export default function ApplicationForm() {
                   />
                 </div>
 
-                <button 
+                <button
                   onClick={handleVerifyOTP}
                   disabled={isSubmitting || otp.length !== 6}
                   className="w-full btn-shine bg-gradient-to-r from-[hsl(var(--swago-purple))] to-[hsl(var(--swago-pink))] text-white font-bold py-4 px-6 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isSubmitting 
-                    ? (mode === 'login' ? 'Logging in...' : 'Creating Account...') 
+                  {isSubmitting
+                    ? (mode === 'login' ? 'Logging in...' : 'Creating Account...')
                     : (mode === 'login' ? '🚀 Sign In' : '🚀 Enter the Swagoverse')}
                 </button>
               </div>
@@ -703,7 +753,7 @@ export default function ApplicationForm() {
           setError("Failed to load verification service");
         }}
       />
-      
+
       <div id="application-form" className="bg-slate-50 py-16">
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto bg-white p-8 rounded-2xl shadow-lg">
@@ -719,12 +769,41 @@ export default function ApplicationForm() {
             <h2 className="text-3xl font-bold text-slate-800 mb-2 text-center">
               {mode === 'login' ? 'Sign In to Continue' : 'Enter the Swagoverse 🌟'}
             </h2>
-            <p className="text-slate-600 text-center mb-8">
-              {mode === 'login' 
-                ? 'Enter your email to receive a login code' 
+            <p className="text-slate-600 text-center mb-4">
+              {mode === 'login'
+                ? 'Enter your email to receive a login code'
                 : 'Create your parent account and your child\'s ambassador profile in one step!'}
             </p>
-            
+
+            {/* ✅ Mode Switch Button - At Top */}
+            <div className="text-center mb-6">
+              {mode === 'register' ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode('login');
+                    setError(null);
+                    setMessage('');
+                  }}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 rounded-full text-sm text-slate-700 font-medium transition-colors"
+                >
+                  Already registered? Click here to sign in →
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode('register');
+                    setError(null);
+                    setMessage('');
+                  }}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 rounded-full text-sm text-slate-700 font-medium transition-colors"
+                >
+                  ← Need to register? Create new account
+                </button>
+              )}
+            </div>
+
             {error && (
               <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
                 {error}
@@ -744,10 +823,10 @@ export default function ApplicationForm() {
                   <label htmlFor="loginEmail" className="block text-sm font-medium text-slate-700 mb-2">
                     Email Address *
                   </label>
-                  <input 
+                  <input
                     id="loginEmail"
                     name="parentEmail"
-                    type="email" 
+                    type="email"
                     value={formData.parentEmail}
                     onChange={handleFormChange}
                     required
@@ -763,16 +842,16 @@ export default function ApplicationForm() {
                     <h3 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
                       👨‍👩‍👧 Parent Details
                     </h3>
-                    
+
                     <div className="space-y-4">
                       <div>
                         <label htmlFor="parentName" className="block text-sm font-medium text-slate-700 mb-2">
                           Parent/Guardian Name *
                         </label>
-                        <input 
+                        <input
                           id="parentName"
                           name="parentName"
-                          type="text" 
+                          type="text"
                           value={formData.parentName}
                           onChange={handleFormChange}
                           required
@@ -787,10 +866,10 @@ export default function ApplicationForm() {
                           <label htmlFor="parentEmail" className="block text-sm font-medium text-slate-700 mb-2">
                             Email *
                           </label>
-                          <input 
+                          <input
                             id="parentEmail"
                             name="parentEmail"
-                            type="email" 
+                            type="email"
                             value={formData.parentEmail}
                             onChange={handleFormChange}
                             required
@@ -816,10 +895,10 @@ export default function ApplicationForm() {
                                 className="w-full border border-slate-300 rounded-lg p-3 bg-gray-50 text-gray-700 font-medium text-center"
                               />
                             </div>
-                            <input 
+                            <input
                               id="parentPhone"
                               name="parentPhone"
-                              type="tel" 
+                              type="tel"
                               value={formData.parentPhone}
                               onChange={handleFormChange}
                               placeholder="Enter 10-digit number"
@@ -836,10 +915,10 @@ export default function ApplicationForm() {
                         <label htmlFor="city" className="block text-sm font-medium text-slate-700 mb-2">
                           City *
                         </label>
-                        <input 
+                        <input
                           id="city"
                           name="city"
-                          type="text" 
+                          type="text"
                           value={formData.city}
                           onChange={handleFormChange}
                           required
@@ -856,16 +935,16 @@ export default function ApplicationForm() {
                     <h3 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
                       🧒 Child Details
                     </h3>
-                    
+
                     <div className="space-y-4">
                       <div>
                         <label htmlFor="childName" className="block text-sm font-medium text-slate-700 mb-2">
                           Child&apos;s Name *
                         </label>
-                        <input 
+                        <input
                           id="childName"
                           name="childName"
-                          type="text" 
+                          type="text"
                           value={formData.childName}
                           onChange={handleFormChange}
                           required
@@ -880,7 +959,7 @@ export default function ApplicationForm() {
                           <label htmlFor="childAge" className="block text-sm font-medium text-slate-700 mb-2">
                             Age *
                           </label>
-                          <select 
+                          <select
                             id="childAge"
                             name="childAge"
                             value={formData.childAge}
@@ -890,7 +969,7 @@ export default function ApplicationForm() {
                             className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[hsl(var(--swago-purple))] focus:border-transparent disabled:bg-slate-100"
                           >
                             <option value="">Select age</option>
-                            {[7,8,9,10,11,12,13,14].map(age => (
+                            {[7, 8, 9, 10, 11, 12, 13, 14].map(age => (
                               <option key={age} value={age}>{age} years</option>
                             ))}
                           </select>
@@ -900,7 +979,7 @@ export default function ApplicationForm() {
                           <label htmlFor="gender" className="block text-sm font-medium text-slate-700 mb-2">
                             Gender *
                           </label>
-                          <select 
+                          <select
                             id="gender"
                             name="gender"
                             value={formData.gender}
@@ -920,10 +999,10 @@ export default function ApplicationForm() {
 
                   {/* Consent */}
                   <div className="flex items-start gap-3 bg-purple-50 p-4 rounded-lg">
-                    <input 
+                    <input
                       id="consent"
                       name="consent"
-                      type="checkbox" 
+                      type="checkbox"
                       checked={formData.consent}
                       onChange={handleFormChange}
                       required
@@ -938,44 +1017,15 @@ export default function ApplicationForm() {
               )}
 
               {/* Submit Button */}
-              <button 
+              <button
                 type="submit"
                 disabled={isSubmitting}
                 className="w-full btn-shine bg-[hsl(var(--swago-purple))]  text-white font-bold py-4 px-6 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed text-lg"
               >
-                {isSubmitting 
-                  ? 'Sending OTP...' 
+                {isSubmitting
+                  ? 'Sending OTP...'
                   : (mode === 'login' ? 'Send Login Code' : 'Enter the Swagoverse')}
               </button>
-
-              {/* ✅ Manual Mode Switch Button */}
-              <div className="text-center pt-4 border-t border-gray-200">
-                {mode === 'register' ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMode('login');
-                      setError(null);
-                      setMessage('');
-                    }}
-                    className="text-sm text-slate-600 hover:text-[hsl(var(--swago-purple))] transition-colors font-medium"
-                  >
-                    Already registered? <span className="underline">Sign in here</span>
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMode('register');
-                      setError(null);
-                      setMessage('');
-                    }}
-                    className="text-sm text-slate-600 hover:text-[hsl(var(--swago-purple))] transition-colors font-medium"
-                  >
-                    Need to register? <span className="underline">Create new account</span>
-                  </button>
-                )}
-              </div>
             </form>
           </div>
         </div>

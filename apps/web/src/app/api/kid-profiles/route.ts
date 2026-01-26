@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
     }
 
 
-    const { name, age, avatarColor, grade, gender } = await request.json();
+    const { name, age, avatarColor, grade, gender, city } = await request.json();
 
 
     // Validation
@@ -139,6 +139,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
+    // ✅ Update user's city/address if provided
+    if (city && city.trim()) {
+      user.address = city.trim();
+      await user.save();
+      console.log("📍 Updated user city:", city.trim());
+    }
 
     // Check if parent already has 2 profiles
     const existingCount = await KidProfile.countDocuments({ userId: user._id });
@@ -155,7 +161,7 @@ export async function POST(request: NextRequest) {
       userId: user._id,
       username: name.trim()
     });
-   
+
     if (existingProfile) {
       return NextResponse.json(
         { error: "You already have a kid profile with this name" },
@@ -164,7 +170,7 @@ export async function POST(request: NextRequest) {
     }
 
 
-    // Create new profile
+    // ✅ Create new profile with ambassador rewards
     const newProfile = new KidProfile({
       userId: user._id,
       username: name.trim(),
@@ -173,10 +179,27 @@ export async function POST(request: NextRequest) {
       avatar: avatarColor,
       gender: gender || "other",
       progress: {},
+      unlockedProducts: [],
+      ambassador: {
+        isAmbassador: true,
+        status: "profile_created",
+        swagoMoney: 20,
+        totalEarnings: 20,
+        currentStep: 2,
+        badges: [{ name: "Swago Saviour", awardedAt: new Date() }],
+        joinedAt: new Date(),
+        entryChallenge: { submitted: false, status: "not_submitted" },
+        brainGym: { completed: false },
+      },
     });
 
 
     await newProfile.save();
+    console.log("✅ Kid profile created with ambassador rewards:", {
+      username: newProfile.username,
+      swagoMoney: newProfile.ambassador?.swagoMoney,
+      badges: newProfile.ambassador?.badges?.map((b: { name: string }) => b.name),
+    });
 
 
     // Transform response to match frontend
@@ -188,6 +211,11 @@ export async function POST(request: NextRequest) {
       avatarColor: newProfile.avatar,
       gender: newProfile.gender,
       createdAt: newProfile.createdAt,
+      ambassador: {
+        swagoMoney: newProfile.ambassador?.swagoMoney,
+        badges: newProfile.ambassador?.badges?.map((b: { name: string }) => b.name) || [],
+        currentStep: newProfile.ambassador?.currentStep,
+      },
     };
 
 
