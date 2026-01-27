@@ -5,6 +5,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
+import Image from "next/image";
 import { FiArrowLeft } from "react-icons/fi";
 
 interface Ticket {
@@ -57,7 +58,7 @@ export default function MyTicketsPage() {
 
       if (res.ok && data.profiles) {
         setKidProfiles(data.profiles);
-        
+
         if (data.profiles.length > 0) {
           setSelectedKidId(data.profiles[0]._id);
         }
@@ -97,8 +98,8 @@ export default function MyTicketsPage() {
   };
 
   const getTicketColor = (shortForm: string) => {
-    return shortForm === 'SSR' 
-      ? 'bg-purple-50 border-purple-200' 
+    return shortForm === 'SSR'
+      ? 'bg-purple-50 border-purple-200'
       : 'bg-orange-50 border-orange-200';
   };
 
@@ -143,9 +144,14 @@ export default function MyTicketsPage() {
                     }
                   `}
                 >
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-white" style={{ backgroundColor: kid.avatarColor || '#94a3b8' }}>
-                    {kid.name.charAt(0).toUpperCase()}
-                  </div>
+                  {/* ✅ Fixed: Show avatar image instead of colored circle */}
+                  <Image
+                    src={kid.avatarColor?.startsWith('#') ? '/images/swoo.png' : kid.avatarColor || '/images/swoo.png'}
+                    alt={kid.name}
+                    width={40}
+                    height={40}
+                    className="w-10 h-10 rounded-full object-cover"
+                  />
                   <span className="font-bold text-slate-800">{kid.name}</span>
                 </button>
               ))}

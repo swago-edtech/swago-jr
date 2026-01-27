@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
     await connectDB();
 
     // ✅ FIXED: Support both phone and email auth
-    const user = session.phone 
+    const user = session.phone
       ? await User.findOne({ phone: session.phone })
       : await User.findOne({ email: session.email });
 
@@ -108,7 +108,7 @@ export async function POST(request: NextRequest) {
     await connectDB();
 
     // Support both phone and email auth
-    const user = session.phone 
+    const user = session.phone
       ? await User.findOne({ phone: session.phone })
       : await User.findOne({ email: session.email });
 
@@ -151,8 +151,8 @@ export async function POST(request: NextRequest) {
       // Award Swago Money (keep at 50)
       profile.ambassador.swagoMoney += TEST_RIDDLE.reward;
       profile.ambassador.totalEarnings += TEST_RIDDLE.reward;
-      
-      // ✅ FIXED: Changed (b: any) to (b: { name: string })
+
+      // Award Brain Champion badge
       const hasBrainBadge = profile.ambassador.badges.some((b: { name: string }) => b.name === "Brain Champion");
       if (!hasBrainBadge) {
         profile.ambassador.badges.push({
@@ -160,29 +160,32 @@ export async function POST(request: NextRequest) {
           awardedAt: new Date(),
         });
       }
-      
+
       // Update Brain Gym status
       profile.ambassador.brainGym = {
         completed: true,
         answer: answer,
         completedAt: new Date(),
       };
-      
-      profile.ambassador.currentStep = 4;
-      profile.ambassador.status = "brand_ambassador";
-      
-      // ✅ FIXED: Changed (b: any) to (b: { name: string })
-      const hasAmbassadorBadge = profile.ambassador.badges.some((b: { name: string }) => b.name === "Brand Ambassador");
-      if (!hasAmbassadorBadge) {
-        profile.ambassador.badges.push({
-          name: "Brand Ambassador",
-          awardedAt: new Date(),
-        });
+
+      // ✅ CHANGED: Don't auto-award Brand Ambassador badge from Brain Gym
+      // Instead, check if 200 Swago Money threshold is met
+      if (profile.ambassador.swagoMoney >= 200) {
+        const hasAmbassadorBadge = profile.ambassador.badges.some((b: { name: string }) => b.name === "Brand Ambassador");
+        if (!hasAmbassadorBadge) {
+          profile.ambassador.badges.push({
+            name: "Brand Ambassador",
+            awardedAt: new Date(),
+          });
+          profile.ambassador.currentStep = 4;
+          profile.ambassador.status = "brand_ambassador";
+          console.log(`🎉 Brand Ambassador badge awarded via Brain Gym! Swago Money: ${profile.ambassador.swagoMoney}`);
+        }
       }
-      
+
       await profile.save();
 
-      console.log(`✅ Brain Gym completed for ${profile.username}. Awarded ${TEST_RIDDLE.reward} Swago Money + Brain Champion + Brand Ambassador badges.`);
+      console.log(`✅ Brain Gym completed for ${profile.username}. Awarded ${TEST_RIDDLE.reward} Swago Money + Brain Champion badge.`);
 
       return NextResponse.json({
         success: true,

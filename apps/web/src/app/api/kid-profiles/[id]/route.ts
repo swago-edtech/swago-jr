@@ -28,7 +28,7 @@ export async function GET(
 
     // Demo users get empty data
     if (session.isDemo) {
-      return NextResponse.json({ 
+      return NextResponse.json({
         profile: {
           _id: id,
           name: "Demo Kid",
@@ -87,6 +87,27 @@ export async function GET(
 
     console.log("✅ Profile found:", profile._id);
 
+    // ✅ CRITICAL FIX: Check and award Brand Ambassador badge for existing users with 200+ Swago
+    // This retroactively awards the badge for users who reached 200 before the fix was implemented
+    if (profile.ambassador &&
+      profile.ambassador.swagoMoney >= 200 &&
+      profile.ambassador.isAmbassador === true) {
+      const hasBrandAmbassadorBadge = profile.ambassador.badges?.some(
+        (b: { name: string }) => b.name === "Brand Ambassador"
+      );
+
+      if (!hasBrandAmbassadorBadge) {
+        profile.ambassador.badges.push({
+          name: "Brand Ambassador",
+          awardedAt: new Date(),
+        });
+        profile.ambassador.status = "brand_ambassador";
+        profile.ambassador.currentStep = 4;
+        await profile.save();
+        console.log(`🎉 Retroactively awarded Brand Ambassador badge to ${profile.username}!`);
+      }
+    }
+
     // Transform ambassador data for frontend
     const ambassadorData = profile.ambassador || {
       isAmbassador: false,
@@ -137,9 +158,9 @@ export async function GET(
       createdAt: profile.createdAt,
     };
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       success: true,
-      profile: responseProfile 
+      profile: responseProfile
     });
   } catch (error) {
     console.error("GET kid profile error:", error);

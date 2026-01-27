@@ -146,23 +146,23 @@ const KidProfileSchema = new mongoose.Schema(
       },
       joinedAt: Date,
     },
-    
+
     // 🆕 NEW: Lottery Tickets
     lotteryTickets: [{
-      codeId: { 
-        type: mongoose.Schema.Types.ObjectId, 
+      codeId: {
+        type: mongoose.Schema.Types.ObjectId,
         ref: "LotteryCode",
-        required: true 
+        required: true
       },
-      code: { 
+      code: {
         type: String,
         required: true,
         uppercase: true,
       },
-      productId: { 
-        type: mongoose.Schema.Types.ObjectId, 
+      productId: {
+        type: mongoose.Schema.Types.ObjectId,
         ref: "Product",
-        required: true 
+        required: true
       },
       productName: {
         type: String,
@@ -182,9 +182,9 @@ const KidProfileSchema = new mongoose.Schema(
         type: Number,
         default: 10
       },
-      redeemedAt: { 
-        type: Date, 
-        default: Date.now 
+      redeemedAt: {
+        type: Date,
+        default: Date.now
       }
     }],
   },
@@ -195,13 +195,13 @@ const KidProfileSchema = new mongoose.Schema(
 // Indexes are now created manually via migration scripts
 
 // ✅ Ambassador helper methods (KEEP - these are instance methods, not indexes)
-KidProfileSchema.methods.awardSwagoMoney = function(amount: number, reason: string) {
+KidProfileSchema.methods.awardSwagoMoney = function (amount: number, reason: string) {
   this.ambassador.swagoMoney += amount;
   this.ambassador.totalEarnings += amount;
   return this.save();
 };
 
-KidProfileSchema.methods.awardBadge = function(badgeName: string) {
+KidProfileSchema.methods.awardBadge = function (badgeName: string) {
   const existingBadge = this.ambassador.badges.find((b: { name: string }) => b.name === badgeName);
   if (!existingBadge) {
     this.ambassador.badges.push({ name: badgeName, awardedAt: new Date() });
@@ -209,7 +209,7 @@ KidProfileSchema.methods.awardBadge = function(badgeName: string) {
   return this.save();
 };
 
-KidProfileSchema.methods.initializeAmbassador = function() {
+KidProfileSchema.methods.initializeAmbassador = function () {
   if (!this.ambassador.isAmbassador) {
     this.ambassador.isAmbassador = true;
     this.ambassador.status = "profile_created";
@@ -230,7 +230,7 @@ KidProfileSchema.methods.initializeAmbassador = function() {
 };
 
 // 🆕 NEW: Lottery redemption helper method
-KidProfileSchema.methods.redeemLotteryCode = function(codeData: {
+KidProfileSchema.methods.redeemLotteryCode = function (codeData: {
   codeId: any;
   code: string;
   productId: any;
@@ -239,31 +239,49 @@ KidProfileSchema.methods.redeemLotteryCode = function(codeData: {
   ticketType: string;
 }) {
   const reward = 10; // Fixed reward for now
-  
-  // Initialize ambassador object if it doesn't exist
+
+  // ✅ FIXED: Preserve existing ambassador data - only initialize missing fields
+  // This prevents the bug where redeeming a lottery code would reset currentStep to 1
   if (!this.ambassador) {
-    this.ambassador = {
-      isAmbassador: false,
-      status: "not_started",
-      swagoMoney: 0,
-      totalEarnings: 0,
-      badges: [],
-      currentStep: 1,
-      entryChallenge: {
-        submitted: false,
-        status: "not_submitted",
-      },
-      brainGym: {
-        completed: false,
-      },
+    this.ambassador = {};
+  }
+
+  // Initialize only missing fields, preserve existing values
+  if (this.ambassador.isAmbassador === undefined) {
+    this.ambassador.isAmbassador = false;
+  }
+  if (!this.ambassador.status) {
+    this.ambassador.status = "not_started";
+  }
+  if (this.ambassador.swagoMoney === undefined) {
+    this.ambassador.swagoMoney = 0;
+  }
+  if (this.ambassador.totalEarnings === undefined) {
+    this.ambassador.totalEarnings = 0;
+  }
+  if (!this.ambassador.badges) {
+    this.ambassador.badges = [];
+  }
+  if (this.ambassador.currentStep === undefined) {
+    this.ambassador.currentStep = 1;
+  }
+  if (!this.ambassador.entryChallenge) {
+    this.ambassador.entryChallenge = {
+      submitted: false,
+      status: "not_submitted",
     };
   }
-  
+  if (!this.ambassador.brainGym) {
+    this.ambassador.brainGym = {
+      completed: false,
+    };
+  }
+
   // Add ticket to lotteryTickets array
   if (!this.lotteryTickets) {
     this.lotteryTickets = [];
   }
-  
+
   this.lotteryTickets.push({
     codeId: codeData.codeId,
     code: codeData.code,
@@ -274,12 +292,31 @@ KidProfileSchema.methods.redeemLotteryCode = function(codeData: {
     swagoMoneyEarned: reward,
     redeemedAt: new Date(),
   });
-  
+
   // Award Swago Money
   this.ambassador.swagoMoney += reward;
   this.ambassador.totalEarnings += reward;
-  
+
+  // ✅ NEW: Check for Brand Ambassador badge at 200 Swago Money threshold
+  this.checkAndAwardAmbassadorBadge();
+
   return this.save();
+};
+
+// ✅ NEW: Check and award Brand Ambassador badge at 200 Swago Money threshold
+KidProfileSchema.methods.checkAndAwardAmbassadorBadge = function () {
+  if (this.ambassador && this.ambassador.swagoMoney >= 200) {
+    const hasBadge = this.ambassador.badges.some((b: { name: string }) => b.name === "Brand Ambassador");
+    if (!hasBadge) {
+      this.ambassador.badges.push({
+        name: "Brand Ambassador",
+        awardedAt: new Date()
+      });
+      this.ambassador.status = "brand_ambassador";
+      this.ambassador.currentStep = 4;
+      console.log(`🎉 Brand Ambassador badge awarded! Swago Money: ${this.ambassador.swagoMoney}`);
+    }
+  }
 };
 
 const KidProfile =

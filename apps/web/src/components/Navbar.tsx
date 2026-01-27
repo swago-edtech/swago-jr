@@ -2,6 +2,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useSharedContext, USER_EVENTS } from "@/context/SharedContext";
 import { useState, useEffect, useRef } from "react";
 import Logo from "./Logo";
@@ -16,14 +17,14 @@ const dropdownVariants: Variants = {
 
 export default function Navbar() {
   const { user, cart, wishlist, selectedKid, openCartSidebar } = useSharedContext();
-  
+
   const [isAgeDropdownOpen, setAgeDropdownOpen] = useState(false);
   const [isElementDropdownOpen, setElementDropdownOpen] = useState(false);
   const [isUserMenuOpen, setUserMenuOpen] = useState(false);
   const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
-  
+
   const ageDropdownRef = useRef<HTMLDivElement>(null);
   const elementDropdownRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
@@ -60,21 +61,21 @@ export default function Navbar() {
       <div className="md:flex-none flex-1 flex justify-center md:justify-start">
         <Logo />
       </div>
-      
+
       <div className="flex items-center gap-6">
         {/* --- Desktop Navigation --- */}
         <div className="hidden md:flex items-center gap-6 text-sm font-medium text-slate-600">
           <motion.div whileHover={{ y: -2 }}>
             <Link href="/about" className="transition-colors hover:text-[hsl(var(--swago-purple))]">About Us</Link>
           </motion.div>
-          
+
           <motion.div className="relative" ref={ageDropdownRef} whileHover={{ y: -2 }}>
             <button onClick={() => setAgeDropdownOpen(!isAgeDropdownOpen)} className="transition-colors hover:text-[hsl(var(--swago-purple))] flex items-center gap-1">
               Shop by Age <HiChevronDown className="w-5 h-5" />
             </button>
             <AnimatePresence>
               {isAgeDropdownOpen && (
-                <motion.div 
+                <motion.div
                   className="absolute top-full right-0 mt-2 w-40 bg-white rounded-md shadow-lg z-20 border border-slate-200 p-1 border-t-4 border-t-[hsl(var(--swago-orange))]"
                   variants={dropdownVariants}
                   initial="hidden"
@@ -88,14 +89,14 @@ export default function Navbar() {
               )}
             </AnimatePresence>
           </motion.div>
-          
+
           <motion.div className="relative" ref={elementDropdownRef} whileHover={{ y: -2 }}>
             <button onClick={() => setElementDropdownOpen(!isElementDropdownOpen)} className="transition-colors hover:text-[hsl(var(--swago-purple))] flex items-center gap-1">
               Shop by Categories <HiChevronDown className="w-5 h-5" />
             </button>
             <AnimatePresence>
               {isElementDropdownOpen && (
-                <motion.div 
+                <motion.div
                   className="absolute top-full right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-20 border border-slate-200 p-1 border-t-4 border-t-[hsl(var(--swago-orange))]"
                   variants={dropdownVariants}
                   initial="hidden"
@@ -123,20 +124,22 @@ export default function Navbar() {
                 href="/kids/dashboard"
                 className="flex items-center gap-2 bg-[hsl(var(--swago-purple))] py-2 rounded-full text-sm shadow-md font-bold"
               >
-                <div
-                  className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold"
-                  style={{ backgroundColor: selectedKid.avatarColor }}
-                >
-                  {selectedKid.name.charAt(0).toUpperCase()}
-                </div>
-                <span className="hidden sm:inline">{selectedKid.name}</span>
+                {/* ✅ Show profile image instead of colored initial */}
+                <Image
+                  src={selectedKid.avatarColor?.startsWith('#') ? '/images/swoo.png' : selectedKid.avatarColor || '/images/swoo.png'}
+                  alt={selectedKid.name}
+                  width={24}
+                  height={24}
+                  className="w-6 h-6 rounded-full object-cover ml-2"
+                />
+                <span className="hidden sm:inline text-white pr-3">{selectedKid.name}</span>
               </Link>
             ) : (
               <Link
                 href="/kids"
                 className="bg-[hsl(var(--swago-purple))] font-bold px-4 py-2 rounded-full text-sm shadow-md flex items-center gap-2"
               >
-                
+
                 <span className="text-white">Kids Zone</span>
               </Link>
             )}
@@ -144,7 +147,7 @@ export default function Navbar() {
 
           {/* Cart Button - Desktop */}
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-            <button 
+            <button
               onClick={openCartSidebar}
               className="flex items-center gap-2 text-white font-bold bg-[hsl(var(--swago-purple))] px-4 py-2 rounded-full text-sm shadow-md"
             >
@@ -172,7 +175,7 @@ export default function Navbar() {
                 </motion.button>
                 <AnimatePresence>
                   {isUserMenuOpen && (
-                    <motion.div 
+                    <motion.div
                       className="absolute top-full right-0 mt-2 w-48 bg-white text-slate-800 rounded-md shadow-lg z-20 border border-slate-200 border-t-4 border-t-[hsl(var(--swago-purple))]"
                       variants={dropdownVariants}
                       initial="hidden"
@@ -229,7 +232,7 @@ export default function Navbar() {
                 </motion.button>
                 <AnimatePresence>
                   {isUserMenuOpen && (
-                    <motion.div 
+                    <motion.div
                       className="absolute top-full right-0 mt-2 w-56 bg-white text-slate-800 rounded-md shadow-lg z-20 border border-slate-200 border-t-4 border-t-[hsl(var(--swago-purple))]"
                       variants={dropdownVariants}
                       initial="hidden"
@@ -242,32 +245,34 @@ export default function Navbar() {
                           {user.name || user.email || user.phone}
                         </p>
                       </div>
-                      
+
                       {/* Kids Zone in mobile user menu */}
                       {selectedKid ? (
-                        <Link 
-                          href="/kids/dashboard" 
-                          onClick={() => setUserMenuOpen(false)} 
+                        <Link
+                          href="/kids/dashboard"
+                          onClick={() => setUserMenuOpen(false)}
                           className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-purple-50 hover:text-[hsl(var(--swago-purple))] border-b"
                         >
-                          <div
-                            className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold"
-                            style={{ backgroundColor: selectedKid.avatarColor }}
-                          >
-                            {selectedKid.name.charAt(0).toUpperCase()}
-                          </div>
+                          {/* ✅ Show profile image instead of colored initial */}
+                          <Image
+                            src={selectedKid.avatarColor?.startsWith('#') ? '/images/swoo.png' : selectedKid.avatarColor || '/images/swoo.png'}
+                            alt={selectedKid.name}
+                            width={24}
+                            height={24}
+                            className="w-6 h-6 rounded-full object-cover"
+                          />
                           <span className="font-bold">{selectedKid.name}&apos;s Dashboard</span>
                         </Link>
                       ) : (
-                        <Link 
-                          href="/kids" 
-                          onClick={() => setUserMenuOpen(false)} 
+                        <Link
+                          href="/kids"
+                          onClick={() => setUserMenuOpen(false)}
                           className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-purple-50 hover:text-[hsl(var(--swago-purple))] font-bold border-b"
                         >
                           <span>🎮</span> Kids Zone
                         </Link>
                       )}
-                      
+
                       <Link href="/profile" onClick={() => setUserMenuOpen(false)} className="block w-full text-left px-4 py-2.5 text-sm hover:bg-slate-100 hover:text-[hsl(var(--swago-purple))]">My Profile</Link>
                       <Link href="/orders" onClick={() => setUserMenuOpen(false)} className="block w-full text-left px-4 py-2.5 text-sm hover:bg-slate-100 hover:text-[hsl(var(--swago-purple))]">My Orders</Link>
                       <button onClick={handleLogout} className="block w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50">Logout</button>
@@ -289,7 +294,7 @@ export default function Navbar() {
       {/* --- Mobile Main Menu (Hamburger) --- */}
       <AnimatePresence>
         {isMobileMenuOpen && (
-          <motion.div 
+          <motion.div
             className="md:hidden absolute top-full left-0 w-full bg-white shadow-lg z-20 border-t border-slate-200"
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -302,18 +307,18 @@ export default function Navbar() {
                 <span>Wishlist</span>
                 {wishlist.length > 0 && <span className="ml-auto bg-slate-200 text-slate-700 rounded-full px-2 py-0.5 text-xs">{wishlist.length}</span>}
               </Link>
-              
-              <hr className="my-2"/>
-              
+
+              <hr className="my-2" />
+
               <Link href="/about" onClick={() => setMobileMenuOpen(false)} className="p-3 hover:bg-slate-50 rounded-md">About Us</Link>
-              
-              <hr className="my-2"/>
+
+              <hr className="my-2" />
               <h3 className="font-bold text-slate-400 text-xs uppercase px-3 pt-2">Shop By Age</h3>
               <Link href="/products" onClick={() => setMobileMenuOpen(false)} className="p-3 pl-6 hover:bg-slate-50 rounded-md">All Ages</Link>
               <Link href="/products?age=5-7" onClick={() => setMobileMenuOpen(false)} className="p-3 pl-6 hover:bg-slate-50 rounded-md">Ages 5-7</Link>
               <Link href="/products?age=8-10" onClick={() => setMobileMenuOpen(false)} className="p-3 pl-6 hover:bg-slate-50 rounded-md">Ages 8-10</Link>
-              
-              <hr className="my-2"/>
+
+              <hr className="my-2" />
               <h3 className="font-bold text-slate-400 text-xs uppercase px-3 pt-2">Swago Elements</h3>
               <Link href="/products" onClick={() => setMobileMenuOpen(false)} className="p-3 pl-6 hover:bg-slate-50 rounded-md">All Elements</Link>
               <Link href="/products?elements=S" onClick={() => setMobileMenuOpen(false)} className="p-3 pl-6 hover:bg-slate-50 rounded-md">Smart Tech</Link>

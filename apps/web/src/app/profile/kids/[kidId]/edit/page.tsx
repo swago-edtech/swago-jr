@@ -18,10 +18,10 @@ interface KidProfileData {
 }
 
 interface ProfileUpdateData {
-  name: string;
+  username: string;
   age: number;
   grade?: string;
-  avatarColor: string;
+  avatar: string;
   gender?: string;
 }
 
@@ -48,10 +48,10 @@ const gradeOptions = [
   "Grade 8",
 ];
 
-export default function EditKidProfilePage({ 
-  params 
-}: { 
-  params: Promise<{ kidId: string }> 
+export default function EditKidProfilePage({
+  params
+}: {
+  params: Promise<{ kidId: string }>
 }) {
   const { kidId } = use(params);
   const { user } = useSharedContext();
@@ -60,7 +60,7 @@ export default function EditKidProfilePage({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [profileData, setProfileData] = useState<KidProfileData | null>(null);
-  
+
   const [form, setForm] = useState({
     name: "",
     age: "",
@@ -75,21 +75,21 @@ export default function EditKidProfilePage({
       router.push("/login?redirect=/profile");
       return;
     }
-    
+
     const fetchKidProfile = async () => {
       try {
         const res = await fetch(`/api/kid-profiles/${kidId}`);
         if (res.ok) {
           const data = await res.json();
           setProfileData(data.profile);
-          
+
           // Handle both old (hex color) and new (image path) data
           let avatarValue = data.profile.avatarColor;
           if (avatarValue?.startsWith('#')) {
             // Old hex color - set default image
             avatarValue = avatarOptions[0].image;
           }
-          
+
           setForm({
             name: data.profile.name,
             age: data.profile.age.toString(),
@@ -108,7 +108,7 @@ export default function EditKidProfilePage({
         setLoading(false);
       }
     };
-    
+
     fetchKidProfile();
   }, [user, kidId, router]);
 
@@ -131,11 +131,12 @@ export default function EditKidProfilePage({
     setError("");
 
     try {
+      // ✅ FIXED: Use correct field names (username, avatar) to match API
       const updateData: ProfileUpdateData = {
-        name: form.name.trim(),
+        username: form.name.trim(),
         age: age,
         grade: form.grade || undefined,
-        avatarColor: form.avatarColor,
+        avatar: form.avatarColor,
         gender: form.gender,
       };
 
@@ -260,11 +261,10 @@ export default function EditKidProfilePage({
                 <button
                   type="button"
                   onClick={() => setForm({ ...form, gender: "boy" })}
-                  className={`p-4 rounded-lg border-2 transition-all ${
-                    form.gender === "boy"
+                  className={`p-4 rounded-lg border-2 transition-all ${form.gender === "boy"
                       ? "border-blue-500 bg-blue-50 text-blue-700"
                       : "border-slate-300 bg-white text-slate-700 hover:border-blue-300"
-                  }`}
+                    }`}
                 >
                   <div className="text-3xl mb-2">👦</div>
                   <p className="text-sm font-semibold">Boy</p>
@@ -273,11 +273,10 @@ export default function EditKidProfilePage({
                 <button
                   type="button"
                   onClick={() => setForm({ ...form, gender: "girl" })}
-                  className={`p-4 rounded-lg border-2 transition-all ${
-                    form.gender === "girl"
+                  className={`p-4 rounded-lg border-2 transition-all ${form.gender === "girl"
                       ? "border-pink-500 bg-pink-50 text-pink-700"
                       : "border-slate-300 bg-white text-slate-700 hover:border-pink-300"
-                  }`}
+                    }`}
                 >
                   <div className="text-3xl mb-2">👧</div>
                   <p className="text-sm font-semibold">Girl</p>
@@ -299,11 +298,10 @@ export default function EditKidProfilePage({
                     key={avatar.image}
                     type="button"
                     onClick={() => setForm({ ...form, avatarColor: avatar.image })}
-                    className={`relative p-2 rounded-xl border-2 transition-all hover:scale-105 ${
-                      form.avatarColor === avatar.image
+                    className={`relative p-2 rounded-xl border-2 transition-all hover:scale-105 ${form.avatarColor === avatar.image
                         ? "border-purple-500 bg-purple-50 shadow-lg"
                         : "border-slate-300 bg-white hover:border-purple-300"
-                    }`}
+                      }`}
                   >
                     <div className="w-full aspect-square rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center relative">
                       <Image

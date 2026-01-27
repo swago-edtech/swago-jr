@@ -60,7 +60,7 @@ export default function KidDashboardPage() {
 
     const profileData = JSON.parse(storedProfile);
     setProfile(profileData);
-    
+
     fetchProfileData(profileData._id);
   }, [router]);
 
@@ -139,14 +139,14 @@ export default function KidDashboardPage() {
   const steps = [
     { number: 1, label: "Profile Created", status: currentStep >= 1 ? "completed" : "locked" },
     { number: 2, label: "First Ambassador Challenge", status: currentStep === 2 ? "active" : currentStep > 2 ? "completed" : "locked" },
-    { number: 3, label: "Brain Gym", status: currentStep === 3 ? "active" : currentStep > 3 ? "completed" : "locked" },
+    { number: 3, label: "More Tasks", status: currentStep === 3 ? "active" : currentStep > 3 ? "completed" : "locked" },
     { number: 4, label: "Brand Ambassador", status: currentStep >= 4 ? "active" : "locked" },
   ];
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-100 to-green-100">
       <main className="container mx-auto px-4 py-6">
-        
+
         {/* ========== MOBILE PROGRESS BAR (Top) ========== */}
         {isAmbassador && (
           <motion.div
@@ -157,7 +157,7 @@ export default function KidDashboardPage() {
             <h3 className="text-sm font-bold text-gray-800 mb-4 text-center">
               Your Ambassador Journey
             </h3>
-            
+
             {/* Horizontal Progress Bar */}
             <div className="flex items-start justify-between relative">
               <div className="absolute top-5 left-0 right-0 h-1 bg-gray-200 z-0">
@@ -175,20 +175,18 @@ export default function KidDashboardPage() {
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     transition={{ delay: index * 0.1 }}
-                    className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm mb-2 ${
-                      step.status === "completed"
-                        ? "bg-green-500 text-white"
-                        : step.status === "active"
+                    className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm mb-2 ${step.status === "completed"
+                      ? "bg-green-500 text-white"
+                      : step.status === "active"
                         ? "bg-[hsl(var(--swago-purple))] text-white"
                         : "bg-gray-300 text-gray-500"
-                    }`}
+                      }`}
                   >
                     {step.status === "completed" ? "✓" : step.status === "locked" ? "🔒" : step.number}
                   </motion.div>
 
-                  <p className={`text-[10px] leading-tight font-medium text-center px-0.5 min-h-[32px] flex items-center justify-center ${
-                    step.status === "locked" ? "text-gray-400" : "text-gray-700"
-                  }`}>
+                  <p className={`text-[10px] leading-tight font-medium text-center px-0.5 min-h-[32px] flex items-center justify-center ${step.status === "locked" ? "text-gray-400" : "text-gray-700"
+                    }`}>
                     {step.label}
                   </p>
                 </div>
@@ -198,10 +196,10 @@ export default function KidDashboardPage() {
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-          
+
           {/* ========== LEFT SIDEBAR (40%) ========== */}
           <div className="lg:col-span-2 space-y-4">
-            
+
             {/* Profile Card */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
@@ -239,7 +237,7 @@ export default function KidDashboardPage() {
                       {profile.name}
                     </h1>
                     <p className="text-xs text-gray-600 mb-2">Age {profile.age}</p>
-                    
+
                     {/* ✅ Switch Profile Button */}
                     <button
                       onClick={handleSwitchProfile}
@@ -321,7 +319,7 @@ export default function KidDashboardPage() {
                         <p className="text-sm text-gray-600">Age {profile.age}</p>
                       </div>
                     </div>
-                    <br/>
+                    <br />
 
                     {/* ✅ Switch Profile Button */}
                     <button
@@ -403,7 +401,7 @@ export default function KidDashboardPage() {
                 <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
                   <span>🏆</span> Your Badges
                 </h3>
-                
+
                 <div className="flex flex-wrap gap-3">
                   {ambassadorData.badges.map((badge, index) => (
                     <motion.div
@@ -421,7 +419,7 @@ export default function KidDashboardPage() {
                           {badge.name}
                         </p>
                       </div>
-                      
+
                       <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-1 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
                         Awarded on {new Date(badge.awardedAt).toLocaleDateString()}
                       </div>
@@ -434,7 +432,7 @@ export default function KidDashboardPage() {
 
           {/* ========== RIGHT CONTENT AREA (60%) ========== */}
           <div className="lg:col-span-3 space-y-6">
-            
+
             {/* Progress Bar (Desktop Only) */}
             {isAmbassador && (
               <motion.div
@@ -445,7 +443,7 @@ export default function KidDashboardPage() {
                 <h3 className="text-lg font-bold text-gray-800 mb-6 text-center">
                   Your Ambassador Journey
                 </h3>
-                
+
                 {/* Desktop View - Horizontal */}
                 <div className="flex items-start justify-between relative">
                   <div className="absolute top-6 left-0 right-0 h-1 bg-gray-200 z-0">
@@ -463,21 +461,19 @@ export default function KidDashboardPage() {
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
                         transition={{ delay: index * 0.1 }}
-                        className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg mb-3 ${
-                          step.status === "completed"
-                            ? "bg-green-500 text-white"
-                            : step.status === "active"
+                        className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg mb-3 ${step.status === "completed"
+                          ? "bg-green-500 text-white"
+                          : step.status === "active"
                             ? "bg-[hsl(var(--swago-purple))] text-white animate-pulse"
                             : "bg-gray-300 text-gray-500"
-                        }`}
+                          }`}
                       >
                         {step.status === "completed" ? "✓" : step.status === "locked" ? "🔒" : step.number}
                       </motion.div>
 
                       <p
-                        className={`text-xs md:text-sm font-medium text-center px-2 min-h-[40px] flex items-center justify-center ${
-                          step.status === "locked" ? "text-gray-400" : "text-gray-700"
-                        }`}
+                        className={`text-xs md:text-sm font-medium text-center px-2 min-h-[40px] flex items-center justify-center ${step.status === "locked" ? "text-gray-400" : "text-gray-700"
+                          }`}
                       >
                         {step.label}
                       </p>
@@ -500,7 +496,7 @@ export default function KidDashboardPage() {
                     <h2 className="text-lg md:text-3xl font-bold mb-3">
                       Ready for the First Ambassador Challenge?
                     </h2>
-                    
+
                     <div className="flex flex-col sm:flex-col items-center justify-center gap-4">
                       <button
                         onClick={() => setShowReelForm(true)}
@@ -508,7 +504,7 @@ export default function KidDashboardPage() {
                       >
                         Complete the challenge
                       </button>
-                      
+
                       <Link
                         href="/ambassador"
                         className="bg-white/20 backdrop-blur-sm border-2 border-white text-white font-bold px-4 py-2 rounded-full hover:bg-white/30 transition-all text-md"
@@ -527,7 +523,7 @@ export default function KidDashboardPage() {
                       animate={{ opacity: 1, height: "auto" }}
                       exit={{ opacity: 0, height: 0 }}
                     >
-                      <ReelUploadForm 
+                      <ReelUploadForm
                         kidProfileId={profile._id}
                         onSuccess={handleReelSubmitSuccess}
                       />
@@ -548,26 +544,28 @@ export default function KidDashboardPage() {
                   </div>
                 )}
 
-                {/* Brain Gym Section */}
+                {/* More Tasks Section (Previously Brain Gym) */}
                 {canPlayBrainGym && !showBrainGym && (
                   <motion.div
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="bg-green-500 rounded-2xl shadow-xl p-8 text-white text-center"
+                    className="bg-[hsl(var(--swago-purple))] rounded-2xl shadow-xl p-8 text-white text-center"
                   >
-                    <div className="text-6xl mb-4">🧠</div>
+                    <div className="text-6xl mb-4">🚀</div>
                     <h2 className="text-3xl font-bold mb-3">
-                      Brain Gym Challenge Unlocked!
+                      More Tasks Coming Soon!
                     </h2>
                     <p className="text-lg mb-6 opacity-90">
-                      Your reel was approved! Now solve the Brain Gym riddle to earn more Swago Dollars!
+                      Great job completing your first challenge! We&apos;re preparing more exciting tasks for you.
                     </p>
-                    <button
-                      onClick={() => setShowBrainGym(true)}
-                      className="bg-white text-green-600 font-bold px-10 py-4 rounded-full hover:bg-gray-100 transition-all text-lg shadow-lg"
-                    >
-                      Start Brain Gym 🧠
-                    </button>
+                    <div className="bg-white/20 backdrop-blur rounded-xl p-4 inline-block">
+                      <p className="text-sm font-medium">
+                        Keep collecting Swago Dollars through lottery codes! 🎟️
+                      </p>
+                      <p className="text-xs opacity-80 mt-2">
+                        Reach 200 Swago Dollars to become a Brand Ambassador! ⭐
+                      </p>
+                    </div>
                   </motion.div>
                 )}
 
@@ -621,7 +619,7 @@ export default function KidDashboardPage() {
                   <p className="text-sm md:text-lg mb-8 opacity-90">
                     Become a Swago Ambassador, complete challenges, earn Swago Dollars, and unlock exclusive rewards!
                   </p>
-                  
+
                   <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                     <button
                       onClick={handleActivateAmbassador}
@@ -629,7 +627,7 @@ export default function KidDashboardPage() {
                     >
                       Start Ambassador Journey 🚀
                     </button>
-                    
+
                     <Link
                       href="/ambassador"
                       className="bg-white/20 backdrop-blur-sm border-2 border-white text-white font-bold px-5 py-3 rounded-full text-xs md:text-lg hover:bg-white/30 transition-all"
@@ -644,7 +642,7 @@ export default function KidDashboardPage() {
         </div>
 
         {/* ========== MODALS ========== */}
-        
+
         {/* Welcome Ambassador Modal */}
         <AnimatePresence>
           {showWelcomeModal && welcomeData && (
@@ -724,7 +722,7 @@ export default function KidDashboardPage() {
             </motion.div>
           )}
         </AnimatePresence>
-        
+
         {/* Money Modal */}
         <AnimatePresence>
           {showMoneyModal && (
@@ -751,7 +749,7 @@ export default function KidDashboardPage() {
                     ×
                   </button>
                 </div>
-                
+
                 <div className="flex items-center gap-3 mb-4">
                   <div className="text-6xl">💰</div>
                   <div>
@@ -766,7 +764,7 @@ export default function KidDashboardPage() {
                     </motion.p>
                   </div>
                 </div>
-                
+
                 <div className="bg-white/20 backdrop-blur rounded-lg p-4">
                   <p className="font-medium text-white/90 text-sm">
                     💡 Use Swago Dollars for discounts, blind bags &amp; special rewards.
@@ -805,7 +803,7 @@ export default function KidDashboardPage() {
                     ×
                   </button>
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-3">
                   {ambassadorData?.badges?.map((badge, index) => (
                     <motion.div

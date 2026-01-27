@@ -134,13 +134,13 @@ export default function SuccessModal({ isOpen, onClose, data }: SuccessModalProp
                   </code>
                 </div>
 
-                {/* Close Button */}
-                <button
-                  onClick={onClose}
-                  className="w-full bg-gradient-to-r from-[hsl(var(--swago-purple))] to-[hsl(var(--swago-pink))] text-white font-black py-4 rounded-xl shadow-lg hover:shadow-xl transition-all"
+                {/* Close Button - Changed to Navigate to My Tickets */}
+                <a
+                  href="/lottery-code/my-tickets"
+                  className="w-full block text-center bg-[hsl(var(--swago-orange))] text-white font-black py-4 rounded-xl shadow-lg hover:shadow-xl hover:opacity-90 transition-all"
                 >
                   VIEW MY TICKETS
-                </button>
+                </a>
               </div>
             </motion.div>
           </motion.div>
