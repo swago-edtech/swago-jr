@@ -2,13 +2,17 @@ import { connectDB, Order } from '@swago/database';
 import { formatPrice } from '@swago/utils';
 import Link from 'next/link';
 import OrderDateCell from './OrderDateCell'; // ✨ NEW: Client component for dates
+import { cleanupExpiredOrders } from '@/lib/cleanupExpiredOrders';
 
 async function getOrders() {
   await connectDB();
 
+  // ✅ Clean up expired prepaid orders
+  await cleanupExpiredOrders();
+
   const orders = await Order.find()
     .sort({ createdAt: -1 })
-    .select('orderId name phone email total status items createdAt razorpay_payment_id')
+    .select('orderId name phone email total status items createdAt razorpay_payment_id paymentMethod')
     .lean();
 
   return JSON.parse(JSON.stringify(orders));
@@ -53,6 +57,9 @@ export default async function OrdersPage() {
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Status
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Payment
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Date
@@ -104,6 +111,9 @@ export default async function OrdersPage() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <StatusBadge status={order.status} />
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <PaymentBadge method={order.paymentMethod} />
+                    </td>
                     {/* ✨ UPDATED: Use client component for date */}
                     <td className="px-6 py-4 whitespace-nowrap">
                       <OrderDateCell date={order.createdAt} />
@@ -144,6 +154,20 @@ function StatusBadge({ status }: { status: string }) {
   return (
     <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${config.bg} ${config.text}`}>
       {config.label}
+    </span>
+  );
+}
+
+// ✅ Payment method badge
+function PaymentBadge({ method }: { method?: string }) {
+  const isCOD = method === 'cod';
+
+  return (
+    <span className={`px-2 py-1 inline-flex text-xs leading-5 font-medium rounded ${isCOD
+      ? 'bg-amber-100 text-amber-700'
+      : 'bg-green-100 text-green-700'
+      }`}>
+      {isCOD ? 'Cash on Delivery' : 'Prepaid (Razorpay)'}
     </span>
   );
 }

@@ -37,6 +37,12 @@ const OrderSchema = new mongoose.Schema(
       enum: ['Pending', 'Paid', 'Shipped', 'Delivered', 'Cancelled', 'Failed', 'Abandoned'],
       default: "Pending"
     },
+    // ✅ NEW: Payment method for COD support
+    paymentMethod: {
+      type: String,
+      enum: ['razorpay', 'cod'],
+      default: 'razorpay'
+    },
     // ✅ NEW: Payment tracking
     paymentAttempts: { type: Number, default: 0 },
     lastPaymentAttempt: { type: Date },

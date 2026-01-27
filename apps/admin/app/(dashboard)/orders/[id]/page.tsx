@@ -8,9 +8,9 @@ import OrderDetailDate from './OrderDetailDate'; // ✨ NEW: Client component
 
 async function getOrder(id: string) {
   await connectDB();
-  
+
   const order = await Order.findById(id).lean();
-  
+
   if (!order) {
     return null;
   }
@@ -31,9 +31,9 @@ export default async function OrderDetailPage({
   }
 
   // Calculate totals from items if not stored in order
-  const calculatedSubtotal = order.items?.reduce((sum: number, item: any) => 
+  const calculatedSubtotal = order.items?.reduce((sum: number, item: any) =>
     sum + ((item.price || 0) * (item.quantity || 0)), 0) || 0;
-  
+
   const subtotal = order.subtotal || calculatedSubtotal;
   const discount = order.discount || 0;
   const total = order.total || (subtotal - discount);
@@ -111,10 +111,16 @@ export default async function OrderDetailPage({
               <OrderDetailDate date={order.createdAt} />
             </div>
             <div>
-              <p className="text-sm text-gray-500">Payment ID</p>
-              <p className="text-sm font-mono text-gray-900">
-                {order.razorpay_payment_id || 'N/A'}
+              <p className="text-sm text-gray-500">Payment Method</p>
+              <p className={`text-sm font-medium ${order.paymentMethod === 'cod' ? 'text-amber-700' : 'text-green-700'
+                }`}>
+                {order.paymentMethod === 'cod' ? 'Cash on Delivery' : 'Prepaid (Razorpay)'}
               </p>
+              {order.paymentMethod !== 'cod' && order.razorpay_payment_id && (
+                <p className="text-xs font-mono text-gray-500 mt-1">
+                  ID: {order.razorpay_payment_id}
+                </p>
+              )}
             </div>
             <div>
               <p className="text-sm text-gray-500">Status</p>
@@ -156,13 +162,13 @@ export default async function OrderDetailPage({
             <tbody className="divide-y divide-gray-200">
               {order.items?.map((item: any, index: number) => {
                 // Try to find product by ID first, then by name
-                let product = item.productId 
+                let product = item.productId
                   ? products.find((p) => p.id === item.productId)
                   : products.find((p) => p.name === item.name);
-                
+
                 // Use stored price or get from product data
                 const price = item.price || product?.price || 0;
-                
+
                 return (
                   <tr key={index}>
                     <td className="px-6 py-4">
@@ -225,13 +231,15 @@ export default async function OrderDetailPage({
 function StatusBadge({ status }: { status: string }) {
   const statusConfig: Record<string, { bg: string; text: string; label: string }> = {
     pending: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Pending' },
+    paid: { bg: 'bg-green-100', text: 'text-green-800', label: 'Paid' },
     confirmed: { bg: 'bg-blue-100', text: 'text-blue-800', label: 'Confirmed' },
     shipped: { bg: 'bg-purple-100', text: 'text-purple-800', label: 'Shipped' },
     delivered: { bg: 'bg-green-100', text: 'text-green-800', label: 'Delivered' },
     cancelled: { bg: 'bg-red-100', text: 'text-red-800', label: 'Cancelled' },
+    abandoned: { bg: 'bg-gray-100', text: 'text-gray-600', label: 'Expired' },
   };
 
-  const config = statusConfig[status] || statusConfig.pending;
+  const config = statusConfig[status?.toLowerCase()] || statusConfig.pending;
 
   return (
     <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${config.bg} ${config.text}`}>

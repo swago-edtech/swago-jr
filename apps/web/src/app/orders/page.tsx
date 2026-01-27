@@ -50,14 +50,20 @@ type Order = {
   name?: string;
   email?: string;
   phone?: string;
+  paymentMethod?: 'razorpay' | 'cod';  // ✅ Payment method
 };
 
 // ✅ Payment window expiry time in minutes
 const PAYMENT_EXPIRY_MINUTES = 10;
 
-// ✅ Check if order can still be paid
+// ✅ Check if order can still be paid (only for Razorpay orders)
 function canRetryPayment(order: Order): { canPay: boolean; reason: string; minutesLeft: number } {
   const status = order.status?.toLowerCase();
+
+  // ✅ COD orders don't need online payment retry
+  if (order.paymentMethod === 'cod') {
+    return { canPay: false, reason: 'Cash on Delivery', minutesLeft: 0 };
+  }
 
   // Only Pending or Failed orders can be retried
   if (status !== 'pending' && status !== 'failed') {
@@ -324,25 +330,36 @@ export default function OrdersPage() {
   );
 }
 
-// ✅ Status badge with colors
-function StatusBadge({ status }: { status: string }) {
+// ✅ Status badge with colors - shows COD for pending COD orders
+function StatusBadge({ status, paymentMethod }: { status: string; paymentMethod?: string }) {
   const statusLower = status?.toLowerCase() || 'pending';
+  const isCOD = paymentMethod === 'cod';
 
-  const configs: Record<string, { bg: string; text: string }> = {
-    pending: { bg: 'bg-yellow-100', text: 'text-yellow-800' },
-    paid: { bg: 'bg-green-100', text: 'text-green-800' },
-    shipped: { bg: 'bg-purple-100', text: 'text-purple-800' },
-    delivered: { bg: 'bg-green-100', text: 'text-green-800' },
-    failed: { bg: 'bg-red-100', text: 'text-red-800' },
-    abandoned: { bg: 'bg-gray-100', text: 'text-gray-600' },
-    cancelled: { bg: 'bg-red-100', text: 'text-red-800' },
+  // ✅ Show COD badge for pending COD orders
+  if (isCOD && statusLower === 'pending') {
+    return (
+      <span className="text-sm font-semibold bg-amber-100 text-amber-800 px-3 py-1 rounded-full">
+        COD
+      </span>
+    );
+  }
+
+  const configs: Record<string, { bg: string; text: string; label: string }> = {
+    pending: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Pending' },
+    paid: { bg: 'bg-green-100', text: 'text-green-800', label: 'Paid' },
+    confirmed: { bg: 'bg-blue-100', text: 'text-blue-800', label: 'Confirmed' },
+    shipped: { bg: 'bg-purple-100', text: 'text-purple-800', label: 'Shipped' },
+    delivered: { bg: 'bg-green-100', text: 'text-green-800', label: 'Delivered' },
+    failed: { bg: 'bg-red-100', text: 'text-red-800', label: 'Failed' },
+    abandoned: { bg: 'bg-gray-100', text: 'text-gray-600', label: 'Expired' },
+    cancelled: { bg: 'bg-red-100', text: 'text-red-800', label: 'Cancelled' },
   };
 
   const config = configs[statusLower] || configs.pending;
 
   return (
     <span className={`text-sm font-semibold ${config.bg} ${config.text} px-3 py-1 rounded-full`}>
-      {status}
+      {config.label}
     </span>
   );
 }
@@ -365,6 +382,7 @@ function OrderCard({
   const orderDate = useFormattedDate(order.createdAt, 'clean');
   const { canPay, reason, minutesLeft } = canRetryPayment(order);
   const isPendingOrFailed = ['pending', 'failed'].includes(order.status?.toLowerCase() || '');
+  const isCOD = order.paymentMethod === 'cod';  // ✅ Check if COD order
 
   return (
     <div className="bg-white p-6 rounded-xl shadow-sm border">
@@ -377,11 +395,26 @@ function OrderCard({
             Date: {orderDate}
           </p>
         </div>
-        <StatusBadge status={order.status} />
+        <StatusBadge status={order.status} paymentMethod={order.paymentMethod} />
       </div>
 
-      {/* ✅ Payment Retry Section for Pending/Failed orders */}
-      {isPendingOrFailed && (
+      {/* ✅ COD Order Status Section */}
+      {isCOD && isPendingOrFailed && (
+        <div className="mb-4 p-4 rounded-lg bg-amber-50 border border-amber-200">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center">
+              <span className="text-lg font-bold text-amber-700">₹</span>
+            </div>
+            <div>
+              <p className="font-medium text-amber-800">Cash on Delivery</p>
+              <p className="text-sm text-amber-600">Pay ₹{(order.total || 0).toFixed(0)} when your order arrives</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ✅ Payment Retry Section for Pending/Failed Razorpay orders */}
+      {!isCOD && isPendingOrFailed && (
         <div className={`mb-4 p-4 rounded-lg ${canPay ? 'bg-yellow-50 border border-yellow-200' : 'bg-gray-50 border border-gray-200'}`}>
           {canPay ? (
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">

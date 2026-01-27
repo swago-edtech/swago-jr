@@ -5,6 +5,7 @@ import { getLoginSession } from "@/lib/auth";
 import { connectDB, Product, Order, User } from "@swago/database";
 import { isValidObjectId } from "mongoose";
 import { generateOrderId } from "@/lib/generateOrderId";
+import { cleanupExpiredOrders } from "@/lib/cleanupExpiredOrders";
 
 
 // ✅ Type definitions
@@ -110,6 +111,9 @@ export async function POST(req: Request) {
 
     await connectDB();
 
+    // ✅ Clean up expired orders first to release reserved stock
+    await cleanupExpiredOrders();
+
     // Find the user first
     let user = null;
     if (session.phone) {
@@ -128,16 +132,17 @@ export async function POST(req: Request) {
 
     // Step 1: Validate all items have sufficient stock
     for (const item of orderDetails.cart) {
-      const productId = item._id || item.id?.toString();
+      // ✅ FIXED: Check numeric id FIRST (for hardcoded products), then productId, then _id
+      // MongoDB embeds add _id to subdocuments, so we need to prioritize the product's actual ID
+      const productId = item.id?.toString() || item.productId?.toString() || item._id;
 
       // ✅ DEBUG LOGGING
       console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
       console.log('🔍 Item:', item.name);
-      console.log('   item.id:', item.id, '(type:', typeof item.id, ')');
-      console.log('   item._id:', item._id, '(type:', typeof item._id, ')');
-      console.log('   productId (selected):', productId, '(type:', typeof productId, ')');
-      console.log('   isHardcodedProduct?', isHardcodedProduct(productId));
+      console.log('   item.id:', item.id, 'item.productId:', item.productId, 'item._id:', item._id);
+      console.log('   Final productId:', productId, 'isHardcoded:', isHardcodedProduct(productId));
       console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
 
       if (!productId) {
         stockErrors.push(`Invalid product ID for ${item.name}`);
@@ -229,6 +234,7 @@ export async function POST(req: Request) {
     const newOrder = await Order.create({
       orderId: orderId,
       userId: new mongoose.Types.ObjectId(user._id),
+      paymentMethod: 'razorpay',  // ✅ Explicit payment method
       phone: orderDetails.phone,
       email: orderDetails.email,
       name: orderDetails.name,

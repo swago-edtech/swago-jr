@@ -122,6 +122,11 @@ export default function CheckoutPage() {
   const [pincodeLoading, setPincodeLoading] = useState(false);
   const [pincodeError, setPincodeError] = useState("");
 
+  // ✅ Payment method selector (COD only for Indian numbers)
+  const [paymentMethod, setPaymentMethod] = useState<'razorpay' | 'cod'>('razorpay');
+  // ✅ Show payment method selection modal
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+
   // ✅ Pre-fill form with user data
   useEffect(() => {
     if (user) {
@@ -374,6 +379,86 @@ export default function CheckoutPage() {
     }
   };
 
+  // ✅ COD Order Handler
+  const handleCODOrder = async () => {
+    setProcessing(true);
+    setMessage("Creating your COD order...");
+
+    const finalAmount = getFinalTotal();
+
+    try {
+      // Validate checkout
+      const validateRes = await fetch('/api/validate-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: form.email,
+          phone: form.phone,
+        }),
+      });
+
+      const validateData = await validateRes.json();
+
+      if (!validateData.valid) {
+        setMessage(validateData.error || '❌ Validation failed. Please check your details.');
+        setProcessing(false);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+
+      // Create COD order
+      const res = await fetch("/api/payment/cod", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          totalAmount: finalAmount,
+          orderDetails: {
+            name: form.name,
+            email: form.email,
+            phone: form.phone,
+            age: form.age,
+            address: form.address,
+            city: form.city,
+            state: form.state,
+            pincode: form.pincode,
+            cart: cart,
+            coupon: appliedCoupon,
+            discount: discount,
+            originalAmount: total,
+            finalAmount: finalAmount,
+          }
+        }),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        setMessage(errorData.error || "❌ Failed to create COD order.");
+        setProcessing(false);
+        return;
+      }
+
+      const result = await res.json();
+      setMessage(`✅ COD Order ${result.orderId} placed successfully! Redirecting...`);
+      clearCart();
+      setTimeout(() => {
+        router.push("/orders");
+      }, 1500);
+
+    } catch (error) {
+      console.error("COD order error:", error);
+      setMessage("❌ An error occurred. Please try again.");
+      setProcessing(false);
+    }
+  };
+
+  // ✅ Unified checkout handler
+  const handleCheckout = async () => {
+    if (paymentMethod === 'cod') {
+      return handleCODOrder();
+    }
+    return handlePayment();
+  };
+
   useEffect(() => {
     if (isLoadingUser) return;
 
@@ -411,11 +496,13 @@ export default function CheckoutPage() {
     );
   }
 
+  // ✅ India-only: We only deliver to Indian addresses
   const isFormValid = form.name && form.email && form.phone &&
     isPossiblePhoneNumber(form.phone || '') &&
+    isIndianNumber &&  // Must be Indian number
     form.age && form.address &&
     form.city && form.state &&
-    (isIndianNumber ? (form.pincode && form.pincode.length === 6) : true);
+    form.pincode && form.pincode.length === 6;
 
   return (
     <>
@@ -713,6 +800,15 @@ export default function CheckoutPage() {
             <div className="p-6">
               <h2 className="text-xl font-bold mb-4">Payment</h2>
 
+              {/* ✅ India-only notice */}
+              {!isIndianNumber && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
+                  <p className="text-amber-700 text-sm">
+                    ⚠️ We currently only deliver to India. Please use an Indian phone number (+91).
+                  </p>
+                </div>
+              )}
+
               <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
                 <div className="flex items-center justify-between mb-4">
                   <div>
@@ -722,32 +818,35 @@ export default function CheckoutPage() {
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-xs text-slate-500">Secured by</p>
-                    <p className="font-semibold text-slate-700">Razorpay</p>
+                    <p className="text-xs text-slate-500">Secure Checkout</p>
+                    <p className="font-semibold text-slate-700">Swago</p>
                   </div>
                 </div>
 
                 <button
-                  onClick={handlePayment}
+                  onClick={() => setShowPaymentModal(true)}
                   disabled={!isFormValid || processing}
-                  className="w-full bg-green-500 text-white font-bold py-4 rounded-lg hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-4 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
-                  {processing ? "Processing..." : "🔒 Pay Securely Now"}
+                  {processing ? "Processing..." : "🔒 Proceed to Pay"}
                 </button>
 
                 {!isFormValid && (
                   <p className="text-xs text-red-500 text-center mt-2">
-                    Please fill all required fields correctly
+                    {!isIndianNumber
+                      ? 'We only deliver to India (+91 numbers)'
+                      : 'Please fill all required fields correctly'
+                    }
                   </p>
                 )}
               </div>
 
               {message && (
                 <div className={`rounded-lg p-3 text-center ${message.includes('✅')
-                    ? 'bg-green-100 text-green-700'
-                    : message.includes('❌')
-                      ? 'bg-red-100 text-red-700'
-                      : 'bg-blue-100 text-blue-700'
+                  ? 'bg-green-100 text-green-700'
+                  : message.includes('❌')
+                    ? 'bg-red-100 text-red-700'
+                    : 'bg-blue-100 text-blue-700'
                   }`}>
                   <p className="text-sm">{message}</p>
                 </div>
@@ -767,6 +866,77 @@ export default function CheckoutPage() {
           </div>
         </div>
       </div>
+
+      {/* ✅ Payment Method Selection Modal */}
+      {showPaymentModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl animate-in fade-in zoom-in duration-200">
+            {/* Modal Header */}
+            <div className="p-6 border-b">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold">Choose Payment Method</h2>
+                <button
+                  onClick={() => setShowPaymentModal(false)}
+                  className="text-slate-400 hover:text-slate-600 text-2xl leading-none"
+                >
+                  ×
+                </button>
+              </div>
+              <p className="text-sm text-slate-500 mt-1">Amount: ₹{getFinalTotal().toFixed(2)}</p>
+            </div>
+
+            {/* Payment Options */}
+            <div className="p-6 space-y-3">
+              {/* Pay Online Option */}
+              <button
+                onClick={() => {
+                  setPaymentMethod('razorpay');
+                  setShowPaymentModal(false);
+                  handlePayment();
+                }}
+                disabled={processing}
+                className="w-full p-4 rounded-xl border-2 border-green-500 bg-green-50 hover:bg-green-100 transition text-left flex items-center gap-4 disabled:opacity-50"
+              >
+                <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center text-2xl">
+                  💳
+                </div>
+                <div className="flex-1">
+                  <span className="font-semibold text-lg block">Pay Online</span>
+                  <span className="text-sm text-slate-600">UPI, Cards, NetBanking, Wallets</span>
+                </div>
+                <div className="text-green-600 font-bold">→</div>
+              </button>
+
+              {/* COD Option */}
+              <button
+                onClick={() => {
+                  setPaymentMethod('cod');
+                  setShowPaymentModal(false);
+                  handleCODOrder();
+                }}
+                disabled={processing}
+                className="w-full p-4 rounded-xl border-2 border-amber-400 bg-amber-50 hover:bg-amber-100 transition text-left flex items-center gap-4 disabled:opacity-50"
+              >
+                <div className="w-12 h-12 bg-amber-500 rounded-full flex items-center justify-center text-2xl">
+                  🏠
+                </div>
+                <div className="flex-1">
+                  <span className="font-semibold text-lg block">Cash on Delivery</span>
+                  <span className="text-sm text-slate-600">Pay when your order arrives</span>
+                </div>
+                <div className="text-amber-600 font-bold">→</div>
+              </button>
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 bg-slate-50 rounded-b-2xl">
+              <p className="text-xs text-slate-500 text-center">
+                🔒 Your payment information is secure
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

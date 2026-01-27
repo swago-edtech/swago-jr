@@ -1,11 +1,15 @@
 import { connectDB, Order, User, ContactSubmission } from '@swago/database';
 import { formatPrice } from '@swago/utils';
-import { ShoppingBag, Users, DollarSign, TrendingUp, Clock, CheckCircle, AlertCircle } from 'lucide-react';
+import { ShoppingBag, Users, TrendingUp, CheckCircle, AlertCircle } from 'lucide-react';
 import DashboardDateCell from './DashboardDateCell';
 import Link from 'next/link';
+import { cleanupExpiredOrders } from '@/lib/cleanupExpiredOrders';
 
 async function getDashboardStats() {
   await connectDB();
+
+  // ✅ Clean up expired prepaid orders before calculating stats
+  await cleanupExpiredOrders();
 
   const [totalOrders, totalCustomers, orders, allOrders, pendingContactCount] = await Promise.all([
     Order.countDocuments(),
@@ -20,23 +24,23 @@ async function getDashboardStats() {
   ]);
 
   // Calculate confirmed revenue (actual money received)
-  const paidOrders = allOrders.filter(order => 
+  const paidOrders = allOrders.filter(order =>
     ['Paid', 'confirmed', 'delivered', 'shipped'].includes(order.status)
   );
   const confirmedRevenue = paidOrders.reduce((sum, order) => sum + (order.total || 0), 0);
-  
+
   // Calculate pending revenue (potential money)
-  const pendingOrders = allOrders.filter(order => 
+  const pendingOrders = allOrders.filter(order =>
     ['Pending', 'pending'].includes(order.status)
   );
   const pendingRevenue = pendingOrders.reduce((sum, order) => sum + (order.total || 0), 0);
-  
+
   // Total potential revenue (all orders)
   const totalPotentialRevenue = allOrders.reduce((sum, order) => sum + (order.total || 0), 0);
-  
+
   // Average order value (based on paid orders only)
-  const avgOrderValue = paidOrders.length > 0 
-    ? confirmedRevenue / paidOrders.length 
+  const avgOrderValue = paidOrders.length > 0
+    ? confirmedRevenue / paidOrders.length
     : 0;
 
   return {
@@ -216,17 +220,16 @@ export default async function DashboardPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
-                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          order.status === 'delivered'
+                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${order.status === 'delivered'
                             ? 'bg-green-100 text-green-800'
                             : order.status === 'shipped'
-                            ? 'bg-purple-100 text-purple-800'
-                            : order.status === 'confirmed' || order.status === 'Paid'
-                            ? 'bg-blue-100 text-blue-800'
-                            : order.status === 'pending' || order.status === 'Pending'
-                            ? 'bg-yellow-100 text-yellow-800'
-                            : 'bg-gray-100 text-gray-800'
-                        }`}
+                              ? 'bg-purple-100 text-purple-800'
+                              : order.status === 'confirmed' || order.status === 'Paid'
+                                ? 'bg-blue-100 text-blue-800'
+                                : order.status === 'pending' || order.status === 'Pending'
+                                  ? 'bg-yellow-100 text-yellow-800'
+                                  : 'bg-gray-100 text-gray-800'
+                          }`}
                       >
                         {order.status}
                       </span>
