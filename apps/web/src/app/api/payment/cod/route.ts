@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import mongoose from "mongoose";
 import { getLoginSession } from "@/lib/auth";
 import { connectDB, Product, Order, User } from "@swago/database";
@@ -6,6 +7,7 @@ import { isValidObjectId } from "mongoose";
 import { generateOrderId } from "@/lib/generateOrderId";
 import { sendOrderConfirmationEmail } from "@/lib/msg91-email";
 import { cleanupExpiredOrders } from "@/lib/cleanupExpiredOrders";
+import { invalidateProductCache } from "@/lib/productCache";
 
 // ✅ Type definitions
 interface ProductDocument {
@@ -14,6 +16,7 @@ interface ProductDocument {
     slug: string;
     stock: number;
     reservedStock?: number;
+    totalSold?: number;
     isActive: boolean;
     save: () => Promise<void>;
     [key: string]: unknown;
@@ -188,13 +191,44 @@ export async function POST(req: Request) {
             }, { status: 400 });
         }
 
-        // Step 2: Reserve stock for all items
-        console.log('✅ [COD] Stock validation passed. Reserving stock...');
+        // Step 2: Reduce stock immediately for COD orders
+        // ✅ FIXED: COD orders are confirmed immediately, so we reduce actual stock (not just reserve)
+        console.log('✅ [COD] Stock validation passed. Reducing stock...');
 
         for (const { product, quantity } of reservations) {
-            product.reservedStock = (product.reservedStock || 0) + quantity;
+            // Store old values for logging
+            const oldStock = product.stock;
+            const oldSold = product.totalSold || 0;
+
+            // Reduce actual stock
+            product.stock = Math.max(0, product.stock - quantity);
+
+            // Increase total sold
+            product.totalSold = (product.totalSold || 0) + quantity;
+
             await product.save();
-            console.log(`🔒 [COD] Reserved ${quantity} units of ${product.name}`);
+
+            console.log(`✅ [COD] ${product.name}:`);
+            console.log(`   📦 Stock: ${oldStock} → ${product.stock} (reduced by ${quantity})`);
+            console.log(`   📊 Total Sold: ${oldSold} → ${product.totalSold}`);
+
+            // Invalidate product cache (in-memory)
+            try {
+                invalidateProductCache(product.slug || '');
+                invalidateProductCache(product._id.toString());
+            } catch (cacheError) {
+                console.error('⚠️ Cache invalidation failed (non-critical):', cacheError);
+            }
+
+            // ✅ Force revalidate paths ensuring instant reflection
+            try {
+                revalidatePath(`/product/${product.slug}`);
+                revalidatePath(`/product/${product._id}`);
+                revalidatePath('/products');
+                revalidatePath('/'); // Homepage might have featured products
+            } catch (e) {
+                console.error('Revalidate path failed', e);
+            }
         }
 
         // ========================================

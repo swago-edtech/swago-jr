@@ -122,10 +122,9 @@ export default function CheckoutPage() {
   const [pincodeLoading, setPincodeLoading] = useState(false);
   const [pincodeError, setPincodeError] = useState("");
 
-  // ✅ Payment method selector (COD only for Indian numbers)
-  const [paymentMethod, setPaymentMethod] = useState<'razorpay' | 'cod'>('razorpay');
-  // ✅ Show payment method selection modal
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  // ✅ Payment method selector (kept for potential future use)
+  const [, setPaymentMethod] = useState<'razorpay' | 'cod'>('razorpay');
+  // NOTE: showPaymentModal removed - now using dedicated /checkout/payment page
 
   // ✅ Pre-fill form with user data
   useEffect(() => {
@@ -239,6 +238,26 @@ export default function CheckoutPage() {
 
   const getFinalTotal = () => {
     return discount ? discount.finalAmount : total;
+  };
+
+  // ✅ NEW: Redirect to payment method selection page
+  const proceedToPayment = () => {
+    // Store checkout data in sessionStorage
+    const checkoutData = {
+      form: form,
+      appliedCoupon: appliedCoupon,
+      discount: discount,
+      total: total,
+      finalAmount: getFinalTotal(),
+    };
+
+    try {
+      sessionStorage.setItem("checkout_data", JSON.stringify(checkoutData));
+      router.push("/checkout/payment");
+    } catch (e) {
+      console.error("Error storing checkout data:", e);
+      setMessage("❌ Failed to proceed. Please try again.");
+    }
   };
 
   const handlePayment = async () => {
@@ -451,13 +470,7 @@ export default function CheckoutPage() {
     }
   };
 
-  // ✅ Unified checkout handler
-  const handleCheckout = async () => {
-    if (paymentMethod === 'cod') {
-      return handleCODOrder();
-    }
-    return handlePayment();
-  };
+  // NOTE: handleCheckout removed - payment selection now on dedicated /checkout/payment page
 
   useEffect(() => {
     if (isLoadingUser) return;
@@ -824,7 +837,7 @@ export default function CheckoutPage() {
                 </div>
 
                 <button
-                  onClick={() => setShowPaymentModal(true)}
+                  onClick={proceedToPayment}
                   disabled={!isFormValid || processing}
                   className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-4 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
@@ -867,76 +880,7 @@ export default function CheckoutPage() {
         </div>
       </div>
 
-      {/* ✅ Payment Method Selection Modal */}
-      {showPaymentModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl animate-in fade-in zoom-in duration-200">
-            {/* Modal Header */}
-            <div className="p-6 border-b">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold">Choose Payment Method</h2>
-                <button
-                  onClick={() => setShowPaymentModal(false)}
-                  className="text-slate-400 hover:text-slate-600 text-2xl leading-none"
-                >
-                  ×
-                </button>
-              </div>
-              <p className="text-sm text-slate-500 mt-1">Amount: ₹{getFinalTotal().toFixed(2)}</p>
-            </div>
-
-            {/* Payment Options */}
-            <div className="p-6 space-y-3">
-              {/* Pay Online Option */}
-              <button
-                onClick={() => {
-                  setPaymentMethod('razorpay');
-                  setShowPaymentModal(false);
-                  handlePayment();
-                }}
-                disabled={processing}
-                className="w-full p-4 rounded-xl border-2 border-green-500 bg-green-50 hover:bg-green-100 transition text-left flex items-center gap-4 disabled:opacity-50"
-              >
-                <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center text-2xl">
-                  💳
-                </div>
-                <div className="flex-1">
-                  <span className="font-semibold text-lg block">Pay Online</span>
-                  <span className="text-sm text-slate-600">UPI, Cards, NetBanking, Wallets</span>
-                </div>
-                <div className="text-green-600 font-bold">→</div>
-              </button>
-
-              {/* COD Option */}
-              <button
-                onClick={() => {
-                  setPaymentMethod('cod');
-                  setShowPaymentModal(false);
-                  handleCODOrder();
-                }}
-                disabled={processing}
-                className="w-full p-4 rounded-xl border-2 border-amber-400 bg-amber-50 hover:bg-amber-100 transition text-left flex items-center gap-4 disabled:opacity-50"
-              >
-                <div className="w-12 h-12 bg-amber-500 rounded-full flex items-center justify-center text-2xl">
-                  🏠
-                </div>
-                <div className="flex-1">
-                  <span className="font-semibold text-lg block">Cash on Delivery</span>
-                  <span className="text-sm text-slate-600">Pay when your order arrives</span>
-                </div>
-                <div className="text-amber-600 font-bold">→</div>
-              </button>
-            </div>
-
-            {/* Footer */}
-            <div className="p-4 bg-slate-50 rounded-b-2xl">
-              <p className="text-xs text-slate-500 text-center">
-                🔒 Your payment information is secure
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Payment method selection is now on a separate page: /checkout/payment */}
     </>
   );
 }
