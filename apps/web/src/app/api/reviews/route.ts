@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { getLoginSession } from "@/lib/auth";
 import { connectDB, Review, User, Order } from "@swago/database";
+import mongoose from "mongoose";
 import { analyzeReviewSentiment } from "@swago/utils";
 import { z } from "zod";
 
 const reviewSchema = z.object({
-  productId: z.number().positive(),
+  productId: z.string().min(1),
   orderId: z.string().min(1, "Order ID is required"),
   rating: z.number().min(1).max(5),
   title: z.string().trim().min(3, "Title must be at least 3 characters").max(100),
@@ -29,6 +30,12 @@ export async function POST(req: Request) {
     const { productId, orderId, rating, title, comment, images } = validation.data;
 
     await connectDB();
+
+    // 🔧 HOTFIX: Force re-compile model if schema changed but server didn't restart
+    // This fixes "Cast to Number failed" error by removing stale model
+    if (mongoose.models.Review) {
+      delete mongoose.models.Review;
+    }
 
     const user = await User.findOne({ phone: session.phone });
     if (!user) {
@@ -104,7 +111,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "You have already reviewed this product" }, { status: 400 });
     }
 
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json({ error: (error as Error).message || "Internal Server Error" }, { status: 500 });
   }
 }
 

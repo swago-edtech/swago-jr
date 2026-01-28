@@ -40,25 +40,6 @@ interface OrderItem {
     image: string;
 }
 
-// ✅ Helper to detect hardcoded products
-function isHardcodedProduct(productId: string | number | undefined): boolean {
-    if (!productId) return false;
-
-    if (typeof productId === 'number') {
-        return productId >= 1 && productId <= 100;
-    }
-
-    const idString = productId.toString();
-
-    if (idString.startsWith('hardcoded-')) {
-        const numericPart = parseInt(idString.replace('hardcoded-', ''), 10);
-        return !isNaN(numericPart) && numericPart >= 1 && numericPart <= 100;
-    }
-
-    const numericId = Number(idString);
-    return !isNaN(numericId) && numericId >= 1 && numericId <= 100;
-}
-
 // Helper to get product by ID or slug
 async function getProductById(id: string): Promise<ProductDocument | null> {
     try {
@@ -147,18 +128,15 @@ export async function POST(req: Request) {
 
             console.log('🔍 [COD] Item:', item.name);
             console.log('   item.id:', item.id, 'item.productId:', item.productId, 'item._id:', item._id);
-            console.log('   Final productId:', productId, 'isHardcoded:', isHardcodedProduct(productId));
+            console.log('   Final productId:', productId);
 
             if (!productId) {
                 stockErrors.push(`Invalid product ID for ${item.name}`);
                 continue;
             }
 
-            // Skip hardcoded products
-            if (isHardcodedProduct(productId)) {
-                console.log(`⏭️ [COD] Skipping stock check for hardcoded product: ${item.name}`);
-                continue;
-            }
+
+            // Check stock for all products
 
             // Database products - check stock
             const product = await getProductById(productId);

@@ -5,7 +5,7 @@ import StarRating from "./StarRating";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface ReviewFormProps {
-  productId: number;
+  productId: string;
   orderId: string;
   onSuccess: () => void;
   onCancel?: () => void;
@@ -69,7 +69,7 @@ export default function ReviewForm({
       if (response.ok) {
         // ✅ Show centered success modal
         setShowSuccessModal(true);
-        
+
         // Auto-close after 2 seconds
         setTimeout(() => {
           setShowSuccessModal(false);

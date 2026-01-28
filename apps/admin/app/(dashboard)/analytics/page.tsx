@@ -1,6 +1,5 @@
 import { connectDB, Order, User, Review } from '@swago/database';
 import { formatPrice } from '@swago/utils';
-import { products } from '@swago/utils';
 import AnalyticsCharts from '@/components/AnalyticsCharts';
 import { TrendingUp, TrendingDown, Users, ShoppingBag, DollarSign, Star, MessageSquare, Package } from 'lucide-react';
 
@@ -42,13 +41,13 @@ async function getAnalyticsData() {
     dayStart.setHours(0, 0, 0, 0);
     const dayEnd = new Date(date);
     dayEnd.setHours(23, 59, 59, 999);
-    
+
     const dayOrders = confirmedOrders.filter(o => {
       const orderDate = new Date(o.createdAt);
       return orderDate >= dayStart && orderDate <= dayEnd;
     });
     const dayRevenue = dayOrders.reduce((sum, o) => sum + (o.total || 0), 0);
-    
+
     revenueByDay.push({
       date: date.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' }),
       revenue: dayRevenue,
@@ -57,26 +56,30 @@ async function getAnalyticsData() {
   }
 
   // Product sales count
-  const productSales: Record<number, number> = {};
+  const productSales: Record<string, { name: string; count: number }> = {};
   confirmedOrders.forEach(order => {
     order.items?.forEach((item: any) => {
-      if (item.productId) {
-        productSales[item.productId] = (productSales[item.productId] || 0) + (item.quantity || 1);
+      const productId = item.productId?.toString() || 'unknown';
+      if (!productSales[productId]) {
+        productSales[productId] = {
+          name: item.name || `Product #${productId}`,
+          count: 0
+        };
       }
+      productSales[productId].count += (item.quantity || 1);
     });
   });
 
   const topProducts = Object.entries(productSales)
-    .map(([id, count]) => {
-      const product = products.find(p => p.id === parseInt(id));
+    .map(([id, data]) => {
       return {
-        id: parseInt(id),
-        name: product?.name || `Product #${id}`,
-        sales: count,
+        id,
+        name: data.name,
+        sales: data.count,
         revenue: confirmedOrders
-          .filter(o => o.items?.some((i: any) => i.productId === parseInt(id)))
+          .filter(o => o.items?.some((i: any) => i.productId?.toString() === id))
           .reduce((sum, o) => {
-            const item = o.items?.find((i: any) => i.productId === parseInt(id));
+            const item = o.items?.find((i: any) => i.productId?.toString() === id);
             return sum + ((item as any)?.price || 0) * ((item as any)?.quantity || 0);
           }, 0),
       };
@@ -93,12 +96,12 @@ async function getAnalyticsData() {
     dayStart.setHours(0, 0, 0, 0);
     const dayEnd = new Date(date);
     dayEnd.setHours(23, 59, 59, 999);
-    
+
     const newUsers = users.filter(u => {
       const userDate = new Date(u.createdAt);
       return userDate >= dayStart && userDate <= dayEnd;
     }).length;
-    
+
     customerGrowth.push({
       date: date.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' }),
       newUsers,
@@ -113,8 +116,8 @@ async function getAnalyticsData() {
   };
 
   // Average rating
-  const avgRating = reviews.length > 0 
-    ? reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length 
+  const avgRating = reviews.length > 0
+    ? reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length
     : 0;
 
   // Pending reviews

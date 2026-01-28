@@ -59,7 +59,6 @@ export async function cleanupExpiredOrders(): Promise<number> {
                 const productIdStr = String(item.productId);
 
                 // Only process MongoDB ObjectIds (24 hex characters)
-                // Skip numeric IDs from hardcoded products
                 if (!/^[a-fA-F0-9]{24}$/.test(productIdStr)) {
                     continue;
                 }

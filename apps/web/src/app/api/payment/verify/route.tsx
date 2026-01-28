@@ -42,28 +42,6 @@ const verifyPaymentSchema = z.object({
 
 
 // ========================================
-// ✅ Helper to detect hardcoded products
-// ========================================
-function isHardcodedProduct(productId: string | number | undefined): boolean {
-  if (!productId) return false;
-
-  if (typeof productId === 'number') {
-    return productId >= 1 && productId <= 100;
-  }
-
-  const idString = productId.toString();
-
-  if (idString.startsWith('hardcoded-')) {
-    const numericPart = parseInt(idString.replace('hardcoded-', ''), 10);
-    return !isNaN(numericPart) && numericPart >= 1 && numericPart <= 100;
-  }
-
-  const numericId = Number(idString);
-  return !isNaN(numericId) && numericId >= 1 && numericId <= 100;
-}
-
-
-// ========================================
 // ✅ Helper to get product by ID or slug
 // ========================================
 async function getProductById(id: string | number): Promise<ProductDocument | null> {
@@ -171,11 +149,8 @@ export async function POST(req: Request) {
         continue;
       }
 
-      // Skip hardcoded products
-      if (isHardcodedProduct(productId)) {
-        console.log(`⏭️ Skipping stock update for hardcoded product: ${item.name}`);
-        continue;
-      }
+
+      // Update stock for all products
 
       const product = await getProductById(productId);
 

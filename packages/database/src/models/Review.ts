@@ -4,60 +4,59 @@ import mongoose from "mongoose";
 
 const ReviewSchema = new mongoose.Schema(
   {
-    productId: { 
-      type: Number, 
+    productId: {
+      type: String,
       required: true,
-      // ❌ REMOVED: index: true
     },
-    userId: { 
-      type: mongoose.Schema.Types.ObjectId, 
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true 
+      required: true
     },
-    orderId: { 
-      type: mongoose.Schema.Types.ObjectId, 
+    orderId: {
+      type: mongoose.Schema.Types.ObjectId,
       ref: "Order",
       required: true // Ensures verified purchase
     },
-    
+
     // Review content
-    rating: { 
-      type: Number, 
+    rating: {
+      type: Number,
       required: true,
       min: 1,
-      max: 5 
+      max: 5
     },
-    title: { 
-      type: String, 
+    title: {
+      type: String,
       required: true,
       trim: true,
       maxlength: 100
     },
-    comment: { 
-      type: String, 
+    comment: {
+      type: String,
       required: true,
       trim: true,
       maxlength: 1000
     },
-    
+
     // Optional features
-    images: [{ 
-      type: String 
+    images: [{
+      type: String
     }],
-    
+
     // Moderation
     status: {
       type: String,
       enum: ["pending", "approved", "rejected"],
       default: "pending"
     },
-    
+
     // Engagement
-    helpfulCount: { 
-      type: Number, 
-      default: 0 
+    helpfulCount: {
+      type: Number,
+      default: 0
     },
-    
+
     // Verification badge
     isVerifiedPurchase: {
       type: Boolean,

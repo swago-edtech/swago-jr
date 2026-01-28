@@ -65,20 +65,25 @@ export default function ProductPageClient({ product }: { product: Product }) {
   const [showFullName, setShowFullName] = useState(false);
   const { cart, addToCart, isWishlisted, addToWishlist, removeFromWishlist, user, openCartSidebar, increaseQty, decreaseQty } = useSharedContext();
 
+  // Get product identifier for routing - always use MongoDB _id or slug
+  const getProductNumericId = (product: any): number | null => {
+    return null; // Only use MongoDB _id or slug for routing
+  };
+
   // ✅ FIXED: Use the SAME logic as ProductCard
   const getProductIdentifier = (): string | number => {
     if (product._id && !product._id.startsWith('hardcoded-')) {
       return product._id; // DB products (MongoDB ObjectId)
     }
-    
+
     if (product.id) {
       return product.id; // Hardcoded products (numeric ID)
     }
-    
+
     if (product._id?.startsWith('hardcoded-')) {
       return parseInt(product._id.replace('hardcoded-', ''));
     }
-    
+
     return 0;
   };
 
@@ -86,15 +91,14 @@ export default function ProductPageClient({ product }: { product: Product }) {
   const isLiked = isWishlisted(productIdentifier);
 
   // ✅ NEW: Create numeric ID for ReviewList (reviews use numeric IDs)
-  const numericProductId = typeof productIdentifier === 'number' 
-    ? productIdentifier 
-    : parseInt(productIdentifier) || 0;
+  // ✅ NEW: Correct ID for ReviewList (using database string ID)
+  const productIdForReviews = productIdentifier.toString();
 
   // ✅ Check if item is in cart and get quantity (SAME as ProductCard)
   const getProductId = (item: CartItem): string => {
     return item.productId?.toString() || item._id?.toString() || item.id?.toString() || '';
   };
-  
+
   const cartItem = cart.find(item => getProductId(item) === productIdentifier.toString());
   const quantityInCart = cartItem?.quantity || 0;
   const isInCart = quantityInCart > 0;
@@ -112,7 +116,7 @@ export default function ProductPageClient({ product }: { product: Product }) {
   const boxContents = product.boxContents || product.box_contents;
 
   // Calculate percentage off
-  const percentOff = originalPrice 
+  const percentOff = originalPrice
     ? Math.round(((originalPrice - product.price) / originalPrice) * 100)
     : 0;
 
@@ -152,7 +156,7 @@ export default function ProductPageClient({ product }: { product: Product }) {
 
   const handleShareClick = async () => {
     let shareIdentifier: string | number;
-    
+
     if (product.id !== undefined && product.id !== null && typeof product.id === 'number') {
       shareIdentifier = product.id;
     } else if (product.slug) {
@@ -160,11 +164,11 @@ export default function ProductPageClient({ product }: { product: Product }) {
     } else {
       shareIdentifier = product._id || '';
     }
-    
+
     const productUrl = `${window.location.origin}/product/${shareIdentifier}`;
-    
+
     console.log('📤 Sharing:', productUrl);
-    
+
     if (navigator.share) {
       try {
         await navigator.share({
@@ -188,7 +192,7 @@ export default function ProductPageClient({ product }: { product: Product }) {
   const handleBuyNow = () => {
     if (isOutOfStock) return;
     addToCart(product, quantity);
-    
+
     if (typeof window !== 'undefined' && window.innerWidth > 768) {
       openCartSidebar();
     } else {
@@ -199,7 +203,7 @@ export default function ProductPageClient({ product }: { product: Product }) {
   const handleAddToCart = () => {
     if (isOutOfStock) return;
     addToCart(product, quantity);
-    
+
     if (typeof window !== 'undefined' && window.innerWidth > 768) {
       openCartSidebar();
     }
@@ -218,9 +222,9 @@ export default function ProductPageClient({ product }: { product: Product }) {
     return (
       <ul className="space-y-2">
         {text.split("\n").map((item, index) => item.trim() && (
-            <li key={index} className="flex items-start gap-3">
-              <CheckIcon /><span>{item.trim().replace(/^✅\s*/, "")}</span>
-            </li>
+          <li key={index} className="flex items-start gap-3">
+            <CheckIcon /><span>{item.trim().replace(/^✅\s*/, "")}</span>
+          </li>
         ))}
       </ul>
     );
@@ -236,7 +240,7 @@ export default function ProductPageClient({ product }: { product: Product }) {
     <>
       <div className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-5 gap-12 items-start">
-          
+
           {/* Image Gallery Section */}
           <div className="md:col-span-2">
             <div className="relative w-full h-[20rem] md:h-[32rem] bg-slate-100 rounded-lg overflow-hidden shadow-lg group">
@@ -252,7 +256,7 @@ export default function ProductPageClient({ product }: { product: Product }) {
               )}
 
               <div className="absolute top-4 right-4 flex gap-2 z-10">
-                <button 
+                <button
                   onClick={handleShareClick}
                   className="p-2 rounded-full bg-white/80 backdrop-blur-sm hover:bg-white transition"
                   aria-label="Share product"
@@ -260,8 +264,8 @@ export default function ProductPageClient({ product }: { product: Product }) {
                 >
                   <RiShareForwardFill className="w-5 h-5 md:w-6 md:h-6 text-slate-600" />
                 </button>
-                
-                <button 
+
+                <button
                   onClick={handleWishlistClick}
                   className="p-2 rounded-full bg-white/80 backdrop-blur-sm hover:bg-white transition"
                   aria-label={isLiked ? "Remove from wishlist" : "Add to wishlist"}
@@ -326,10 +330,9 @@ export default function ProductPageClient({ product }: { product: Product }) {
                   type="button"
                   onClick={() => handleThumbnailClick(img)}
                   title={`View image ${index + 1}`}
-                  aria-label={`View image ${index + 1}`} 
-                  className={`relative w-full h-20 bg-slate-100 rounded-md overflow-hidden border-2 transition-colors ${
-                    mainImage === img ? "border-[hsl(var(--swago-purple))]" : "border-transparent"
-                  }`}
+                  aria-label={`View image ${index + 1}`}
+                  className={`relative w-full h-20 bg-slate-100 rounded-md overflow-hidden border-2 transition-colors ${mainImage === img ? "border-[hsl(var(--swago-purple))]" : "border-transparent"
+                    }`}
                 >
                   <Image src={img} alt={`${product.name} thumbnail ${index + 1}`} fill className="object-cover object-bottom" />
                 </button>
@@ -351,12 +354,12 @@ export default function ProductPageClient({ product }: { product: Product }) {
                 )}
               </h1>
             </div>
-            
+
             <div className="mt-2 flex items-center gap-3 flex-wrap">
               <span className="inline-flex items-center bg-[hsl(var(--swago-purple))] text-white text-xs md:text-sm font-semibold px-2 md:px-3 py-1 rounded-full">
                 Age: {ageCategory}
               </span>
-              
+
               {stock !== undefined && (
                 <>
                   {isOutOfStock ? (
@@ -397,25 +400,25 @@ export default function ProductPageClient({ product }: { product: Product }) {
               <div className="flex items-center gap-4 mb-6 flex-wrap">
                 <label className="font-semibold text-sm md:text-base">Quantity:</label>
                 <div className="flex items-center border rounded-lg">
-                  <button 
-                    type="button" 
-                    onClick={() => setQuantity((q) => Math.max(1, q - 1))} 
+                  <button
+                    type="button"
+                    onClick={() => setQuantity((q) => Math.max(1, q - 1))}
                     className="px-3 md:px-4 py-1.5 md:py-2 text-base md:text-lg hover:bg-gray-50"
-                    aria-label="Decrease quantity" 
+                    aria-label="Decrease quantity"
                     title="Decrease quantity"
-                  > 
-                    - 
+                  >
+                    -
                   </button>
                   <span className="px-3 md:px-4 py-1.5 md:py-2 text-base md:text-lg font-semibold">{quantity}</span>
-                  <button 
-                    type="button" 
-                    onClick={() => setQuantity((q) => Math.min(maxQuantity, q + 1))} 
+                  <button
+                    type="button"
+                    onClick={() => setQuantity((q) => Math.min(maxQuantity, q + 1))}
                     className="px-3 md:px-4 py-1.5 md:py-2 text-base md:text-lg hover:bg-gray-50"
                     aria-label="Increase quantity"
                     title="Increase quantity"
                     disabled={quantity >= maxQuantity}
-                  > 
-                    + 
+                  >
+                    +
                   </button>
                 </div>
                 {stock !== undefined && quantity >= stock && (
@@ -436,14 +439,13 @@ export default function ProductPageClient({ product }: { product: Product }) {
             {/* ✅ FIXED: Buttons - quantity controls replace Add to Cart when in cart */}
             <div className="flex gap-3 md:gap-4">
               {!isInCart ? (
-                <button 
+                <button
                   onClick={handleAddToCart}
                   disabled={isOutOfStock}
-                  className={`flex-1 font-bold py-2.5 md:py-3 rounded-lg text-sm md:text-base transition ${
-                    isOutOfStock
-                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                      : 'btn-shine btn-text-pop bg-[hsl(var(--swago-purple))] text-white'
-                  }`}
+                  className={`flex-1 font-bold py-2.5 md:py-3 rounded-lg text-sm md:text-base transition ${isOutOfStock
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'btn-shine btn-text-pop bg-[hsl(var(--swago-purple))] text-white'
+                    }`}
                 >
                   <span>{isOutOfStock ? 'Out of Stock' : 'Add to Cart'}</span>
                 </button>
@@ -469,15 +471,14 @@ export default function ProductPageClient({ product }: { product: Product }) {
                   </button>
                 </div>
               )}
-              
-              <button 
-                onClick={handleBuyNow} 
+
+              <button
+                onClick={handleBuyNow}
                 disabled={isOutOfStock}
-                className={`flex-1 font-bold py-2.5 md:py-3 rounded-lg text-sm md:text-base transition ${
-                  isOutOfStock
-                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    : 'btn-shine btn-text-pop bg-[hsl(var(--swago-orange))] text-white'
-                }`}
+                className={`flex-1 font-bold py-2.5 md:py-3 rounded-lg text-sm md:text-base transition ${isOutOfStock
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  : 'btn-shine btn-text-pop bg-[hsl(var(--swago-orange))] text-white'
+                  }`}
               >
                 <span>{isOutOfStock ? 'Out of Stock' : isInCart ? 'View Cart' : 'Buy It Now'}</span>
               </button>
@@ -486,8 +487,8 @@ export default function ProductPageClient({ product }: { product: Product }) {
             <div className="mt-8">
               {accordionItems.map((item) =>
                 (benefits && item.key === "benefits" && benefits.trim() !== "") ||
-                (boxContents && item.key === "box_contents" && boxContents.trim() !== "") ||
-                item.key === "description" ? (
+                  (boxContents && item.key === "box_contents" && boxContents.trim() !== "") ||
+                  item.key === "description" ? (
                   <AccordionItem key={item.key} title={item.title} content={item.content} isOpen={openAccordion === item.key} onToggle={() => setOpenAccordion(openAccordion === item.key ? null : item.key)} />
                 ) : null
               )}
@@ -496,7 +497,7 @@ export default function ProductPageClient({ product }: { product: Product }) {
         </div>
 
         <div className="mt-16 border-t pt-12">
-          <ReviewList productId={numericProductId} currentUserId={user?.phone} />
+          <ReviewList productId={productIdForReviews} currentUserId={user?.phone} />
         </div>
       </div>
 

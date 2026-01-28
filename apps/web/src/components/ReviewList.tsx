@@ -32,7 +32,7 @@ interface ReviewStatsType {
 }
 
 interface ReviewListProps {
-  productId: number;
+  productId: string;
   currentUserId?: string; // To identify own reviews
 }
 

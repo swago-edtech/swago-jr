@@ -1,11 +1,10 @@
 import { connectDB, Review, Order } from '@swago/database';
 import { notFound } from 'next/navigation';
-import { products } from '@swago/utils';
 import ReviewDetailClient from '@/components/ReviewDetailClient';
 
 async function getReview(id: string) {
   await connectDB();
-  
+
   const review = await Review.findById(id)
     .populate('userId', 'name phone email')
     .populate('orderId', '_id')
@@ -22,7 +21,7 @@ async function getReview(id: string) {
       .sort({ createdAt: -1 })
       .select('name')
       .lean();
-    
+
     if (recentOrder && (recentOrder as any).name) {
       reviewData.userId.name = (recentOrder as any).name;
     }
@@ -43,8 +42,6 @@ export default async function ReviewDetailPage({
     notFound();
   }
 
-  // Get product details
-  const product = products.find((p) => p.id === review.productId);
 
   return (
     <div className="space-y-6">
@@ -85,9 +82,8 @@ export default async function ReviewDetailPage({
                     {[...Array(5)].map((_, i) => (
                       <span
                         key={i}
-                        className={`text-2xl ${
-                          i < review.rating ? 'text-yellow-500' : 'text-gray-300'
-                        }`}
+                        className={`text-2xl ${i < review.rating ? 'text-yellow-500' : 'text-gray-300'
+                          }`}
                       >
                         ★
                       </span>
@@ -155,13 +151,13 @@ export default async function ReviewDetailPage({
               </svg>
               AI Sentiment Analysis
             </h3>
-            
+
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-gray-700">Sentiment Label</span>
                 <SentimentBadge sentiment={review.sentimentLabel} />
               </div>
-              
+
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-gray-700">Confidence Score</span>
                 <div className="flex items-center gap-2">
@@ -176,7 +172,7 @@ export default async function ReviewDetailPage({
                   </span>
                 </div>
               </div>
-              
+
               {review.sentimentReasoning && (
                 <div className="mt-4">
                   <span className="text-sm font-medium text-gray-700 block mb-2">
@@ -220,22 +216,10 @@ export default async function ReviewDetailPage({
             </div>
           </div>
 
-                    {/* Product Info */}
+          {/* Product Info */}
           <div className="bg-white rounded-lg shadow p-6">
             <h3 className="text-lg font-bold text-gray-900 mb-4">Product Info</h3>
-            {product ? (
-              <div>
-                <img
-                  src={product.images[0]}
-                  alt={`${product.name} product image`}
-                  className="w-full h-32 object-cover rounded-lg mb-3 bg-gray-100"
-                />
-                <div className="text-sm font-semibold text-gray-900 mb-1">{product.name}</div>
-                <div className="text-base font-bold text-gray-900">₹{product.price.toFixed(2)}</div>
-              </div>
-            ) : (
-              <div className="text-sm font-semibold text-gray-900">Product #{review.productId}</div>
-            )}
+            <div className="text-sm font-semibold text-gray-900">Product ID: {review.productId}</div>
           </div>
 
           {/* Order Info */}

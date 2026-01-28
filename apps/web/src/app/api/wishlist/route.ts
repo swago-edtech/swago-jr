@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { connectDB, User, Product } from "@swago/database";
 import { getLoginSession } from "@/lib/auth";
-import { products as hardcodedProducts } from "@swago/utils";
 import { z } from "zod";
 import mongoose from "mongoose";
 
@@ -72,8 +71,8 @@ export async function POST(req: Request) {
 
     if (alreadyExists) {
       console.log('⚠️ Product already in wishlist:', productId);
-      return NextResponse.json({ 
-        success: true, 
+      return NextResponse.json({
+        success: true,
         wishlist: user.wishlist,
         message: 'Already in wishlist'
       });
@@ -155,7 +154,7 @@ export async function GET() {
     }
 
     await connectDB();
-    
+
     // Find user by phone or email
     let user = null;
     if (session.phone) {
@@ -163,52 +162,44 @@ export async function GET() {
     } else if (session.email) {
       user = await User.findOne({ email: session.email });
     }
-    
+
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     // Get the array of product IDs (can be numbers or strings)
     const wishlistIds = user.wishlist || [];
-    
+
     if (wishlistIds.length === 0) {
       return NextResponse.json([]);
     }
 
-    // ✅ Separate numeric IDs and MongoDB _id strings
-    const numericIds: number[] = [];
+    // Extract MongoDB _id strings from wishlist (filter out any numeric IDs if they exist)
     const mongoIds: string[] = [];
-    
+
     wishlistIds.forEach((id: number | string) => {
-      if (typeof id === 'number') {
-        numericIds.push(id);
-      } else if (typeof id === 'string') {
+      if (typeof id === 'string') {
         mongoIds.push(id);
       }
     });
 
-    console.log('📋 Wishlist IDs:', { numericIds, mongoIds });
+    console.log('📋 Wishlist IDs:', { mongoIds });
 
-    // Fetch products from both sources
-    const dbProducts = mongoIds.length > 0 
-      ? await Product.find({ 
-          _id: { $in: mongoIds },
-          isActive: true 
-        }).lean<DbProduct[]>() // ✅ FIXED: Type assertion
+    // Fetch products from database only
+    const dbProducts = mongoIds.length > 0
+      ? await Product.find({
+        _id: { $in: mongoIds },
+        isActive: true
+      }).lean<DbProduct[]>()
       : [];
 
-    const legacyProducts = hardcodedProducts.filter(p => numericIds.includes(p.id));
-
-    // ✅ Merge and return all wishlist products
-    const allWishlistProducts = [
-      ...dbProducts.map(p => ({
-        ...p,
-        _id: p._id.toString(), // ✅ FIXED: Now TypeScript knows the type
-        ageCategory: p.ageCategory,
-        coreElements: p.coreElements
-      })),
-      ...legacyProducts
-    ];
+    // Return DB products
+    const allWishlistProducts = dbProducts.map(p => ({
+      ...p,
+      _id: p._id.toString(),
+      ageCategory: p.ageCategory,
+      coreElements: p.coreElements
+    }));
 
     console.log('✅ Returning wishlist:', allWishlistProducts.length, 'products');
 

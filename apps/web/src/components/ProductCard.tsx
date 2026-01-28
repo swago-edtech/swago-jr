@@ -11,24 +11,9 @@ import { RiShareForwardFill } from "react-icons/ri";
 
 export default function ProductCard({ product }: { product: Product }) {
   const { cart, addToCart, addToWishlist, removeFromWishlist, isWishlisted, openCartSidebar, increaseQty, decreaseQty } = useSharedContext();
-  
-  const getProductIdentifier = (): string | number => {
-    if (product._id && !product._id.startsWith('hardcoded-')) {
-      return product._id;
-    }
-    
-    if (product.id) {
-      return product.id;
-    }
-    
-    if (product._id?.startsWith('hardcoded-')) {
-      return parseInt(product._id.replace('hardcoded-', ''));
-    }
-    
-    return 0;
-  };
 
-  const productIdentifier = getProductIdentifier();
+  // Use MongoDB _id or slug for routing
+  const productIdentifier = product._id || product.slug || '';
   const isLiked = isWishlisted(productIdentifier);
 
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -41,11 +26,11 @@ export default function ProductCard({ product }: { product: Product }) {
   const isLowStock = stock !== undefined && stock > 0 && stock < 10;
 
   // Check if item is in cart and get quantity
-  const getProductId = (item: CartItem): string => {
+  const getCartItemId = (item: CartItem): string => {
     return item.productId?.toString() || item._id?.toString() || item.id?.toString() || '';
   };
-  
-  const cartItem = cart.find(item => getProductId(item) === productIdentifier.toString());
+
+  const cartItem = cart.find(item => getCartItemId(item) === productIdentifier.toString());
   const quantityInCart = cartItem?.quantity || 0;
   const isInCart = quantityInCart > 0;
 
@@ -64,13 +49,13 @@ export default function ProductCard({ product }: { product: Product }) {
   const handleWishlistClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    
-    console.log('💝 Wishlist clicked:', { 
-      productIdentifier, 
+
+    console.log('💝 Wishlist clicked:', {
+      productIdentifier,
       type: typeof productIdentifier,
-      isLiked 
+      isLiked
     });
-    
+
     if (isLiked) {
       removeFromWishlist(productIdentifier);
     } else {
@@ -82,11 +67,11 @@ export default function ProductCard({ product }: { product: Product }) {
   const handleShareClick = async (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    
-    const productUrl = product.slug 
-      ? `${window.location.origin}/product/${product.slug}` 
+
+    const productUrl = product.slug
+      ? `${window.location.origin}/product/${product.slug}`
       : `${window.location.origin}/product/${product._id || product.id}`;
-    
+
     // Try native share API first (mobile)
     if (navigator.share) {
       try {
@@ -114,12 +99,12 @@ export default function ProductCard({ product }: { product: Product }) {
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     if (isOutOfStock) return;
-    
+
     console.log('🛒 Adding to cart:', product.name);
     addToCart(product);
-    
+
     // Auto-open sidebar only on desktop/tablet (screen width > 768px)
     if (typeof window !== 'undefined' && window.innerWidth > 768) {
       console.log('✅ Opening cart sidebar (desktop)');
@@ -155,7 +140,7 @@ export default function ProductCard({ product }: { product: Product }) {
   const originalPrice = product.originalPrice || product.original_price;
 
   // Calculate percentage off
-  const percentOff = originalPrice 
+  const percentOff = originalPrice
     ? Math.round(((originalPrice - product.price) / originalPrice) * 100)
     : 0;
 
@@ -165,31 +150,31 @@ export default function ProductCard({ product }: { product: Product }) {
   const displayName = showFullName ? product.name : (isLongName ? words.slice(0, 4).join(' ') + '...' : product.name);
 
   // Build product URL (support both slug and id)
-  const productUrl = product.slug 
-    ? `/product/${product.slug}` 
+  const productUrl = product.slug
+    ? `/product/${product.slug}`
     : `/product/${product._id || product.id}`;
 
   return (
     <Link href={productUrl} className="block group h-full">
-      <div 
+      <div
         className="bg-white border border-slate-200 rounded-xl flex flex-col h-full shadow-sm group-hover:shadow-lg transition-shadow duration-300"
         onMouseEnter={() => setIsHovering(true)}
         onMouseLeave={() => setIsHovering(false)}
       >
-        
+
         {/* Image Section */}
         <div className="relative w-full aspect-square rounded-t-xl overflow-hidden">
-          <Image 
+          <Image
             src={product.images[currentImageIndex]}
-            alt={product.name} 
+            alt={product.name}
             fill
-            className="object-cover transition-transform duration-300 group-hover:scale-105" 
+            className="object-cover transition-transform duration-300 group-hover:scale-105"
           />
-          
+
           {/* ✅ UPDATED: Action buttons with react-icons */}
           <div className="absolute top-3 right-3 flex gap-2 z-10">
             {/* Share Button */}
-            <button 
+            <button
               onClick={handleShareClick}
               className="p-2 rounded-full bg-white/80 backdrop-blur-sm hover:bg-white transition"
               aria-label="Share product"
@@ -197,9 +182,9 @@ export default function ProductCard({ product }: { product: Product }) {
             >
               <RiShareForwardFill className="w-6 h-6 text-slate-600" />
             </button>
-            
+
             {/* Wishlist Button */}
-            <button 
+            <button
               onClick={handleWishlistClick}
               className="p-2 rounded-full bg-white/80 backdrop-blur-sm hover:bg-white transition"
               aria-label={isLiked ? "Remove from wishlist" : "Add to wishlist"}
@@ -225,7 +210,7 @@ export default function ProductCard({ product }: { product: Product }) {
             </div>
           )}
         </div>
-        
+
         <div className="p-4 flex flex-col flex-grow">
           <div className="flex-grow">
             {/* ✅ UPDATED: Product name with Read more */}
@@ -249,7 +234,7 @@ export default function ProductCard({ product }: { product: Product }) {
               )}
             </h3>
           </div>
-          
+
           <div className="mt-auto pt-3">
             {/* Price section with percentage badge */}
             <div className="flex justify-between items-start mb-3">
@@ -273,18 +258,17 @@ export default function ProductCard({ product }: { product: Product }) {
                 Age: {ageCategory}
               </span>
             </div>
-            
+
             {/* Show Add to Cart OR Quantity Controls */}
             {!isInCart ? (
               // Show "Add to Cart" button when item is NOT in cart
-              <motion.button 
+              <motion.button
                 onClick={handleAddToCart}
                 disabled={isOutOfStock}
-                className={`w-full font-semibold py-2.5 rounded-lg text-sm transition ${
-                  isOutOfStock 
-                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
-                    : 'btn-shine btn-text-pop bg-[hsl(var(--swago-purple))] text-white'
-                }`}
+                className={`w-full font-semibold py-2.5 rounded-lg text-sm transition ${isOutOfStock
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  : 'btn-shine btn-text-pop bg-[hsl(var(--swago-purple))] text-white'
+                  }`}
               >
                 <span>{isOutOfStock ? 'Out of Stock' : 'Add to Cart'}</span>
               </motion.button>

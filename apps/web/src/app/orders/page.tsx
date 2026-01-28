@@ -5,38 +5,16 @@ import { useSharedContext } from "@/context/SharedContext";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import ReviewForm from "@/components/ReviewForm";
-import { products } from "@swago/utils";
 import { useFormattedDate } from "@/hooks/useFormattedDate";
+import { RazorpayOptions, RazorpaySuccessResponse as RazorpayResponse, RazorpayInstance } from "@swago/types";
 
-// ✅ Razorpay types (local to avoid duplicate global declarations)
-interface RazorpayOptions {
-  key: string;
-  amount: number;
-  currency: string;
-  name: string;
-  description: string;
-  order_id: string;
-  handler: (response: RazorpayResponse) => void;
-  prefill: { name: string; email: string; contact: string };
-  notes: Record<string, string>;
-  theme: { color: string };
-}
 
-interface RazorpayResponse {
-  razorpay_payment_id: string;
-  razorpay_order_id: string;
-  razorpay_signature: string;
-}
-
-interface RazorpayInstance {
-  open: () => void;
-  on: (event: string, handler: (response: { error: { description: string } }) => void) => void;
-}
 
 type OrderItem = {
   name: string;
   quantity: number;
   price: number;
+  productId: number | string;
 };
 
 type Order = {
@@ -87,10 +65,17 @@ export default function OrdersPage() {
   const { user } = useSharedContext();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  const [reviewingOrder, setReviewingOrder] = useState<string | null>(null);
-  const [reviewingProduct, setReviewingProduct] = useState<{ name: string; id: number } | null>(null);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewingOrder, setReviewingOrder] = useState("");
+  const [reviewingProduct, setReviewingProduct] = useState<{ id: string; name: string }>({ id: "", name: "" }); // Changed id to string
   const [payingOrderId, setPayingOrderId] = useState<string | null>(null);
   const [paymentMessage, setPaymentMessage] = useState<string>("");
+
+  const handleWriteReview = (orderId: string, productName: string, productId: string) => {
+    setReviewingOrder(orderId);
+    setReviewingProduct({ id: productId, name: productName });
+    setShowReviewModal(true);
+  };
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -129,27 +114,16 @@ export default function OrdersPage() {
     return () => clearInterval(interval);
   }, []);
 
-  const getProductIdByName = (productName: string): number | null => {
-    const product = products.find((p) => p.name === productName);
-    return product ? product.id : null;
-  };
-
-  const handleWriteReview = (orderId: string, productName: string) => {
-    const productId = getProductIdByName(productName);
-    if (productId) {
-      setReviewingOrder(orderId);
-      setReviewingProduct({ name: productName, id: productId });
-    }
-  };
-
   const handleReviewSuccess = () => {
-    setReviewingOrder(null);
-    setReviewingProduct(null);
+    setShowReviewModal(false);
+    setReviewingOrder("");
+    setReviewingProduct({ id: "", name: "" });
   };
 
   const handleCancelReview = () => {
-    setReviewingOrder(null);
-    setReviewingProduct(null);
+    setShowReviewModal(false);
+    setReviewingOrder("");
+    setReviewingProduct({ id: "", name: "" });
   };
 
   // ✅ Handle retry payment
@@ -319,10 +293,10 @@ export default function OrdersPage() {
           <OrderCard
             key={order._id}
             order={order}
-            onWriteReview={handleWriteReview}
             onRetryPayment={handleRetryPayment}
             isProcessing={payingOrderId === order._id}
             paymentMessage={payingOrderId === order._id ? paymentMessage : ""}
+            onWriteReview={handleWriteReview}
           />
         ))}
       </div>
@@ -373,7 +347,7 @@ function OrderCard({
   paymentMessage,
 }: {
   order: Order;
-  onWriteReview: (orderId: string, productName: string) => void;
+  onWriteReview?: (orderId: string, productName: string, productId: string) => void;
   onRetryPayment: (order: Order) => void;
   isProcessing: boolean;
   paymentMessage: string;
@@ -484,10 +458,10 @@ function OrderCard({
             </div>
 
             {/* Action Buttons - Only shown for delivered orders */}
-            {isDelivered && (
+            {isDelivered && onWriteReview && (
               <div className="mt-3 flex flex-wrap gap-2">
                 <button
-                  onClick={() => onWriteReview(order._id, item.name)}
+                  onClick={() => onWriteReview(order._id, item.name, String(item.productId))}
                   className="inline-flex items-center gap-2 text-sm bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 font-medium transition-colors"
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

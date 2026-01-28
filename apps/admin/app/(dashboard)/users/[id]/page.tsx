@@ -4,8 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { formatPrice } from '@swago/utils';
 import { connectDB, User, Product } from '@swago/database';
-import { products as hardcodedProducts } from '@swago/utils';
-import { getAdminSession } from '@/lib/auth'; // ✅ ADD: Admin protection
+import { getAdminSession } from '@/lib/auth';
 
 // Fetch user data directly from DB (no API call)
 async function getUserData(userId: string) {
@@ -36,8 +35,8 @@ async function getUserData(userId: string) {
   const oldestCartItemDate =
     cart.length > 0
       ? cart
-          .map((item: any) => new Date(item.addedAt || user.createdAt))
-          .sort((a: Date, b: Date) => a.getTime() - b.getTime())[0]
+        .map((item: any) => new Date(item.addedAt || user.createdAt))
+        .sort((a: Date, b: Date) => a.getTime() - b.getTime())[0]
       : null;
 
   let isAbandonedCart = false;
@@ -48,48 +47,28 @@ async function getUserData(userId: string) {
     isAbandonedCart = diffMs >= sevenDaysMs;
   }
 
-  // Wishlist enrichment
-  const hardcodedIds: number[] = [];
+  // Wishlist enrichment - get only DB product names
   const dbIds: string[] = [];
 
   for (const idVal of wishlist) {
-    const asNumber = Number(idVal);
-    if (!Number.isNaN(asNumber) && asNumber >= 1 && asNumber <= 100) {
-      hardcodedIds.push(asNumber);
-    } else if (typeof idVal === 'string') {
+    if (typeof idVal === 'string') {
       dbIds.push(idVal);
-    }
-  }
-
-  const hardcodedMap = new Map<number, string>();
-  for (const pid of hardcodedIds) {
-    const p = hardcodedProducts.find((hp) => hp.id === pid);
-    if (p) {
-      hardcodedMap.set(pid, p.name);
     }
   }
 
   // ✅ FIX: Properly type DB products
   const dbProducts = dbIds.length
     ? await Product.find({ _id: { $in: dbIds } })
-        .select('name')
-        .lean<Array<{ _id: any; name: string }>>() // ✅ Type annotation
+      .select('name')
+      .lean<Array<{ _id: any; name: string }>>() // ✅ Type annotation
     : [];
 
   const dbMap = new Map<string, string>();
   for (const p of dbProducts) {
-    dbMap.set(p._id.toString(), p.name); // ✅ No more TypeScript error
+    dbMap.set(p._id.toString(), p.name);
   }
 
   const wishlistEnriched = wishlist.map((pid) => {
-    const numericId = Number(pid);
-    if (!Number.isNaN(numericId) && hardcodedMap.has(numericId)) {
-      return {
-        productId: pid,
-        name: hardcodedMap.get(numericId),
-      };
-    }
-
     if (typeof pid === 'string' && dbMap.has(pid)) {
       return {
         productId: pid,
@@ -128,7 +107,7 @@ async function getUserData(userId: string) {
 // Helper to format time ago
 function getTimeAgo(dateString: string | Date | null): string {
   if (!dateString) return 'N/A';
-  
+
   const date = new Date(dateString);
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();

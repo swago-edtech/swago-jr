@@ -3,7 +3,7 @@ import { connectDB, Review } from "@swago/database";
 
 interface TransformedReview {
   _id: string;
-  productId: number;
+  productId: string; // Changed to string
   rating: number;
   title: string;
   comment: string;
@@ -28,18 +28,18 @@ export async function GET(
 ) {
   try {
     const { productId } = await params;
-    const productIdNum = parseInt(productId);
 
-    if (isNaN(productIdNum)) {
-      return NextResponse.json({ error: "Invalid product ID" }, { status: 400 });
+    // ✅ Use String ID directly (supports legacy numeric IDs passed as strings too)
+    if (!productId) {
+      return NextResponse.json({ error: "Product ID is required" }, { status: 400 });
     }
 
     await connectDB();
 
     // Get approved reviews with user info
-    const reviews = await Review.find({ 
-      productId: productIdNum,
-      status: "approved" 
+    const reviews = await Review.find({
+      productId: productId,
+      status: "approved"
     })
       .populate("userId", "name phone")
       .sort({ createdAt: -1 })
@@ -50,7 +50,7 @@ export async function GET(
       // Use type assertion to unknown first, then to our expected type
       const reviewData = review as unknown as {
         _id: { toString(): string } | string;
-        productId: number;
+        productId: { toString(): string } | string | number; // Accept mixed types from DB
         rating: number;
         title: string;
         comment: string;
@@ -71,7 +71,7 @@ export async function GET(
 
       return {
         _id: typeof reviewData._id === 'string' ? reviewData._id : reviewData._id.toString(),
-        productId: reviewData.productId,
+        productId: reviewData.productId.toString(), // Convert to string
         rating: reviewData.rating,
         title: reviewData.title,
         comment: reviewData.comment,

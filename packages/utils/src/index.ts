@@ -14,11 +14,8 @@ export const generateOTP = (): string => {
   return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
-// ✅ FIXED: Export products (no extension needed for TypeScript)
-export * from './products';
-
-//openAIresponse
-export { analyzeReviewSentiment } from './sentiment';
-
-// 🆕 NEW: Export date utilities
+// Date utilities
 export * from './date';
+
+// Sentiment analysis
+export { analyzeReviewSentiment } from './sentiment';

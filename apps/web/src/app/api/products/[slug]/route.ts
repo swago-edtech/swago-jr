@@ -1,7 +1,6 @@
 // apps/web/src/app/api/products/[slug]/route.ts
 import { NextResponse } from "next/server";
 import { connectDB, Product } from "@swago/database";
-import { products as hardcodedProducts } from "@swago/utils";
 import { isValidObjectId } from "mongoose";
 import { getProductCache, getCacheTTL } from "@/lib/productCache";
 
@@ -50,45 +49,7 @@ export async function GET(
       return response;
     }
 
-    // ✅ FIXED: Check hardcoded products FIRST (by numeric ID)
-    const numericId = parseInt(slug);
-    if (!isNaN(numericId) && numericId > 0 && numericId <= 100) {
-      const hardcoded = hardcodedProducts.find(p => p.id === numericId);
-      if (hardcoded) {
-        console.log(`✅ Using hardcoded product for ID: ${slug}`);
-        const product: ProductResponse = {
-          id: hardcoded.id,  // ✅ Keep numeric id
-          _id: hardcoded.id.toString(), // ✅ Also provide string _id for compatibility
-          name: hardcoded.name,
-          description: hardcoded.description,
-          price: hardcoded.price,
-          originalPrice: hardcoded.original_price,
-          images: hardcoded.images,
-          ageCategory: hardcoded.age_category,
-          coreElements: hardcoded.core_elements,
-          benefits: hardcoded.benefits,
-          boxContents: hardcoded.box_contents,
-          stock: undefined, // Hardcoded products don't track stock
-          reservedStock: undefined,
-          isFeatured: false,
-          isActive: true,
-          slug: `product-${hardcoded.id}`
-        };
-
-        // Cache it
-        productCache.set(slug, {
-          data: product,
-          timestamp: Date.now()
-        });
-
-        return NextResponse.json({
-          success: true,
-          product: product
-        });
-      }
-    }
-
-    // Connect to database for DB products
+    // Connect to database
     await connectDB();
 
     let product: ProductResponse | null = null;
@@ -151,8 +112,8 @@ export async function GET(
   } catch (error) {
     console.error("Error fetching product:", error);
     return NextResponse.json(
-      { 
-        success: false, 
+      {
+        success: false,
         error: "Failed to fetch product",
         message: error instanceof Error ? error.message : "Unknown error"
       },

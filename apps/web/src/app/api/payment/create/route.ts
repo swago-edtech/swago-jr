@@ -41,30 +41,6 @@ interface OrderItem {
 }
 
 
-// ✅ UPDATED: Helper to detect hardcoded products
-function isHardcodedProduct(productId: string | number | undefined): boolean {
-  if (!productId) return false;
-
-  // Handle numeric IDs (1, 2, 3...)
-  if (typeof productId === 'number') {
-    return productId >= 1 && productId <= 100;
-  }
-
-  // Handle string IDs
-  const idString = productId.toString();
-
-  // Check for "hardcoded-X" format
-  if (idString.startsWith('hardcoded-')) {
-    const numericPart = parseInt(idString.replace('hardcoded-', ''), 10);
-    return !isNaN(numericPart) && numericPart >= 1 && numericPart <= 100;
-  }
-
-  // Check for pure numeric strings ("1", "2", "3"...)
-  const numericId = Number(idString);
-  return !isNaN(numericId) && numericId >= 1 && numericId <= 100;
-}
-
-
 // Helper to get product by ID or slug
 async function getProductById(id: string): Promise<ProductDocument | null> {
   try {
@@ -140,7 +116,7 @@ export async function POST(req: Request) {
       console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
       console.log('🔍 Item:', item.name);
       console.log('   item.id:', item.id, 'item.productId:', item.productId, 'item._id:', item._id);
-      console.log('   Final productId:', productId, 'isHardcoded:', isHardcodedProduct(productId));
+      console.log('   Final productId:', productId);
       console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
 
@@ -149,14 +125,7 @@ export async function POST(req: Request) {
         continue;
       }
 
-
-      // ✅ NEW: Skip hardcoded products (always available)
-      if (isHardcodedProduct(productId)) {
-        console.log(`⏭️ Skipping stock check for hardcoded product: ${item.name} (ID: ${productId})`);
-        continue; // No stock management needed
-      }
-
-
+      // Check stock for all products
       // Database products - check stock
       const product = await getProductById(productId);
 
@@ -369,6 +338,7 @@ export async function POST(req: Request) {
       // ✅ Return both our orderId and Razorpay data
       return NextResponse.json({
         ...razorpayOrder,
+        key: process.env.RAZORPAY_KEY_ID, // Add key for frontend
         orderId: orderId,
         mongoOrderId: newOrder._id.toString(),
       });

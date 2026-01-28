@@ -1,7 +1,6 @@
 import { connectDB, Order } from '@swago/database';
 import { formatPrice } from '@swago/utils';
 import { notFound } from 'next/navigation';
-import { products } from '@swago/utils';
 import UpdateOrderStatus from '@/components/UpdateOrderStatus';
 import ProductCodesDisplay from '@/components/ProductCodesDisplay';
 import OrderDetailDate from './OrderDetailDate'; // ✨ NEW: Client component
@@ -161,13 +160,8 @@ export default async function OrderDetailPage({
             </thead>
             <tbody className="divide-y divide-gray-200">
               {order.items?.map((item: any, index: number) => {
-                // Try to find product by ID first, then by name
-                let product = item.productId
-                  ? products.find((p) => p.id === item.productId)
-                  : products.find((p) => p.name === item.name);
-
-                // Use stored price or get from product data
-                const price = item.price || product?.price || 0;
+                // Use stored item data only (no hardcoded product lookups)
+                const price = item.price || 0;
 
                 return (
                   <tr key={index}>
@@ -175,10 +169,10 @@ export default async function OrderDetailPage({
                       <div className="flex items-center">
                         <div>
                           <div className="text-sm font-medium text-gray-900">
-                            {item.name || product?.name || 'Unknown Product'}
+                            {item.name || 'Unknown Product'}
                           </div>
                           <div className="text-sm text-gray-900">
-                            {product?.age_category || ''}
+                            {item.age_category || item.ageCategory || ''}
                           </div>
                         </div>
                       </div>

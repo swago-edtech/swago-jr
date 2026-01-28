@@ -6,41 +6,9 @@ import { useRouter } from "next/navigation";
 import Script from "next/script";
 import Link from "next/link";
 import { formatPrice } from "@swago/utils";
+import { RazorpayOptions, RazorpaySuccessResponse, RazorpayInstance, RazorpayFailedEvent } from "@swago/types";
 
-type RazorpaySuccessResponse = {
-    razorpay_payment_id: string;
-    razorpay_order_id: string;
-    razorpay_signature: string;
-};
 
-type RazorpayFailedEvent = {
-    error: { description: string };
-};
-
-type RazorpayOptions = {
-    key?: string;
-    amount: number;
-    currency: string;
-    name: string;
-    description?: string;
-    order_id: string;
-    handler: (response: RazorpaySuccessResponse) => void;
-    prefill?: { name?: string; email?: string; contact?: string };
-    notes?: Record<string, string>;
-    theme?: { color?: string };
-};
-
-interface RazorpayInstance {
-    open: () => void;
-    on(event: "payment.failed", callback: (response: RazorpayFailedEvent) => void): void;
-    on(event: string, callback: (response: unknown) => void): void;
-}
-
-declare global {
-    interface Window {
-        Razorpay: new (options: RazorpayOptions) => RazorpayInstance;
-    }
-}
 
 type Coupon = {
     code: string;
@@ -179,7 +147,7 @@ export default function PaymentMethodPage() {
                 return;
             }
 
-            const { razorpay_order_id, amount, key, orderId } = await res.json();
+            const { id: razorpay_order_id, amount, key, orderId } = await res.json();
 
             // Open Razorpay
             const options: RazorpayOptions = {
@@ -190,6 +158,16 @@ export default function PaymentMethodPage() {
                 description: `Order ${orderId}`,
                 order_id: razorpay_order_id,
                 handler: async function (response) {
+                    console.log('🎯 Razorpay response:', response);
+
+                    // Validate response
+                    if (!response.razorpay_payment_id || !response.razorpay_order_id || !response.razorpay_signature) {
+                        console.error("❌ Missing fields:", response);
+                        setMessage("❌ Payment verification failed: Incomplete response.");
+                        setProcessing(false);
+                        return;
+                    }
+
                     setMessage("Verifying payment...");
 
                     const verificationRes = await fetch("/api/payment/verify", {
@@ -229,6 +207,13 @@ export default function PaymentMethodPage() {
                 },
                 theme: {
                     color: "#7c3aed",
+                },
+                modal: {
+                    ondismiss: function () {
+                        console.log("⚠️ Razorpay modal dismissed");
+                        setMessage("❌ Payment cancelled");
+                        setProcessing(false);
+                    },
                 },
             };
 

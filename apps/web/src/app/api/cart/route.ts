@@ -3,7 +3,6 @@ import { NextResponse } from "next/server";
 import { getLoginSession } from "@/lib/auth";
 import { connectDB, User, Product } from "@swago/database";
 import { isValidObjectId } from "mongoose";
-import { products as hardcodedProducts } from "@swago/utils";
 
 // ✅ UPDATED: Cart item now includes full product details
 interface CartItem {
@@ -25,7 +24,6 @@ interface ProductDocument {
   images: string[];
 }
 
-// ✅ NEW: Helper to get full product details (DB or hardcoded)
 async function getFullProductDetails(productId: string | number): Promise<{
   price: number;
   name: string;
@@ -33,29 +31,15 @@ async function getFullProductDetails(productId: string | number): Promise<{
   stock?: number;
 } | null> {
   const idString = productId.toString();
-  
-  // Check if it's a hardcoded product (numeric ID 1-100)
-  const numericId = parseInt(idString);
-  if (!isNaN(numericId) && numericId > 0 && numericId <= 100) {
-    const hardcoded = hardcodedProducts.find(p => p.id === numericId);
-    if (hardcoded) {
-      return {
-        price: hardcoded.price,
-        name: hardcoded.name,
-        image: hardcoded.images[0] || '/images/placeholder.png',  // ✅ FIXED: Use images array
-        stock: undefined  // ✅ FIXED: Hardcoded products don't track stock
-      };
-    }
-  }
-  
+
   // Try DB product
   try {
     let product = await Product.findOne({ slug: idString, isActive: true });
-    
+
     if (!product && isValidObjectId(idString)) {
       product = await Product.findOne({ _id: idString, isActive: true });
     }
-    
+
     if (product) {
       return {
         price: product.price,
@@ -67,7 +51,7 @@ async function getFullProductDetails(productId: string | number): Promise<{
   } catch (error) {
     console.error('Error fetching product:', error);
   }
-  
+
   return null;
 }
 
@@ -75,15 +59,15 @@ async function getFullProductDetails(productId: string | number): Promise<{
 async function getProductById(id: string | number): Promise<ProductDocument | null> {
   try {
     const idString = id.toString();
-    
+
     // Try slug first
     let product = await Product.findOne({ slug: idString, isActive: true });
-    
+
     // Try MongoDB _id if valid ObjectId
     if (!product && isValidObjectId(idString)) {
       product = await Product.findOne({ _id: idString, isActive: true });
     }
-    
+
     return product as ProductDocument | null;
   } catch (error) {
     console.error('Error fetching product:', error);
@@ -91,12 +75,6 @@ async function getProductById(id: string | number): Promise<ProductDocument | nu
   }
 }
 
-// Helper to check if it's a hardcoded product
-function isHardcodedProduct(productId: string | number): boolean {
-  const idString = productId.toString();
-  const numericId = parseInt(idString);
-  return !isNaN(numericId) && numericId > 0 && numericId <= 100;
-}
 
 // ========================================
 // GET: Fetch user's cart from database
@@ -104,7 +82,7 @@ function isHardcodedProduct(productId: string | number): boolean {
 export async function GET() {
   try {
     const session = await getLoginSession();
-    
+
     if (!session) {
       return NextResponse.json(
         { error: "Not authenticated" },
@@ -149,7 +127,7 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const session = await getLoginSession();
-    
+
     if (!session) {
       return NextResponse.json(
         { error: "Not authenticated" },
@@ -177,24 +155,22 @@ export async function POST(req: Request) {
 
       // Get full product details
       const productDetails = await getFullProductDetails(productId);
-      
+
       if (!productDetails) {
         console.warn(`⚠️ Product ${productId} not found, skipping`);
         continue;
       }
 
-      // Stock validation for database products
-      if (!isHardcodedProduct(productId)) {
-        const product = await getProductById(productId);
-        
-        if (product) {
-          const availableStock = Math.max(0, product.stock - (product.reservedStock || 0));
-          
-          if (availableStock === 0) {
-            stockErrors.push(`${productDetails.name} is out of stock`);
-          } else if (item.quantity > availableStock) {
-            stockErrors.push(`${productDetails.name}: Only ${availableStock} available`);
-          }
+      // Stock validation for all database products
+      const product = await getProductById(productId);
+
+      if (product) {
+        const availableStock = Math.max(0, product.stock - (product.reservedStock || 0));
+
+        if (availableStock === 0) {
+          stockErrors.push(`${productDetails.name} is out of stock`);
+        } else if (item.quantity > availableStock) {
+          stockErrors.push(`${productDetails.name}: Only ${availableStock} available`);
         }
       }
 
@@ -259,7 +235,7 @@ export async function POST(req: Request) {
 export async function DELETE(req: Request) {
   try {
     const session = await getLoginSession();
-    
+
     if (!session) {
       return NextResponse.json(
         { error: "Not authenticated" },

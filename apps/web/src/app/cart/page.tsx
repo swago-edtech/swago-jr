@@ -52,7 +52,7 @@ export default function CartPage() {
 
           try {
             const res = await fetch(`/api/products/${productId}`);
-            
+
             // ✅ FIX: If product doesn't exist (404), just skip stock check
             if (res.status === 404) {
               console.log(`⚠️ Product ${productId} not found (404), skipping stock check`);
@@ -62,19 +62,19 @@ export default function CartPage() {
             const data = await res.json();
 
             if (data.success && data.product) {
-              // ✅ FIXED: Hardcoded products have stock: undefined (unlimited)
+              // Check if product has stock tracking
               const hasStockTracking = typeof data.product.stock === 'number';
-              const available = hasStockTracking 
+              const available = hasStockTracking
                 ? Math.max(0, data.product.stock - (data.product.reservedStock || 0))
-                : 999999; // Unlimited for hardcoded products
-              
+                : 0; // No stock tracking = not available
+
               stockData[productId] = {
                 available: available,
                 reserved: data.product.reservedStock || 0,
                 total: data.product.stock || 0
               };
 
-              // ✅ Only check stock issues for products that track stock
+              // Check stock issues for products that track stock
               if (hasStockTracking) {
                 if (available === 0) {
                   errors.push(`${item.name} is out of stock`);
@@ -113,8 +113,8 @@ export default function CartPage() {
         <CartIconLarge />
         <h2 className="text-2xl font-bold mt-4">Your cart is empty</h2>
         <p className="text-slate-500 mt-2">Looks like you haven&apos;t added anything to your cart yet.</p>
-        <Link 
-          href="/products" 
+        <Link
+          href="/products"
           className="mt-6 inline-block bg-[hsl(var(--swago-purple))] text-white font-bold px-6 py-3 rounded-lg hover:opacity-90 transition-opacity"
         >
           Start Shopping
@@ -126,7 +126,7 @@ export default function CartPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-8">Your Cart</h1>
-      
+
       {/* Stock Issues Alert */}
       {hasStockIssues && (
         <div className="mb-6 bg-orange-50 border border-orange-200 rounded-lg p-4">
@@ -160,28 +160,27 @@ export default function CartPage() {
               {cart.map((item: CartItem) => {
                 // ✅ Guard against undefined price
                 const unitPrice = typeof item.price === "number" ? item.price : 0;
-                
+
                 const imageUrl = item.images?.[0] || item.image || '/images/placeholder.png';
                 const productKey = getProductKey(item);
                 const stock = stockInfo[productKey];
                 const available = stock?.available ?? 999;
                 const isOutOfStock = available === 0;
                 const hasQuantityIssue = item.quantity > available;
-                
+
                 return (
-                  <div 
-                    key={productKey} 
-                    className={`flex gap-4 bg-white p-4 rounded-xl border shadow-sm ${
-                      isOutOfStock || hasQuantityIssue ? 'border-orange-300' : ''
-                    }`}
+                  <div
+                    key={productKey}
+                    className={`flex gap-4 bg-white p-4 rounded-xl border shadow-sm ${isOutOfStock || hasQuantityIssue ? 'border-orange-300' : ''
+                      }`}
                   >
                     <div className="relative">
-                      <Image 
+                      <Image
                         src={imageUrl}
-                        alt={item.name} 
+                        alt={item.name}
                         width={96}
                         height={96}
-                        className="object-cover rounded-md" 
+                        className="object-cover rounded-md"
                       />
                       {isOutOfStock && (
                         <div className="absolute inset-0 bg-black/50 rounded-md flex items-center justify-center">
@@ -193,7 +192,7 @@ export default function CartPage() {
                     <div className="flex-grow flex flex-col">
                       <h2 className="font-semibold text-lg">{item.name}</h2>
                       <p className="text-slate-500">Price: ₹{unitPrice.toFixed(2)}</p>
-                      
+
                       {/* Stock Status */}
                       {stock && (
                         <div className="mt-1">
@@ -216,18 +215,18 @@ export default function CartPage() {
                           )}
                         </div>
                       )}
-                      
+
                       <div className="flex-grow"></div>
                       <div className="flex items-center gap-2 mt-2">
-                        <button 
-                          onClick={() => decreaseQty(item.productId || item.id || item._id!)} 
+                        <button
+                          onClick={() => decreaseQty(item.productId || item.id || item._id!)}
                           className="px-2 py-1 border rounded-md hover:bg-slate-100"
                         >
                           -
                         </button>
                         <span className="font-medium">{item.quantity}</span>
-                        <button 
-                          onClick={() => increaseQty(item.productId || item.id || item._id!)} 
+                        <button
+                          onClick={() => increaseQty(item.productId || item.id || item._id!)}
                           className="px-2 py-1 border rounded-md hover:bg-slate-100"
                           disabled={isOutOfStock || item.quantity >= available}
                         >
@@ -249,11 +248,11 @@ export default function CartPage() {
                         )}
                       </div>
                     </div>
-                    
+
                     <div className="flex flex-col justify-between items-end">
                       <p className="font-bold text-lg">₹{(unitPrice * item.quantity).toFixed(2)}</p>
-                      <button 
-                        onClick={() => removeFromCart(item.productId || item.id || item._id!)} 
+                      <button
+                        onClick={() => removeFromCart(item.productId || item.id || item._id!)}
                         className="text-sm text-red-500 hover:underline"
                       >
                         Remove
@@ -273,24 +272,23 @@ export default function CartPage() {
               <div className="flex justify-between"><span>Subtotal</span><span>₹{total.toFixed(2)}</span></div>
               <div className="flex justify-between"><span>Shipping</span><span className="font-semibold">Free</span></div>
             </div>
-            <hr className="my-4"/>
+            <hr className="my-4" />
             <div className="flex justify-between font-bold text-lg">
               <span>Total</span>
               <span>₹{total.toFixed(2)}</span>
             </div>
-            
+
             <button
               onClick={() => router.push("/checkout")}
               disabled={hasStockIssues || loading}
-              className={`mt-6 w-full font-bold py-3 rounded-lg transition-colors ${
-                hasStockIssues || loading
+              className={`mt-6 w-full font-bold py-3 rounded-lg transition-colors ${hasStockIssues || loading
                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   : 'bg-green-500 text-white hover:bg-green-600'
-              }`}
+                }`}
             >
               {loading ? 'Checking stock...' : hasStockIssues ? 'Fix cart issues' : 'Proceed to Checkout'}
             </button>
-            
+
             {hasStockIssues && (
               <p className="text-xs text-center text-orange-600 mt-2">
                 Please resolve stock issues above

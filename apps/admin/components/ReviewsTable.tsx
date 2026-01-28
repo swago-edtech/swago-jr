@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { products } from '@swago/utils';
 
 interface Review {
   _id: string;
@@ -34,11 +33,6 @@ export default function ReviewsTable({ initialReviews }: ReviewsTableProps) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Get product name by ID
-  const getProductName = (productId: number) => {
-    const product = products.find((p) => p.id === productId);
-    return product ? product.name : `Product #${productId}`;
-  };
 
   // Get user display name
   const getUserDisplayName = (user: Review['userId']) => {
@@ -314,7 +308,7 @@ export default function ReviewsTable({ initialReviews }: ReviewsTableProps) {
                       <div className="text-xs text-gray-500">{review.userId.phone}</div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900">{getProductName(review.productId)}</div>
+                      <div className="text-sm text-gray-900">Product #{review.productId}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">

@@ -236,7 +236,52 @@ declare global {
     getWidgetData?: () => any;
     isCaptchaVerified?: () => boolean;
     initSendOTP?: (config: MSG91WidgetConfig) => void;
+    // Razorpay
+    Razorpay: new (options: RazorpayOptions) => RazorpayInstance;
   }
+}
+
+// ✅ NEW: Razorpay Types (Moved from web app)
+export interface RazorpayOptions {
+  key?: string;
+  amount: number;
+  currency: string;
+  name: string;
+  description?: string;
+  order_id: string;
+  handler: (response: RazorpaySuccessResponse) => void;
+  prefill?: {
+    name?: string;
+    email?: string;
+    contact?: string;
+  };
+  notes?: Record<string, string>;
+  theme?: {
+    color?: string;
+  };
+  modal?: {
+    ondismiss?: () => void;
+    escape?: boolean;
+    backdropclose?: boolean;
+  };
+}
+
+export interface RazorpaySuccessResponse {
+  razorpay_payment_id: string;
+  razorpay_order_id: string;
+  razorpay_signature: string;
+}
+
+export interface RazorpayFailedEvent {
+  error: {
+    description: string;
+  };
+}
+
+export interface RazorpayInstance {
+  open: () => void;
+  on(event: "payment.failed", callback: (response: RazorpayFailedEvent) => void): void;
+  on(event: string, callback: (response: unknown) => void): void;
 }
 
 // ✅ NEW: Ambassador Application Types
@@ -289,4 +334,4 @@ export interface WaitlistInput {
 }
 
 
-export {};
+export { };
