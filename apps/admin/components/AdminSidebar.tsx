@@ -12,6 +12,7 @@ const navigation = [
   { name: 'Analytics', href: '/analytics', icon: TrendingUp },
   { name: 'Announcement', href: '/announcement', icon: Megaphone }, // ✅ NEW
   { name: 'Orders', href: '/orders', icon: ShoppingBag },
+  { name: 'Coupons', href: '/coupons', icon: Ticket },
   { name: 'Reviews', href: '/reviews', icon: MessageSquare },
   { name: 'Products', href: '/products', icon: Package },
   {
@@ -154,8 +155,8 @@ export default function AdminSidebar() {
                   <button
                     onClick={() => toggleSubmenu(item.name)}
                     className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-colors ${isActive
-                        ? 'bg-blue-600 text-white'
-                        : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-300 hover:bg-gray-800 hover:text-white'
                       }`}
                   >
                     <div className="flex items-center">
@@ -179,8 +180,8 @@ export default function AdminSidebar() {
                             key={subItem.name}
                             href={subItem.href}
                             className={`block px-4 py-2 rounded-lg text-sm transition-colors ${isSubActive
-                                ? 'bg-blue-500 text-white'
-                                : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                              ? 'bg-blue-500 text-white'
+                              : 'text-gray-400 hover:bg-gray-800 hover:text-white'
                               }`}
                           >
                             {subItem.name}
@@ -201,8 +202,8 @@ export default function AdminSidebar() {
                 key={item.name}
                 href={item.href}
                 className={`flex items-center px-4 py-3 rounded-lg transition-colors relative ${isActive
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-gray-300 hover:bg-gray-800 hover:text-white'
                   }`}
               >
                 <Icon className="w-5 h-5 mr-3" />

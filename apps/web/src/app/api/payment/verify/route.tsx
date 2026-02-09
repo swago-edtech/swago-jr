@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getLoginSession } from "@/lib/auth";
-import { connectDB, Order, User, Product } from "@swago/database";
+import { connectDB, Order, User, Product, Coupon } from "@swago/database";
 import crypto from "crypto";
 import { z } from "zod";
 import { sendOrderConfirmationEmail } from "@/lib/msg91-email";
@@ -136,6 +136,15 @@ export async function POST(req: Request) {
 
     console.log('✅ Order updated to Paid:', order.orderId);
 
+    // Increment coupon usage if applied
+    if (order.couponCode) {
+      await Coupon.updateOne(
+        { code: order.couponCode },
+        { $inc: { usageCount: 1 } }
+      );
+      console.log('✅ Coupon usage incremented:', order.couponCode);
+    }
+
 
     // ========================================
     // ✅ STOCK MANAGEMENT: Convert reserved to sold
@@ -237,21 +246,18 @@ export async function POST(req: Request) {
     const orderObject = order.toObject();
 
     try {
-      const itemsHtml = orderObject.items.map((item: OrderItemFromDb) => `
-        <tr class="item-row">
-          <td class="item-name">${item.name}</td>
-          <td class="item-qty">x${item.quantity}</td>
-          <td class="item-price">₹${(item.price * item.quantity).toFixed(2)}</td>
-        </tr>
-      `).join('');
-
       await sendOrderConfirmationEmail({
         name: orderObject.name,
         orderNumber: orderObject.orderId || orderObject._id.toString().slice(-6),  // ✅ Use orderId
         orderDate: new Date(orderObject.createdAt).toLocaleString('en-IN'),
         email: orderObject.email,
-        items: itemsHtml,
+        items: orderObject.items,
+        subtotal: orderObject.subtotal.toFixed(2),
+        discount: orderObject.discount.toFixed(2),
+        shipping: "0.00",
         totalAmount: orderObject.total.toFixed(2),
+        paymentMethod: orderObject.paymentMethod === 'cod' ? "Cash on Delivery" : "Online (Razorpay)",
+        paymentStatus: "Successful",
         address: orderObject.address,
         city: orderObject.city,
         state: orderObject.state,

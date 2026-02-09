@@ -2,10 +2,11 @@ import { NextResponse } from "next/server";
 import Razorpay from "razorpay";
 import mongoose from "mongoose";
 import { getLoginSession } from "@/lib/auth";
-import { connectDB, Product, Order, User } from "@swago/database";
+import { connectDB, Product, Order, User, Coupon as CouponModel } from "@swago/database";
 import { isValidObjectId } from "mongoose";
 import { generateOrderId } from "@/lib/generateOrderId";
 import { cleanupExpiredOrders } from "@/lib/cleanupExpiredOrders";
+import { validateCoupon } from "@/lib/coupon";
 
 
 // ✅ Type definitions
@@ -192,12 +193,39 @@ export async function POST(req: Request) {
       image: item.image || item.images?.[0] || '',
     }));
 
-    // Calculate totals
-    const subtotal = orderDetails.originalAmount || orderItems.reduce(
+    // Recalculate subtotal server-side to ensure accuracy
+    const subtotal = orderItems.reduce(
       (sum: number, item: OrderItem) => sum + (item.price * item.quantity),
       0
     );
-    const discountAmount = orderDetails.discount?.savedAmount || 0;
+
+    let discountAmount = 0;
+    let validatedCoupon = null;
+
+    // Server-side coupon validation
+    if (orderDetails.coupon?.code) {
+      try {
+        const { coupon, discountAmount: validatedDiscount } = await validateCoupon(
+          orderDetails.coupon.code,
+          subtotal
+        );
+        discountAmount = validatedDiscount;
+        validatedCoupon = coupon;
+      } catch (couponError: any) {
+        console.error("Coupon validation failed during checkout:", couponError.message);
+        // If coupon is invalid, we proceed with 0 discount or return error?
+        // Better to return error if the user expected a discount but it's no longer valid
+        return NextResponse.json({ error: `Coupon Error: ${couponError.message}` }, { status: 400 });
+      }
+    }
+
+    const calculatedTotal = Math.max(0, subtotal - discountAmount);
+
+    // Verify if calculated total matches what frontend sent (optional safety check)
+    if (Math.abs(calculatedTotal - totalAmount) > 1) { // 1 rupee tolerance
+      console.warn(`Total mismatch: frontend=${totalAmount}, backend=${calculatedTotal}`);
+      // We'll use the backend calculated total for the actual payment
+    }
 
     // Create the order with Pending status
     const newOrder = await Order.create({
@@ -216,12 +244,12 @@ export async function POST(req: Request) {
       items: orderItems,
       subtotal: subtotal,
       discount: discountAmount,
-      total: totalAmount,
+      total: calculatedTotal,
       stockReservedAt: new Date(),
       paymentAttempts: 0,
-      ...(orderDetails.coupon && {
-        couponCode: orderDetails.coupon.code,
-        couponDetails: orderDetails.coupon,
+      ...(validatedCoupon && {
+        couponCode: validatedCoupon.code,
+        couponDetails: validatedCoupon,
       }),
     });
 
@@ -283,7 +311,7 @@ export async function POST(req: Request) {
 
 
     const options = {
-      amount: Math.round(totalAmount * 100),
+      amount: Math.round(calculatedTotal * 100),
       currency: "INR",
       receipt: orderId,  // ✅ Use our orderId as receipt
       notes: {

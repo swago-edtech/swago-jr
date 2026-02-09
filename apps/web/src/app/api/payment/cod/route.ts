@@ -2,12 +2,13 @@ import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import mongoose from "mongoose";
 import { getLoginSession } from "@/lib/auth";
-import { connectDB, Product, Order, User } from "@swago/database";
+import { connectDB, Order, User, Product, Coupon } from "@swago/database";
 import { isValidObjectId } from "mongoose";
 import { generateOrderId } from "@/lib/generateOrderId";
 import { sendOrderConfirmationEmail } from "@/lib/msg91-email";
 import { cleanupExpiredOrders } from "@/lib/cleanupExpiredOrders";
 import { invalidateProductCache } from "@/lib/productCache";
+import { validateCoupon } from "@/lib/coupon";
 
 // ✅ Type definitions
 interface ProductDocument {
@@ -99,11 +100,6 @@ export async function POST(req: Request) {
         // ✅ Clean up expired orders first to release reserved stock
         await cleanupExpiredOrders();
 
-        // ✅ DEBUG: Log full cart structure
-        console.log('━━━━━━━━━━━━━━━━━━━━━━━ COD CART DEBUG ━━━━━━━━━━━━━━━━━━━━━━━');
-        console.log('Full cart:', JSON.stringify(orderDetails.cart, null, 2));
-        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-
         // Find the user
         let user = null;
         if (session.phone) {
@@ -122,23 +118,13 @@ export async function POST(req: Request) {
 
         // Step 1: Validate all items have sufficient stock
         for (const item of orderDetails.cart) {
-            // ✅ FIXED: Check numeric id FIRST (for hardcoded products), then productId, then _id
-            // MongoDB embeds add _id to subdocuments, so we need to prioritize the product's actual ID
             const productId = item.id?.toString() || item.productId?.toString() || item._id;
-
-            console.log('🔍 [COD] Item:', item.name);
-            console.log('   item.id:', item.id, 'item.productId:', item.productId, 'item._id:', item._id);
-            console.log('   Final productId:', productId);
 
             if (!productId) {
                 stockErrors.push(`Invalid product ID for ${item.name}`);
                 continue;
             }
 
-
-            // Check stock for all products
-
-            // Database products - check stock
             const product = await getProductById(productId);
 
             if (!product) {
@@ -147,8 +133,6 @@ export async function POST(req: Request) {
             }
 
             const availableStock = Math.max(0, product.stock - (product.reservedStock || 0));
-
-            console.log(`📦 [COD] ${product.name}: Available=${availableStock}, Requested=${item.quantity}`);
 
             if (availableStock === 0) {
                 stockErrors.push(`${item.name} is out of stock`);
@@ -161,7 +145,6 @@ export async function POST(req: Request) {
 
         // If any stock errors, don't proceed
         if (stockErrors.length > 0) {
-            console.log('❌ [COD] Stock validation failed:', stockErrors);
             return NextResponse.json({
                 error: "Stock unavailable",
                 stockErrors: stockErrors,
@@ -170,52 +153,27 @@ export async function POST(req: Request) {
         }
 
         // Step 2: Reduce stock immediately for COD orders
-        // ✅ FIXED: COD orders are confirmed immediately, so we reduce actual stock (not just reserve)
-        console.log('✅ [COD] Stock validation passed. Reducing stock...');
-
         for (const { product, quantity } of reservations) {
-            // Store old values for logging
-            const oldStock = product.stock;
-            const oldSold = product.totalSold || 0;
-
-            // Reduce actual stock
             product.stock = Math.max(0, product.stock - quantity);
-
-            // Increase total sold
             product.totalSold = (product.totalSold || 0) + quantity;
-
             await product.save();
 
-            console.log(`✅ [COD] ${product.name}:`);
-            console.log(`   📦 Stock: ${oldStock} → ${product.stock} (reduced by ${quantity})`);
-            console.log(`   📊 Total Sold: ${oldSold} → ${product.totalSold}`);
-
-            // Invalidate product cache (in-memory)
             try {
                 invalidateProductCache(product.slug || '');
                 invalidateProductCache(product._id.toString());
-            } catch (cacheError) {
-                console.error('⚠️ Cache invalidation failed (non-critical):', cacheError);
-            }
-
-            // ✅ Force revalidate paths ensuring instant reflection
-            try {
                 revalidatePath(`/product/${product.slug}`);
                 revalidatePath(`/product/${product._id}`);
                 revalidatePath('/products');
-                revalidatePath('/'); // Homepage might have featured products
+                revalidatePath('/');
             } catch (e) {
-                console.error('Revalidate path failed', e);
+                console.error('Revalidate path/cache failed', e);
             }
         }
 
         // ========================================
         // ✅ CREATE COD ORDER
         // ========================================
-        console.log('📝 [COD] Creating order...');
-
         const orderId = await generateOrderId();
-        console.log('✅ [COD] Generated Order ID:', orderId);
 
         // Prepare order items
         const orderItems: OrderItem[] = orderDetails.cart.map((item: CartItem) => ({
@@ -226,18 +184,37 @@ export async function POST(req: Request) {
             image: item.image || item.images?.[0] || '',
         }));
 
-        // Calculate totals
-        const subtotal = orderDetails.originalAmount || orderItems.reduce(
+        // Recalculate subtotal server-side
+        const subtotal = orderItems.reduce(
             (sum: number, item: OrderItem) => sum + (item.price * item.quantity),
             0
         );
-        const discountAmount = orderDetails.discount?.savedAmount || 0;
+
+        let discountAmount = 0;
+        let validatedCoupon = null;
+
+        // Server-side coupon validation
+        if (orderDetails.coupon?.code) {
+            try {
+                const { coupon, discountAmount: validatedDiscount } = await validateCoupon(
+                    orderDetails.coupon.code,
+                    subtotal
+                );
+                discountAmount = validatedDiscount;
+                validatedCoupon = coupon;
+            } catch (couponError: any) {
+                console.error("Coupon validation failed during COD checkout:", couponError.message);
+                return NextResponse.json({ error: `Coupon Error: ${couponError.message}` }, { status: 400 });
+            }
+        }
+
+        const calculatedTotal = Math.max(0, subtotal - discountAmount);
 
         // Create the order with COD payment method
         const newOrder = await Order.create({
             orderId: orderId,
             userId: new mongoose.Types.ObjectId(user._id),
-            paymentMethod: 'cod',  // ✅ COD payment method
+            paymentMethod: 'cod',
             phone: orderDetails.phone,
             email: orderDetails.email,
             name: orderDetails.name,
@@ -246,66 +223,57 @@ export async function POST(req: Request) {
             city: orderDetails.city,
             state: orderDetails.state,
             pincode: orderDetails.pincode,
-            status: "Pending",  // ← Stays Pending until delivery
+            status: "Pending",
             items: orderItems,
             subtotal: subtotal,
             discount: discountAmount,
-            total: totalAmount,
+            total: calculatedTotal,
             stockReservedAt: new Date(),
             createdVia: 'frontend',
-            ...(orderDetails.coupon && {
-                couponCode: orderDetails.coupon.code,
-                couponDetails: orderDetails.coupon,
+            ...(validatedCoupon && {
+                couponCode: validatedCoupon.code,
+                couponDetails: validatedCoupon,
             }),
         });
 
-        console.log('✅ [COD] Order created:', orderId);
+        // Increment coupon usage
+        if (newOrder.couponCode) {
+            await Coupon.updateOne(
+                { code: newOrder.couponCode },
+                { $inc: { usageCount: 1 } }
+            );
+        }
 
         // Link order to user
         try {
             user.orders.push(newOrder._id);
             await user.save();
-            console.log('✅ [COD] Order linked to user');
         } catch (linkError) {
-            console.error('⚠️ [COD] Could not link order to user:', linkError);
+            console.error('Could not link order to user:', linkError);
         }
 
-        // ========================================
-        // ✅ SEND CONFIRMATION EMAIL
-        // ========================================
+        // Send confirmation email
         try {
             const orderObject = newOrder.toObject();
-
-            interface OrderItemFromDb {
-                name: string;
-                quantity: number;
-                price: number;
-            }
-
-            const itemsHtml = orderObject.items.map((item: OrderItemFromDb) => `
-        <tr class="item-row">
-          <td class="item-name">${item.name}</td>
-          <td class="item-qty">x${item.quantity}</td>
-          <td class="item-price">₹${(item.price * item.quantity).toFixed(2)}</td>
-        </tr>
-      `).join('');
-
             await sendOrderConfirmationEmail({
                 name: orderObject.name,
                 orderNumber: orderId,
                 orderDate: new Date().toLocaleString('en-IN'),
                 email: orderObject.email,
-                items: itemsHtml,
+                items: orderObject.items,
+                subtotal: orderObject.subtotal.toFixed(2),
+                discount: orderObject.discount.toFixed(2),
+                shipping: "0.00",
                 totalAmount: orderObject.total.toFixed(2),
+                paymentMethod: "Cash on Delivery",
+                paymentStatus: "Pending",
                 address: orderObject.address,
                 city: orderObject.city,
                 state: orderObject.state,
                 pincode: orderObject.pincode,
             });
-
-            console.log('✅ [COD] Confirmation email sent');
         } catch (emailError) {
-            console.error('⚠️ [COD] Email failed (order still created):', emailError);
+            console.error('Email failed:', emailError);
         }
 
         return NextResponse.json({
@@ -313,17 +281,10 @@ export async function POST(req: Request) {
             orderId: orderId,
             mongoOrderId: newOrder._id.toString(),
             paymentMethod: 'cod',
-            message: 'COD order placed successfully'
         });
 
-    } catch (error: unknown) {
-        console.error("[COD] Order creation error:", error);
-
-        let errorMessage = "Failed to create COD order";
-        if (error instanceof Error) {
-            errorMessage = error.message || errorMessage;
-        }
-
-        return NextResponse.json({ error: errorMessage }, { status: 500 });
+    } catch (error: any) {
+        console.error("[COD] Error:", error);
+        return NextResponse.json({ error: error.message || "Failed to create COD order" }, { status: 500 });
     }
 }
