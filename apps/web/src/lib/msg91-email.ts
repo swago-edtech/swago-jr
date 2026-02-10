@@ -173,15 +173,6 @@ export async function sendOrderConfirmationEmail(
 
     // Use a robust logo URL and table layout for the logo
     const logoUrl = "https://www.swago.co/Swago_logo.png";
-    const logoHtml = `
-      <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin-bottom: 25px; background-color: #ffffff;">
-        <tr>
-          <td align="center" style="padding: 20px 0;">
-            <img src="${logoUrl}" alt="Swago" width="180" border="0" style="display: block; width: 180px; height: auto;">
-          </td>
-        </tr>
-      </table>
-    `;
 
     const payload = {
       recipients: [
@@ -197,42 +188,68 @@ export async function sendOrderConfirmationEmail(
             orderNumber: data.orderNumber,
             orderDate: data.orderDate,
             email: data.email,
-            // Prepend logo and greeting to items variable since it's most visible
+            // Prepend logo and greeting to items variable using robust tables
             items: `
-              ${logoHtml}
-              <div style="font-size: 20px; font-weight: bold; color: #333; margin-bottom: 25px; text-align: center;">Hi ${data.name}, Thank you for your order!</div>
-              <div style="margin-top: 10px;">
-                ${data.items.map(item => `
-                  <div style="display: flex; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #f0f0f0; padding-bottom: 15px;">
-                    <img src="${item.image || 'https://www.swago.co/logo.png'}" style="width: 65px; height: 65px; object-fit: contain; border-radius: 8px; border: 1px solid #eee; margin-right: 15px;">
-                    <div style="flex: 1;">
-                      <div style="font-weight: bold; color: #333; font-size: 15px;">${item.name}</div>
-                      <div style="font-size: 13px; color: #666; margin-top: 4px;">Qty: ${item.quantity} | ₹${item.price}</div>
-                    </div>
-                    <div style="font-weight: bold; color: #333; font-size: 15px;">₹${(item.price * item.quantity).toFixed(2)}</div>
-                  </div>
-                `).join('')}
-                
-                <!-- Price Breakup -->
-                <div style="background: #f9f9f9; padding: 25px; border-radius: 12px; margin-top: 30px; border: 1px solid #eeeeee;">
-                  <div style="display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 14px; color: #666;">
-                    <span>Subtotal</span>
-                    <span>₹${data.subtotal}</span>
-                  </div>
-                  <div style="display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 14px; color: #e17055; font-weight: bold;">
-                    <span>Discount</span>
-                    <span>-₹${data.discount}</span>
-                  </div>
-                  <div style="display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 14px; color: #666;">
-                    <span>Shipping</span>
-                    <span>₹${data.shipping}</span>
-                  </div>
-                  <div style="display: flex; justify-content: space-between; border-top: 2px solid #e0e0e0; margin-top: 15px; padding-top: 15px; font-weight: 800; font-size: 18px; color: #111111;">
-                    <span>Total Amount</span>
-                    <span>₹${data.totalAmount}</span>
-                  </div>
-                </div>
-              </div>
+              <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td align="center" style="padding-bottom: 20px;">
+                    <img src="${logoUrl}" alt="Swago" width="160" style="display: block; border: 0;">
+                  </td>
+                </tr>
+                <tr>
+                  <td align="center" style="font-family: Arial, sans-serif; font-size: 20px; font-weight: bold; color: #333333; padding-bottom: 30px;">
+                    Hi ${data.name}, Thank you for your order!
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    ${data.items.map(item => `
+                      <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin-bottom: 20px; border-bottom: 1px solid #eeeeee; padding-bottom: 15px;">
+                        <tr>
+                          <td width="80" valign="top">
+                            <img src="${item.image || 'https://www.swago.co/logo.png'}" width="70" height="70" style="display: block; border-radius: 8px; border: 1px solid #eeeeee; object-fit: contain;">
+                          </td>
+                          <td valign="top" style="padding-left: 15px; font-family: Arial, sans-serif;">
+                            <div style="font-weight: bold; font-size: 15px; color: #333333;">${item.name}</div>
+                            <div style="font-size: 13px; color: #666666; margin-top: 5px;">Qty: ${item.quantity} | ₹${item.price}</div>
+                          </td>
+                          <td width="100" align="right" valign="top" style="font-family: Arial, sans-serif; font-weight: bold; font-size: 15px; color: #333333;">
+                            ₹${(item.price * item.quantity).toFixed(2)}
+                          </td>
+                        </tr>
+                      </table>
+                    `).join('')}
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding-top: 20px;">
+                    <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f9f9f9; border-radius: 12px; border: 1px solid #eeeeee;">
+                      <tr>
+                        <td style="padding: 20px;">
+                          <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                            <tr>
+                              <td style="font-family: Arial, sans-serif; font-size: 14px; color: #666666; padding-bottom: 10px;">Subtotal</td>
+                              <td align="right" style="font-family: Arial, sans-serif; font-size: 14px; color: #333333; padding-bottom: 10px;">₹${data.subtotal}</td>
+                            </tr>
+                            <tr>
+                              <td style="font-family: Arial, sans-serif; font-size: 14px; color: #e17055; font-weight: bold; padding-bottom: 10px;">Discount</td>
+                              <td align="right" style="font-family: Arial, sans-serif; font-size: 14px; color: #e17055; font-weight: bold; padding-bottom: 10px;">-₹${data.discount}</td>
+                            </tr>
+                            <tr>
+                              <td style="font-family: Arial, sans-serif; font-size: 14px; color: #666666; padding-bottom: 10px;">Shipping</td>
+                              <td align="right" style="font-family: Arial, sans-serif; font-size: 14px; color: #333333; padding-bottom: 10px;">₹${data.shipping}</td>
+                            </tr>
+                            <tr>
+                              <td style="border-top: 1px solid #dddddd; padding-top: 15px; font-family: Arial, sans-serif; font-size: 18px; font-weight: 800; color: #111111;">Total Amount</td>
+                              <td align="right" style="border-top: 1px solid #dddddd; padding-top: 15px; font-family: Arial, sans-serif; font-size: 18px; font-weight: 800; color: #111111;">₹${data.totalAmount}</td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
             `,
             subtotal: data.subtotal,
             discount: data.discount,
