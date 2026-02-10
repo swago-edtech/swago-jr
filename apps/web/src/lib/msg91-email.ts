@@ -24,10 +24,10 @@ export type OrderEmailData = {
 };
 
 function generateOrderHtml(data: OrderEmailData) {
-  const logoUrl = "https://www.swago.co/Swago_logo.png";
+  const logoUrl = "https://gateway.pinata.cloud/ipfs/bafybeihlhw37q43gmnxgpdynjymvkxgtga4acaqa7df2va2gx7rkpd3dcq";
   const itemsHtml = data.items.map(item => `
     <div style="display: flex; margin-bottom: 20px; border-bottom: 1px dashed #eee; padding-bottom: 20px;">
-        <img src="${item.image || 'https://www.swago.co/logo.png'}" alt="${item.name}" style="width: 80px; height: 80px; object-fit: contain; border-radius: 8px; border: 1px solid #eee; margin-right: 20px;">
+        <img src="${item.image || 'https://gateway.pinata.cloud/ipfs/bafybeihlhw37q43gmnxgpdynjymvkxgtga4acaqa7df2va2gx7rkpd3dcq'}" alt="${item.name}" style="width: 80px; height: 80px; object-fit: contain; border-radius: 8px; border: 1px solid #eee; margin-right: 20px;">
         <div style="flex: 1;">
             <div style="font-weight: bold; font-size: 15px; color: #333;">${item.name}</div>
             <div style="font-size: 13px; color: #666; margin-top: 5px;">Qty: ${item.quantity}</div>
@@ -48,10 +48,12 @@ function generateOrderHtml(data: OrderEmailData) {
     <div style="max-width: 600px; margin: 40px auto; background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.05);">
         
         <!-- Premium Header -->
-        <div style="padding: 40px 30px; text-align: center; background: #fff;">
-             <img src="${logoUrl}" alt="Swago" style="height: 70px; margin-bottom: 25px;">
-             <h1 style="margin: 0; color: #1a1a1a; font-size: 28px; font-weight: 800; letter-spacing: -0.5px;">Hi ${data.name}!</h1>
-             <p style="margin: 15px 0 0; color: #555; font-size: 17px; line-height: 1.5;">Your order is confirmed and we're getting it ready for you.</p>
+        <div style="text-align: center; background: #fff;">
+             <img src="${logoUrl}" alt="Swago" style="width: 100%; max-width: 600px; height: auto; display: block;">
+             <div style="padding: 40px 30px;">
+                 <h1 style="margin: 0; color: #1a1a1a; font-size: 28px; font-weight: 800; letter-spacing: -0.5px;">Hi ${data.name}!</h1>
+                 <p style="margin: 15px 0 0; color: #555; font-size: 17px; line-height: 1.5;">Your order is confirmed and we're getting it ready for you.</p>
+             </div>
         </div>
         
         <!-- Status Indicator -->
@@ -172,7 +174,7 @@ export async function sendOrderConfirmationEmail(
     const htmlContent = generateOrderHtml(data);
 
     // Use a robust logo URL and table layout for the logo
-    const logoUrl = "https://www.swago.co/Swago_logo.png";
+    const logoUrl = "https://gateway.pinata.cloud/ipfs/bafybeihlhw37q43gmnxgpdynjymvkxgtga4acaqa7df2va2gx7rkpd3dcq";
 
     const payload = {
       recipients: [
@@ -192,12 +194,12 @@ export async function sendOrderConfirmationEmail(
             items: `
               <table width="100%" border="0" cellspacing="0" cellpadding="0">
                 <tr>
-                  <td align="center" style="padding-bottom: 20px;">
-                    <img src="${logoUrl}" alt="Swago" width="160" style="display: block; border: 0;">
+                  <td align="center" style="padding-bottom: 0;">
+                    <img src="${logoUrl}" alt="Swago Banner" width="600" style="display: block; border: 0; width: 100%; max-width: 600px; height: auto;">
                   </td>
                 </tr>
                 <tr>
-                  <td align="center" style="font-family: Arial, sans-serif; font-size: 20px; font-weight: bold; color: #333333; padding-bottom: 30px;">
+                  <td align="center" style="font-family: Arial, sans-serif; font-size: 20px; font-weight: bold; color: #333333; padding: 30px 0;">
                     Hi ${data.name}, Thank you for your order!
                   </td>
                 </tr>
@@ -207,7 +209,7 @@ export async function sendOrderConfirmationEmail(
                       <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin-bottom: 20px; border-bottom: 1px solid #eeeeee; padding-bottom: 15px;">
                         <tr>
                           <td width="80" valign="top">
-                            <img src="${item.image || 'https://www.swago.co/logo.png'}" width="70" height="70" style="display: block; border-radius: 8px; border: 1px solid #eeeeee; object-fit: contain;">
+                            <img src="${item.image || 'https://gateway.pinata.cloud/ipfs/bafybeihlhw37q43gmnxgpdynjymvkxgtga4acaqa7df2va2gx7rkpd3dcq'}" width="70" height="70" style="display: block; border-radius: 8px; border: 1px solid #eeeeee; object-fit: contain;">
                           </td>
                           <td valign="top" style="padding-left: 15px; font-family: Arial, sans-serif;">
                             <div style="font-weight: bold; font-size: 15px; color: #333333;">${item.name}</div>
