@@ -343,22 +343,19 @@ async function handlePaymentCaptured(payload: RazorpayWebhookPayload) {
     console.log('📧 Sending confirmation email...');
     const orderObject = order.toObject();
 
-    const itemsHtml = orderObject.items.map((item: OrderItemFromDb) => `
-      <tr class="item-row">
-        <td class="item-name">${item.name}</td>
-        <td class="item-qty">x${item.quantity}</td>
-        <td class="item-price">₹${(item.price * item.quantity).toFixed(2)}</td>
-      </tr>
-    `).join('');
-
     try {
       await sendOrderConfirmationEmail({
         name: orderObject.name,
-        orderNumber: orderObject.orderId || orderObject._id.toString().slice(-6),  // ✅ Use orderId
+        orderNumber: orderObject.orderId || orderObject._id.toString().slice(-6),
         orderDate: new Date(orderObject.createdAt).toLocaleString('en-IN'),
         email: orderObject.email,
-        items: itemsHtml,
+        items: orderObject.items, // Pass the array directly
+        subtotal: orderObject.subtotal.toFixed(2),
+        discount: orderObject.discount.toFixed(2),
+        shipping: "0.00",
         totalAmount: orderObject.total.toFixed(2),
+        paymentMethod: orderObject.paymentMethod === 'cod' ? "Cash on Delivery" : "Online (Razorpay)",
+        paymentStatus: "Successful",
         address: orderObject.address,
         city: orderObject.city,
         state: orderObject.state,

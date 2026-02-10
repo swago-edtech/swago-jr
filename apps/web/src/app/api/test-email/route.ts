@@ -13,27 +13,31 @@ export async function POST(req: Request) {
       );
     }
 
-    // Build sample items HTML
-    const itemsHtml = `
-      <tr class="item-row">
-        <td class="item-name">Smart Learning Mat - Basics</td>
-        <td class="item-qty">x2</td>
-        <td class="item-price">₹1,998.00</td>
-      </tr>
-      <tr class="item-row">
-        <td class="item-name">Math Explorer Kit</td>
-        <td class="item-qty">x1</td>
-        <td class="item-price">₹999.00</td>
-      </tr>
-    `;
-
     const testData = {
       name: name,
       orderNumber: 'TEST01',
       orderDate: new Date().toLocaleString('en-IN'),
       email: email,
-      items: itemsHtml,
+      items: [
+        {
+          name: "Smart Learning Mat - Basics",
+          quantity: 2,
+          price: 999,
+          image: "https://www.swago.co/logo.png"
+        },
+        {
+          name: "Math Explorer Kit",
+          quantity: 1,
+          price: 999,
+          image: "https://www.swago.co/logo.png"
+        }
+      ],
+      subtotal: '2997.00',
+      discount: '0.00',
+      shipping: '0.00',
       totalAmount: '2997.00',
+      paymentMethod: 'Online (Test)',
+      paymentStatus: 'Successful',
       address: '123 Test Street, Apartment 4B',
       city: 'Mumbai',
       state: 'Maharashtra',
