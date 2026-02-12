@@ -98,11 +98,21 @@ export default function ClaimPhase({
 
   const getCutoffStatus = () => {
     const now = new Date();
-    const wednesday = new Date();
-    const daysUntilWed = (3 - now.getDay() + 7) % 7;
-    wednesday.setDate(now.getDate() + daysUntilWed);
+
+    // Find "This week's Wednesday 8PM"
+    // Calculate days from Sunday to Wednesday (3)
+    const currentDay = now.getDay();
+    const wednesday = new Date(now);
+
+    // Get diff to Wednesday (3) 
+    // If today is Thu(4), Fri(5), Sat(6), we want LAST Wed diff.
+    // If today is Sun(0), Mon(1), Tue(2), Wed(3), we want THIS Wed diff.
+    let diffToWed = 3 - currentDay;
+
+    wednesday.setDate(now.getDate() + diffToWed);
     wednesday.setHours(20, 0, 0, 0);
 
+    // If it's currently between Thursday and Sunday, OR it's Wednesday past 8 PM
     if (now > wednesday) {
       return "past";
     }

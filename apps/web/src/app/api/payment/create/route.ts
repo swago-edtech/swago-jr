@@ -219,7 +219,13 @@ export async function POST(req: Request) {
       }
     }
 
-    const calculatedTotal = Math.max(0, subtotal - discountAmount);
+    const calculatedAmountAfterCoupon = Math.max(0, subtotal - discountAmount);
+
+    // ✅ NEW: Handle Swago Money Redemption
+    const swagoMoneyRedeemed = orderDetails.swagoMoneyRedeemed || 0;
+    const swagoMoneyKidId = orderDetails.swagoMoneyKidId;
+
+    const calculatedTotal = Math.max(0, calculatedAmountAfterCoupon - swagoMoneyRedeemed);
 
     // Verify if calculated total matches what frontend sent (optional safety check)
     if (Math.abs(calculatedTotal - totalAmount) > 1) { // 1 rupee tolerance
@@ -245,6 +251,8 @@ export async function POST(req: Request) {
       subtotal: subtotal,
       discount: discountAmount,
       total: calculatedTotal,
+      swagoMoneyRedeemed: swagoMoneyRedeemed,
+      swagoMoneyKidId: swagoMoneyKidId,
       stockReservedAt: new Date(),
       paymentAttempts: 0,
       ...(validatedCoupon && {

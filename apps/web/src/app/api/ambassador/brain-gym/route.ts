@@ -168,20 +168,8 @@ export async function POST(request: NextRequest) {
         completedAt: new Date(),
       };
 
-      // ✅ CHANGED: Don't auto-award Brand Ambassador badge from Brain Gym
-      // Instead, check if 200 Swago Money threshold is met
-      if (profile.ambassador.swagoMoney >= 200) {
-        const hasAmbassadorBadge = profile.ambassador.badges.some((b: { name: string }) => b.name === "Brand Ambassador");
-        if (!hasAmbassadorBadge) {
-          profile.ambassador.badges.push({
-            name: "Brand Ambassador",
-            awardedAt: new Date(),
-          });
-          profile.ambassador.currentStep = 4;
-          profile.ambassador.status = "brand_ambassador";
-          console.log(`🎉 Brand Ambassador badge awarded via Brain Gym! Swago Money: ${profile.ambassador.swagoMoney}`);
-        }
-      }
+      // ✅ NEW: Check for Brand Ambassador badge at 200 Swago Money threshold
+      profile.checkAndAwardAmbassadorBadge();
 
       await profile.save();
 

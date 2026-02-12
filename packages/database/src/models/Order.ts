@@ -77,6 +77,16 @@ const OrderSchema = new mongoose.Schema(
     },
     webhookProcessed: { type: Boolean, default: false },
     webhookReceivedAt: { type: Date },
+    // ✅ NEW: Swago Money Tracking
+    swagoMoneyRedeemed: {
+      type: Number,
+      default: 0
+    },
+    swagoMoneyKidId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "KidProfile",
+      required: false
+    }
   },
   { timestamps: true }
 );

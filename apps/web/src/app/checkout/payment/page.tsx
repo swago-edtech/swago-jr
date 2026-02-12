@@ -38,6 +38,8 @@ type CheckoutData = {
     appliedCoupon: Coupon | null;
     discount: Discount | null;
     total: number;
+    swagoMoneyRedeemed: number;
+    swagoMoneyKidId: string | null;
     finalAmount: number;
 };
 
@@ -135,6 +137,8 @@ export default function PaymentMethodPage() {
                         coupon: checkoutData.appliedCoupon,
                         discount: checkoutData.discount,
                         originalAmount: total,
+                        swagoMoneyRedeemed: checkoutData.swagoMoneyRedeemed,
+                        swagoMoneyKidId: checkoutData.swagoMoneyKidId,
                         finalAmount: finalAmount,
                     }
                 }),
@@ -275,6 +279,8 @@ export default function PaymentMethodPage() {
                         coupon: checkoutData.appliedCoupon,
                         discount: checkoutData.discount,
                         originalAmount: total,
+                        swagoMoneyRedeemed: checkoutData.swagoMoneyRedeemed,
+                        swagoMoneyKidId: checkoutData.swagoMoneyKidId,
                         finalAmount: finalAmount,
                     }
                 }),
@@ -361,6 +367,13 @@ export default function PaymentMethodPage() {
                                     <div className="flex justify-between text-green-600">
                                         <span>Discount ({checkoutData.appliedCoupon?.code})</span>
                                         <span>-{formatPrice(checkoutData.discount.savedAmount)}</span>
+                                    </div>
+                                )}
+
+                                {checkoutData.swagoMoneyRedeemed > 0 && (
+                                    <div className="flex justify-between text-green-600">
+                                        <span>Swago Money Redeemed</span>
+                                        <span>-{formatPrice(checkoutData.swagoMoneyRedeemed)}</span>
                                     </div>
                                 )}
 

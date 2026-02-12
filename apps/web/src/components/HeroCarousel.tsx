@@ -16,18 +16,30 @@ type Banner = {
   imageUrl: string;
   link: string;
   title: string;
+  device?: 'both' | 'desktop' | 'mobile';
 };
 
 const defaultSlides = [
-  { _id: 'default-1', imageUrl: "/images/SWAGO_Slide_1.jpg", link: "/products", title: "Swago Learning Kits" },
-  { _id: 'default-2', imageUrl: "/images/SWAGO_Slide_2.jpg", link: "/products", title: "Swago Learning Kits" },
+  { _id: 'default-1', imageUrl: "/images/SWAGO_Slide_1.jpg", link: "/products", title: "Swago Learning Kits", device: 'both' as const },
+  { _id: 'default-2', imageUrl: "/images/SWAGO_Slide_2.jpg", link: "/products", title: "Swago Learning Kits", device: 'both' as const },
 ];
 
 export default function HeroCarousel() {
   const [banners, setBanners] = useState<Banner[]>([]);
+  const [isMobile, setIsMobile] = useState(false);
   const [loading, setLoading] = useState(true);
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true }, [Autoplay({ delay: 4000 })]);
   const [selectedIndex, setSelectedIndex] = useState(0);
+
+  // Handle Resize for filtering
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const fetchBanners = async () => {
     try {
@@ -65,7 +77,19 @@ export default function HeroCarousel() {
     };
   }, [emblaApi, onSelect]);
 
-  const slides = banners.length > 0 ? banners : defaultSlides;
+  const allSlides = banners.length > 0 ? banners : defaultSlides;
+
+  // Filter slides based on current device
+  const slides = allSlides.filter(slide => {
+    if (slide.device === 'both' || !slide.device) return true;
+    if (isMobile) return slide.device === 'mobile';
+    return slide.device === 'desktop';
+  });
+
+  // Re-initialize Embla when component is ready and slides change
+  useEffect(() => {
+    if (emblaApi) emblaApi.reInit();
+  }, [emblaApi, slides.length]);
 
   if (loading && banners.length === 0) {
     return <div className="h-[250px] md:h-[400px] w-full bg-gray-100 animate-pulse rounded-2xl" />;
@@ -81,7 +105,7 @@ export default function HeroCarousel() {
             <Link
               href={slide.link || "/products"}
               key={slide._id || index}
-              className="flex-shrink-0 flex-grow-0 w-full min-w-0 h-[250px] md:h-[400px] relative block"
+              className="flex-shrink-0 flex-grow-0 w-full min-w-0 h-[350px] md:h-[400px] relative block"
             >
               <Image
                 src={slide.imageUrl}
@@ -97,7 +121,7 @@ export default function HeroCarousel() {
 
       {/* --- LEFT ARROW --- */}
       <button
-        className="absolute top-1/2 left-4 -translate-y-1/2 bg-white/30 hover:bg-white/80 backdrop-blur-sm p-2 rounded-full text-black transition-all opacity-0 group-hover:opacity-100 focus:opacity-100"
+        className="absolute top-1/2 left-4 -translate-y-1/2 bg-white/30 hover:bg-white/80 backdrop-blur-sm p-2 rounded-full text-black transition-all opacity-0 group-hover:opacity-100 focus:opacity-100 hidden md:block"
         onClick={scrollPrev}
         aria-label="Previous slide"
       >
@@ -106,7 +130,7 @@ export default function HeroCarousel() {
 
       {/* --- RIGHT ARROW --- */}
       <button
-        className="absolute top-1/2 right-4 -translate-y-1/2 bg-white/30 hover:bg-white/80 backdrop-blur-sm p-2 rounded-full text-black transition-all opacity-0 group-hover:opacity-100 focus:opacity-100"
+        className="absolute top-1/2 right-4 -translate-y-1/2 bg-white/30 hover:bg-white/80 backdrop-blur-sm p-2 rounded-full text-black transition-all opacity-0 group-hover:opacity-100 focus:opacity-100 hidden md:block"
         onClick={scrollNext}
         aria-label="Next slide"
       >

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import mongoose from "mongoose";
 import { getLoginSession } from "@/lib/auth";
-import { connectDB, Order, User, Product, Coupon } from "@swago/database";
+import { connectDB, Order, User, Product, Coupon, KidProfile } from "@swago/database";
 import { isValidObjectId } from "mongoose";
 import { generateOrderId } from "@/lib/generateOrderId";
 import { sendOrderConfirmationEmail } from "@/lib/msg91-email";
@@ -208,7 +208,13 @@ export async function POST(req: Request) {
             }
         }
 
-        const calculatedTotal = Math.max(0, subtotal - discountAmount);
+        const calculatedAmountAfterCoupon = Math.max(0, subtotal - discountAmount);
+
+        // ✅ NEW: Handle Swago Money Redemption
+        const swagoMoneyRedeemed = orderDetails.swagoMoneyRedeemed || 0;
+        const swagoMoneyKidId = orderDetails.swagoMoneyKidId;
+
+        const calculatedTotal = Math.max(0, calculatedAmountAfterCoupon - swagoMoneyRedeemed);
 
         // Create the order with COD payment method
         const newOrder = await Order.create({
@@ -228,6 +234,8 @@ export async function POST(req: Request) {
             subtotal: subtotal,
             discount: discountAmount,
             total: calculatedTotal,
+            swagoMoneyRedeemed: swagoMoneyRedeemed,
+            swagoMoneyKidId: swagoMoneyKidId,
             stockReservedAt: new Date(),
             createdVia: 'frontend',
             ...(validatedCoupon && {
@@ -248,6 +256,15 @@ export async function POST(req: Request) {
         try {
             user.orders.push(newOrder._id);
             await user.save();
+
+            // ✅ NEW: Deduct Swago Money from Kid Profile if redeemed
+            if (swagoMoneyRedeemed > 0 && swagoMoneyKidId) {
+                await KidProfile.updateOne(
+                    { _id: swagoMoneyKidId },
+                    { $inc: { "ambassador.swagoMoney": -swagoMoneyRedeemed } }
+                );
+                console.log(`💰 Deducted ${swagoMoneyRedeemed} SD from KidProfile ${swagoMoneyKidId}`);
+            }
         } catch (linkError) {
             console.error('Could not link order to user:', linkError);
         }

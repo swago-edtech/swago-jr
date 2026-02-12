@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getLoginSession } from "@/lib/auth";
-import { connectDB, Order, User, Product, Coupon } from "@swago/database";
+import { connectDB, Order, User, Product, Coupon, KidProfile } from "@swago/database";
 import crypto from "crypto";
 import { z } from "zod";
 import { sendOrderConfirmationEmail } from "@/lib/msg91-email";
@@ -143,6 +143,21 @@ export async function POST(req: Request) {
         { $inc: { usageCount: 1 } }
       );
       console.log('✅ Coupon usage incremented:', order.couponCode);
+    }
+
+    // ========================================
+    // ✅ SWAGO MONEY MANAGEMENT: Deduct from KidProfile
+    // ========================================
+    if (order.swagoMoneyRedeemed > 0 && order.swagoMoneyKidId) {
+      try {
+        await KidProfile.updateOne(
+          { _id: order.swagoMoneyKidId },
+          { $inc: { "ambassador.swagoMoney": -order.swagoMoneyRedeemed } }
+        );
+        console.log(`💰 Deducted ${order.swagoMoneyRedeemed} SD from KidProfile ${order.swagoMoneyKidId}`);
+      } catch (kidError) {
+        console.error('⚠️ Could not deduct Swago Money (non-critical, order is Paid):', kidError);
+      }
     }
 
 

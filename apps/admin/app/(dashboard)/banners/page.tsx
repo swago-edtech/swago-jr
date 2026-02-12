@@ -41,14 +41,14 @@ function BannerPreview({ banners, device }: { banners: Banner[], device: 'deskto
 
     if (filteredBanners.length === 0) {
         return (
-            <div className={`bg-gray-100 rounded-xl flex items-center justify-center border-2 border-dashed border-gray-300 ${device === 'mobile' ? 'aspect-[9/16] w-64 mx-auto' : 'aspect-[3/1] w-full'}`}>
+            <div className={`bg-gray-100 rounded-xl flex items-center justify-center border-2 border-dashed border-gray-300 ${device === 'mobile' ? 'aspect-square w-64 mx-auto' : 'aspect-[3/1] w-full'}`}>
                 <p className="text-gray-400">No active {device} banners</p>
             </div>
         );
     }
 
     return (
-        <div className={`relative group overflow-hidden rounded-xl shadow-lg border-4 border-gray-900 ${device === 'mobile' ? 'aspect-[9/16] w-64 mx-auto' : 'aspect-[3/1] w-full'}`}>
+        <div className={`relative group overflow-hidden rounded-xl shadow-lg border-4 border-gray-900 ${device === 'mobile' ? 'aspect-square w-64 mx-auto' : 'aspect-[3/1] w-full'}`}>
             <div className="overflow-hidden h-full" ref={emblaRef}>
                 <div className="flex h-full">
                     {filteredBanners.map((banner, index) => (

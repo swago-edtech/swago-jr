@@ -13,6 +13,9 @@ type KidProfile = {
   age: number;
   avatarColor: string;
   createdAt: string;
+  ambassador?: {
+    swagoMoney: number;
+  };
 };
 
 export default function ProfilePage() {
@@ -20,7 +23,7 @@ export default function ProfilePage() {
   const router = useRouter();
   const [kidProfiles, setKidProfiles] = useState<KidProfile[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
   // Parent edit state
   const [isEditingParent, setIsEditingParent] = useState(false);
   const [savingParent, setSavingParent] = useState(false);
@@ -34,7 +37,7 @@ export default function ProfilePage() {
   useEffect(() => {
     // Wait for user loading to complete
     if (isLoadingUser) return;
-    
+
     if (!user) {
       router.push("/login?redirect=/profile");
     } else {
@@ -91,10 +94,10 @@ export default function ProfilePage() {
           email: parentForm.email,
           address: parentForm.address,
         });
-        
+
         // Trigger profile update event to refresh cached data
         window.dispatchEvent(new CustomEvent(USER_EVENTS.PROFILE_UPDATE));
-        
+
         setIsEditingParent(false);
       } else {
         setParentError(data.error || "Failed to update profile");
@@ -137,17 +140,46 @@ export default function ProfilePage() {
   return (
     <div className="container mx-auto px-4 py-8">
       {/* ✅ Header with Logout Button */}
-  {/* ✅ Header with Logout Button - Mobile & Desktop */}
-<div className="flex justify-between items-center mb-8">
-  <h1 className="text-3xl font-bold">My Profile</h1>
-  <button
-    onClick={handleLogout}
-    className="text-white bg-[hsl(var(--swago-orange))] hover:opacity-90 px-4 sm:px-6 py-2 rounded-lg font-bold transition-all duration-200 shadow-md hover:shadow-lg text-sm sm:text-base whitespace-nowrap"
-  >
-    Logout
-  </button>
-</div>
+      {/* ✅ Header with Logout Button - Mobile & Desktop */}
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold">My Profile</h1>
+        <button
+          onClick={handleLogout}
+          className="text-white bg-[hsl(var(--swago-orange))] hover:opacity-90 px-4 sm:px-6 py-2 rounded-lg font-bold transition-all duration-200 shadow-md hover:shadow-lg text-sm sm:text-base whitespace-nowrap"
+        >
+          Logout
+        </button>
+      </div>
 
+
+      {/* Swago Wallet Summary Card */}
+      <div className="bg-gradient-to-r from-[hsl(var(--swago-purple))] to-[hsl(var(--swago-purple))]/80 p-6 rounded-2xl shadow-lg border-2 border-white/20 mb-8 text-white relative overflow-hidden">
+        <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-6">
+          <div className="flex items-center gap-4">
+            <div className="bg-white/20 p-4 rounded-2xl backdrop-blur-sm">
+              <span className="text-3xl">💰</span>
+            </div>
+            <div>
+              <h2 className="text-xl font-bold opacity-90">Swago Wallet</h2>
+              <p className="text-sm opacity-75">Your closed-loop reward currency</p>
+            </div>
+          </div>
+
+          <div className="bg-white/10 px-8 py-4 rounded-3xl backdrop-blur-md border border-white/20 text-center md:text-right">
+            <p className="text-xs font-black uppercase tracking-widest opacity-80 mb-1">Total Balance</p>
+            <div className="flex items-center justify-center md:justify-end gap-2">
+              <span className="text-3xl font-black text-[hsl(var(--swago-orange))]">
+                {kidProfiles.reduce((acc, kid) => acc + (kid.ambassador?.swagoMoney || 0), 0)}
+              </span>
+              <span className="text-lg font-bold">SD</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Decorative blobs */}
+        <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 blur-3xl"></div>
+        <div className="absolute bottom-0 left-0 w-24 h-24 bg-[hsl(var(--swago-orange))]/10 rounded-full -ml-12 -mb-12 blur-2xl"></div>
+      </div>
 
       {/* Parent Info Card */}
       <div className="bg-white p-6 rounded-xl shadow-sm border mb-8">
@@ -336,10 +368,14 @@ export default function ProfilePage() {
                 </div>
 
                 {/* Profile Info */}
-                <div className="bg-slate-50 rounded-lg p-3 mb-4">
+                <div className="bg-slate-50 rounded-lg p-3 mb-4 flex justify-between items-center">
                   <p className="text-xs text-slate-500">
                     <KidProfileDate createdAt={kid.createdAt} />
                   </p>
+                  <div className="flex items-center gap-1 bg-white px-2 py-1 rounded-md border border-slate-200">
+                    <span className="text-xs">💰</span>
+                    <span className="text-xs font-bold text-slate-800">{kid.ambassador?.swagoMoney || 0} SD</span>
+                  </div>
                 </div>
 
                 {/* Actions */}

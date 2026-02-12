@@ -86,7 +86,12 @@ export default function NewBannerPage() {
             <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow p-8 space-y-6">
                 {/* Image Upload */}
                 <div className="space-y-4">
-                    <label className="block text-sm font-medium text-gray-700">Banner Image (Recommended Ratio 3:1)</label>
+                    <div className="flex justify-between items-end">
+                        <label className="block text-sm font-medium text-gray-700">Banner Image</label>
+                        <span className="text-[10px] font-bold text-gray-400 uppercase">
+                            {formData.device === 'mobile' ? 'Mobile: ~1:1 Ratio' : 'Desktop: ~3:1 Ratio'}
+                        </span>
+                    </div>
                     {formData.imageUrl ? (
                         <div className="relative w-full aspect-[3/1] bg-gray-100 rounded-xl overflow-hidden group">
                             <img src={formData.imageUrl} alt="Preview" className="w-full h-full object-cover" />
@@ -162,6 +167,9 @@ export default function NewBannerPage() {
                             <option value="desktop">Desktop Only</option>
                             <option value="mobile">Mobile Only</option>
                         </select>
+                        <p className="text-[10px] text-gray-500 mt-1">
+                            💡 Create separate banners for Mobile and Desktop for the best experience.
+                        </p>
                     </div>
                 </div>
 

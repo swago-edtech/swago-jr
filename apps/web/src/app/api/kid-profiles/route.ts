@@ -60,6 +60,7 @@ export async function GET() {
       grade: profile.grade,
       avatarColor: profile.avatar,
       gender: profile.gender,
+      ambassador: profile.ambassador,
       createdAt: profile.createdAt,
     }));
 

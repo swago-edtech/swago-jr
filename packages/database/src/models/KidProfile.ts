@@ -180,7 +180,7 @@ const KidProfileSchema = new mongoose.Schema(
       },
       swagoMoneyEarned: {
         type: Number,
-        default: 10
+        default: 20
       },
       redeemedAt: {
         type: Date,
@@ -238,7 +238,7 @@ KidProfileSchema.methods.redeemLotteryCode = function (codeData: {
   shortForm: string;
   ticketType: string;
 }) {
-  const reward = 10; // Fixed reward for now
+  const reward = 20; // Updated: 20 Swago Money per ticket
 
   // ✅ FIXED: Preserve existing ambassador data - only initialize missing fields
   // This prevents the bug where redeeming a lottery code would reset currentStep to 1

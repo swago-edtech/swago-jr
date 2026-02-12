@@ -47,21 +47,6 @@ function generateOrderHtml(data: OrderEmailData) {
 <body style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333; margin: 0; padding: 0; background-color: #f4f7f6;">
     <div style="max-width: 600px; margin: 40px auto; background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.05);">
         
-        <!-- Premium Header -->
-        <div style="text-align: center; background: #fff;">
-             <img src="${logoUrl}" alt="Swago" style="width: 100%; max-width: 600px; height: auto; display: block;">
-             <div style="padding: 40px 30px;">
-                 <h1 style="margin: 0; color: #1a1a1a; font-size: 28px; font-weight: 800; letter-spacing: -0.5px;">Hi ${data.name}!</h1>
-                 <p style="margin: 15px 0 0; color: #555; font-size: 17px; line-height: 1.5;">Your order is confirmed and we're getting it ready for you.</p>
-             </div>
-        </div>
-        
-        <!-- Status Indicator -->
-        <div style="background-color: #00b894; color: #fff; padding: 30px; text-align: center;">
-            <div style="font-weight: bold; font-size: 20px; text-transform: uppercase; letter-spacing: 1px;">✓ Order Confirmed</div>
-            <div style="font-size: 14px; margin-top: 8px; opacity: 0.9;">Sit back and relax, your purchase is being processed.</div>
-        </div>
-
         <div style="padding: 40px 30px;">
             <!-- Order Info Grid -->
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 40px; background: #fafafa; padding: 25px; border-radius: 12px; border: 1px solid #f0f0f0;">
@@ -82,95 +67,6 @@ function generateOrderHtml(data: OrderEmailData) {
                     <div style="font-size: 15px; font-weight: bold; color: ${data.paymentStatus === 'Successful' ? '#00b894' : '#fdcb6e'}">${data.paymentStatus}</div>
                 </div>
             </div>
-
-            <!-- Items Ordered -->
-            <h2 style="font-size: 20px; font-weight: 800; margin: 0 0 25px; color: #1a1a1a;">Items Ordered</h2>
-            ${itemsHtml}
-
-            <!-- Price Breakdown -->
-            <div style="background: #fff; border: 1px solid #eee; padding: 25px; border-radius: 12px; margin: 40px 0;">
-                <h2 style="font-size: 20px; font-weight: bold; margin: 0 0 20px; color: #2d3436;">Price breakup</h2>
-                
-                <div style="display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 14px; color: #636e72;">
-                    <span>MRP</span>
-                    <span style="font-weight: bold; color: #2d3436;">₹${data.subtotal}</span>
-                </div>
-                
-                <div style="display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 14px; color: #636e72;">
-                    <span>Discount</span>
-                    <span style="font-weight: bold; color: #2d3436;">- ₹${data.discount}</span>
-                </div>
-                
-                <div style="height: 1px; background: #eee; margin: 15px 0;"></div>
-                
-                <div style="display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 14px; color: #636e72;">
-                    <span>Discounted Price</span>
-                    <span style="font-weight: bold; color: #2d3436;">₹${data.totalAmount}</span>
-                </div>
-                
-                <div style="display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 14px; color: #2d3436; font-weight: bold;">
-                    <span>Total Amount</span>
-                    <span>₹${data.totalAmount}</span>
-                </div>
-                
-                <div style="height: 1px; background: #eee; margin: 15px 0;"></div>
-                
-                <div style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 16px; color: #2d3436; font-weight: 800;">
-                    <span>Net Paid</span>
-                    <span>₹${data.totalAmount}</span>
-                </div>
-                
-                <div style="font-size: 13px; color: #555; margin-top: 15px;">
-                    You saved <span style="color: #00b894; font-weight: bold;">₹${data.discount}</span> on this order.
-                </div>
-            </div>
-
-            <!-- Delivering at Section -->
-            <div style="background: #fff; border: 1px solid #eee; padding: 25px; border-radius: 12px; margin-bottom: 30px;">
-                <h2 style="font-size: 20px; font-weight: bold; margin: 0 0 15px; color: #2d3436;">Delivering at</h2>
-                <div style="font-size: 15px; line-height: 1.6; color: #636e72;">
-                    <strong style="color: #2d3436;">📍 ${data.name}</strong>, ${data.address}, ${data.city}, ${data.state} - ${data.pincode}
-                </div>
-            </div>
-
-            <!-- Side-by-Side Cards -->
-            <div style="display: flex; gap: 20px; margin-top: 40px;">
-                <!-- What's next Card -->
-                <div style="flex: 1; background: #fff; border: 1px solid #eee; padding: 20px; border-radius: 12px;">
-                    <h4 style="font-size: 18px; margin: 0 0 12px; color: #2d3436; font-weight: bold;">What's next?</h4>
-                    <p style="font-size: 14px; color: #636e72; margin: 0; line-height: 1.6;">
-                        Once you receive your kit, look for the unique code inside! Your child can redeem it in the Kids Zone to unlock exciting digital games and activities.
-                    </p>
-                </div>
-                
-                <!-- Need help Card -->
-                <div style="flex: 1; background: #fff; border: 1px solid #eee; padding: 20px; border-radius: 12px;">
-                    <h4 style="font-size: 18px; margin: 0 0 12px; color: #2d3436; font-weight: bold;">Need help?</h4>
-                    <p style="font-size: 14px; color: #636e72; margin: 0; line-height: 1.6;">
-                        For queries, or any assistance <a href="mailto:support@swagojr.com" style="color: #ff7675; text-decoration: none; font-weight: bold;">contact us</a> or reach out at support@swagojr.com
-                    </p>
-                </div>
-            </div>
-
-            <!-- Swago Junior Signature -->
-            <div style="margin-top: 40px; border-top: 1px solid #eee; padding-top: 30px;">
-                <div style="font-weight: 800; font-size: 18px; color: #2d3436; margin-bottom: 5px;">Swago Junior</div>
-                <div style="font-size: 14px; color: #636e72; margin-bottom: 20px;">Making Learning Fun & Interactive</div>
-                
-                <div style="font-size: 14px; color: #2d3436;">
-                    <a href="https://www.swago.co" style="color: #0984e3; text-decoration: none;">Visit Website</a> &nbsp;|&nbsp; 
-                    <a href="https://www.swago.co/orders" style="color: #0984e3; text-decoration: none;">Track Order</a> &nbsp;|&nbsp; 
-                    <a href="mailto:support@swagojr.com" style="color: #0984e3; text-decoration: none;">Support</a>
-                </div>
-            </div>
-        </div>
-
-        <!-- Footer -->
-        <div style="background: #fafafa; border-top: 1px solid #eee; padding: 30px; text-align: center;">
-            <p style="margin: 0; font-size: 12px; color: #999;">
-                <a href="#" style="color: #0984e3; text-decoration: underline;">Unsubscribe</a>
-            </p>
-            <p style="margin-top: 15px; font-size: 12px; color: #999;">© 2026 Swago Junior. All rights reserved.</p>
         </div>
     </div>
 </body>

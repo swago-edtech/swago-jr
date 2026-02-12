@@ -27,14 +27,14 @@ export async function POST(req: NextRequest) {
 
     // Demo users can't redeem codes
     if (session.isDemo) {
-      return NextResponse.json({ 
-        error: 'Demo users cannot redeem lottery codes' 
+      return NextResponse.json({
+        error: 'Demo users cannot redeem lottery codes'
       }, { status: 403 });
     }
 
     // 2. Get user from database
     await connectDB();
-    
+
     let user = null;
     if (session.phone) {
       user = await User.findOne({ phone: session.phone });
@@ -56,8 +56,8 @@ export async function POST(req: NextRequest) {
 
     // 🆕 NEW: Validate kidProfileId is provided
     if (!kidProfileId) {
-      return NextResponse.json({ 
-        error: 'Please select a kid profile to redeem this code' 
+      return NextResponse.json({
+        error: 'Please select a kid profile to redeem this code'
       }, { status: 400 });
     }
 
@@ -66,8 +66,8 @@ export async function POST(req: NextRequest) {
     // 4. Validate code format: SWAGO-XXX-XXXXXX
     // 🆕 CHANGED: Now specifically checking for SSR or SDC
     if (!/^SWAGO-(SSR|SDC)-[A-Z0-9]{6}$/.test(trimmedCode)) {
-      return NextResponse.json({ 
-        error: 'Invalid code format. Use format: SWAGO-SSR-XXXXXX or SWAGO-SDC-XXXXXX' 
+      return NextResponse.json({
+        error: 'Invalid code format. Use format: SWAGO-SSR-XXXXXX or SWAGO-SDC-XXXXXX'
       }, { status: 400 });
     }
 
@@ -76,14 +76,14 @@ export async function POST(req: NextRequest) {
     const ticketType = TICKET_TYPES[shortForm].name;
 
     // 🆕 NEW: Verify kid profile belongs to this user
-    const kidProfile = await KidProfile.findOne({ 
-      _id: kidProfileId, 
-      userId: user._id 
+    const kidProfile = await KidProfile.findOne({
+      _id: kidProfileId,
+      userId: user._id
     });
 
     if (!kidProfile) {
-      return NextResponse.json({ 
-        error: 'Kid profile not found or does not belong to you' 
+      return NextResponse.json({
+        error: 'Kid profile not found or does not belong to you'
       }, { status: 404 });
     }
 
@@ -91,22 +91,22 @@ export async function POST(req: NextRequest) {
     const lotteryCode = await LotteryCode.findOne({ code: trimmedCode });
 
     if (!lotteryCode) {
-      return NextResponse.json({ 
-        error: 'Invalid code. This code does not exist.' 
+      return NextResponse.json({
+        error: 'Invalid code. This code does not exist.'
       }, { status: 404 });
     }
 
     // 6. Check if already used
     if (lotteryCode.isUsed) {
-      return NextResponse.json({ 
-        error: 'This code has already been redeemed.' 
+      return NextResponse.json({
+        error: 'This code has already been redeemed.'
       }, { status: 400 });
     }
 
     // 🆕 NEW: Verify shortForm matches (extra validation)
     if (lotteryCode.shortForm !== shortForm) {
-      return NextResponse.json({ 
-        error: `This code is for ${lotteryCode.shortForm} product, but you entered ${shortForm}` 
+      return NextResponse.json({
+        error: `This code is for ${lotteryCode.shortForm} product, but you entered ${shortForm}`
       }, { status: 400 });
     }
 
@@ -114,8 +114,8 @@ export async function POST(req: NextRequest) {
     const product = await Product.findById(lotteryCode.productId);
 
     if (!product) {
-      return NextResponse.json({ 
-        error: 'Product not found for this code' 
+      return NextResponse.json({
+        error: 'Product not found for this code'
       }, { status: 404 });
     }
 
@@ -147,13 +147,13 @@ export async function POST(req: NextRequest) {
         productName: product.name,
         shortForm: lotteryCode.shortForm,
         ticketType: ticketType,
-        swagoMoneyEarned: 10,
+        swagoMoneyEarned: 20,
         redeemedAt: new Date().toISOString(),
       },
       kidProfile: {
         _id: kidProfile._id,
         name: kidProfile.username,
-        newBalance: kidProfile.ambassador?.swagoMoney || 10, // Show new balance
+        newBalance: kidProfile.ambassador?.swagoMoney || 20, // Show new balance
         totalTickets: kidProfile.lotteryTickets?.length || 1,
       },
     });

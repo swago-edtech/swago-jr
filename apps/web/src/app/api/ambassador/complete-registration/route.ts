@@ -22,7 +22,7 @@ const cookieName = "session";
 // Verify access token with MSG91
 async function verifyAccessToken(accessToken: string): Promise<{ success: boolean; error?: string }> {
   const MSG91_AUTH_KEY = process.env.MSG91_AUTH_KEY;
-  
+
   if (!MSG91_AUTH_KEY) {
     return { success: false, error: "MSG91_AUTH_KEY not configured" };
   }
@@ -149,10 +149,10 @@ export async function POST(request: NextRequest) {
     });
 
     // ✅ Determine avatar image based on gender
-    const avatarColor = 
+    const avatarColor =
       gender === "boy" ? "/images/kid_boy1.png" :
-      gender === "girl" ? "/images/kid_girl1.png" :
-      "/images/swoo.png";
+        gender === "girl" ? "/images/kid_girl1.png" :
+          "/images/swoo.png";
 
     // Create kid profile with ambassador program auto-activated
     console.log("🧒 Creating kid profile...");
@@ -179,9 +179,9 @@ export async function POST(request: NextRequest) {
         totalEarnings: 20,
         currentStep: 2,
         badges: [
-          { 
-            name: "Swago Saviour", 
-            awardedAt: new Date() 
+          {
+            name: "Swago Saviour",
+            awardedAt: new Date()
           }
         ],
         joinedAt: new Date(),
@@ -235,7 +235,7 @@ export async function POST(request: NextRequest) {
         gender: kidProfile.gender,
         avatarColor: kidProfile.avatar,
         ambassador: {
-          swagoMoney: 50,
+          swagoMoney: 20,
           badges: ["Swago Saviour"],
           currentStep: 2,
         },
@@ -256,27 +256,27 @@ export async function POST(request: NextRequest) {
     return response;
   } catch (error: unknown) {
     console.error("❌ Ambassador registration error:", error);
-    
+
     // ✅ Handle MongoDB duplicate key errors
     if (
-      error && 
-      typeof error === 'object' && 
-      'code' in error && 
+      error &&
+      typeof error === 'object' &&
+      'code' in error &&
       error.code === 11000 &&
       'keyPattern' in error
     ) {
       const field = Object.keys((error as { keyPattern: Record<string, unknown> }).keyPattern)[0];
       const fieldName = field === 'email' ? 'email address' : field === 'phone' ? 'phone number' : field;
-      
+
       return NextResponse.json(
-        { 
-          success: false, 
+        {
+          success: false,
           error: `An account with this ${fieldName} already exists. Please sign in instead.`
         },
         { status: 400 }
       );
     }
-    
+
     const message = error instanceof Error ? error.message : "Registration failed. Please try again.";
     return NextResponse.json(
       { success: false, error: message },

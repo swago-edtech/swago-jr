@@ -33,14 +33,14 @@ export async function POST(
     profile.ambassador.entryChallenge.status = "approved";
     profile.ambassador.entryChallenge.reviewedAt = new Date();
     profile.ambassador.entryChallenge.reviewNotes = reviewNotes || "Approved";
-    
-    // ✅ CHANGED: Award 30 Swago Money (was 100)
-    profile.ambassador.swagoMoney += 30;
-    profile.ambassador.totalEarnings += 30;
-    
+
+    // ✅ CHANGED: Award 25 Swago Money (as per new requirements)
+    profile.ambassador.swagoMoney += 25;
+    profile.ambassador.totalEarnings += 25;
+
     profile.ambassador.currentStep = 3;
     profile.ambassador.status = "entry_approved";
-    
+
     // ✅ FIXED: Award "Entry Master" badge (was "Brand Ambassador")
     const hasBadge = profile.ambassador.badges.some((b: any) => b.name === "Entry Master");
     if (!hasBadge) {

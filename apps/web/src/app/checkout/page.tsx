@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useSharedContext } from "@/context/SharedContext";
 import { useRouter } from "next/navigation";
 import Script from "next/script";
+import Image from "next/image";
 import PhoneInput from 'react-phone-number-input';
 import { RazorpayOptions, RazorpaySuccessResponse, RazorpayInstance, RazorpayFailedEvent } from "@swago/types";
 import 'react-phone-number-input/style.css';
@@ -94,7 +95,11 @@ export default function CheckoutPage() {
   const [, setPaymentMethod] = useState<'razorpay' | 'cod'>('razorpay');
   // NOTE: showPaymentModal removed - now using dedicated /checkout/payment page
 
-  // ✅ Pre-fill form with user data
+  const [kidProfiles, setKidProfiles] = useState<any[]>([]);
+  const [selectedKidId, setSelectedKidId] = useState<string | null>(null);
+  const [swagoMoneyRedeemed, setSwagoMoneyRedeemed] = useState(0);
+
+  // ✅ Pre-fill form and fetch kid profiles
   useEffect(() => {
     if (user) {
       setForm(prev => ({
@@ -103,8 +108,21 @@ export default function CheckoutPage() {
         phone: user.phone || prev.phone,
         name: user.name || prev.name,
       }));
+      fetchKidProfiles();
     }
   }, [user]);
+
+  const fetchKidProfiles = async () => {
+    try {
+      const res = await fetch("/api/kid-profiles");
+      if (res.ok) {
+        const data = await res.json();
+        setKidProfiles(data.profiles || []);
+      }
+    } catch (error) {
+      console.error("Failed to fetch kid profiles:", error);
+    }
+  };
 
   // ✅ Detect if phone is Indian
   useEffect(() => {
@@ -204,8 +222,19 @@ export default function CheckoutPage() {
     setCouponMessage("");
   };
 
+  const calculateMaxRedeemable = (orderAmount: number) => {
+    if (orderAmount < 799) return 0;
+    if (orderAmount <= 1199) return 50;
+    if (orderAmount <= 1999) return 75;
+    if (orderAmount <= 2999) return 100;
+    return 150; // Hard cap
+  };
+
+  const currentMaxRedeemable = calculateMaxRedeemable(discount ? discount.finalAmount : total);
+
   const getFinalTotal = () => {
-    return discount ? discount.finalAmount : total;
+    const amountAfterCoupon = discount ? discount.finalAmount : total;
+    return Math.max(0, amountAfterCoupon - swagoMoneyRedeemed);
   };
 
   // ✅ NEW: Redirect to payment method selection page
@@ -216,6 +245,8 @@ export default function CheckoutPage() {
       appliedCoupon: appliedCoupon,
       discount: discount,
       total: total,
+      swagoMoneyRedeemed: swagoMoneyRedeemed,
+      swagoMoneyKidId: selectedKidId,
       finalAmount: getFinalTotal(),
     };
 
@@ -515,6 +546,13 @@ export default function CheckoutPage() {
                         <span>Discount ({appliedCoupon?.code}):</span>
                         <span>-₹{discount.savedAmount.toFixed(2)}</span>
                       </div>
+                      {swagoMoneyRedeemed > 0 && (
+                        <div className="flex justify-between items-center text-green-600">
+                          <span>Swago Money Redeemed:</span>
+                          <span>-₹{swagoMoneyRedeemed.toFixed(2)}</span>
+                        </div>
+                      )}
+
                       <hr className="border-slate-200" />
                     </>
                   )}
@@ -532,6 +570,85 @@ export default function CheckoutPage() {
                     </p>
                   )}
                 </div>
+              </div>
+
+              <div className="bg-white rounded-lg border p-4 mb-4">
+                <h3 className="font-semibold mb-3 flex items-center gap-2">
+                  <span className="text-xl">💰</span> Swago Wallet
+                </h3>
+
+                {kidProfiles.length === 0 ? (
+                  <p className="text-xs text-slate-500 italic">No kid profiles found with Swago Money.</p>
+                ) : (
+                  <div className="space-y-4">
+                    <p className="text-xs text-slate-600">
+                      Redeem your Swago Dollars (SD) for instant discounts.
+                      <br />
+                      <span className="font-medium text-[hsl(var(--swago-purple))]">1 SD = ₹1</span>
+                    </p>
+
+                    <div className="grid grid-cols-1 gap-2">
+                      {kidProfiles.map((kid) => {
+                        const balance = kid.ambassador?.swagoMoney || 0;
+                        const isSelected = selectedKidId === kid._id;
+                        const canRedeem = balance > 0;
+
+                        return (
+                          <button
+                            key={kid._id}
+                            onClick={() => {
+                              if (isSelected) {
+                                setSelectedKidId(null);
+                                setSwagoMoneyRedeemed(0);
+                              } else {
+                                setSelectedKidId(kid._id);
+                                setSwagoMoneyRedeemed(Math.min(balance, currentMaxRedeemable));
+                              }
+                            }}
+                            disabled={!canRedeem && !isSelected}
+                            className={`flex justify-between items-center p-3 rounded-lg border-2 transition-all ${isSelected
+                              ? "border-[hsl(var(--swago-purple))] bg-[hsl(var(--swago-purple))]/5"
+                              : "border-slate-100 bg-slate-50 hover:border-slate-300"
+                              } ${!canRedeem && !isSelected ? "opacity-50 cursor-not-allowed" : ""}`}
+                          >
+                            <div className="flex items-center gap-3 text-left">
+                              <div className="w-8 h-8 rounded-full overflow-hidden bg-white flex-shrink-0 border">
+                                <Image
+                                  src={kid.avatarColor || "/images/swoo.png"}
+                                  alt={kid.name}
+                                  width={32}
+                                  height={32}
+                                  className="object-cover"
+                                />
+                              </div>
+                              <div>
+                                <p className="text-sm font-bold text-slate-800">{kid.name}</p>
+                                <p className="text-[10px] text-slate-500">{balance} SD Available</p>
+                              </div>
+                            </div>
+
+                            {isSelected ? (
+                              <div className="text-right">
+                                <span className="text-xs font-black text-green-600">-₹{swagoMoneyRedeemed}</span>
+                                <div className="text-[10px] text-green-600 font-bold">Applied</div>
+                              </div>
+                            ) : (
+                              <div className="text-xs font-bold text-slate-400">
+                                {canRedeem ? "Click to use" : "Empty"}
+                              </div>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {selectedKidId && (
+                      <div className="bg-blue-50 border border-blue-100 p-2 rounded-lg text-[10px] text-blue-700">
+                        ℹ️ Max redeemable for this order: ₹{currentMaxRedeemable}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="bg-white rounded-lg border p-4">

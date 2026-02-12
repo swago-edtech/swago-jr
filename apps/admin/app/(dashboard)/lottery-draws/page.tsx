@@ -119,7 +119,7 @@ export default function LotteryDrawsPage() {
                 <div>
                     <h1 className="text-3xl font-bold text-gray-900">Lottery Weekly Winners</h1>
                     <p className="text-gray-600 mt-1">
-                        Manage weekly lottery draws (Thursday 7PM → Thursday 7PM)
+                        Manage weekly lottery draws (Wednesday 8:00 PM → Wednesday 8:00 PM)
                     </p>
                 </div>
                 <button
@@ -134,9 +134,9 @@ export default function LotteryDrawsPage() {
             {/* Info Banner */}
             <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
                 <p className="text-purple-900 text-sm">
-                    <span className="font-semibold">🎟️ Draw Window:</span> Thursday 7PM IST → Next Thursday 7PM IST
+                    <span className="font-semibold">🎟️ Draw Window:</span> Wednesday 8:00 PM IST → Next Wednesday 8:00 PM IST
                     <br />
-                    <span className="font-semibold">🏆 Winner Selection:</span> Friday 7PM IST (Manual by Admin)
+                    <span className="font-semibold">🏆 Winner Selection:</span> Friday 7:00 PM IST (Manual by Admin)
                 </p>
             </div>
 
