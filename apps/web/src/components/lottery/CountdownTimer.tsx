@@ -15,23 +15,26 @@ export default function CountdownTimer() {
 
   useEffect(() => {
     const calculateTimeLeft = () => {
-      // Get next Friday 7 PM IST
       const now = new Date();
-      const nextFriday = new Date();
-      
-      // Set to next Friday
-      const daysUntilFriday = (5 - now.getDay() + 7) % 7 || 7; // 5 = Friday
-      nextFriday.setDate(now.getDate() + daysUntilFriday);
-      
-      // Set time to 7 PM (19:00)
-      nextFriday.setHours(19, 0, 0, 0);
-      
-      // If we're past Friday 7 PM, go to next week
-      if (nextFriday <= now) {
-        nextFriday.setDate(nextFriday.getDate() + 7);
+
+      // Target: Next Wednesday 8:00 PM IST (14:30 UTC)
+      const nextCutoff = new Date();
+
+      // Calculate days until Wednesday (3 = Wednesday)
+      const daysUntilWednesday = (3 - now.getDay() + 7) % 7;
+      nextCutoff.setDate(now.getDate() + daysUntilWednesday);
+
+      // Set to 8 PM (20:00) IST -> 14:30 UTC
+      // We'll use local hours for simplicity if the server/client are in IST, 
+      // but IST is +5:30. 20:00 IST = 14:30 UTC.
+      nextCutoff.setHours(20, 0, 0, 0);
+
+      // If we're past Wednesday 8 PM today, move to next Wednesday
+      if (nextCutoff <= now) {
+        nextCutoff.setDate(nextCutoff.getDate() + 7);
       }
 
-      const difference = nextFriday.getTime() - now.getTime();
+      const difference = nextCutoff.getTime() - now.getTime();
 
       if (difference > 0) {
         setTimeLeft({
@@ -61,9 +64,9 @@ export default function CountdownTimer() {
     >
       <div className="text-center">
         <p className="text-sm font-semibold text-slate-600 mb-3">
-          Next Draw • Friday • 7:00 PM IST
+          Eligibility Cutoff • Wednesday • 8:00 PM IST
         </p>
-        
+
         <div className="flex items-center justify-center gap-2 md:gap-4">
           {/* Days */}
           <div className="flex flex-col items-center min-w-[60px] md:min-w-[80px]">

@@ -153,7 +153,7 @@ export default function LotteryDrawDetailPage({
                         onClick={() => router.push("/lottery-draws")}
                         className="text-sm text-gray-600 hover:text-gray-900 mb-2"
                     >
-                        ← Back to Draws
+                        ← Back to Winners
                     </button>
                     <h1 className="text-3xl font-bold text-gray-900">{draw.drawNumber}</h1>
                     <p className="text-gray-600 mt-1">
@@ -163,10 +163,10 @@ export default function LotteryDrawDetailPage({
                 <div>
                     <span
                         className={`inline-block px-4 py-2 rounded-full text-sm font-semibold ${draw.status === "drawn"
-                                ? "bg-blue-100 text-blue-800"
-                                : draw.status === "open"
-                                    ? "bg-green-100 text-green-800"
-                                    : "bg-yellow-100 text-yellow-800"
+                            ? "bg-blue-100 text-blue-800"
+                            : draw.status === "open"
+                                ? "bg-green-100 text-green-800"
+                                : "bg-yellow-100 text-yellow-800"
                             }`}
                     >
                         {draw.status === "drawn"
@@ -267,8 +267,8 @@ export default function LotteryDrawDetailPage({
                                     <tr
                                         key={ticket._id}
                                         className={`hover:bg-gray-50 ${draw.winner?.ticketCode === ticket.code
-                                                ? "bg-yellow-50"
-                                                : ""
+                                            ? "bg-yellow-50"
+                                            : ""
                                             }`}
                                     >
                                         <td className="px-6 py-4">

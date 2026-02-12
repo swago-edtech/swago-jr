@@ -88,68 +88,89 @@ function generateOrderHtml(data: OrderEmailData) {
             ${itemsHtml}
 
             <!-- Price Breakdown -->
-            <div style="background: #fff; border: 2px solid #f8f9fa; padding: 25px; border-radius: 16px; margin: 40px 0;">
-                <h2 style="font-size: 18px; font-weight: 800; margin: 0 0 20px; color: #1a1a1a; display: flex; align-items: center;">
-                    Price Breakup
-                </h2>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 15px; color: #666;">
-                    <span>MRP Total</span>
-                    <span>₹${data.subtotal}</span>
+            <div style="background: #fff; border: 1px solid #eee; padding: 25px; border-radius: 12px; margin: 40px 0;">
+                <h2 style="font-size: 20px; font-weight: bold; margin: 0 0 20px; color: #2d3436;">Price breakup</h2>
+                
+                <div style="display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 14px; color: #636e72;">
+                    <span>MRP</span>
+                    <span style="font-weight: bold; color: #2d3436;">₹${data.subtotal}</span>
                 </div>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 15px; color: #e17055;">
-                    <span>Discount Applied</span>
-                    <span>-₹${data.discount}</span>
+                
+                <div style="display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 14px; color: #636e72;">
+                    <span>Discount</span>
+                    <span style="font-weight: bold; color: #2d3436;">- ₹${data.discount}</span>
                 </div>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 15px; color: #666;">
-                    <span>Shipping Charges</span>
-                    <span style="color: #00b894; font-weight: bold;">FREE</span>
+                
+                <div style="height: 1px; background: #eee; margin: 15px 0;"></div>
+                
+                <div style="display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 14px; color: #636e72;">
+                    <span>Discounted Price</span>
+                    <span style="font-weight: bold; color: #2d3436;">₹${data.totalAmount}</span>
                 </div>
-                <div style="display: flex; justify-content: space-between; border-top: 2px solid #f8f9fa; margin-top: 20px; padding-top: 20px; font-weight: 900; font-size: 22px; color: #1a1a1a;">
-                    <span>Total Paid</span>
+                
+                <div style="display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 14px; color: #2d3436; font-weight: bold;">
+                    <span>Total Amount</span>
                     <span>₹${data.totalAmount}</span>
                 </div>
-                <div style="margin-top: 15px; font-size: 13px; color: #00b894; font-weight: bold; background: #e6f7f4; padding: 10px; border-radius: 8px; text-align: center;">
-                    You saved ₹${data.discount} on this order!
+                
+                <div style="height: 1px; background: #eee; margin: 15px 0;"></div>
+                
+                <div style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 16px; color: #2d3436; font-weight: 800;">
+                    <span>Net Paid</span>
+                    <span>₹${data.totalAmount}</span>
+                </div>
+                
+                <div style="font-size: 13px; color: #555; margin-top: 15px;">
+                    You saved <span style="color: #00b894; font-weight: bold;">₹${data.discount}</span> on this order.
                 </div>
             </div>
 
-            <!-- Shipping Address -->
-            <div style="background: #fdfdfd; border: 1px solid #f0f0f0; padding: 25px; border-radius: 16px;">
-                <h2 style="font-size: 18px; font-weight: 800; margin: 0 0 15px; color: #1a1a1a;">Shipping Address</h2>
-                <div style="font-size: 16px; line-height: 1.6; color: #444;">
-                    <strong style="color: #1a1a1a;">${data.name}</strong><br>
-                    ${data.address}<br>
-                    ${data.city}, ${data.state} - ${data.pincode}
+            <!-- Delivering at Section -->
+            <div style="background: #fff; border: 1px solid #eee; padding: 25px; border-radius: 12px; margin-bottom: 30px;">
+                <h2 style="font-size: 20px; font-weight: bold; margin: 0 0 15px; color: #2d3436;">Delivering at</h2>
+                <div style="font-size: 15px; line-height: 1.6; color: #636e72;">
+                    <strong style="color: #2d3436;">📍 ${data.name}</strong>, ${data.address}, ${data.city}, ${data.state} - ${data.pincode}
                 </div>
             </div>
 
-            <!-- Next Steps -->
-            <div style="margin-top: 50px; background: #fff; padding-top: 30px;">
-                <div style="display: flex; gap: 30px;">
-                    <div style="flex: 1;">
-                        <h4 style="font-size: 16px; margin: 0 0 12px; color: #1a1a1a;">What happens next?</h4>
-                        <p style="font-size: 14px; color: #666; margin: 0; line-height: 1.6;">Your order will be processed within 3 working days. You'll receive tracking details via email soon.</p>
-                    </div>
-                    <div style="flex: 1; border-left: 1px solid #eee; padding-left: 30px;">
-                         <h4 style="font-size: 16px; margin: 0 0 12px; color: #1a1a1a;">Need help?</h4>
-                         <p style="font-size: 14px; color: #666; margin: 0; line-height: 1.6;">
-                            Reach us at <a href="mailto:support@swagojr.com" style="color: #00b894; text-decoration: none; font-weight: bold;">support@swagojr.com</a><br>
-                            or call +91 6283883397
-                         </p>
-                    </div>
+            <!-- Side-by-Side Cards -->
+            <div style="display: flex; gap: 20px; margin-top: 40px;">
+                <!-- What's next Card -->
+                <div style="flex: 1; background: #fff; border: 1px solid #eee; padding: 20px; border-radius: 12px;">
+                    <h4 style="font-size: 18px; margin: 0 0 12px; color: #2d3436; font-weight: bold;">What's next?</h4>
+                    <p style="font-size: 14px; color: #636e72; margin: 0; line-height: 1.6;">
+                        Once you receive your kit, look for the unique code inside! Your child can redeem it in the Kids Zone to unlock exciting digital games and activities.
+                    </p>
+                </div>
+                
+                <!-- Need help Card -->
+                <div style="flex: 1; background: #fff; border: 1px solid #eee; padding: 20px; border-radius: 12px;">
+                    <h4 style="font-size: 18px; margin: 0 0 12px; color: #2d3436; font-weight: bold;">Need help?</h4>
+                    <p style="font-size: 14px; color: #636e72; margin: 0; line-height: 1.6;">
+                        For queries, or any assistance <a href="mailto:support@swagojr.com" style="color: #ff7675; text-decoration: none; font-weight: bold;">contact us</a> or reach out at support@swagojr.com
+                    </p>
+                </div>
+            </div>
+
+            <!-- Swago Junior Signature -->
+            <div style="margin-top: 40px; border-top: 1px solid #eee; padding-top: 30px;">
+                <div style="font-weight: 800; font-size: 18px; color: #2d3436; margin-bottom: 5px;">Swago Junior</div>
+                <div style="font-size: 14px; color: #636e72; margin-bottom: 20px;">Making Learning Fun & Interactive</div>
+                
+                <div style="font-size: 14px; color: #2d3436;">
+                    <a href="https://www.swago.co" style="color: #0984e3; text-decoration: none;">Visit Website</a> &nbsp;|&nbsp; 
+                    <a href="https://www.swago.co/orders" style="color: #0984e3; text-decoration: none;">Track Order</a> &nbsp;|&nbsp; 
+                    <a href="mailto:support@swagojr.com" style="color: #0984e3; text-decoration: none;">Support</a>
                 </div>
             </div>
         </div>
 
         <!-- Footer -->
-        <div style="background: #1a1a1a; color: #fff; padding: 40px 30px; text-align: center;">
-            <p style="margin: 0 0 15px; font-size: 14px; opacity: 0.8;">Thank you for shopping with us!</p>
-            <div style="font-size: 20px; font-weight: 900; margin-bottom: 20px;">SWAGO</div>
-            <div style="font-size: 14px; opacity: 0.6;">
-                <a href="https://www.swago.co" style="color: #fff; text-decoration: none;">Website</a> &nbsp; | &nbsp; 
-                <a href="https://www.swago.co/orders" style="color: #fff; text-decoration: none;">Track Order</a>
-            </div>
-            <p style="margin-top: 25px; font-size: 12px; opacity: 0.4;">© 2026 Swago. All rights reserved.</p>
+        <div style="background: #fafafa; border-top: 1px solid #eee; padding: 30px; text-align: center;">
+            <p style="margin: 0; font-size: 12px; color: #999;">
+                <a href="#" style="color: #0984e3; text-decoration: underline;">Unsubscribe</a>
+            </p>
+            <p style="margin-top: 15px; font-size: 12px; color: #999;">© 2026 Swago Junior. All rights reserved.</p>
         </div>
     </div>
 </body>
@@ -224,28 +245,85 @@ export async function sendOrderConfirmationEmail(
                   </td>
                 </tr>
                 <tr>
-                  <td style="padding-top: 20px;">
-                    <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f9f9f9; border-radius: 12px; border: 1px solid #eeeeee;">
+                  <td style="padding-top: 30px; border-top: 1px solid #eeeeee; font-family: Arial, sans-serif;">
+                    <!-- Price Breakup -->
+                    <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border: 1px solid #eeeeee; border-radius: 12px; margin-bottom: 30px;">
                       <tr>
-                        <td style="padding: 20px;">
+                        <td style="padding: 25px;">
+                          <h2 style="font-size: 18px; font-weight: bold; margin: 0 0 15px; color: #2d3436;">Price breakup</h2>
                           <table width="100%" border="0" cellspacing="0" cellpadding="0">
                             <tr>
-                              <td style="font-family: Arial, sans-serif; font-size: 14px; color: #666666; padding-bottom: 10px;">Subtotal</td>
-                              <td align="right" style="font-family: Arial, sans-serif; font-size: 14px; color: #333333; padding-bottom: 10px;">₹${data.subtotal}</td>
+                              <td style="font-size: 14px; color: #636e72; padding-bottom: 10px;">MRP</td>
+                              <td align="right" style="font-size: 14px; color: #2d3436; font-weight: bold; padding-bottom: 10px;">₹${data.subtotal}</td>
                             </tr>
                             <tr>
-                              <td style="font-family: Arial, sans-serif; font-size: 14px; color: #e17055; font-weight: bold; padding-bottom: 10px;">Discount</td>
-                              <td align="right" style="font-family: Arial, sans-serif; font-size: 14px; color: #e17055; font-weight: bold; padding-bottom: 10px;">-₹${data.discount}</td>
+                              <td style="font-size: 14px; color: #636e72; padding-bottom: 10px;">Discount</td>
+                              <td align="right" style="font-size: 14px; color: #2d3436; font-weight: bold; padding-bottom: 10px;">- ₹${data.discount}</td>
+                            </tr>
+                            <tr><td colspan="2" style="height: 1px; background-color: #eeeeee; margin: 10px 0;"></td></tr>
+                            <tr>
+                              <td style="font-size: 14px; color: #636e72; padding: 10px 0;">Discounted Price</td>
+                              <td align="right" style="font-size: 14px; color: #2d3436; font-weight: bold; padding: 10px 0;">₹${data.totalAmount}</td>
                             </tr>
                             <tr>
-                              <td style="font-family: Arial, sans-serif; font-size: 14px; color: #666666; padding-bottom: 10px;">Shipping</td>
-                              <td align="right" style="font-family: Arial, sans-serif; font-size: 14px; color: #333333; padding-bottom: 10px;">₹${data.shipping}</td>
+                              <td style="font-size: 14px; color: #2d3436; font-weight: bold; padding-bottom: 10px;">Total Amount</td>
+                              <td align="right" style="font-size: 14px; color: #2d3436; font-weight: bold; padding-bottom: 10px;">₹${data.totalAmount}</td>
                             </tr>
+                            <tr><td colspan="2" style="height: 1px; background-color: #eeeeee; margin: 10px 0;"></td></tr>
                             <tr>
-                              <td style="border-top: 1px solid #dddddd; padding-top: 15px; font-family: Arial, sans-serif; font-size: 18px; font-weight: 800; color: #111111;">Total Amount</td>
-                              <td align="right" style="border-top: 1px solid #dddddd; padding-top: 15px; font-family: Arial, sans-serif; font-size: 18px; font-weight: 800; color: #111111;">₹${data.totalAmount}</td>
+                              <td style="font-size: 16px; color: #2d3436; font-weight: 800; padding-top: 10px;">Net Paid</td>
+                              <td align="right" style="font-size: 16px; color: #2d3436; font-weight: 800; padding-top: 10px;">₹${data.totalAmount}</td>
                             </tr>
                           </table>
+                          <div style="font-size: 12px; color: #555555; margin-top: 15px;">
+                            You saved <span style="color: #00b894; font-weight: bold;">₹${data.discount}</span> on this order.
+                          </div>
+                        </td>
+                      </tr>
+                    </table>
+
+                    <!-- Delivering at -->
+                    <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border: 1px solid #eeeeee; border-radius: 12px; margin-bottom: 30px;">
+                      <tr>
+                        <td style="padding: 25px;">
+                          <h2 style="font-size: 18px; font-weight: bold; margin: 0 0 10px; color: #2d3436;">Delivering at</h2>
+                          <div style="font-size: 14px; color: #636e72; line-height: 1.5;">
+                            <strong style="color: #2d3436;">📍 ${data.name}</strong>, ${data.address}, ${data.city}, ${data.state} - ${data.pincode}
+                          </div>
+                        </td>
+                      </tr>
+                    </table>
+
+                    <!-- What's next and Need help cards -->
+                    <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin-bottom: 30px;">
+                      <tr>
+                        <td width="48%" valign="top" style="background-color: #ffffff; border: 1px solid #eeeeee; border-radius: 12px; padding: 20px;">
+                          <h4 style="font-size: 16px; font-weight: bold; margin: 0 0 10px; color: #2d3436;">What's next?</h4>
+                          <p style="font-size: 13px; color: #636e72; margin: 0; line-height: 1.5;">
+                            Once you receive your kit, look for the unique code inside! Your child can redeem it in the Kids Zone to unlock exciting digital games and activities.
+                          </p>
+                        </td>
+                        <td width="4%"></td>
+                        <td width="48%" valign="top" style="background-color: #ffffff; border: 1px solid #eeeeee; border-radius: 12px; padding: 20px;">
+                          <h4 style="font-size: 16px; font-weight: bold; margin: 0 0 10px; color: #2d3436;">Need help?</h4>
+                          <p style="font-size: 13px; color: #636e72; margin: 0; line-height: 1.5;">
+                            For queries, or any assistance <a href="mailto:support@swagojr.com" style="color: #ff7675; text-decoration: none; font-weight: bold;">contact us</a> or reach out at support@swagojr.com
+                          </p>
+                        </td>
+                      </tr>
+                    </table>
+
+                    <!-- Signature -->
+                    <table width="100%" border="0" cellspacing="0" cellpadding="0" style="border-top: 1px solid #eeeeee; padding-top: 25px;">
+                      <tr>
+                        <td>
+                          <div style="font-weight: 800; font-size: 16px; color: #2d3436; margin-bottom: 5px;">Swago Junior</div>
+                          <div style="font-size: 13px; color: #636e72; margin-bottom: 15px;">Making Learning Fun & Interactive</div>
+                          <div style="font-size: 13px; color: #2d3436;">
+                            <a href="https://www.swago.co" style="color: #0984e3; text-decoration: none;">Visit Website</a> &nbsp;|&nbsp; 
+                            <a href="https://www.swago.co/orders" style="color: #0984e3; text-decoration: none;">Track Order</a> &nbsp;|&nbsp; 
+                            <a href="mailto:support@swagojr.com" style="color: #0984e3; text-decoration: none;">Support</a>
+                          </div>
                         </td>
                       </tr>
                     </table>

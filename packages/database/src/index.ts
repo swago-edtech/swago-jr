@@ -15,7 +15,8 @@ export { default as LotteryCodeBatch } from './models/LotteryCodeBatch';
 export { default as LotteryDraw } from './models/LotteryDraw';
 export { default as Announcement } from './models/Announcement';
 export { default as Coupon } from './models/Coupon';
-export { default as OrderCounter } from './models/OrderCounter'; // ✅ NEW: For order ID generation
+export { default as OrderCounter } from './models/OrderCounter';
+export { default as Banner } from './models/Banner';
 
 // Export database connection
 export { default as connectDB } from './connection';

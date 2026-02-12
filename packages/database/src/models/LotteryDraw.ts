@@ -82,28 +82,39 @@ LotteryDrawSchema.statics.generateDrawNumber = generateDrawNumber;
 LotteryDrawSchema.statics.getCurrentOrCreateDraw = async function () {
     const now = new Date();
 
-    // Find the most recent Thursday 7PM IST
-    // IST is UTC+5:30, so 7PM IST = 13:30 UTC
-    const getLastThursday7PM = (from: Date): Date => {
-        const d = new Date(from);
-        // Set to 13:30 UTC (7PM IST)
-        d.setUTCHours(13, 30, 0, 0);
+    // Eligibility Cutoff: Wednesday 8:00 PM IST (14:30 UTC)
+    // Draw/Announcement: Friday 7:00 PM IST (13:30 UTC)
 
-        // Find the previous Thursday
-        while (d.getDay() !== 4 || d > from) {
-            d.setDate(d.getDate() - 1);
+    const getThisWeeksWednesday8PM = (from: Date): Date => {
+        const d = new Date(from);
+        const day = d.getDay();
+        // Move to Wednesday (3)
+        const diff = (day >= 4 || (day === 3 && d.getUTCHours() >= 14 && d.getUTCMinutes() >= 30)) ? 10 - day : 3 - day;
+        // Wait, a simpler way: find the Wednesday of the current cycle.
+        // If today is Mon, Tue, early Wed -> this Wed.
+        // If today is late Wed, Thu, Fri, Sat, Sun -> next Wed.
+
+        const Wednesday = new Date(from);
+        const daysToWed = (3 - Wednesday.getDay() + 7) % 7;
+        Wednesday.setDate(Wednesday.getDate() + daysToWed);
+        Wednesday.setUTCHours(14, 30, 0, 0); // 8:00 PM IST
+
+        if (Wednesday < from) {
+            Wednesday.setDate(Wednesday.getDate() + 7);
         }
-        return d;
+        return Wednesday;
     };
 
-    const startDate = getLastThursday7PM(now);
-    const endDate = new Date(startDate);
-    endDate.setDate(endDate.getDate() + 7);
+    const endDate = getThisWeeksWednesday8PM(now);
+    const startDate = new Date(endDate);
+    startDate.setDate(startDate.getDate() - 7);
 
-    const drawDate = new Date(startDate);
-    drawDate.setDate(drawDate.getDate() + 1); // Friday
+    // Draw Date is the Friday following the Wednesday cutoff
+    const drawDate = new Date(endDate);
+    drawDate.setDate(drawDate.getDate() + 2); // Wed + 2 = Fri
+    drawDate.setUTCHours(13, 30, 0, 0); // 7:00 PM IST
 
-    const drawNumber = generateDrawNumber(startDate);
+    const drawNumber = generateDrawNumber(endDate);
 
     // Try to find existing draw
     let draw = await this.findOne({ drawNumber });

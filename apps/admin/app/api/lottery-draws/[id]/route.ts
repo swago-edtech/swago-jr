@@ -42,7 +42,9 @@ export async function GET(
         const eligibleTickets = await LotteryCode.find({
             isUsed: true,
             usedAt: { $gte: draw.startDate, $lt: draw.endDate },
-        }).select("code productName shortForm usedBy usedAt").lean() as unknown as LotteryTicket[];
+        }).populate("productId", "name")
+            .select("code productName shortForm usedBy usedAt productId")
+            .lean() as any[];
 
         // Get kid profile and parent info for each ticket
         const ticketsWithDetails = await Promise.all(
@@ -58,7 +60,7 @@ export async function GET(
                 return {
                     _id: ticket._id,
                     code: ticket.code,
-                    productName: ticket.productName,
+                    productName: ticket.productName || (ticket.productId as any)?.name || "Unknown Product",
                     shortForm: ticket.shortForm,
                     redeemedAt: ticket.usedAt,
                     kidProfile: kidProfile ? {

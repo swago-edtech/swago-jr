@@ -41,11 +41,11 @@ const TICKET_INFO = {
   },
 } as const;
 
-export default function ClaimPhase({ 
-  ticketType, 
-  kidProfileId, 
-  onBack, 
-  onSuccess 
+export default function ClaimPhase({
+  ticketType,
+  kidProfileId,
+  onBack,
+  onSuccess
 }: ClaimPhaseProps) {
   const [codes, setCodes] = useState<string[]>(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
@@ -56,7 +56,7 @@ export default function ClaimPhase({
 
   const handleCodeChange = (index: number, value: string) => {
     const sanitized = value.toUpperCase().replace(/[^A-Z0-9]/g, '');
-    
+
     if (sanitized.length <= 1) {
       const newCodes = [...codes];
       newCodes[index] = sanitized;
@@ -79,11 +79,11 @@ export default function ClaimPhase({
     e.preventDefault();
     const pastedText = e.clipboardData.getData('text').toUpperCase().replace(/[^A-Z0-9]/g, '');
     const newCodes = [...codes];
-    
+
     for (let i = 0; i < Math.min(pastedText.length, 6); i++) {
       newCodes[i] = pastedText[i];
     }
-    
+
     setCodes(newCodes);
     const lastIndex = Math.min(pastedText.length, 5);
     inputRefs.current[lastIndex]?.focus();
@@ -95,6 +95,21 @@ export default function ClaimPhase({
 
   const isCodeComplete = codes.every(code => code.length === 1);
   const fullCode = getFullCode();
+
+  const getCutoffStatus = () => {
+    const now = new Date();
+    const wednesday = new Date();
+    const daysUntilWed = (3 - now.getDay() + 7) % 7;
+    wednesday.setDate(now.getDate() + daysUntilWed);
+    wednesday.setHours(20, 0, 0, 0);
+
+    if (now > wednesday) {
+      return "past";
+    }
+    return "before";
+  };
+
+  const cutoffStatus = getCutoffStatus();
 
   const handleSubmit = async () => {
     if (!isCodeComplete) {
@@ -184,15 +199,15 @@ export default function ClaimPhase({
             <div className="px-1.5 py-1.5 md:px-3 md:py-3 bg-slate-100 border-2 border-slate-300 rounded-md md:rounded-lg">
               <span className="text-[10px] md:text-lg font-mono font-bold text-slate-500">SWAGO</span>
             </div>
-            
+
             {/* Dash */}
             <span className="text-sm md:text-2xl font-bold text-slate-400 px-0.5">-</span>
-            
+
             {/* SSR/SDC (readonly) */}
             <div className="px-1.5 py-1.5 md:px-3 md:py-3 bg-slate-100 border-2 border-slate-300 rounded-md md:rounded-lg">
               <span className="text-[10px] md:text-lg font-mono font-bold text-slate-500">{ticketType}</span>
             </div>
-            
+
             {/* Dash */}
             <span className="text-sm md:text-2xl font-bold text-slate-400 px-0.5">-</span>
 
@@ -200,7 +215,7 @@ export default function ClaimPhase({
             {codes.map((code, index) => (
               <input
                 key={index}
-                ref={(el) => {inputRefs.current[index] = el;}}
+                ref={(el) => { inputRefs.current[index] = el; }}
                 type="text"
                 value={code}
                 onChange={(e) => handleCodeChange(index, e.target.value)}
@@ -212,11 +227,11 @@ export default function ClaimPhase({
                   w-8 h-8 md:w-14 md:h-14 text-center text-base md:text-2xl font-mono font-bold
                   rounded-md md:rounded-lg border-2 transition-all
                   focus:outline-none focus:ring-2
-                  ${error 
-                    ? 'border-red-300 bg-red-50 focus:ring-red-200' 
+                  ${error
+                    ? 'border-red-300 bg-red-50 focus:ring-red-200'
                     : 'border-slate-300 bg-white focus:ring-[hsl(var(--swago-purple))]/30 focus:border-[hsl(var(--swago-purple))]'
                   }
-                  ${code ? 'text-slate-800' : 'text-slate-400'}
+                  ${code ? 'text-black' : 'text-slate-400'}
                   disabled:opacity-50 disabled:cursor-not-allowed
                 `}
               />
@@ -265,6 +280,26 @@ export default function ClaimPhase({
               <span>Chance to win free blind bags!</span>
             </li>
           </ul>
+        </div>
+
+        {/* Cutoff Status Message */}
+        <div className={`mb-6 p-4 rounded-xl border-2 flex items-center gap-3 ${cutoffStatus === 'before'
+          ? 'bg-green-50 border-green-200'
+          : 'bg-blue-50 border-blue-200'
+          }`}>
+          <span className="text-xl">
+            {cutoffStatus === 'before' ? '✅' : '🕒'}
+          </span>
+          <div className="text-sm">
+            <p className={`font-bold ${cutoffStatus === 'before' ? 'text-green-800' : 'text-blue-800'}`}>
+              {cutoffStatus === 'before' ? 'Active Entry' : 'Future Entry'}
+            </p>
+            <p className={cutoffStatus === 'before' ? 'text-green-700' : 'text-blue-700'}>
+              {cutoffStatus === 'before'
+                ? 'You are on time! This ticket will be included in this Friday\'s draw.'
+                : 'This week\'s draw is closed. Your ticket will be automatically entered into NEXT Friday\'s draw.'}
+            </p>
+          </div>
         </div>
 
         {/* Submit Button */}

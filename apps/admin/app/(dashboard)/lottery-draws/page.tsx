@@ -117,7 +117,7 @@ export default function LotteryDrawsPage() {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900">Lottery Weekly Draws</h1>
+                    <h1 className="text-3xl font-bold text-gray-900">Lottery Weekly Winners</h1>
                     <p className="text-gray-600 mt-1">
                         Manage weekly lottery draws (Thursday 7PM → Thursday 7PM)
                     </p>
@@ -127,7 +127,7 @@ export default function LotteryDrawsPage() {
                     disabled={creatingDraw}
                     className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-semibold shadow-lg disabled:opacity-50"
                 >
-                    {creatingDraw ? "Creating..." : "+ Create Current Week Draw"}
+                    {creatingDraw ? "Creating..." : "+ Setup New Weekly Draw"}
                 </button>
             </div>
 
@@ -167,7 +167,7 @@ export default function LotteryDrawsPage() {
                     <select
                         value={statusFilter}
                         onChange={(e) => setStatusFilter(e.target.value)}
-                        className="border border-gray-300 rounded-md px-3 py-2 text-gray-900 focus:ring-2 focus:ring-blue-500"
+                        className="border border-gray-300 rounded-md px-3 py-2 text-black focus:ring-2 focus:ring-blue-500"
                     >
                         <option value="">All Statuses</option>
                         <option value="open">Open</option>

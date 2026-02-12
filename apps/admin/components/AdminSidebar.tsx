@@ -15,13 +15,15 @@ const navigation = [
   { name: 'Coupons', href: '/coupons', icon: Ticket },
   { name: 'Reviews', href: '/reviews', icon: MessageSquare },
   { name: 'Products', href: '/products', icon: Package },
+  { name: 'Banners', href: '/banners', icon: LayoutDashboard },
   {
     name: 'Lottery',
     icon: Ticket,
     submenu: [
       { name: 'Code Generator', href: '/lottery-generator' },
       { name: 'Code Batches', href: '/lottery-batches' },
-      { name: 'Weekly Draws', href: '/lottery-draws' },
+      { name: 'Lottery Tickets', href: '/lottery-tickets' },
+      { name: 'Weekly Winners', href: '/lottery-draws' },
     ]
   },
   { name: 'FAQs', href: '/faqs', icon: HelpCircle },

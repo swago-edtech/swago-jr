@@ -26,14 +26,22 @@ const LotteryCodeSchema = new mongoose.Schema(
       trim: true,
       // ❌ REMOVED: index: true,
     },
+    productName: {
+      type: String,
+      required: [true, "Product name is required"],
+    },
+    batchId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "LotteryCodeBatch",
+      required: [true, "Batch ID is required"],
+    },
     isUsed: {
       type: Boolean,
       default: false,
-      // ❌ REMOVED: index: true,
     },
     usedBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: "KidProfile", // Changed from User to KidProfile based on usage
       default: null,
     },
     usedAt: {

@@ -18,7 +18,7 @@ function generateUniqueSuffix(usedSuffixes: Set<string>): string {
     for (let i = 0; i < 6; i++) {
       suffix += DIGITS[Math.floor(Math.random() * DIGITS.length)];
     }
-    
+
     attempts++;
     if (attempts >= maxAttempts) {
       throw new Error("Unable to generate unique suffix");
@@ -33,17 +33,17 @@ function generateUniqueSuffix(usedSuffixes: Set<string>): string {
 async function generateBatchNumber(shortForm: string): Promise<string> {
   const today = new Date();
   const dateStr = today.toISOString().slice(0, 10).replace(/-/g, ""); // YYYYMMDD
-  
+
   // Find today's batches for this short form
   const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
   const todayEnd = new Date(todayStart);
   todayEnd.setDate(todayEnd.getDate() + 1);
-  
+
   const todayBatches = await LotteryCodeBatch.countDocuments({
     shortForm,
     generatedAt: { $gte: todayStart, $lt: todayEnd },
   });
-  
+
   const counter = String(todayBatches + 1).padStart(3, "0");
   return `BATCH-${shortForm}-${dateStr}-${counter}`;
 }
@@ -139,6 +139,7 @@ export async function POST(req: NextRequest) {
     // 9. Create lottery code documents
     const codeDocuments = generatedCodes.map((gc) => ({
       productId: product._id,
+      productName: product.name,
       code: gc.code,
       shortForm,
       batchId: batch._id,
