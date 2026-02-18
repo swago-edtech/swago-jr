@@ -57,6 +57,7 @@ export async function GET() {
       _id: profile._id,
       name: profile.username,
       age: profile.age,
+      dob: profile.dob,
       grade: profile.grade,
       avatarColor: profile.avatar,
       gender: profile.gender,
@@ -96,13 +97,14 @@ export async function POST(request: NextRequest) {
     }
 
 
-    const { name, age, avatarColor, grade, gender, city } = await request.json();
+    const { name, age, dob, avatarColor, grade, gender, city } = await request.json();
+    console.log("📩 Creating kid profile:", { name, age, dob, avatarColor, grade, gender, city });
 
 
     // Validation
-    if (!name || !age || !avatarColor) {
+    if (!name || !age || !dob || !avatarColor) {
       return NextResponse.json(
-        { error: "Name, age, and avatar are required" },
+        { error: "Name, age, date of birth, and avatar are required" },
         { status: 400 }
       );
     }
@@ -176,6 +178,7 @@ export async function POST(request: NextRequest) {
       userId: user._id,
       username: name.trim(),
       age,
+      dob: new Date(dob),
       grade: grade || undefined,
       avatar: avatarColor,
       gender: gender || "other",

@@ -12,7 +12,8 @@ const registrationSchema = z.object({
   parentPhone: z.string().min(10, "Phone number must be at least 10 digits"),
   city: z.string().min(2, "City is required"),
   childName: z.string().min(2, "Child name is required"),
-  childAge: z.number().min(7).max(14, "Child must be between 7-14 years old"),
+  childAge: z.number().min(3).max(18, "Child must be between 3-18 years old"),
+  childDob: z.string().min(1, "Child date of birth is required"),
   gender: z.enum(["boy", "girl", "other"]),
 });
 
@@ -85,6 +86,7 @@ export async function POST(request: NextRequest) {
       city,
       childName,
       childAge,
+      childDob,
       gender,
     } = validation.data;
 
@@ -152,7 +154,7 @@ export async function POST(request: NextRequest) {
     const avatarColor =
       gender === "boy" ? "/images/kid_boy1.png" :
         gender === "girl" ? "/images/kid_girl1.png" :
-          "/images/swoo.png";
+          "/images/kid_boy1.png";
 
     // Create kid profile with ambassador program auto-activated
     console.log("🧒 Creating kid profile...");
@@ -168,6 +170,7 @@ export async function POST(request: NextRequest) {
       userId: newUser._id,
       username: childName.trim(),
       age: childAge,
+      dob: new Date(childDob),
       gender: gender,
       avatar: avatarColor,
       unlockedProducts: [],

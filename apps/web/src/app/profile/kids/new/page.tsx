@@ -7,11 +7,6 @@ import Image from "next/image";
 import { useSharedContext } from "@/context/SharedContext";
 
 const avatarOptions = [
-  { name: "Swoo", image: "/images/swoo.png" },
-  { name: "William", image: "/images/william.png" },
-  { name: "Aron", image: "/images/aron.png" },
-  { name: "Gibbson", image: "/images/gibbson.png" },
-  { name: "Oswald", image: "/images/oswald.png" },
   { name: "Boy Hero", image: "/images/kid_boy1.png" },
   { name: "Girl Hero", image: "/images/kid_girl1.png" },
 ];
@@ -31,6 +26,7 @@ export default function NewKidProfilePage() {
   const [form, setForm] = useState({
     name: "",
     age: "",
+    dob: "",
     gender: "boy",
     city: "",
     avatarColor: avatarOptions[0].image,
@@ -89,6 +85,7 @@ export default function NewKidProfilePage() {
         body: JSON.stringify({
           name: form.name.trim(),
           age: age,
+          dob: form.dob,
           gender: form.gender,
           city: form.city.trim(),
           avatarColor: form.avatarColor,
@@ -126,7 +123,22 @@ export default function NewKidProfilePage() {
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    let nextForm = { ...form, [name]: value };
+
+    // Auto-calculate age if DOB is changed
+    if (name === "dob" && value) {
+      const birthDate = new Date(value);
+      const today = new Date();
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const m = today.getMonth() - birthDate.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+      nextForm.age = Math.max(0, age).toString();
+    }
+
+    setForm(nextForm);
     setError("");
   };
 
@@ -272,8 +284,23 @@ export default function NewKidProfilePage() {
                     value={form.name}
                     onChange={handleChange}
                     placeholder="Enter child's name"
+                    required
+                  />
+                </div>
+
+                {/* DOB Input */}
+                <div className="mb-4">
+                  <label htmlFor="dob" className="block text-sm font-medium text-slate-700 mb-2">
+                    Date of Birth *
+                  </label>
+                  <input
+                    type="date"
+                    id="dob"
+                    name="dob"
+                    value={form.dob}
+                    onChange={handleChange}
+                    max={new Date().toISOString().split('T')[0]}
                     className="w-full border border-slate-300 rounded-lg p-3 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    maxLength={50}
                     required
                   />
                 </div>
@@ -330,8 +357,8 @@ export default function NewKidProfilePage() {
                       type="button"
                       onClick={() => setForm({ ...form, avatarColor: avatar.image })}
                       className={`relative p-2 rounded-xl border-2 transition-all hover:scale-105 ${form.avatarColor === avatar.image
-                          ? "border-purple-500 bg-purple-50 shadow-lg"
-                          : "border-slate-300 bg-white hover:border-purple-300"
+                        ? "border-purple-500 bg-purple-50 shadow-lg"
+                        : "border-slate-300 bg-white hover:border-purple-300"
                         }`}
                     >
                       <div className="w-full aspect-square rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center relative">

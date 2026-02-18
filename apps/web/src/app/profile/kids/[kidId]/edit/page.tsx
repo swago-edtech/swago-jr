@@ -11,6 +11,7 @@ interface KidProfileData {
   _id: string;
   name: string;
   age: number;
+  dob: string;
   grade?: string;
   avatarColor: string;
   gender?: string;
@@ -20,17 +21,13 @@ interface KidProfileData {
 interface ProfileUpdateData {
   username: string;
   age: number;
+  dob: string;
   grade?: string;
   avatar: string;
   gender?: string;
 }
 
 const avatarOptions = [
-  { name: "Swoo", image: "/images/swoo.png" },
-  { name: "William", image: "/images/william.png" },
-  { name: "Aron", image: "/images/aron.png" },
-  { name: "Gibbson", image: "/images/gibbson.png" },
-  { name: "Oswald", image: "/images/oswald.png" },
   { name: "Boy Hero", image: "/images/kid_boy1.png" },
   { name: "Girl Hero", image: "/images/kid_girl1.png" },
 ];
@@ -64,6 +61,7 @@ export default function EditKidProfilePage({
   const [form, setForm] = useState({
     name: "",
     age: "",
+    dob: "",
     grade: "",
     gender: "boy",
     avatarColor: avatarOptions[0].image,
@@ -93,6 +91,7 @@ export default function EditKidProfilePage({
           setForm({
             name: data.profile.name,
             age: data.profile.age.toString(),
+            dob: data.profile.dob ? new Date(data.profile.dob).toISOString().split('T')[0] : "",
             grade: data.profile.grade || "",
             gender: data.profile.gender || "boy",
             avatarColor: avatarValue,
@@ -135,6 +134,7 @@ export default function EditKidProfilePage({
       const updateData: ProfileUpdateData = {
         username: form.name.trim(),
         age: age,
+        dob: form.dob,
         grade: form.grade || undefined,
         avatar: form.avatarColor,
         gender: form.gender,
@@ -162,7 +162,22 @@ export default function EditKidProfilePage({
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    let nextForm = { ...form, [name]: value };
+
+    // Auto-calculate age if DOB is changed
+    if (name === "dob" && value) {
+      const birthDate = new Date(value);
+      const today = new Date();
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const m = today.getMonth() - birthDate.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+      nextForm.age = Math.max(0, age).toString();
+    }
+
+    setForm(nextForm);
     setError("");
   };
 
@@ -209,6 +224,23 @@ export default function EditKidProfilePage({
               <p className="text-xs text-slate-500 mt-1">
                 This name will be used to select their profile
               </p>
+            </div>
+
+            {/* DOB Input */}
+            <div>
+              <label htmlFor="dob" className="block text-sm font-medium mb-2">
+                Date of Birth *
+              </label>
+              <input
+                type="date"
+                id="dob"
+                name="dob"
+                value={form.dob}
+                onChange={handleChange}
+                max={new Date().toISOString().split('T')[0]}
+                className="w-full border border-slate-300 rounded-md p-3"
+                required
+              />
             </div>
 
             {/* Age and Grade */}
@@ -262,8 +294,8 @@ export default function EditKidProfilePage({
                   type="button"
                   onClick={() => setForm({ ...form, gender: "boy" })}
                   className={`p-4 rounded-lg border-2 transition-all ${form.gender === "boy"
-                      ? "border-blue-500 bg-blue-50 text-blue-700"
-                      : "border-slate-300 bg-white text-slate-700 hover:border-blue-300"
+                    ? "border-blue-500 bg-blue-50 text-blue-700"
+                    : "border-slate-300 bg-white text-slate-700 hover:border-blue-300"
                     }`}
                 >
                   <div className="text-3xl mb-2">👦</div>
@@ -274,8 +306,8 @@ export default function EditKidProfilePage({
                   type="button"
                   onClick={() => setForm({ ...form, gender: "girl" })}
                   className={`p-4 rounded-lg border-2 transition-all ${form.gender === "girl"
-                      ? "border-pink-500 bg-pink-50 text-pink-700"
-                      : "border-slate-300 bg-white text-slate-700 hover:border-pink-300"
+                    ? "border-pink-500 bg-pink-50 text-pink-700"
+                    : "border-slate-300 bg-white text-slate-700 hover:border-pink-300"
                     }`}
                 >
                   <div className="text-3xl mb-2">👧</div>
@@ -299,8 +331,8 @@ export default function EditKidProfilePage({
                     type="button"
                     onClick={() => setForm({ ...form, avatarColor: avatar.image })}
                     className={`relative p-2 rounded-xl border-2 transition-all hover:scale-105 ${form.avatarColor === avatar.image
-                        ? "border-purple-500 bg-purple-50 shadow-lg"
-                        : "border-slate-300 bg-white hover:border-purple-300"
+                      ? "border-purple-500 bg-purple-50 shadow-lg"
+                      : "border-slate-300 bg-white hover:border-purple-300"
                       }`}
                   >
                     <div className="w-full aspect-square rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center relative">

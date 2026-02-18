@@ -7,6 +7,7 @@ import { getLoginSession } from "@/lib/auth";
 interface ProfileUpdates {
   username?: string;
   age?: number;
+  dob?: Date;
   grade?: string;
   avatar?: string;
   gender?: string;
@@ -130,6 +131,7 @@ export async function GET(
       _id: profile._id,
       name: profile.username,
       age: profile.age,
+      dob: profile.dob,
       grade: profile.grade,
       avatarColor: profile.avatar,
       gender: profile.gender,
@@ -187,7 +189,7 @@ export async function PATCH(
     const updates = await request.json();
 
     // Only allow specific fields to be updated
-    const allowedUpdates = ['username', 'age', 'grade', 'avatar', 'gender'] as const;
+    const allowedUpdates = ['username', 'age', 'dob', 'grade', 'avatar', 'gender'] as const;
     const filteredUpdates: Partial<ProfileUpdates> = {};
 
     for (const key of allowedUpdates) {

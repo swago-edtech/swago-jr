@@ -32,6 +32,7 @@ export default function ApplicationForm() {
     city: "",
     childName: "",
     childAge: "",
+    childDob: "",
     gender: "",
     consent: false,
   });
@@ -252,25 +253,24 @@ export default function ApplicationForm() {
   // ✅ Handle form changes with phone number validation
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
+    let nextFormData = { ...formData, [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value };
 
-    if (type === 'checkbox') {
-      setFormData(prev => ({
-        ...prev,
-        [name]: (e.target as HTMLInputElement).checked
-      }));
-    } else if (name === 'parentPhone') {
+    if (name === 'parentPhone') {
       // ✅ Only allow digits and max 10 characters
-      const numericValue = value.replace(/\D/g, '').slice(0, 10);
-      setFormData(prev => ({
-        ...prev,
-        [name]: numericValue
-      }));
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        [name]: value
-      }));
+      nextFormData.parentPhone = value.replace(/\D/g, '').slice(0, 10);
+    } else if (name === 'childDob' && value) {
+      // Auto-calculate age if DOB is changed
+      const birthDate = new Date(value);
+      const today = new Date();
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const m = today.getMonth() - birthDate.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+      nextFormData.childAge = Math.max(0, age).toString();
     }
+
+    setFormData(nextFormData);
   };
 
   const handleSendOTP = async (e: React.FormEvent) => {
@@ -544,6 +544,7 @@ export default function ApplicationForm() {
               city: formData.city.trim(),
               childName: formData.childName.trim(),
               childAge: parseInt(formData.childAge),
+              childDob: formData.childDob,
               gender: formData.gender,
             }),
           });
@@ -951,6 +952,24 @@ export default function ApplicationForm() {
                           disabled={isSubmitting}
                           className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[hsl(var(--swago-purple))] focus:border-transparent disabled:bg-slate-100"
                           placeholder="Enter child's name"
+                        />
+                      </div>
+
+                      {/* Child DOB Section */}
+                      <div>
+                        <label htmlFor="childDob" className="block text-sm font-medium text-slate-700 mb-2">
+                          Child&apos;s Date of Birth *
+                        </label>
+                        <input
+                          id="childDob"
+                          name="childDob"
+                          type="date"
+                          value={formData.childDob}
+                          onChange={handleFormChange}
+                          max={new Date().toISOString().split('T')[0]}
+                          required
+                          disabled={isSubmitting}
+                          className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[hsl(var(--swago-purple))] focus:border-transparent disabled:bg-slate-100"
                         />
                       </div>
 

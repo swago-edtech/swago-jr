@@ -19,6 +19,10 @@ const KidProfileSchema = new mongoose.Schema(
       min: 3,
       max: 18,
     },
+    dob: {
+      type: Date,
+      required: true,
+    },
     grade: {
       type: String,
       enum: [
