@@ -7,7 +7,7 @@ applications:
           commands:
             - corepack enable
             - corepack prepare pnpm@latest --activate
-            - pnpm install --shamefully-hoist
+            - pnpm install
         build:
           commands:
             - pnpm build
@@ -26,7 +26,7 @@ applications:
           commands:
             - corepack enable
             - corepack prepare pnpm@latest --activate
-            - pnpm install --shamefully-hoist
+            - pnpm install
         build:
           commands:
             - pnpm build
