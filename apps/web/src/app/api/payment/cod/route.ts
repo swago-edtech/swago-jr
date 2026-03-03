@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import mongoose from "mongoose";
 import { getLoginSession } from "@/lib/auth";
-import { connectDB, Order, User, Product, Coupon, KidProfile } from "@swago/database";
+import { connectDB, Product, Order, User, Coupon as CouponModel, Promotion, KidProfile } from "@swago/database";
 import { isValidObjectId } from "mongoose";
 import { generateOrderId } from "@/lib/generateOrderId";
 import { sendOrderConfirmationEmail } from "@/lib/msg91-email";
@@ -31,6 +31,7 @@ interface CartItem {
     quantity: number;
     image?: string;
     images?: string[];
+    slug?: string;
 }
 
 interface OrderItem {
@@ -137,7 +138,7 @@ export async function POST(req: Request) {
             if (availableStock === 0) {
                 stockErrors.push(`${item.name} is out of stock`);
             } else if (item.quantity > availableStock) {
-                stockErrors.push(`${item.name}: Only ${availableStock} available (you requested ${item.quantity})`);
+                stockErrors.push(`${item.name}: Only ${availableStock} available(you requested ${item.quantity})`);
             } else {
                 reservations.push({ product, quantity: item.quantity });
             }
@@ -161,8 +162,8 @@ export async function POST(req: Request) {
             try {
                 invalidateProductCache(product.slug || '');
                 invalidateProductCache(product._id.toString());
-                revalidatePath(`/product/${product.slug}`);
-                revalidatePath(`/product/${product._id}`);
+                revalidatePath(`/ product / ${product.slug} `);
+                revalidatePath(`/ product / ${product._id} `);
                 revalidatePath('/products');
                 revalidatePath('/');
             } catch (e) {
@@ -185,6 +186,37 @@ export async function POST(req: Request) {
         }));
 
         // Recalculate subtotal server-side
+        // ✅ ZEPRO Reference: Server-side Bonus Item Validation
+        const activePromotion = await Promotion.findOne({ isActive: true }).lean() as any;
+
+        const BONUS_THRESHOLDS: Record<string, number> = {};
+        if (activePromotion?.bonusItems) {
+            activePromotion.bonusItems.forEach((item: any) => {
+                BONUS_THRESHOLDS[item.slug] = item.threshold;
+            });
+        } else {
+            // Fallback
+            BONUS_THRESHOLDS['mini-swago-game-card'] = 999;
+            BONUS_THRESHOLDS['swago-blind-bag'] = 1499;
+            BONUS_THRESHOLDS['special-edition-item'] = 1999;
+        }
+
+        const nonBonusSubtotal = orderDetails.cart.reduce((sum: number, item: any) => {
+            const slugValue = item.slug || item.productId || item._id;
+            if (item.price === 1 && BONUS_THRESHOLDS[slugValue]) return sum;
+            return sum + (item.price * item.quantity);
+        }, 0);
+
+        for (const item of orderDetails.cart) {
+            const slugValue = item.slug || item.productId || item._id;
+            if (item.price === 1 && BONUS_THRESHOLDS[slugValue]) {
+                if (nonBonusSubtotal < BONUS_THRESHOLDS[slugValue]) {
+                    console.error(`❌ Fraud Detection: Bonus item ${item.name} added without meeting threshold ₹${BONUS_THRESHOLDS[slugValue]}. Current subtotal: ₹${nonBonusSubtotal} `);
+                    return NextResponse.json({ error: "Invalid bonus item threshold" }, { status: 400 });
+                }
+            }
+        }
+
         const subtotal = orderItems.reduce(
             (sum: number, item: OrderItem) => sum + (item.price * item.quantity),
             0
@@ -204,7 +236,7 @@ export async function POST(req: Request) {
                 validatedCoupon = coupon;
             } catch (couponError: any) {
                 console.error("Coupon validation failed during COD checkout:", couponError.message);
-                return NextResponse.json({ error: `Coupon Error: ${couponError.message}` }, { status: 400 });
+                return NextResponse.json({ error: `Coupon Error: ${couponError.message} ` }, { status: 400 });
             }
         }
 
@@ -246,7 +278,7 @@ export async function POST(req: Request) {
 
         // Increment coupon usage
         if (newOrder.couponCode) {
-            await Coupon.updateOne(
+            await (CouponModel as any).updateOne(
                 { code: newOrder.couponCode },
                 { $inc: { usageCount: 1 } }
             );
@@ -263,7 +295,7 @@ export async function POST(req: Request) {
                     { _id: swagoMoneyKidId },
                     { $inc: { "ambassador.swagoMoney": -swagoMoneyRedeemed } }
                 );
-                console.log(`💰 Deducted ${swagoMoneyRedeemed} SD from KidProfile ${swagoMoneyKidId}`);
+                console.log(`💰 Deducted ${swagoMoneyRedeemed} SD from KidProfile ${swagoMoneyKidId} `);
             }
         } catch (linkError) {
             console.error('Could not link order to user:', linkError);

@@ -62,6 +62,7 @@ export async function GET() {
       avatarColor: profile.avatar,
       gender: profile.gender,
       ambassador: profile.ambassador,
+      lotteryTickets: profile.lotteryTickets || [],
       createdAt: profile.createdAt,
     }));
 

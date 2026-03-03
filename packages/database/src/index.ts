@@ -17,6 +17,8 @@ export { default as Announcement } from './models/Announcement';
 export { default as Coupon } from './models/Coupon';
 export { default as OrderCounter } from './models/OrderCounter';
 export { default as Banner } from './models/Banner';
+export { default as Promotion } from './models/Promotion';
+export { default as Quest } from './models/Quest';
 
 // Export database connection
 export { default as connectDB } from './connection';

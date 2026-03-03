@@ -10,6 +10,7 @@ import 'react-phone-number-input/style.css';
 import { isPossiblePhoneNumber, parsePhoneNumber } from 'react-phone-number-input';
 
 
+import { motion } from "framer-motion";
 
 type Coupon = {
   code: string;
@@ -65,6 +66,131 @@ const INDIAN_STATES = [
   "Puducherry"
 ];
 
+const DEFAULT_REDEMPTION_TIERS = [
+  { target: 799, off: 50 },
+  { target: 1200, off: 75 },
+  { target: 2000, off: 100 },
+  { target: 3000, off: 150 }
+];
+
+const DEFAULT_BONUS_ITEMS = [
+  { threshold: 999, label: "Mini Swago Game Card", slug: "mini-swago-game-card" },
+  { threshold: 1499, label: "Swago Blind Bag", slug: "swago-blind-bag" },
+  { threshold: 1999, label: "Special Edition Item", slug: "special-edition-item" }
+];
+
+// ✅ ZEPRO Reference: Redemption Progress Component
+const RedemptionProgress = ({ total, tiers }: { total: number, tiers: any[] }) => {
+  const TIERS = tiers.length > 0 ? tiers : DEFAULT_REDEMPTION_TIERS;
+
+  const currentTierIndex = TIERS.findLastIndex(t => total >= t.target);
+  const nextTier = TIERS.find(t => total < t.target);
+
+  if (!nextTier) return (
+    <div className="bg-green-50 border border-green-100 p-4 rounded-xl mb-4 text-center">
+      <p className="text-sm font-bold text-green-700">🎉 Maximum Redemption Unlocked!</p>
+      <p className="text-xs text-green-600">You can redeem up to ₹150 Swago Money on this order.</p>
+    </div>
+  );
+
+  const currentStart = currentTierIndex === -1 ? 0 : TIERS[currentTierIndex].target;
+  const progress = Math.min(100, Math.max(0, ((total - currentStart) / (nextTier.target - currentStart)) * 100));
+  const remaining = nextTier.target - total;
+
+  return (
+    <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl mb-4">
+      <div className="flex justify-between items-center mb-2">
+        <p className="text-xs font-bold text-blue-800">
+          Add <span className="text-lg">₹{Math.ceil(remaining)}</span> more to unlock <span className="text-lg">₹{nextTier.off}</span> redemption
+        </p>
+        <div className="text-[10px] bg-blue-100 px-2 py-0.5 rounded-full text-blue-600 font-black">
+          LEVEL UP 🚀
+        </div>
+      </div>
+
+      <div className="relative h-2.5 w-full bg-blue-100 rounded-full overflow-hidden mb-1">
+        <motion.div
+          initial={{ width: 0 }}
+          animate={{ width: `${progress}%` }}
+          className="absolute left-0 top-0 h-full bg-gradient-to-r from-blue-400 to-blue-600"
+        />
+      </div>
+
+      <div className="flex justify-between text-[10px] font-bold text-blue-400">
+        <span>₹{currentStart}</span>
+        <span>₹{nextTier.target}</span>
+      </div>
+    </div>
+  );
+};
+
+// ✅ ZEPRO Reference: Bonus Item Unlock Component
+const BonusUnlocker = ({ total, cart, addToCart, bonusItems }: { total: number, cart: any[], addToCart: any, bonusItems: any[] }) => {
+  const THRESHOLDS = bonusItems.length > 0 ? bonusItems : DEFAULT_BONUS_ITEMS;
+
+  const unlocked = THRESHOLDS.filter(t => total >= t.threshold);
+  const isAlreadyAdded = (slug: string) => cart.some(item => (item.slug === slug || item._id === slug) && item.price === 1);
+
+  if (unlocked.length === 0) {
+    const next = THRESHOLDS[0];
+    return (
+      <div className="bg-orange-50 border-dashed border-2 border-orange-200 p-4 rounded-xl mb-6 text-center">
+        <p className="text-xs text-orange-600 mb-1">🎁 Unlock a mystery gift at ₹1</p>
+        <p className="text-[10px] font-bold text-orange-400">Shop for ₹{next.threshold - total} more to unlock</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-dashed border-purple-200 p-4 rounded-xl mb-6">
+      <div className="flex items-center gap-2 mb-3">
+        <span className="text-xl">🌟</span>
+        <div>
+          <h3 className="text-sm font-black text-purple-800">Bonus Unlocked!</h3>
+          <p className="text-[10px] text-purple-500">Add these special items for just ₹1 each</p>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        {unlocked.map(item => {
+          const added = isAlreadyAdded(item.slug);
+          return (
+            <div key={item.slug} className="flex items-center justify-between bg-white/60 p-2 rounded-lg border border-purple-100">
+              <span className="text-xs font-bold text-purple-800">{item.label}</span>
+              <button
+                onClick={async () => {
+                  if (added) return;
+                  const res = await fetch(`/api/products/${item.slug}`);
+                  const data = await res.json();
+                  if (data.success && data.product) {
+                    addToCart({ ...data.product, price: 1 }, 1);
+                  } else {
+                    addToCart({
+                      name: item.label,
+                      price: 1,
+                      images: ['/images/placeholder.png'],
+                      slug: item.slug,
+                      id: item.slug,
+                      _id: item.slug
+                    }, 1);
+                  }
+                }}
+                disabled={added}
+                className={`px-3 py-1 rounded-full text-[10px] font-black transition-all ${added
+                  ? "bg-green-100 text-green-600"
+                  : "bg-purple-600 text-white hover:scale-105 active:scale-95"
+                  }`}
+              >
+                {added ? "ADDED ✅" : "ADD AT ₹1"}
+              </button>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
 export default function CheckoutPage() {
   const [processing, setProcessing] = useState(false);
   const [form, setForm] = useState({
@@ -78,7 +204,7 @@ export default function CheckoutPage() {
     pincode: ""
   });
   const [message, setMessage] = useState("");
-  const { cart, clearCart, user, total, isLoadingUser } = useSharedContext();
+  const { cart, clearCart, user, total, isLoadingUser, addToCart } = useSharedContext();
   const router = useRouter();
 
   const [couponCode, setCouponCode] = useState("");
@@ -98,6 +224,9 @@ export default function CheckoutPage() {
   const [kidProfiles, setKidProfiles] = useState<any[]>([]);
   const [selectedKidId, setSelectedKidId] = useState<string | null>(null);
   const [swagoMoneyRedeemed, setSwagoMoneyRedeemed] = useState(0);
+  const [bonusProducts, setBonusProducts] = useState<any[]>([]);
+  const [bonusLoading, setBonusLoading] = useState(false);
+  const [promotion, setPromotion] = useState<any>(null);
 
   // ✅ Pre-fill form and fetch kid profiles
   useEffect(() => {
@@ -109,6 +238,7 @@ export default function CheckoutPage() {
         name: user.name || prev.name,
       }));
       fetchKidProfiles();
+      fetchPromotion();
     }
   }, [user]);
 
@@ -121,6 +251,43 @@ export default function CheckoutPage() {
       }
     } catch (error) {
       console.error("Failed to fetch kid profiles:", error);
+    }
+  };
+
+  const fetchPromotion = async () => {
+    try {
+      const res = await fetch("/api/promotion");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.promotion) {
+          setPromotion(data.promotion);
+          fetchBonusProducts(data.promotion.bonusItems);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to fetch promotion:", error);
+      fetchBonusProducts(DEFAULT_BONUS_ITEMS);
+    }
+  };
+
+  const fetchBonusProducts = async (bonusItems: any[] = []) => {
+    const itemsToFetch = bonusItems.length > 0 ? bonusItems : DEFAULT_BONUS_ITEMS;
+    setBonusLoading(true);
+    try {
+      const slugs = itemsToFetch.map(item => item.slug);
+      const products = [];
+      for (const slug of slugs) {
+        const res = await fetch(`/api/products/${slug}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.product) products.push(data.product);
+        }
+      }
+      setBonusProducts(products);
+    } catch (error) {
+      console.error("Failed to fetch bonus products:", error);
+    } finally {
+      setBonusLoading(false);
     }
   };
 
@@ -223,11 +390,18 @@ export default function CheckoutPage() {
   };
 
   const calculateMaxRedeemable = (orderAmount: number) => {
-    if (orderAmount < 799) return 0;
-    if (orderAmount <= 1199) return 50;
-    if (orderAmount <= 1999) return 75;
-    if (orderAmount <= 2999) return 100;
-    return 150; // Hard cap
+    const tiers = (promotion?.redemptionTiers || DEFAULT_REDEMPTION_TIERS)
+      .sort((a: any, b: any) => a.target - b.target);
+
+    let maxOff = 0;
+    for (const tier of tiers) {
+      if (orderAmount >= tier.target) {
+        maxOff = tier.off;
+      } else {
+        break;
+      }
+    }
+    return maxOff;
   };
 
   const currentMaxRedeemable = calculateMaxRedeemable(discount ? discount.finalAmount : total);
@@ -535,6 +709,17 @@ export default function CheckoutPage() {
 
               <div className="bg-white rounded-lg border p-4 mb-4">
                 <div className="space-y-3">
+                  {/* ZEPRO Reference: Redemption Progress */}
+                  <RedemptionProgress total={total} tiers={promotion?.redemptionTiers || []} />
+
+                  {/* ZEPRO Reference: Bonus Item Unlock */}
+                  <BonusUnlocker
+                    total={total}
+                    cart={cart}
+                    addToCart={addToCart}
+                    bonusItems={promotion?.bonusItems || []}
+                  />
+
                   <div className="flex justify-between items-center">
                     <span className="text-slate-600">Subtotal ({cart.length} items):</span>
                     <span className="font-medium">₹{total.toFixed(2)}</span>

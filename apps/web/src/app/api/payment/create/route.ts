@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import Razorpay from "razorpay";
 import mongoose from "mongoose";
 import { getLoginSession } from "@/lib/auth";
-import { connectDB, Product, Order, User, Coupon as CouponModel } from "@swago/database";
+import { connectDB, Product, Order, User, Coupon as CouponModel, Promotion, KidProfile } from "@swago/database";
 import { isValidObjectId } from "mongoose";
 import { generateOrderId } from "@/lib/generateOrderId";
 import { cleanupExpiredOrders } from "@/lib/cleanupExpiredOrders";
@@ -30,6 +30,7 @@ interface CartItem {
   quantity: number;
   image?: string;
   images?: string[];
+  slug?: string;
 }
 
 
@@ -194,6 +195,37 @@ export async function POST(req: Request) {
     }));
 
     // Recalculate subtotal server-side to ensure accuracy
+    // ✅ ZEPRO Reference: Server-side Bonus Item Validation
+    const activePromotion = await Promotion.findOne({ isActive: true }).lean() as any;
+
+    const BONUS_THRESHOLDS: Record<string, number> = {};
+    if (activePromotion?.bonusItems) {
+      activePromotion.bonusItems.forEach((item: any) => {
+        BONUS_THRESHOLDS[item.slug] = item.threshold;
+      });
+    } else {
+      // Fallback
+      BONUS_THRESHOLDS['mini-swago-game-card'] = 999;
+      BONUS_THRESHOLDS['swago-blind-bag'] = 1499;
+      BONUS_THRESHOLDS['special-edition-item'] = 1999;
+    }
+
+    const nonBonusSubtotal = orderDetails.cart.reduce((sum: number, item: any) => {
+      const slugValue = item.slug || item.productId || item._id;
+      if (item.price === 1 && BONUS_THRESHOLDS[slugValue]) return sum;
+      return sum + (item.price * item.quantity);
+    }, 0);
+
+    for (const item of orderDetails.cart) {
+      const slugValue = item.slug || item.productId || item._id;
+      if (item.price === 1 && BONUS_THRESHOLDS[slugValue]) {
+        if (nonBonusSubtotal < BONUS_THRESHOLDS[slugValue]) {
+          console.error(`❌ Fraud Detection: Bonus item ${item.name} added without meeting threshold ₹${BONUS_THRESHOLDS[slugValue]}. Current subtotal: ₹${nonBonusSubtotal}`);
+          return NextResponse.json({ error: "Invalid bonus item threshold" }, { status: 400 });
+        }
+      }
+    }
+
     const subtotal = orderItems.reduce(
       (sum: number, item: OrderItem) => sum + (item.price * item.quantity),
       0
