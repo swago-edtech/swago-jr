@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 type Announcement = {
   text: string;
   backgroundColor: string;
+  isScrolling?: boolean;
 };
 
 export default function AnnouncementBanner() {
@@ -36,11 +37,12 @@ export default function AnnouncementBanner() {
   // Get background color class
   const getBackgroundClass = (bg: string) => {
     const colors: Record<string, string> = {
-      gradient: "bg-gradient-to-r from-purple-500 to-pink-500",
-      purple: "bg-purple-600",
-      pink: "bg-pink-600",
-      teal: "bg-teal-600",
-      orange: "bg-orange-600",
+      gradient: "bg-gradient-to-r from-purple-500 to-pink-500 text-white",
+      purple: "bg-purple-600 text-white",
+      pink: "bg-pink-600 text-white",
+      teal: "bg-teal-600 text-white",
+      orange: "bg-orange-600 text-white",
+      yellow: "bg-yellow-400 text-black",
     };
     return colors[bg] || colors.gradient;
   };
@@ -57,13 +59,33 @@ export default function AnnouncementBanner() {
         animate={{ height: "auto", opacity: 1 }}
         exit={{ height: 0, opacity: 0 }}
         transition={{ duration: 0.3, ease: "easeOut" }}
-        className={`${getBackgroundClass(announcement.backgroundColor)} text-white overflow-hidden`}
+        className={`${getBackgroundClass(announcement.backgroundColor)} overflow-hidden py-1.5 md:py-2 relative`}
       >
-        <div className="container mx-auto px-4">
-          <p className="text-center text-sm md:text-base font-medium">
-            {announcement.text}
-          </p>
-        </div>
+        {announcement.isScrolling ? (
+          <div className="flex overflow-hidden whitespace-nowrap">
+            <motion.div
+              animate={{ x: ["0%", "-33.33%"] }}
+              transition={{
+                repeat: Infinity,
+                ease: "linear",
+                duration: 15
+              }}
+              className="flex gap-12 items-center"
+            >
+              {[...Array(6)].map((_, i) => (
+                <span key={i} className="text-sm md:text-base font-bold uppercase tracking-wider px-4">
+                  {announcement.text}
+                </span>
+              ))}
+            </motion.div>
+          </div>
+        ) : (
+          <div className="container mx-auto px-4">
+            <p className="text-center text-sm md:text-base font-bold uppercase tracking-wide">
+              {announcement.text}
+            </p>
+          </div>
+        )}
       </motion.div>
     </AnimatePresence>
   );

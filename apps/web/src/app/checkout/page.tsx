@@ -358,6 +358,7 @@ export default function CheckoutPage() {
         body: JSON.stringify({
           couponCode: couponCode.trim(),
           orderAmount: total,
+          cartItems: cart,
         }),
       });
 

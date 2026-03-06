@@ -4,7 +4,7 @@ import { validateCoupon } from "@/lib/coupon";
 
 export async function POST(req: Request) {
   try {
-    const { couponCode, orderAmount } = await req.json();
+    const { couponCode, orderAmount, cartItems } = await req.json();
 
     if (!couponCode || !orderAmount) {
       return NextResponse.json(
@@ -16,7 +16,7 @@ export async function POST(req: Request) {
     await connectDB();
 
     try {
-      const { coupon, discountAmount, finalAmount } = await validateCoupon(couponCode, orderAmount);
+      const { coupon, discountAmount, finalAmount } = await validateCoupon(couponCode, orderAmount, cartItems);
 
       return NextResponse.json({
         success: true,

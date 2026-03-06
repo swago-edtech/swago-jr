@@ -23,6 +23,7 @@ export async function GET() {
       announcement: {
         text: announcement.text,
         backgroundColor: announcement.backgroundColor,
+        isScrolling: announcement.isScrolling,
       },
     });
   } catch (error: unknown) {

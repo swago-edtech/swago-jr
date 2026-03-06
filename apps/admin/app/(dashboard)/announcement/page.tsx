@@ -9,6 +9,7 @@ type Announcement = {
   text: string;
   isActive: boolean;
   backgroundColor: string;
+  isScrolling: boolean;
 };
 
 const BACKGROUND_OPTIONS = {
@@ -17,6 +18,7 @@ const BACKGROUND_OPTIONS = {
   pink: "Solid Pink",
   teal: "Solid Teal",
   orange: "Solid Orange",
+  yellow: "Solid Yellow (Black Text)",
 };
 
 export default function AnnouncementPage() {
@@ -24,6 +26,7 @@ export default function AnnouncementPage() {
     text: "",
     isActive: true,
     backgroundColor: "gradient",
+    isScrolling: false,
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -93,11 +96,12 @@ export default function AnnouncementPage() {
   // Preview background color
   const getPreviewBackground = () => {
     const colors: Record<string, string> = {
-      gradient: "bg-gradient-to-r from-purple-500 to-pink-500",
-      purple: "bg-purple-600",
-      pink: "bg-pink-600",
-      teal: "bg-teal-600",
-      orange: "bg-orange-600",
+      gradient: "bg-gradient-to-r from-purple-500 to-pink-500 text-white",
+      purple: "bg-purple-600 text-white",
+      pink: "bg-pink-600 text-white",
+      teal: "bg-teal-600 text-white",
+      orange: "bg-orange-600 text-white",
+      yellow: "bg-yellow-400 text-black",
     };
     return colors[announcement.backgroundColor] || colors.gradient;
   };
@@ -121,11 +125,10 @@ export default function AnnouncementPage() {
       {/* Message Alert */}
       {message && (
         <div
-          className={`p-4 rounded-lg ${
-            message.type === "success"
+          className={`p-4 rounded-lg ${message.type === "success"
               ? "bg-green-50 text-green-800 border border-green-200"
               : "bg-red-50 text-red-800 border border-red-200"
-          }`}
+            }`}
         >
           {message.text}
         </div>
@@ -172,25 +175,47 @@ export default function AnnouncementPage() {
         </div>
 
         {/* Active Toggle */}
-        <div className="flex items-center gap-3">
-          <input
-            type="checkbox"
-            id="is-active"
-            checked={announcement.isActive}
-            onChange={(e) => setAnnouncement({ ...announcement, isActive: e.target.checked })}
-            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
-          />
-          <label htmlFor="is-active" className="text-sm font-medium text-gray-700">
-            Show announcement on website
-          </label>
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center gap-3">
+            <input
+              type="checkbox"
+              id="is-active"
+              checked={announcement.isActive}
+              onChange={(e) => setAnnouncement({ ...announcement, isActive: e.target.checked })}
+              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+            />
+            <label htmlFor="is-active" className="text-sm font-medium text-gray-700">
+              Show announcement on website
+            </label>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <input
+              type="checkbox"
+              id="is-scrolling"
+              checked={announcement.isScrolling}
+              onChange={(e) => setAnnouncement({ ...announcement, isScrolling: e.target.checked })}
+              className="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-2 focus:ring-orange-500"
+            />
+            <label htmlFor="is-scrolling" className="text-sm font-bold text-gray-700 flex items-center gap-2">
+              <span>Enable Running Ribbon (Scrolling Text)</span>
+              <span className="text-[10px] bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full uppercase">New 🚀</span>
+            </label>
+          </div>
         </div>
 
         {/* Preview */}
         {announcement.text && (
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Preview</label>
-            <div className={`${getPreviewBackground()} text-white text-center py-3 px-4 rounded-md text-sm`}>
-              {announcement.text}
+            <div className={`${getPreviewBackground()} text-center py-3 px-4 rounded-md text-sm font-bold uppercase tracking-wide overflow-hidden relative`}>
+              {announcement.isScrolling ? (
+                <div className="flex whitespace-nowrap animate-pulse">
+                  <span className="inline-block px-4">↔️ SCROLLING PREVIEW ↔️ {announcement.text} ↔️ {announcement.text}</span>
+                </div>
+              ) : (
+                announcement.text
+              )}
             </div>
             {!announcement.isActive && (
               <p className="text-xs text-orange-600 mt-2">

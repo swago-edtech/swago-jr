@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
     await connectDB();
 
     const body = await req.json();
-    const { text, isActive, backgroundColor } = body;
+    const { text, isActive, backgroundColor, isScrolling } = body;
 
     // Validate required field
     if (!text || text.trim().length === 0) {
@@ -57,6 +57,7 @@ export async function POST(req: NextRequest) {
       announcement.text = text.trim();
       announcement.isActive = isActive !== undefined ? isActive : true;
       announcement.backgroundColor = backgroundColor || "gradient";
+      announcement.isScrolling = isScrolling !== undefined ? isScrolling : false;
       await announcement.save();
     } else {
       // Create new
@@ -64,6 +65,7 @@ export async function POST(req: NextRequest) {
         text: text.trim(),
         isActive: isActive !== undefined ? isActive : true,
         backgroundColor: backgroundColor || "gradient",
+        isScrolling: isScrolling !== undefined ? isScrolling : false,
       });
     }
 

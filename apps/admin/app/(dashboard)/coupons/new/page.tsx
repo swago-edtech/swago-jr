@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
@@ -19,7 +19,29 @@ export default function NewCouponPage() {
         active: true,
         expiryDate: "",
         usageLimit: null as number | null,
+        applicableProducts: [] as string[],
     });
+
+    const [products, setProducts] = useState<any[]>([]);
+    const [productsLoading, setProductsLoading] = useState(true);
+
+    const fetchProducts = async () => {
+        try {
+            const res = await fetch("/api/products");
+            const data = await res.json();
+            if (data.success) {
+                setProducts(data.products);
+            }
+        } catch (error) {
+            console.error("Error fetching products:", error);
+        } finally {
+            setProductsLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchProducts();
+    }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -153,7 +175,7 @@ export default function NewCouponPage() {
                     </div>
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-4">
                     <label className="text-sm font-medium text-gray-700">Description</label>
                     <textarea
                         required
@@ -163,6 +185,46 @@ export default function NewCouponPage() {
                         className="w-full border border-gray-300 rounded-md px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none text-gray-900"
                         placeholder="e.g. 20% off for new customers on orders above ₹1000"
                     />
+                </div>
+
+                <div className="space-y-4 border-t pt-6">
+                    <div className="flex justify-between items-center">
+                        <label className="text-sm font-bold text-gray-700 flex items-center gap-2">
+                            <span>Restriction: Applicable Products</span>
+                            <span className="text-[10px] font-normal text-gray-500">(Leave blank if applicable to all products)</span>
+                        </label>
+                    </div>
+
+                    <div className="bg-gray-50 p-4 rounded-lg border border-dashed border-gray-300">
+                        {productsLoading ? (
+                            <p className="text-sm text-gray-500 italic">Loading products...</p>
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-60 overflow-y-auto pr-2">
+                                {products.map(product => (
+                                    <label key={product._id} className="flex items-center gap-3 p-2 bg-white rounded border hover:border-blue-400 cursor-pointer transition-colors">
+                                        <input
+                                            type="checkbox"
+                                            checked={formData.applicableProducts.includes(product._id)}
+                                            onChange={(e) => {
+                                                const updated = e.target.checked
+                                                    ? [...formData.applicableProducts, product._id]
+                                                    : formData.applicableProducts.filter(id => id !== product._id);
+                                                setFormData({ ...formData, applicableProducts: updated });
+                                            }}
+                                            className="w-4 h-4 text-blue-600 rounded"
+                                        />
+                                        <div className="flex flex-col">
+                                            <span className="text-sm font-medium text-gray-900">{product.name}</span>
+                                            <span className="text-[10px] text-gray-500">₹{product.price}</span>
+                                        </div>
+                                    </label>
+                                ))}
+                                {products.length === 0 && (
+                                    <p className="text-sm text-gray-500">No products found.</p>
+                                )}
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 <div className="flex justify-end pt-4">

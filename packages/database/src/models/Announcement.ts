@@ -22,9 +22,13 @@ const AnnouncementSchema = new mongoose.Schema(
       type: String,
       default: "gradient", // "gradient" | "purple" | "pink" | "teal" | "orange"
       enum: {
-        values: ["gradient", "purple", "pink", "teal", "orange"],
-        message: "Background must be one of: gradient, purple, pink, teal, orange"
+        values: ["gradient", "purple", "pink", "teal", "orange", "yellow"],
+        message: "Background must be one of: gradient, purple, pink, teal, orange, yellow"
       }
+    },
+    isScrolling: {
+      type: Boolean,
+      default: false
     }
   },
   {
