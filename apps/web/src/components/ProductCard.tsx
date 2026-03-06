@@ -155,149 +155,137 @@ export default function ProductCard({ product }: { product: Product }) {
     : `/product/${product._id || product.id}`;
 
   return (
-    <Link href={productUrl} className="block group h-full">
-      <div
-        className="bg-white border border-slate-200 rounded-xl flex flex-col h-full shadow-sm group-hover:shadow-lg transition-shadow duration-300"
-        onMouseEnter={() => setIsHovering(true)}
-        onMouseLeave={() => setIsHovering(false)}
-      >
+    <motion.div
+      whileHover={{ scale: 1.03 }}
+      whileTap={{ scale: 0.98 }}
+      className="h-full"
+    >
+      <Link href={productUrl} className="block group h-full">
+        <div
+          className="bg-white border border-slate-100 rounded-2xl flex flex-col h-full shadow-[0_10px_40px_-15px_rgba(0,0,0,0.1)] hover:shadow-[0_20px_60px_-20px_rgba(0,0,0,0.2)] transition-all duration-500 overflow-hidden"
+          onMouseEnter={() => setIsHovering(true)}
+          onMouseLeave={() => setIsHovering(false)}
+        >
 
-        {/* Image Section */}
-        <div className="relative w-full aspect-square rounded-t-xl overflow-hidden">
-          <Image
-            src={product.images[currentImageIndex]}
-            alt={product.name}
-            fill
-            className="object-cover transition-transform duration-300 group-hover:scale-105"
-          />
+          {/* Image Section */}
+          <div className="relative w-full aspect-square rounded-t-xl overflow-hidden">
+            <Image
+              src={product.images[currentImageIndex]}
+              alt={product.name}
+              fill
+              className="object-cover transition-transform duration-300 group-hover:scale-105"
+            />
 
-          {/* ✅ UPDATED: Action buttons with react-icons */}
-          <div className="absolute top-3 right-3 flex gap-2 z-10">
-            {/* Share Button */}
-            <button
-              onClick={handleShareClick}
-              className="p-2 rounded-full bg-white/80 backdrop-blur-sm hover:bg-white transition"
-              aria-label="Share product"
-              title="Share product"
-            >
-              <RiShareForwardFill className="w-6 h-6 text-slate-600" />
-            </button>
-
-            {/* Wishlist Button */}
-            <button
-              onClick={handleWishlistClick}
-              className="p-2 rounded-full bg-white/80 backdrop-blur-sm hover:bg-white transition"
-              aria-label={isLiked ? "Remove from wishlist" : "Add to wishlist"}
-              title={isLiked ? "Remove from wishlist" : "Add to wishlist"}
-            >
-              {isLiked ? (
-                <AiFillHeart className="w-6 h-6 text-[hsl(var(--swago-pink))]" />
-              ) : (
-                <AiOutlineHeart className="w-6 h-6 text-slate-600" />
-              )}
-            </button>
-          </div>
-
-          {/* Stock Badges */}
-          {isOutOfStock && (
-            <div className="absolute top-3 left-3 bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full z-10">
-              Out of Stock
-            </div>
-          )}
-          {isLowStock && !isOutOfStock && (
-            <div className="absolute top-3 left-3 bg-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full z-10">
-              Only {stock} left!
-            </div>
-          )}
-        </div>
-
-        <div className="p-4 flex flex-col flex-grow">
-          <div className="flex-grow">
-            {/* ✅ UPDATED: Product name with Read more */}
-            <h3 className="text-base font-semibold text-slate-800 mb-2 min-h-12 text-zoom-in">
-              {displayName}
-              {isLongName && !showFullName && (
-                <button
-                  onClick={handleReadMoreClick}
-                  className="text-[hsl(var(--swago-purple))] text-sm ml-1 hover:underline"
-                >
-                  Read more
-                </button>
-              )}
-              {isLongName && showFullName && (
-                <button
-                  onClick={handleReadMoreClick}
-                  className="text-[hsl(var(--swago-purple))] text-sm ml-1 hover:underline"
-                >
-                  Show less
-                </button>
-              )}
-            </h3>
-          </div>
-
-          <div className="mt-auto pt-3">
-            {/* Price section with percentage badge */}
-            <div className="flex justify-between items-start mb-3">
-              <div className="flex flex-col gap-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-lg font-bold text-slate-900 text-pop">₹{product.price}</span>
-                  {originalPrice && (
-                    <>
-                      <span className="text-sm text-slate-400 line-through">
-                        ₹{originalPrice}
-                      </span>
-                      {/* Percentage Off Badge */}
-                      <span className="inline-block bg-[hsl(var(--swago-orange))] text-white text-xs font-bold px-2 py-0.5 rounded">
-                        {percentOff}% OFF
-                      </span>
-                    </>
-                  )}
-                </div>
-              </div>
-              <span className="inline-block bg-[hsl(var(--swago-purple))] text-white text-xs font-semibold px-2.5 py-0.5 rounded-full whitespace-nowrap">
-                Age: {ageCategory}
-              </span>
-            </div>
-
-            {/* Show Add to Cart OR Quantity Controls */}
-            {!isInCart ? (
-              // Show "Add to Cart" button when item is NOT in cart
-              <motion.button
-                onClick={handleAddToCart}
-                disabled={isOutOfStock}
-                className={`w-full font-semibold py-2.5 rounded-lg text-sm transition ${isOutOfStock
-                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'btn-shine btn-text-pop bg-[hsl(var(--swago-purple))] text-white'
-                  }`}
+            {/* ✅ UPDATED: Action buttons with react-icons */}
+            <div className="absolute top-3 right-3 flex gap-2 z-10">
+              {/* Share Button */}
+              <button
+                onClick={handleShareClick}
+                className="p-2 rounded-full bg-white/80 backdrop-blur-sm hover:bg-white transition"
+                aria-label="Share product"
+                title="Share product"
               >
-                <span>{isOutOfStock ? 'Out of Stock' : 'Add to Cart'}</span>
-              </motion.button>
-            ) : (
-              // Show quantity controls when item IS in cart
-              <div className="flex items-center justify-center gap-2 border-2 border-[hsl(var(--swago-purple))] rounded-lg bg-purple-50">
-                <button
-                  onClick={handleDecrease}
-                  className="px-3 py-2 hover:bg-purple-100 transition text-[hsl(var(--swago-purple))] font-bold text-lg"
-                  aria-label="Decrease quantity"
-                >
-                  −
-                </button>
-                <span className="font-bold text-lg text-[hsl(var(--swago-purple))] min-w-[2rem] text-center">
-                  {quantityInCart}
-                </span>
-                <button
-                  onClick={handleIncrease}
-                  className="px-3 py-2 hover:bg-purple-100 transition text-[hsl(var(--swago-purple))] font-bold text-lg"
-                  aria-label="Increase quantity"
-                  disabled={stock !== undefined && quantityInCart >= stock}
-                >
-                  +
-                </button>
+                <RiShareForwardFill className="w-6 h-6 text-slate-600" />
+              </button>
+
+              {/* Wishlist Button */}
+              <button
+                onClick={handleWishlistClick}
+                className="p-2 rounded-full bg-white/80 backdrop-blur-sm hover:bg-white transition"
+                aria-label={isLiked ? "Remove from wishlist" : "Add to wishlist"}
+                title={isLiked ? "Remove from wishlist" : "Add to wishlist"}
+              >
+                {isLiked ? (
+                  <AiFillHeart className="w-6 h-6 text-[hsl(var(--swago-pink))]" />
+                ) : (
+                  <AiOutlineHeart className="w-6 h-6 text-slate-600" />
+                )}
+              </button>
+            </div>
+
+            {/* Stock Badges */}
+            {isOutOfStock && (
+              <div className="absolute top-3 left-3 bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full z-10">
+                Out of Stock
+              </div>
+            )}
+            {isLowStock && !isOutOfStock && (
+              <div className="absolute top-3 left-3 bg-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full z-10">
+                Only {stock} left!
               </div>
             )}
           </div>
+
+          <div className="p-2 sm:p-4 flex flex-col flex-grow">
+            <div className="flex-grow">
+              {/* ✅ UPDATED: Product name with Read more */}
+              <h3 className="text-xs sm:text-base font-semibold text-slate-800 mb-1 sm:mb-2 min-h-[2.5rem] sm:min-h-[3rem] line-clamp-2 md:line-clamp-none">
+                {displayName}
+                {isLongName && !showFullName && (
+                  <button
+                    onClick={handleReadMoreClick}
+                    className="hidden sm:inline text-[hsl(var(--swago-purple))] text-xs ml-1 hover:underline"
+                  >
+                    Read more
+                  </button>
+                )}
+              </h3>
+            </div>
+
+            <div className="mt-auto pt-3">
+              {/* Price section with percentage badge */}
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1 sm:gap-2 mb-2 sm:mb-3">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-sm sm:text-lg font-bold text-slate-900">₹{product.price}</span>
+                  {originalPrice && (
+                    <span className="text-[10px] sm:text-sm text-slate-400 line-through">₹{originalPrice}</span>
+                  )}
+                </div>
+                <span className="inline-block bg-slate-100 text-slate-600 text-[9px] sm:text-xs font-bold px-1.5 py-0.5 rounded uppercase tracking-tighter">
+                  {ageCategory}
+                </span>
+              </div>
+
+              {/* Show Add to Cart OR Quantity Controls */}
+              {!isInCart ? (
+                // Show "Add to Cart" button when item is NOT in cart
+                <motion.button
+                  onClick={handleAddToCart}
+                  disabled={isOutOfStock}
+                  className={`w-full font-semibold py-2.5 rounded-lg text-sm transition ${isOutOfStock
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'btn-shine btn-text-pop bg-[hsl(var(--swago-purple))] text-white'
+                    }`}
+                >
+                  <span>{isOutOfStock ? 'Out of Stock' : 'Add to Cart'}</span>
+                </motion.button>
+              ) : (
+                // Show quantity controls when item IS in cart
+                <div className="flex items-center justify-center gap-2 border-2 border-[hsl(var(--swago-purple))] rounded-lg bg-purple-50">
+                  <button
+                    onClick={handleDecrease}
+                    className="px-3 py-2 hover:bg-purple-100 transition text-[hsl(var(--swago-purple))] font-bold text-lg"
+                    aria-label="Decrease quantity"
+                  >
+                    −
+                  </button>
+                  <span className="font-bold text-lg text-[hsl(var(--swago-purple))] min-w-[2rem] text-center">
+                    {quantityInCart}
+                  </span>
+                  <button
+                    onClick={handleIncrease}
+                    className="px-3 py-2 hover:bg-purple-100 transition text-[hsl(var(--swago-purple))] font-bold text-lg"
+                    aria-label="Increase quantity"
+                    disabled={stock !== undefined && quantityInCart >= stock}
+                  >
+                    +
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
-      </div>
-    </Link>
+      </Link>
+    </motion.div>
   );
 }

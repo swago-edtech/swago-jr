@@ -59,24 +59,36 @@ export default function AnnouncementBanner() {
         animate={{ height: "auto", opacity: 1 }}
         exit={{ height: 0, opacity: 0 }}
         transition={{ duration: 0.3, ease: "easeOut" }}
-        className={`${getBackgroundClass(announcement.backgroundColor)} overflow-hidden py-1.5 md:py-2 relative`}
+        className={`${getBackgroundClass(announcement.backgroundColor)} overflow-hidden py-2 relative border-b border-black/5`}
       >
         {announcement.isScrolling ? (
-          <div className="flex overflow-hidden whitespace-nowrap">
+          <div className="flex overflow-hidden whitespace-nowrap relative">
             <motion.div
-              animate={{ x: ["0%", "-33.33%"] }}
+              animate={{ x: ["0%", "-50%"] }}
               transition={{
                 repeat: Infinity,
                 ease: "linear",
-                duration: 15
+                duration: 25
               }}
-              className="flex gap-12 items-center"
+              className="flex whitespace-nowrap min-w-max"
             >
-              {[...Array(6)].map((_, i) => (
-                <span key={i} className="text-sm md:text-base font-bold uppercase tracking-wider px-4">
-                  {announcement.text}
-                </span>
-              ))}
+              {/* Double it for a continuous loop */}
+              <div className="flex gap-4 md:gap-8 items-center px-4 md:px-8">
+                {[...Array(10)].map((_, i) => (
+                  <span key={`a-${i}`} className="text-sm md:text-base font-bold uppercase tracking-widest whitespace-nowrap flex items-center gap-4">
+                    {announcement.text}
+                    <span className="opacity-40">•</span>
+                  </span>
+                ))}
+              </div>
+              <div className="flex gap-4 md:gap-8 items-center px-4 md:px-8">
+                {[...Array(10)].map((_, i) => (
+                  <span key={`b-${i}`} className="text-sm md:text-base font-bold uppercase tracking-widest whitespace-nowrap flex items-center gap-4">
+                    {announcement.text}
+                    <span className="opacity-40">•</span>
+                  </span>
+                ))}
+              </div>
             </motion.div>
           </div>
         ) : (

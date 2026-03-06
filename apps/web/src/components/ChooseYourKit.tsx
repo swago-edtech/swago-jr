@@ -1,57 +1,55 @@
 import Link from "next/link";
 import Image from "next/image";
 
-// Hardcoded categories to ensure only two sections are shown.
-// Each category now includes its specific background color and image source.
+// Hardcoded categories with mascot images
 const categories = [
   {
     age: '5-7',
-    bgColor: 'bg-[hsl(var(--swago-orange))]', 
+    bgColor: 'bg-[hsl(var(--swago-orange))]',
     href: '/products?age=5-7',
-    imageSrc: '/images/age-5-7.png', // src for the 5-7 category
+    imageSrc: '/images/kid_girl1.png',
   },
   {
     age: '8-10',
     bgColor: 'bg-[hsl(var(--swago-purple))]',
     href: '/products?age=8-10',
-    imageSrc: '/images/age-8-10.png', // src for the 8-10 category
+    imageSrc: '/images/kid_boy1.png',
   }
 ];
 
 export default function ChooseYourKit() {
   return (
-    // MODIFICATION 1: Reduced vertical padding from py-20 to py-16
-    <section className="py-16 bg-white"> 
+    <section className="py-24 bg-white">
       <div className="container mx-auto px-4 text-center">
-        <h2 className="text-4xl font-bold mb-4 uppercase">
+        <h2 className="text-3xl md:text-5xl font-black mb-3 uppercase tracking-tight text-slate-900">
           Shop by Age
         </h2>
-        
-        {/* MODIFICATION 2: Reduced margin-bottom from mb-16 to mb-12 */}
-        <p className="text-slate-600 mb-12">
+
+        <p className="text-slate-500 font-medium mb-16 text-lg">
           Learning kits for 5-10 years
         </p>
-        
-        <div className="grid grid-cols-1 sm:grid-cols-2 max-w-3xl mx-auto gap-8 sm:gap-12">
+
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-16 sm:gap-12 max-w-4xl mx-auto">
           {categories.map((category) => (
-            <Link 
-              key={category.age} 
-              href={category.href} 
-              className={`relative block h-36 ${category.bgColor} rounded-l-2xl rounded-r-[3rem] text-white text-left shadow-lg transform transition-transform duration-300 hover:scale-105 overflow-visible`}
+            <Link
+              key={category.age}
+              href={category.href}
+              className={`relative block w-full sm:w-1/2 h-44 ${category.bgColor} rounded-2xl rounded-tr-[5rem] text-white text-left shadow-[0_15px_40px_-10px_rgba(0,0,0,0.2)] transition-all duration-500 hover:scale-[1.03] hover:-translate-y-2 hover:shadow-[0_25px_60px_-15px_rgba(0,0,0,0.3)] overflow-visible group`}
             >
-              <div className="p-6">
-                <p className="text-4xl font-extrabold">{category.age}</p>
-                <p className="text-3xl font-semibold">Years</p>
+              <div className="p-8 h-full flex flex-col justify-center">
+                <p className="text-5xl font-black leading-tight">{category.age}</p>
+                <p className="text-4xl font-bold opacity-90">Years</p>
               </div>
 
-              <Image 
-  src={category.imageSrc}
-  alt={`Child playing with kit for ages ${category.age}`}
-  width={300} // Increased source resolution just in case
-  height={300}
-  // CHANGED: w-48 (192px) on mobile, sm:w-56 (224px) on desktop
-  className="absolute -bottom-4 right-0 object-contain w-48 h-auto sm:w-56"
-/>
+              <div className="absolute -top-10 -right-4 w-44 h-56 sm:w-52 sm:h-64 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-2">
+                <Image
+                  src={category.imageSrc}
+                  alt={`Swago mascot for ages ${category.age}`}
+                  fill
+                  className="object-contain drop-shadow-2xl"
+                  priority
+                />
+              </div>
             </Link>
           ))}
         </div>

@@ -24,7 +24,7 @@ const swagoElements = [
 ];
 
 export default function FilterSidebar({ filters, onFilterChange }: FilterSidebarProps) {
-  
+
   const handleAgeChange = (age: string) => {
     onFilterChange({ ...filters, age: age === "All" ? "" : age });
   };
@@ -60,11 +60,10 @@ export default function FilterSidebar({ filters, onFilterChange }: FilterSidebar
             <button
               key={age}
               onClick={() => handleAgeChange(age)}
-              className={`px-3 py-1 text-sm rounded-full transition-colors ${
-                (filters.age === age || (filters.age === "" && age === "All"))
+              className={`px-3 py-1 text-sm rounded-full transition-colors ${(filters.age === age || (filters.age === "" && age === "All"))
                   ? "bg-[hsl(var(--swago-purple))] text-white"
                   : "bg-slate-200 text-slate-700 hover:bg-slate-300"
-              }`}
+                }`}
             >
               {age}
             </button>

@@ -122,8 +122,8 @@ export default function Navbar() {
       {/* 3. RIGHT SECTION: Icons (Wishlist, Cart, User) */}
       <div className="flex-initial md:flex-1 flex justify-end items-center gap-2 md:gap-4">
 
-        {/* Wishlist Button - Desktop & Mobile */}
-        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+        {/* Wishlist Button - Desktop Only */}
+        <motion.div className="hidden md:block" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
           <Link href="/wishlist" className="relative p-2 flex items-center gap-1 group transition-colors" aria-label="Wishlist">
             <HiHeart className="w-6 h-6 text-black group-hover:scale-110 transition-transform" />
             {wishlist.length > 0 && (
@@ -214,6 +214,17 @@ export default function Navbar() {
                 </div>
 
                 <div className="space-y-4">
+                  <Link href="/wishlist" onClick={() => setMobileMenuOpen(false)} className="flex items-center justify-between text-xl font-bold text-slate-800">
+                    <div className="flex items-center gap-3">
+                      <HiHeart className="w-6 h-6 text-black" />
+                      Wishlist
+                    </div>
+                    {wishlist.length > 0 && (
+                      <span className="bg-black text-white rounded-full px-2 py-0.5 text-xs">
+                        {wishlist.length}
+                      </span>
+                    )}
+                  </Link>
                   <Link href="/about" onClick={() => setMobileMenuOpen(false)} className="block text-xl font-bold text-slate-800">About Us</Link>
                   <hr className="border-slate-100" />
 
