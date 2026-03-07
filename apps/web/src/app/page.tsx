@@ -5,6 +5,7 @@ import SwagoElementsSection from "@/components/SwagoElementsSection";
 import CallToAction from "@/components/CallToAction";
 import AnimateOnScroll from "@/components/AnimateOnScroll";
 import FeaturedProducts from "@/components/FeaturedProducts";
+import ShopByPrice from "@/components/ShopByPrice";
 import Link from "next/link";
 
 export default function Home() {
@@ -20,6 +21,10 @@ export default function Home() {
 
       <AnimateOnScroll className="mb-5">
         <FeaturedProducts />
+      </AnimateOnScroll>
+
+      <AnimateOnScroll className="mb-5">
+        <ShopByPrice />
       </AnimateOnScroll>
 
 

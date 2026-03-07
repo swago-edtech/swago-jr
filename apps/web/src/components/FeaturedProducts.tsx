@@ -28,8 +28,8 @@ export default function FeaturedProducts() {
     fetchProducts();
   }, []);
 
-  // Use only database products
-  const featured = dbProducts.slice(0, 3);
+  // Use more products for sliding if possible
+  const featured = dbProducts.slice(0, 6);
 
   // ✅ Helper function to get unique key
   type ProductLike = Product | {
@@ -42,44 +42,63 @@ export default function FeaturedProducts() {
     return product._id || ('id' in product ? product.id?.toString() : undefined) || Math.random().toString();
   };
 
-
   if (loading) {
     return (
-      <section className="py-16 bg-white">
+      <section className="py-20 bg-white">
         <div className="container mx-auto px-4 text-center">
-          <h2 className="text-4xl font-bold mb-4 uppercase">
-            Our Most <span className="text-[hsl(var(--swago-purple))]">Popular</span> Kits
+          <h2 className="text-4xl md:text-5xl font-black mb-3 uppercase tracking-tight text-slate-900">
+            NEW <span className="text-[hsl(var(--swago-purple))]">ARRIVALS</span>
           </h2>
-          <p className="text-slate-600 mb-12">Loading featured products...</p>
+          <p className="text-slate-500 font-medium mb-12">Loading latest offerings...</p>
         </div>
       </section>
     );
   }
 
   return (
-    <section className="py-16 bg-white">
+    <section className="py-20 bg-white overflow-hidden">
       <div className="container mx-auto px-4 text-center">
-        <h2 className="text-4xl font-bold mb-4 uppercase">
-          Our Most <span className="text-[hsl(var(--swago-purple))]">Popular</span> Kits
+        <h2 className="text-4xl md:text-5xl font-black mb-3 uppercase tracking-tight text-slate-900">
+          NEW <span className="text-[hsl(var(--swago-purple))]">ARRIVALS</span>
         </h2>
-        <p className="text-slate-600 mb-12 max-w-2xl mx-auto">
-          A glimpse of our top-selling kits, loved by parents and kids for their fun and educational value.
+        <p className="text-slate-500 font-medium mb-12 text-lg">
+          Our latest offerings
         </p>
 
-        {/* Re-use the ProductCard component in a grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
-          {featured.map((product) => (
-            <ProductCard key={getProductKey(product)} product={product} />
-          ))}
+        {/* Horizontal Scroll Area */}
+        <div className="relative mb-8">
+          {/* 📱 Mobile: 82% card width + snap-start for a perfect ~15% peek at the next card */}
+          <div className="flex overflow-x-auto gap-5 pb-8 snap-x snap-mandatory no-scrollbar scroll-smooth">
+            {/* Left Spacer to align first card with padding-left */}
+            <div className="flex-none w-6" />
+
+            {featured.map((product) => (
+              <div
+                key={getProductKey(product)}
+                className="flex-none w-[82vw] md:w-[320px] snap-start"
+              >
+                <ProductCard product={product} />
+              </div>
+            ))}
+
+            {/* Right Spacer for scroll end breathing room */}
+            <div className="flex-none w-6" />
+          </div>
+
+          {/* Subtle fade indicators for scroll */}
+          <div className="absolute top-0 left-0 w-8 h-full bg-gradient-to-r from-white to-transparent pointer-events-none md:hidden" />
+          <div className="absolute top-0 right-0 w-8 h-full bg-gradient-to-l from-white to-transparent pointer-events-none md:hidden" />
         </div>
 
-        {/* The "Show More" button that links to all products */}
-        <Link
-          href="/products"
-          className="btn-shine inline-block bg-[hsl(var(--swago-orange))] text-white font-bold px-8 py-3 rounded-full shadow-lg"
-        >
-          Show More Kits
-        </Link>
+        {/* View All Button */}
+        <div className="mt-4">
+          <Link
+            href="/products"
+            className="inline-block bg-[hsl(var(--swago-purple))] transition-all duration-300 hover:bg-slate-900 text-white font-black uppercase tracking-widest text-xs px-10 py-4 rounded-2xl shadow-xl shadow-purple-100"
+          >
+            View All Products
+          </Link>
+        </div>
       </div>
     </section>
   );

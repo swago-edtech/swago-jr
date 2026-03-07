@@ -38,6 +38,8 @@ const navigation = [
       { name: 'Reel Submissions', href: '/ambassadors/reels' },
     ]
   },
+  { name: 'Price Ranges', href: '/price-ranges', icon: Gift },
+  { name: 'Blogs', href: '/blogs', icon: MessageSquare },
 ];
 
 export default function AdminSidebar() {

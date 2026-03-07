@@ -5,6 +5,8 @@ export type Filters = {
   search: string;
   age: string;
   elements: string[];
+  minPrice?: number;
+  maxPrice?: number;
 };
 
 // Define the props the component will receive
@@ -61,8 +63,8 @@ export default function FilterSidebar({ filters, onFilterChange }: FilterSidebar
               key={age}
               onClick={() => handleAgeChange(age)}
               className={`px-3 py-1 text-sm rounded-full transition-colors ${(filters.age === age || (filters.age === "" && age === "All"))
-                  ? "bg-[hsl(var(--swago-purple))] text-white"
-                  : "bg-slate-200 text-slate-700 hover:bg-slate-300"
+                ? "bg-[hsl(var(--swago-purple))] text-white"
+                : "bg-slate-200 text-slate-700 hover:bg-slate-300"
                 }`}
             >
               {age}

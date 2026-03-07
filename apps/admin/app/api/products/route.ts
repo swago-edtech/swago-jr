@@ -66,12 +66,12 @@ export async function GET(request: NextRequest) {
     });
   } catch (error: any) {
     console.error("Error fetching products:", error);
-    
+
     // Handle unauthorized error
     if (error.message === 'Unauthorized - Admin access required') {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    
+
     return NextResponse.json(
       { error: "Failed to fetch products" },
       { status: 500 }
@@ -141,6 +141,9 @@ export async function POST(request: NextRequest) {
       lowStockThreshold: body.lowStockThreshold || 10,
       isFeatured: body.isFeatured || false,
       isActive: body.isActive !== undefined ? body.isActive : true,
+      label: body.label || "",
+      rating: body.rating || 0,
+      numReviews: body.numReviews || 0,
     });
 
     return NextResponse.json({

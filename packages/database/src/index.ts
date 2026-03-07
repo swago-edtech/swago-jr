@@ -19,6 +19,8 @@ export { default as OrderCounter } from './models/OrderCounter';
 export { default as Banner } from './models/Banner';
 export { default as Promotion } from './models/Promotion';
 export { default as Quest } from './models/Quest';
+export { default as PriceRange } from './models/PriceRange';
+export { default as Blog } from './models/Blog';
 
 // Export database connection
 export { default as connectDB } from './connection';

@@ -176,40 +176,45 @@ export default function ProductCard({ product }: { product: Product }) {
               className="object-cover transition-transform duration-300 group-hover:scale-105"
             />
 
-            {/* ✅ UPDATED: Action buttons with react-icons */}
-            <div className="absolute top-3 right-3 flex gap-2 z-10">
-              {/* Share Button */}
-              <button
-                onClick={handleShareClick}
-                className="p-2 rounded-full bg-white/80 backdrop-blur-sm hover:bg-white transition"
-                aria-label="Share product"
-                title="Share product"
-              >
-                <RiShareForwardFill className="w-6 h-6 text-slate-600" />
-              </button>
-
-              {/* Wishlist Button */}
+            {/* Action buttons - Heart at bottom-left for premium look */}
+            <div className="absolute bottom-3 left-3 z-10">
               <button
                 onClick={handleWishlistClick}
-                className="p-2 rounded-full bg-white/80 backdrop-blur-sm hover:bg-white transition"
+                className="w-10 h-10 rounded-full bg-white shadow-lg flex items-center justify-center border border-slate-100 transition-all hover:scale-110 active:scale-95"
                 aria-label={isLiked ? "Remove from wishlist" : "Add to wishlist"}
-                title={isLiked ? "Remove from wishlist" : "Add to wishlist"}
               >
                 {isLiked ? (
-                  <AiFillHeart className="w-6 h-6 text-[hsl(var(--swago-pink))]" />
+                  <AiFillHeart className="w-5 h-5 text-[hsl(var(--swago-pink))]" />
                 ) : (
-                  <AiOutlineHeart className="w-6 h-6 text-slate-600" />
+                  <AiOutlineHeart className="w-5 h-5 text-slate-800" />
                 )}
               </button>
             </div>
 
-            {/* Stock Badges */}
+            {/* Share button moved to top-right */}
+            <div className="absolute top-3 right-3 z-10">
+              <button
+                onClick={handleShareClick}
+                className="p-2 rounded-full bg-white/90 backdrop-blur-sm shadow-sm hover:bg-white transition-all"
+                aria-label="Share product"
+              >
+                <RiShareForwardFill className="w-5 h-5 text-slate-600" />
+              </button>
+            </div>
+
+            {/* Product Label Badge (Top-Left) */}
+            {product.label && (
+              <div className="absolute top-3 left-3 z-10 bg-[hsl(var(--swago-purple))] text-white text-[10px] font-black px-3 py-1 rounded-full shadow-md uppercase tracking-wider">
+                {product.label}
+              </div>
+            )}
+
             {isOutOfStock && (
               <div className="absolute top-3 left-3 bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full z-10">
                 Out of Stock
               </div>
             )}
-            {isLowStock && !isOutOfStock && (
+            {isLowStock && !isOutOfStock && !product.label && (
               <div className="absolute top-3 left-3 bg-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full z-10">
                 Only {stock} left!
               </div>
@@ -217,14 +222,14 @@ export default function ProductCard({ product }: { product: Product }) {
           </div>
 
           <div className="p-2 sm:p-4 flex flex-col flex-grow">
-            <div className="flex-grow">
-              {/* ✅ UPDATED: Product name with Read more */}
+            <div className="flex-grow text-left">
+              {/* Product name with Read more */}
               <h3 className="text-xs sm:text-base font-semibold text-slate-800 mb-1 sm:mb-2 min-h-[2.5rem] sm:min-h-[3rem] line-clamp-2 md:line-clamp-none">
                 {displayName}
                 {isLongName && !showFullName && (
                   <button
                     onClick={handleReadMoreClick}
-                    className="hidden sm:inline text-[hsl(var(--swago-purple))] text-xs ml-1 hover:underline"
+                    className="hidden sm:inline text-[hsl(var(--swago-purple))] text-xs ml-1 hover:underline underline-offset-4"
                   >
                     Read more
                   </button>
@@ -233,15 +238,20 @@ export default function ProductCard({ product }: { product: Product }) {
             </div>
 
             <div className="mt-auto pt-3">
-              {/* Price section with percentage badge */}
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1 sm:gap-2 mb-2 sm:mb-3">
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="text-sm sm:text-lg font-bold text-slate-900">₹{product.price}</span>
+              {/* Price and Age on same line */}
+              <div className="flex items-center justify-between mb-4 gap-2">
+                <div className="flex items-center gap-2">
+                  {percentOff > 0 && (
+                    <span className="bg-[#e11d48] text-white text-[10px] font-black px-1.5 py-1 rounded uppercase">
+                      -{percentOff}%
+                    </span>
+                  )}
+                  <span className="text-base sm:text-lg font-black text-slate-900">₹{product.price}</span>
                   {originalPrice && (
-                    <span className="text-[10px] sm:text-sm text-slate-400 line-through">₹{originalPrice}</span>
+                    <span className="text-[10px] sm:text-xs text-slate-400 line-through font-medium">₹{originalPrice}</span>
                   )}
                 </div>
-                <span className="inline-block bg-slate-100 text-slate-600 text-[9px] sm:text-xs font-bold px-1.5 py-0.5 rounded uppercase tracking-tighter">
+                <span className="inline-block bg-slate-50 text-slate-500 text-[10px] sm:text-[11px] font-bold px-2 py-1 rounded-md border border-slate-100 uppercase tracking-tighter">
                   {ageCategory}
                 </span>
               </div>
@@ -252,9 +262,9 @@ export default function ProductCard({ product }: { product: Product }) {
                 <motion.button
                   onClick={handleAddToCart}
                   disabled={isOutOfStock}
-                  className={`w-full font-semibold py-2.5 rounded-lg text-sm transition ${isOutOfStock
-                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    : 'btn-shine btn-text-pop bg-[hsl(var(--swago-purple))] text-white'
+                  className={`w-full font-black py-3 rounded-xl text-xs uppercase tracking-widest transition-all duration-300 ${isOutOfStock
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    : 'border-2 border-[hsl(var(--swago-purple))] text-[hsl(var(--swago-purple))] bg-white hover:bg-[hsl(var(--swago-purple))] hover:text-white shadow-sm'
                     }`}
                 >
                   <span>{isOutOfStock ? 'Out of Stock' : 'Add to Cart'}</span>

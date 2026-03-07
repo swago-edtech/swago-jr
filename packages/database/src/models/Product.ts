@@ -4,33 +4,33 @@ import mongoose from "mongoose";
 
 const ProductSchema = new mongoose.Schema(
   {
-    name: { 
-      type: String, 
+    name: {
+      type: String,
       required: [true, "Product name is required"],
       trim: true
     },
-    
-    description: { 
-      type: String, 
+
+    description: {
+      type: String,
       required: [true, "Description is required"]
     },
-    
-    price: { 
-      type: Number, 
+
+    price: {
+      type: Number,
       required: [true, "Price is required"],
       min: [0, "Price cannot be negative"]
     },
-    
-    originalPrice: { 
+
+    originalPrice: {
       type: Number,
       min: [0, "Original price cannot be negative"]
     },
-    
-    images: [{ 
+
+    images: [{
       type: String,
       required: true
     }],
-    
+
     ageCategory: {
       type: String,
       enum: {
@@ -39,7 +39,7 @@ const ProductSchema = new mongoose.Schema(
       },
       required: [true, "Age category is required"]
     },
-    
+
     coreElements: [{
       type: String,
       enum: {
@@ -47,17 +47,17 @@ const ProductSchema = new mongoose.Schema(
         message: "Core element must be S, W, A, G, or O"
       }
     }],
-    
+
     boxContents: {
       type: String,
       required: [true, "Box contents are required"]
     },
-    
+
     benefits: {
       type: String,
       required: [true, "Benefits are required"]
     },
-    
+
     // Inventory Management
     stock: {
       type: Number,
@@ -65,25 +65,25 @@ const ProductSchema = new mongoose.Schema(
       min: [0, "Stock cannot be negative"],
       required: true
     },
-    
+
     reservedStock: {
       type: Number,
       default: 0,
       min: [0, "Reserved stock cannot be negative"]
     },
-    
+
     lowStockThreshold: {
       type: Number,
       default: 10,
       min: [0, "Low stock threshold cannot be negative"]
     },
-    
+
     totalSold: {
       type: Number,
       default: 0,
       min: [0, "Total sold cannot be negative"]
     },
-    
+
     // 🆕 NEW: Lottery Code Short Forms
     shortForms: {
       type: [String],
@@ -91,18 +91,37 @@ const ProductSchema = new mongoose.Schema(
       uppercase: true,
       trim: true,
     },
-    
+
     // Status Management
     isActive: {
       type: Boolean,
       default: true
     },
-    
+
     isFeatured: {
       type: Boolean,
       default: false
     },
-    
+
+    label: {
+      type: String,
+      trim: true,
+      default: ""
+    },
+
+    // 🆕 NEW: Rating and Review count for premium display
+    rating: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 5
+    },
+
+    numReviews: {
+      type: Number,
+      default: 0
+    },
+
     // SEO & Routing
     slug: {
       type: String,
@@ -110,10 +129,10 @@ const ProductSchema = new mongoose.Schema(
       trim: true,
       lowercase: true
     }
-    
+
   },
-  { 
-    timestamps: true 
+  {
+    timestamps: true
   }
 );
 
@@ -121,12 +140,12 @@ const ProductSchema = new mongoose.Schema(
 // Indexes are now created manually via migration scripts
 
 // ✅ KEEP: Virtual field for available stock
-ProductSchema.virtual('availableStock').get(function() {
+ProductSchema.virtual('availableStock').get(function () {
   return Math.max(0, this.stock - this.reservedStock);
 });
 
 // ✅ KEEP: Auto-generate slug from name before saving
-ProductSchema.pre('save', function(next) {
+ProductSchema.pre('save', function (next) {
   if (this.isModified('name') || !this.slug) {
     this.slug = this.name
       .toLowerCase()
@@ -138,12 +157,12 @@ ProductSchema.pre('save', function(next) {
 });
 
 // ✅ KEEP: Validate at least one image exists
-ProductSchema.path('images').validate(function(images) {
+ProductSchema.path('images').validate(function (images) {
   return images && images.length > 0;
 }, 'At least one image is required');
 
 // ✅ KEEP: Validate at least one core element
-ProductSchema.path('coreElements').validate(function(elements) {
+ProductSchema.path('coreElements').validate(function (elements) {
   return elements && elements.length > 0;
 }, 'At least one core element is required');
 

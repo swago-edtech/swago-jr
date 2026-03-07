@@ -34,11 +34,11 @@ export async function GET(
     });
   } catch (error: any) {
     console.error("Error fetching product:", error);
-    
+
     if (error.message === 'Unauthorized - Admin access required') {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    
+
     return NextResponse.json(
       { error: "Failed to fetch product" },
       { status: 500 }
@@ -88,6 +88,9 @@ export async function PUT(
     if (body.lowStockThreshold !== undefined) updateFields.lowStockThreshold = body.lowStockThreshold;
     if (body.isFeatured !== undefined) updateFields.isFeatured = body.isFeatured;
     if (body.isActive !== undefined) updateFields.isActive = body.isActive;
+    if (body.label !== undefined) updateFields.label = body.label;
+    if (body.rating !== undefined) updateFields.rating = body.rating;
+    if (body.numReviews !== undefined) updateFields.numReviews = body.numReviews;
 
     // Update product
     const updatedProduct = await Product.findByIdAndUpdate(
@@ -158,11 +161,11 @@ export async function DELETE(
     });
   } catch (error: any) {
     console.error("Error deleting product:", error);
-    
+
     if (error.message === 'Unauthorized - Admin access required') {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    
+
     return NextResponse.json(
       { error: "Failed to delete product" },
       { status: 500 }

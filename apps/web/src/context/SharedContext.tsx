@@ -32,11 +32,14 @@ export type Product = {
   slug?: string;
   lowStockThreshold?: number;
   totalSold?: number;
+  label?: string;
+  rating?: number;
+  numReviews?: number;
   createdAt?: string;
   updatedAt?: string;
 };
 
-export type CartItem = Product & { 
+export type CartItem = Product & {
   quantity: number;
   productId?: string | number;
   addedAt?: Date | string;
@@ -109,7 +112,7 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
   const [wishlist, setWishlist] = useState<(number | string)[]>([]);
   const [selectedKid, setSelectedKidState] = useState<SelectedKid | null>(null);
   const [isCartSidebarOpen, setIsCartSidebarOpen] = useState(false);
-  
+
   const cartSyncTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastSyncedCartRef = useRef<string>('');
   const skipNextSyncRef = useRef(false);
@@ -119,8 +122,8 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) setCart(JSON.parse(raw));
-    } catch (e) { 
-      console.error("Error loading cart:", e); 
+    } catch (e) {
+      console.error("Error loading cart:", e);
     }
   }, []);
 
@@ -140,8 +143,8 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(cart));
-    } catch (e) { 
-      console.error("Error saving cart:", e); 
+    } catch (e) {
+      console.error("Error saving cart:", e);
     }
   }, [cart]);
 
@@ -173,7 +176,7 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
     if (skipNextSyncRef.current) {
       console.log('⏭️ Skipping sync (just loaded from server)');
       skipNextSyncRef.current = false;
-      
+
       const dbCart = cartData.map(item => ({
         productId: getProductId(item),
         quantity: item.quantity,
@@ -196,7 +199,7 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
     }));
 
     const cartString = JSON.stringify(dbCart);
-    
+
     if (cartString === lastSyncedCartRef.current) {
       console.log('⏭️ Cart unchanged, skipping sync');
       return;
@@ -243,12 +246,12 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
   const fetchUserData = async () => {
     try {
       setIsLoadingUser(true);
-      const res = await fetch("/api/me", { 
+      const res = await fetch("/api/me", {
         headers: {
           'Cache-Control': 'private, max-age=5, stale-while-revalidate=30',
         }
       });
-      
+
       if (res.ok) {
         const data = await res.json();
         const loggedInUser = data.loggedIn ? data.user : null;
@@ -290,9 +293,9 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
     const handleUserEvent = (event: Event) => {
       const customEvent = event as CustomEvent;
       console.log('User event received:', customEvent.type);
-      
-      if (customEvent.type === USER_EVENTS.LOGIN || 
-          customEvent.type === USER_EVENTS.PROFILE_UPDATE) {
+
+      if (customEvent.type === USER_EVENTS.LOGIN ||
+        customEvent.type === USER_EVENTS.PROFILE_UPDATE) {
         fetchUserData();
       } else if (customEvent.type === USER_EVENTS.LOGOUT) {
         setUser(null);
@@ -312,36 +315,36 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
       window.removeEventListener(USER_EVENTS.PROFILE_UPDATE, handleUserEvent);
     };
   }, []);
-  
+
   const addToWishlist = async (productId: number | string) => {
     if (!user) {
       alert("Please log in to add items to your wishlist.");
       return;
     }
-    
+
     console.log('💝 Adding to wishlist:', productId, 'Type:', typeof productId);
-    
+
     setWishlist((prev) => {
       const exists = prev.some(id => {
         if (typeof id === typeof productId) return id === productId;
         return id.toString() === productId.toString();
       });
-      
+
       if (exists) {
         console.log('⚠️ Already in wishlist (local check)');
         return prev;
       }
-      
+
       return [...prev, productId];
     });
-    
+
     try {
       const res = await fetch('/api/wishlist', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ productId }),
       });
-      
+
       if (!res.ok) {
         console.error('Failed to add to wishlist');
         setWishlist((prev) => prev.filter(id => {
@@ -350,14 +353,14 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
         }));
         return;
       }
-      
+
       const data = await res.json();
       console.log('✅ Added to wishlist successfully');
-      
+
       if (data.wishlist) {
         setWishlist(data.wishlist);
       }
-      
+
     } catch (error) {
       console.error('Error adding to wishlist:', error);
       setWishlist((prev) => prev.filter(id => {
@@ -369,34 +372,34 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
 
   const removeFromWishlist = async (productId: number | string) => {
     if (!user) return;
-    
+
     console.log('💔 Removing from wishlist:', productId, 'Type:', typeof productId);
-    
+
     setWishlist((prev) => prev.filter(id => {
       if (typeof id === typeof productId) return id !== productId;
       return id.toString() !== productId.toString();
     }));
-    
+
     try {
       const res = await fetch('/api/wishlist', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ productId }),
       });
-      
+
       if (!res.ok) {
         console.error('Failed to remove from wishlist');
         setWishlist((prev) => [...prev, productId]);
         return;
       }
-      
+
       const data = await res.json();
       console.log('✅ Removed from wishlist successfully');
-      
+
       if (data.wishlist) {
         setWishlist(data.wishlist);
       }
-      
+
     } catch (error) {
       console.error('Error removing from wishlist:', error);
       setWishlist((prev) => [...prev, productId]);
@@ -406,14 +409,14 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
   const isWishlisted = (productId: number | string) => {
     return wishlist.some(id => {
       if (id === productId) return true;
-      
+
       if (typeof id === 'string' && typeof productId === 'number') {
         return id === productId.toString();
       }
       if (typeof id === 'number' && typeof productId === 'string') {
         return id.toString() === productId;
       }
-      
+
       return false;
     });
   };
@@ -428,57 +431,57 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
     setCart((prev) => {
       const productId = getProductId(product);
       const existing = prev.find((p) => getProductId(p) === productId);
-      
+
       if (existing) {
         const newQuantity = existing.quantity + quantity;
-        
+
         if (product.stock !== undefined && newQuantity > product.stock) {
           alert(`Only ${product.stock} items available in stock`);
           return prev;
         }
-        
+
         return prev.map((p) =>
           getProductId(p) === productId ? { ...p, quantity: newQuantity } : p
         );
       }
-      
+
       if (product.stock !== undefined && quantity > product.stock) {
         alert(`Only ${product.stock} items available in stock`);
         return prev;
       }
-      
+
       return [...prev, { ...product, quantity }];
     });
   };
-  
-  const removeFromCart = (id: number | string) => 
+
+  const removeFromCart = (id: number | string) =>
     setCart((prev) => prev.filter((p) => getProductId(p) !== id.toString()));
-  
+
   const clearCart = () => setCart([]);
-  
-  const increaseQty = (id: number | string) => 
+
+  const increaseQty = (id: number | string) =>
     setCart((prev) => prev.map((p) => {
       if (getProductId(p) !== id.toString()) return p;
-      
+
       const newQuantity = p.quantity + 1;
-      
+
       if (p.stock !== undefined && newQuantity > p.stock) {
         alert(`Only ${p.stock} items available in stock`);
         return p;
       }
-      
+
       return { ...p, quantity: newQuantity };
     }));
-  
-  const decreaseQty = (id: number | string) => 
-    setCart((prev) => 
-      prev.map((p) => 
-        getProductId(p) === id.toString() 
-          ? { ...p, quantity: Math.max(0, p.quantity - 1) } 
+
+  const decreaseQty = (id: number | string) =>
+    setCart((prev) =>
+      prev.map((p) =>
+        getProductId(p) === id.toString()
+          ? { ...p, quantity: Math.max(0, p.quantity - 1) }
           : p
       ).filter((p) => p.quantity > 0)
     );
-  
+
   const total = cart.reduce((s, it) => s + it.price * it.quantity, 0);
 
   const setSelectedKid = (kid: SelectedKid | null) => {
@@ -505,21 +508,21 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <SharedContext.Provider
-      value={{ 
-        cart, 
-        total, 
-        addToCart, 
-        removeFromCart, 
-        clearCart, 
-        increaseQty, 
-        decreaseQty, 
-        user, 
+      value={{
+        cart,
+        total,
+        addToCart,
+        removeFromCart,
+        clearCart,
+        increaseQty,
+        decreaseQty,
+        user,
         setUser,
         isLoadingUser,
         refreshUser,
-        wishlist, 
-        addToWishlist, 
-        removeFromWishlist, 
+        wishlist,
+        addToWishlist,
+        removeFromWishlist,
         isWishlisted,
         selectedKid,
         setSelectedKid,

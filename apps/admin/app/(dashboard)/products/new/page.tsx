@@ -23,6 +23,9 @@ export default function NewProductPage() {
     lowStockThreshold: "10",
     isFeatured: false,
     isActive: true,
+    label: "",
+    rating: "4.7",
+    numReviews: "23",
   });
 
   const [images, setImages] = useState<string[]>([]);
@@ -156,6 +159,9 @@ export default function NewProductPage() {
           lowStockThreshold: parseInt(form.lowStockThreshold),
           isFeatured: form.isFeatured,
           isActive: form.isActive,
+          label: form.label,
+          rating: parseFloat(form.rating) || 0,
+          numReviews: parseInt(form.numReviews) || 0,
         }),
       });
 
@@ -218,11 +224,59 @@ export default function NewProductPage() {
               value={form.name}
               onChange={handleChange}
               placeholder="e.g., Swago Decode & Dine Mat"
-              className={`w-full border rounded-md px-3 py-2 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                errors.name ? "border-red-500" : "border-gray-300"
-              }`}
+              className={`w-full border rounded-md px-3 py-2 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.name ? "border-red-500" : "border-gray-300"
+                }`}
             />
             {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
+          </div>
+
+          {/* Product Label */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Product Label <span className="text-gray-500">(Optional - e.g. Shark&apos;s Choice, Bestseller)</span>
+            </label>
+            <input
+              type="text"
+              name="label"
+              value={form.label}
+              onChange={handleChange}
+              placeholder="e.g. Shark's Choice"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+            <p className="text-xs text-gray-400 mt-1">This badge will appear on the top-left of the product image.</p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Display Rating <span className="text-gray-500">(Mock value)</span>
+              </label>
+              <input
+                type="number"
+                name="rating"
+                value={form.rating}
+                onChange={handleChange}
+                placeholder="4.7"
+                min="0"
+                max="5"
+                step="0.1"
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Display Review Count <span className="text-gray-500">(Mock value)</span>
+              </label>
+              <input
+                type="number"
+                name="numReviews"
+                value={form.numReviews}
+                onChange={handleChange}
+                placeholder="23"
+                min="0"
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
           </div>
 
           {/* Description */}
@@ -236,9 +290,8 @@ export default function NewProductPage() {
               onChange={handleChange}
               rows={4}
               placeholder="Detailed product description..."
-              className={`w-full border rounded-md px-3 py-2 resize-none text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                errors.description ? "border-red-500" : "border-gray-300"
-              }`}
+              className={`w-full border rounded-md px-3 py-2 resize-none text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.description ? "border-red-500" : "border-gray-300"
+                }`}
             />
             {errors.description && (
               <p className="text-red-500 text-xs mt-1">{errors.description}</p>
@@ -259,9 +312,8 @@ export default function NewProductPage() {
                 placeholder="499"
                 min="0"
                 step="0.01"
-                className={`w-full border rounded-md px-3 py-2 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                  errors.price ? "border-red-500" : "border-gray-300"
-                }`}
+                className={`w-full border rounded-md px-3 py-2 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.price ? "border-red-500" : "border-gray-300"
+                  }`}
               />
               {errors.price && <p className="text-red-500 text-xs mt-1">{errors.price}</p>}
             </div>
@@ -348,63 +400,61 @@ export default function NewProductPage() {
           </h2>
 
           {/* Age Category */}
-{/* Age Category */}
-<div>
-  <label htmlFor="age-category-select" className="block text-sm font-medium text-gray-700 mb-1">
-    Age Category *
-  </label>
-  <select
-    id="age-category-select"
-    name="ageCategory"
-    value={form.ageCategory}
-    onChange={handleChange}
-    className={`w-full border rounded-md px-3 py-2 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-      errors.ageCategory ? "border-red-500" : "border-gray-300"
-    }`}
-  >
-    <option value="5-7">5-7 years</option>
-    <option value="8-10">8-10 years</option>
-    <option value="11-13">11-13 years</option>
-  </select>
-  {errors.ageCategory && (
-    <p className="text-red-500 text-xs mt-1">{errors.ageCategory}</p>
-  )}
-</div>
+          {/* Age Category */}
+          <div>
+            <label htmlFor="age-category-select" className="block text-sm font-medium text-gray-700 mb-1">
+              Age Category *
+            </label>
+            <select
+              id="age-category-select"
+              name="ageCategory"
+              value={form.ageCategory}
+              onChange={handleChange}
+              className={`w-full border rounded-md px-3 py-2 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.ageCategory ? "border-red-500" : "border-gray-300"
+                }`}
+            >
+              <option value="5-7">5-7 years</option>
+              <option value="8-10">8-10 years</option>
+              <option value="11-13">11-13 years</option>
+            </select>
+            {errors.ageCategory && (
+              <p className="text-red-500 text-xs mt-1">{errors.ageCategory}</p>
+            )}
+          </div>
 
 
           {/* Core Elements (SWAGO) */}
-{/* Core Elements (SWAGO) */}
-<div>
-  <label className="block text-sm font-medium text-gray-700 mb-2">
-    Core Elements (SWAGO) *
-  </label>
-  <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-    {coreElementsOptions.map((option) => (
-      <label
-        key={option.value}
-        className={`flex items-center gap-2 p-3 border-2 rounded-lg cursor-pointer transition ${
-          form.coreElements.includes(option.value)
-            ? `${option.color} border-current`
-            : "border-gray-200 hover:border-gray-300 bg-white"
-        }`}
-      >
-        <input
-          type="checkbox"
-          checked={form.coreElements.includes(option.value)}
-          onChange={() => handleCoreElementToggle(option.value)}
-          className="w-4 h-4"
-        />
-        <div>
-          <p className="font-semibold text-sm text-gray-900">{option.value}</p>
-          <p className="text-xs text-gray-700">{option.label}</p>
-        </div>
-      </label>
-    ))}
-  </div>
-  {errors.coreElements && (
-    <p className="text-red-500 text-xs mt-1">{errors.coreElements}</p>
-  )}
-</div>
+          {/* Core Elements (SWAGO) */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Core Elements (SWAGO) *
+            </label>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              {coreElementsOptions.map((option) => (
+                <label
+                  key={option.value}
+                  className={`flex items-center gap-2 p-3 border-2 rounded-lg cursor-pointer transition ${form.coreElements.includes(option.value)
+                    ? `${option.color} border-current`
+                    : "border-gray-200 hover:border-gray-300 bg-white"
+                    }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={form.coreElements.includes(option.value)}
+                    onChange={() => handleCoreElementToggle(option.value)}
+                    className="w-4 h-4"
+                  />
+                  <div>
+                    <p className="font-semibold text-sm text-gray-900">{option.value}</p>
+                    <p className="text-xs text-gray-700">{option.label}</p>
+                  </div>
+                </label>
+              ))}
+            </div>
+            {errors.coreElements && (
+              <p className="text-red-500 text-xs mt-1">{errors.coreElements}</p>
+            )}
+          </div>
 
         </div>
 
@@ -425,9 +475,8 @@ export default function NewProductPage() {
               onChange={handleChange}
               rows={4}
               placeholder="List what's included in the box..."
-              className={`w-full border rounded-md px-3 py-2 resize-none text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                errors.boxContents ? "border-red-500" : "border-gray-300"
-              }`}
+              className={`w-full border rounded-md px-3 py-2 resize-none text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.boxContents ? "border-red-500" : "border-gray-300"
+                }`}
             />
             {errors.boxContents && (
               <p className="text-red-500 text-xs mt-1">{errors.boxContents}</p>
@@ -445,9 +494,8 @@ export default function NewProductPage() {
               onChange={handleChange}
               rows={4}
               placeholder="List the key benefits..."
-              className={`w-full border rounded-md px-3 py-2 resize-none text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                errors.benefits ? "border-red-500" : "border-gray-300"
-              }`}
+              className={`w-full border rounded-md px-3 py-2 resize-none text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.benefits ? "border-red-500" : "border-gray-300"
+                }`}
             />
             {errors.benefits && (
               <p className="text-red-500 text-xs mt-1">{errors.benefits}</p>
@@ -474,9 +522,8 @@ export default function NewProductPage() {
                 onChange={handleChange}
                 placeholder="50"
                 min="0"
-                className={`w-full border rounded-md px-3 py-2 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                  errors.stock ? "border-red-500" : "border-gray-300"
-                }`}
+                className={`w-full border rounded-md px-3 py-2 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.stock ? "border-red-500" : "border-gray-300"
+                  }`}
               />
               {errors.stock && <p className="text-red-500 text-xs mt-1">{errors.stock}</p>}
             </div>
@@ -536,13 +583,13 @@ export default function NewProductPage() {
 
         {/* Submit Buttons */}
         <div className="flex gap-4 pt-4 border-t">
-         <button
-             type="button"
-             onClick={() => router.back()}
-             className="px-6 py-2 border-2 border-gray-400 text-gray-700 font-medium rounded-lg hover:bg-gray-100 hover:border-gray-500 transition-colors"
-           >
-             Cancel
-           </button>
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="px-6 py-2 border-2 border-gray-400 text-gray-700 font-medium rounded-lg hover:bg-gray-100 hover:border-gray-500 transition-colors"
+          >
+            Cancel
+          </button>
           <button
             type="submit"
             disabled={loading}
