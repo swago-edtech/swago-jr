@@ -105,7 +105,7 @@ export default function BlogEditor({ initialData, id }: { initialData?: BlogData
                         value={blog.title}
                         onChange={(e) => setBlog({ ...blog, title: e.target.value })}
                         placeholder="Blog Title"
-                        className="text-2xl font-bold border-none bg-transparent focus:ring-0 w-full"
+                        className="text-2xl font-bold border-none bg-transparent focus:ring-0 w-full text-slate-900"
                     />
                 </div>
                 <div className="flex items-center gap-3">
@@ -148,7 +148,7 @@ export default function BlogEditor({ initialData, id }: { initialData?: BlogData
                                         value={blog.slug}
                                         onChange={(e) => setBlog({ ...blog, slug: e.target.value })}
                                         placeholder="child-brain-works"
-                                        className="w-full border rounded-lg px-3 py-2 text-sm"
+                                        className="w-full border rounded-lg px-3 py-2 text-sm text-slate-900"
                                     />
                                 </div>
                                 <div>
@@ -158,7 +158,7 @@ export default function BlogEditor({ initialData, id }: { initialData?: BlogData
                                         value={blog.coverImage}
                                         onChange={(e) => setBlog({ ...blog, coverImage: e.target.value })}
                                         placeholder="https://..."
-                                        className="w-full border rounded-lg px-3 py-2 text-sm"
+                                        className="w-full border rounded-lg px-3 py-2 text-sm text-slate-900"
                                     />
                                 </div>
                             </div>
@@ -168,7 +168,7 @@ export default function BlogEditor({ initialData, id }: { initialData?: BlogData
                                     value={blog.metaDescription}
                                     onChange={(e) => setBlog({ ...blog, metaDescription: e.target.value })}
                                     placeholder="Enter a brief summary for SEO..."
-                                    className="w-full border rounded-lg px-3 py-2 text-sm h-20 resize-none"
+                                    className="w-full border rounded-lg px-3 py-2 text-sm h-20 resize-none text-slate-900"
                                 />
                             </div>
                         </div>
@@ -205,7 +205,7 @@ export default function BlogEditor({ initialData, id }: { initialData?: BlogData
                                                 type="text"
                                                 value={block.data.text}
                                                 onChange={(e) => updateBlock(index, { text: e.target.value })}
-                                                className={`w-full border-none focus:ring-0 font-bold ${block.data.level === 1 ? 'text-4xl' : block.data.level === 2 ? 'text-2xl' : 'text-xl'}`}
+                                                className={`w-full border-none focus:ring-0 font-bold text-slate-900 ${block.data.level === 1 ? 'text-4xl' : block.data.level === 2 ? 'text-2xl' : 'text-xl'}`}
                                             />
                                         </div>
                                     )}
@@ -276,7 +276,7 @@ export default function BlogEditor({ initialData, id }: { initialData?: BlogData
                                                             newItems[i] = e.target.value;
                                                             updateBlock(index, { items: newItems });
                                                         }}
-                                                        className="flex-1 border-none focus:ring-0 p-0 text-sm"
+                                                        className="flex-1 border-none focus:ring-0 p-0 text-sm text-slate-900"
                                                     />
                                                     <button onClick={() => {
                                                         const newItems = block.data.items.filter((_: any, idx: number) => idx !== i);
@@ -313,7 +313,7 @@ export default function BlogEditor({ initialData, id }: { initialData?: BlogData
                                                             newQs[qi].question = e.target.value;
                                                             updateBlock(index, { questions: newQs });
                                                         }}
-                                                        className="w-full font-bold text-gray-800 border-none focus:ring-0"
+                                                        className="w-full font-bold text-slate-900 border-none focus:ring-0"
                                                     />
                                                     <div className="space-y-2 pl-4 border-l-2 border-gray-100">
                                                         {q.options.map((opt: any, oi: number) => (
@@ -417,7 +417,7 @@ export default function BlogEditor({ initialData, id }: { initialData?: BlogData
 
                         <div>
                             <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Author</label>
-                            <input type="text" value={blog.author || "Swago Team"} placeholder="Swago Team" className="w-full border rounded-lg px-3 py-2 text-sm" />
+                            <input type="text" value={blog.author || "Swago Team"} onChange={(e) => setBlog({ ...blog, author: e.target.value })} placeholder="Swago Team" className="w-full border rounded-lg px-3 py-2 text-sm text-slate-900" />
                         </div>
 
                         <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
