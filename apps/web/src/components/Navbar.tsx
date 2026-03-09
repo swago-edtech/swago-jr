@@ -49,15 +49,17 @@ export default function Navbar() {
   }, []);
 
   return (
-    <nav className="w-full bg-white text-slate-800 py-3 px-4 flex items-center justify-between border-b border-slate-200 shadow-sm relative z-50">
+    <nav className="w-full bg-white text-slate-800 py-7 px-4 flex items-center justify-between border-b border-slate-200 shadow-sm relative z-50">
       {/* 1. LEFT SECTION: Hamburger (Mobile) / Nav Links (Desktop) */}
       <div className="flex-initial md:flex-1 flex items-center">
         {/* Mobile Hamburger Icon */}
-        <div className="md:hidden">
-          <button onClick={() => setMobileMenuOpen(!isMobileMenuOpen)} aria-label="Open main menu">
-            <HiMenu className="w-6 h-6" />
-          </button>
-        </div>
+        {process.env.NEXT_PUBLIC_BLOG_ONLY_MODE !== "true" && (
+          <div className="md:hidden">
+            <button onClick={() => setMobileMenuOpen(!isMobileMenuOpen)} aria-label="Open main menu">
+              <HiMenu className="w-6 h-6" />
+            </button>
+          </div>
+        )}
 
         <div className="hidden md:flex items-center gap-6 text-sm font-medium text-slate-600">
           {process.env.NEXT_PUBLIC_BLOG_ONLY_MODE === "true" ? (
@@ -157,49 +159,51 @@ export default function Navbar() {
         )}
 
         {/* User Menu */}
-        <div className="relative" ref={userMenuRef}>
-          {user ? (
-            <>
-              <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                onClick={() => setUserMenuOpen(!isUserMenuOpen)}
-                className="p-2 rounded-full border border-transparent hover:border-slate-200 transition-colors flex items-center justify-center"
-              >
-                <HiUserCircle className="w-6 h-6 text-black" />
-              </motion.button>
-              <AnimatePresence>
-                {isUserMenuOpen && (
-                  <motion.div
-                    className="absolute top-full right-0 mt-3 w-56 bg-white text-slate-800 rounded-xl shadow-2xl z-20 border border-slate-100 border-t-4 border-t-black overflow-hidden"
-                    variants={dropdownVariants}
-                    initial="hidden"
-                    animate="visible"
-                    exit="exit"
-                  >
-                    <div className="px-4 py-4 bg-slate-50 border-b text-left">
-                      <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">Signed in as</p>
-                      <p className="text-sm font-bold truncate text-slate-800 mt-1">
-                        {user.name || user.email || user.phone}
-                      </p>
-                    </div>
+        {process.env.NEXT_PUBLIC_BLOG_ONLY_MODE !== "true" && (
+          <div className="relative" ref={userMenuRef}>
+            {user ? (
+              <>
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => setUserMenuOpen(!isUserMenuOpen)}
+                  className="p-2 rounded-full border border-transparent hover:border-slate-200 transition-colors flex items-center justify-center"
+                >
+                  <HiUserCircle className="w-6 h-6 text-black" />
+                </motion.button>
+                <AnimatePresence>
+                  {isUserMenuOpen && (
+                    <motion.div
+                      className="absolute top-full right-0 mt-3 w-56 bg-white text-slate-800 rounded-xl shadow-2xl z-20 border border-slate-100 border-t-4 border-t-black overflow-hidden"
+                      variants={dropdownVariants}
+                      initial="hidden"
+                      animate="visible"
+                      exit="exit"
+                    >
+                      <div className="px-4 py-4 bg-slate-50 border-b text-left">
+                        <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">Signed in as</p>
+                        <p className="text-sm font-bold truncate text-slate-800 mt-1">
+                          {user.name || user.email || user.phone}
+                        </p>
+                      </div>
 
 
-                    <Link href="/profile" onClick={() => setUserMenuOpen(false)} className="block px-4 py-3 text-sm hover:bg-slate-50 text-slate-700 font-medium text-left">My Profile</Link>
-                    <Link href="/orders" onClick={() => setUserMenuOpen(false)} className="block px-4 py-3 text-sm hover:bg-slate-50 text-slate-700 font-medium text-left">My Orders</Link>
-                    <button onClick={handleLogout} className="block w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 font-bold border-t">Logout</button>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </>
-          ) : (
-            <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-              <Link href="/login" aria-label="Login" className="p-2 rounded-full text-black hover:bg-slate-100 transition-colors flex items-center justify-center">
-                <HiUserCircle className="w-6 h-6" />
-              </Link>
-            </motion.div>
-          )}
-        </div>
+                      <Link href="/profile" onClick={() => setUserMenuOpen(false)} className="block px-4 py-3 text-sm hover:bg-slate-50 text-slate-700 font-medium text-left">My Profile</Link>
+                      <Link href="/orders" onClick={() => setUserMenuOpen(false)} className="block px-4 py-3 text-sm hover:bg-slate-50 text-slate-700 font-medium text-left">My Orders</Link>
+                      <button onClick={handleLogout} className="block w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 font-bold border-t">Logout</button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </>
+            ) : (
+              <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+                <Link href="/login" aria-label="Login" className="p-2 rounded-full text-black hover:bg-slate-100 transition-colors flex items-center justify-center">
+                  <HiUserCircle className="w-6 h-6" />
+                </Link>
+              </motion.div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* --- Mobile Hamburger Menu Content --- */}

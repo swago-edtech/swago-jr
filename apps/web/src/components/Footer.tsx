@@ -69,24 +69,28 @@ export default function Footer() {
         )}
 
         {/* Column 4: Company */}
-        <div>
-          <h3 className="font-bold text-slate-800 uppercase tracking-wider mb-4">Company</h3>
-          <ul className="space-y-2 text-sm">
-            <li><Link href="/about" className="text-slate-600 hover:text-[hsl(var(--swago-purple))] transition-colors hover:underline">About Us</Link></li>
-            <li><Link href="/contact" className="text-slate-600 hover:text-[hsl(var(--swago-purple))] transition-colors hover:underline">Contact Us</Link></li>
-            <li><Link href="/faq" className="text-slate-600 hover:text-[hsl(var(--swago-purple))] transition-colors hover:underline">FAQ</Link></li>
-            <li><Link href="/terms" className="text-slate-600 hover:text-[hsl(var(--swago-purple))] transition-colors hover:underline">Terms & Conditions</Link></li>
-            <li><Link href="/privacy" className="text-slate-600 hover:text-[hsl(var(--swago-purple))] transition-colors hover:underline">Privacy Policy</Link></li>
-            <li><Link href="/shipping" className="text-slate-600 hover:text-[hsl(var(--swago-purple))] transition-colors hover:underline">Shipping & Delivery</Link></li>
-            <li><Link href="/cancellation-policy" className="text-slate-600 hover:text-[hsl(var(--swago-purple))] transition-colors hover:underline">Cancellation Policy</Link></li>
-          </ul>
-        </div>
+        {process.env.NEXT_PUBLIC_BLOG_ONLY_MODE !== "true" && (
+          <div>
+            <h3 className="font-bold text-slate-800 uppercase tracking-wider mb-4">Company</h3>
+            <ul className="space-y-2 text-sm">
+              <li><Link href="/about" className="text-slate-600 hover:text-[hsl(var(--swago-purple))] transition-colors hover:underline">About Us</Link></li>
+              <li><Link href="/contact" className="text-slate-600 hover:text-[hsl(var(--swago-purple))] transition-colors hover:underline">Contact Us</Link></li>
+              <li><Link href="/faq" className="text-slate-600 hover:text-[hsl(var(--swago-purple))] transition-colors hover:underline">FAQ</Link></li>
+              <li><Link href="/terms" className="text-slate-600 hover:text-[hsl(var(--swago-purple))] transition-colors hover:underline">Terms & Conditions</Link></li>
+              <li><Link href="/privacy" className="text-slate-600 hover:text-[hsl(var(--swago-purple))] transition-colors hover:underline">Privacy Policy</Link></li>
+              <li><Link href="/shipping" className="text-slate-600 hover:text-[hsl(var(--swago-purple))] transition-colors hover:underline">Shipping & Delivery</Link></li>
+              <li><Link href="/cancellation-policy" className="text-slate-600 hover:text-[hsl(var(--swago-purple))] transition-colors hover:underline">Cancellation Policy</Link></li>
+            </ul>
+          </div>
+        )}
       </div>
 
       {/* Copyright Section */}
-      <div className="container mx-auto px-4 mt-12 border-t border-slate-200 pt-8 text-center">
-        <p className="text-sm text-slate-500">Adi anant - All copyrights reserved 2025</p>
-      </div>
+      {process.env.NEXT_PUBLIC_BLOG_ONLY_MODE !== "true" && (
+        <div className="container mx-auto px-4 mt-12 border-t border-slate-200 pt-8 text-center">
+          <p className="text-sm text-slate-500">Adi anant - All copyrights reserved 2025</p>
+        </div>
+      )}
     </footer>
   );
 }
