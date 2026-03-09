@@ -103,7 +103,7 @@ export async function GET() {
                                 { type: "paragraph", data: { text: "Understanding your child's brain type is step one. The real work, the exciting part is actually building those skills in a way your child enjoys." } },
 
                 { type: "paragraph", data: { text: "That's exactly the gap that SWAGO was built to fill. SWAGO is a gamified skill-building system for kids that turns everyday play into real growth." } },
-                { type: "paragraph", data: { text: "Instead of worksheets and lectures, children progress through skill levels like a game where every SWAGO smart box is quietly training the exact abilities this quiz measures." } }
+                { type: "paragraph", data: { text: "Instead of worksheets and lectures, children progress through skill levels like a game where every SWAGO smart box is quietly training the exact abilities this quiz measures." } },
 
                 { type: "paragraph", data: { text: "Because the best time to build these skills isn't when kids are adults struggling with them. It's right now, while their brains are still wide open." } }
 
