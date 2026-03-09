@@ -49,7 +49,7 @@ export default function Navbar() {
   }, []);
 
   return (
-    <nav className="w-full bg-white text-slate-800 py-3 px-4 flex items-center justify-between border-b border-slate-200 shadow-sm relative z-50">
+    <nav className="w-full bg-white text-slate-800 py-7 px-4 flex items-center justify-between border-b border-slate-200 shadow-sm relative z-50">
       {/* 1. LEFT SECTION: Hamburger (Mobile) / Nav Links (Desktop) */}
       <div className="flex-initial md:flex-1 flex items-center">
         {/* Mobile Hamburger Icon */}
