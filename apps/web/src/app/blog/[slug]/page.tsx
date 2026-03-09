@@ -101,12 +101,12 @@ function Quiz({ data }: { data: any }) {
                     >
                         Retake Quiz
                     </button>
-                    <Link
+                    {/* <Link
                         href="/products"
                         className="bg-slate-900 text-white px-6 py-4 rounded-xl font-black uppercase tracking-widest text-xs shadow-xl shadow-black/20"
                     >
                         Explore Growth Kits
-                    </Link>
+                    </Link> */}
                 </div>
             </div>
         </div>
@@ -244,7 +244,7 @@ export default function SingleBlogPage() {
                     </div>
 
                     {/* CTA Section */}
-                    <div className="mt-24 p-12 md:p-16 rounded-[3rem] bg-slate-900 relative overflow-hidden text-center text-white">
+                    {/* <div className="mt-24 p-12 md:p-16 rounded-[3rem] bg-slate-900 relative overflow-hidden text-center text-white">
                         <div className="absolute top-0 right-0 w-64 h-64 bg-[hsl(var(--swago-purple))]/20 rounded-bl-full -mr-20 -mt-20 blur-3xl" />
                         <h2 className="text-3xl md:text-5xl font-black mb-8 relative z-10 uppercase tracking-tight leading-tight">Ready to nurture your child's <span className="text-[hsl(var(--swago-purple))]">Potential?</span></h2>
                         <p className="text-xl opacity-70 mb-12 max-w-2xl mx-auto leading-relaxed relative z-10 font-medium italic">Explore our specialized growth kits designed to strengthen focus, confidence, and emotional intelligence through play.</p>
@@ -254,7 +254,7 @@ export default function SingleBlogPage() {
                         >
                             Shop All Products
                         </Link>
-                    </div>
+                    </div> */}
                 </div>
             </article>
         </div>
