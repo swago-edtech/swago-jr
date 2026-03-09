@@ -16,7 +16,7 @@ export async function GET() {
             metaDescription: "Wondering why your child reacts the way they do? Take this free 2-minute child personality quiz to understand your child's brain type—and learn how to build their focus, confidence, and emotional strength.",
             coverImage: "/images/blog/child-brain-quiz.png",
             isPublished: true,
-            author: "Swago Team",
+            author: "Swago",
             content: [
                 { type: "paragraph", data: { text: "Every parent has had a moment like this. You’re standing in the grocery store line. Your child sees a candy bar. You gently say 'no'... and suddenly it feels like the whole world has ended right there." } },
                 { type: "paragraph", data: { text: "Or sometimes it’s the opposite. You say no, and your child just shrugs and moves on like it’s no big deal. Same situation. Completely different reactions." } },
