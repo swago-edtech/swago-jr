@@ -9,7 +9,6 @@ export async function GET() {
         // Delete existing blog with this slug so we can refresh the content
         await Blog.deleteOne({ slug: "child-brain-quiz" });
 
-        
         const defaultBlog = {
             title: "How Does Your Child's Brain Really Work? (Take This 2-Minute Quiz to Find Out)",
             slug: "child-brain-quiz",
@@ -28,11 +27,6 @@ export async function GET() {
 
                 { type: "heading", data: { text: "Why Understanding Your Child’s Brain Style Matters", level: 2 } },
                 { type: "paragraph", data: { text: "Child development research consistently shows that children develop skills at different rates." } },
-                { type: "paragraph", data: { text: "Some children naturally manage their emotions well. Some are naturally curious but struggle with focus." } },
-
-                { type: "paragraph", data: { text: "Some are confident explorers, while others need time and encouragement before trying something new." } },
-                                { type: "paragraph", data: { text: "Recognizing these patterns early allows parents to:" } },
-
                 {
                     type: "list", data: {
                         type: "unordered", items: [
@@ -63,7 +57,7 @@ export async function GET() {
                     type: "quiz", data: {
                         title: "Child Personality Quiz",
                         questions: [
-                            { question: "1. You need 20 minutes to finish dinner. Their reaction?", options: [{ text: "A) Finds a toy and waits patiently", points: 3 }, { text: "B) Ask every 2 minutes if it’s ready", points: 2 }, { text: "C) Has an emotional collapse", points: 1 }] },
+                            { question: "1. er. Their reaction?", options: [{ text: "A) Finds a toy and waits patiently", points: 3 }, { text: "B) Ask every 2 minutes if it’s ready", points: 2 }, { text: "C) Has an emotional collapse", points: 1 }] },
                             { question: "2. You are on an important phone call.", options: [{ text: "A) They play quietly until you are done", points: 3 }, { text: "B) They wait a few minutes, then tap you", points: 2 }, { text: "C) They shout or stand in front of you instantly", points: 1 }] },
                             { question: "3. You say: 'Socks on, brush teeth, get your bag.'", options: [{ text: "A) They complete all three independently", points: 3 }, { text: "B) They do one task, then get distracted", points: 2 }, { text: "C) They forget the list and start playing", points: 1 }] },
                             { question: "4. You say, 'Stay right next to me' in a busy store.", options: [{ text: "A) They stay right beside you", points: 3 }, { text: "B) They drift away but return when called", points: 2 }, { text: "C) They run toward something interesting", points: 1 }] },
@@ -84,27 +78,10 @@ export async function GET() {
 
                 { type: "heading", data: { text: "How Play and Activities Strengthen These Skills", level: 2 } },
                 { type: "paragraph", data: { text: "Research in child development shows that structured play helps children strengthen important abilities such as focus, confidence, emotional resilience, and problem solving." } },
-                {
-                    type: "list", data: {
-                        type: "unordered", items: [
-                            "focus",
-                             "confidence",
-                              "emotional resilience",
-                               "problem solving"
-                            
-                        ]
-                    }
-                },
-                { type: "paragraph", data: { text: "Play-based learning allows children to practice these skills naturally while enjoying the experience." } },
 
                 { type: "heading", data: { text: "How to Build Your Child's Focus, Confidence, and Emotional Strength", level: 2 } },
-                                { type: "paragraph", data: { text: "Understanding your child's brain type is step one. The real work, the exciting part is actually building those skills in a way your child enjoys." } },
-
                 { type: "paragraph", data: { text: "That's exactly the gap that SWAGO was built to fill. SWAGO is a gamified skill-building system for kids that turns everyday play into real growth." } },
-                { type: "paragraph", data: { text: "Instead of worksheets and lectures, children progress through skill levels like a game where every SWAGO smart box is quietly training the exact abilities this quiz measures." } },
-
-                { type: "paragraph", data: { text: "Because the best time to build these skills isn't when kids are adults struggling with them. It's right now, while their brains are still wide open." } }
-
+                { type: "paragraph", data: { text: "Instead of worksheets and lectures, children progress through skill levels like a game — where every activity is quietly training the exact abilities this quiz measures." } }
             ]
         };
 
