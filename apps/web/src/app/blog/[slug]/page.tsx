@@ -121,7 +121,9 @@ export default function SingleBlogPage() {
     useEffect(() => {
         async function fetchBlog() {
             try {
-                const res = await fetch(`/api/blogs/${slug}`);
+                const res = await fetch(`/api/blogs/${slug}?t=${Date.now()}`, {
+                    cache: 'no-store'
+                });
                 const data = await res.json();
                 if (data.success) {
                     setBlog(data.blog);

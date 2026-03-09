@@ -21,7 +21,9 @@ export default function BlogListingPage() {
     useEffect(() => {
         async function fetchBlogs() {
             try {
-                const res = await fetch("/api/blogs");
+                const res = await fetch(`/api/blogs?t=${Date.now()}`, {
+                    cache: 'no-store'
+                });
                 const data = await res.json();
                 if (data.success) {
                     setBlogs(data.blogs);
