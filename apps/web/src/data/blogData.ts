@@ -19,8 +19,12 @@ export const CHILD_BRAIN_QUIZ_BLOG = {
 
         { type: "heading", data: { text: "Why Understanding Your Child’s Brain Style Matters", level: 2 } },
         { type: "paragraph", data: { text: "Child development research consistently shows that children develop skills at different rates." } },
-        {
-            type: "list", data: {
+        { type: "paragraph", data: { text: "Some children naturally manage their emotions well. Some are naturally curious but struggle with focus." } },
+        { type: "paragraph", data: { text: "Some are confident explorers, while others need time and encouragement before trying something new." } },
+        { type: "paragraph", data: { text: "Recognizing these patterns early allows parents to:" } },
+
+
+            {type: "list", data: {
                 type: "unordered", items: [
                     "Support confidence development",
                     "Improve focus and self-control",
@@ -70,9 +74,22 @@ export const CHILD_BRAIN_QUIZ_BLOG = {
 
         { type: "heading", data: { text: "How Play and Activities Strengthen These Skills", level: 2 } },
         { type: "paragraph", data: { text: "Research in child development shows that structured play helps children strengthen important abilities such as focus, confidence, emotional resilience, and problem solving." } },
+         {type: "list", data: {
+                type: "unordered", items: [
+                    "focus", 
+                    "confidence", 
+                    "emotional resilience",
+                    "problem solving"
+                ]
+            }
+        },
 
         { type: "heading", data: { text: "How to Build Your Child's Focus, Confidence, and Emotional Strength", level: 2 } },
+        { type: "paragraph", data: { text: "Understanding your child's brain type is step one. The real work the exciting part is actually building those skills in a way your child enjoys." } },
+        
         { type: "paragraph", data: { text: "That's exactly the gap that SWAGO was built to fill. SWAGO is a gamified skill-building system for kids that turns everyday play into real growth." } },
-        { type: "paragraph", data: { text: "Instead of worksheets and lectures, children progress through skill levels like a game — where every activity is quietly training the exact abilities this quiz measures." } }
+        { type: "paragraph", data: { text: "Instead of worksheets and lectures, children progress through skill levels like a game where every SWAGO smart box is quietly training the exact abilities this quiz measures." } },
+        { type: "paragraph", data: { text: "Because the best time to build these skills isn't when kids are adults struggling with them. It's right now while their brains are still wide open." } },
+
     ]
 };
