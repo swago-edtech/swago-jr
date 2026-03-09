@@ -9,6 +9,7 @@ export async function GET() {
         // Delete existing blog with this slug so we can refresh the content
         await Blog.deleteOne({ slug: "child-brain-quiz" });
 
+        
         const defaultBlog = {
             title: "How Does Your Child's Brain Really Work? (Take This 2-Minute Quiz to Find Out)",
             slug: "child-brain-quiz",
