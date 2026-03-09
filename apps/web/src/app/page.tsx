@@ -8,7 +8,13 @@ import FeaturedProducts from "@/components/FeaturedProducts";
 import ShopByPrice from "@/components/ShopByPrice";
 import Link from "next/link";
 
+import { redirect } from "next/navigation";
+
 export default function Home() {
+  if (process.env.BLOG_ONLY_MODE === "true") {
+    redirect("/blog/child-brain-quiz");
+  }
+
   return (
     <div className="w-full">
       <AnimateOnScroll className="mb-5">

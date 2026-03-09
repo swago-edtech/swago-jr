@@ -21,23 +21,24 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   // Get pathname from headers to check if we're on kids section
   const headersList = await headers();
   const pathname = headersList.get("x-pathname") || "";
-  
+
   // Check if current route is kids section
   const isKidsRoute = pathname.startsWith("/kids");
+  const isBlogOnly = process.env.BLOG_ONLY_MODE === "true";
 
 
   return (
     <html lang="en">
       <body className="flex flex-col min-h-screen bg-gray-50">
         <SharedProvider>
-          {/* Show announcement banner on all pages except /kids/* */}
-          {!isKidsRoute && <AnnouncementBanner />}
-          
-          <Navbar />
+          {/* Show announcement banner on all pages except /kids/* and blog-only mode */}
+          {!isKidsRoute && !isBlogOnly && <AnnouncementBanner />}
+
+          {(!isBlogOnly || pathname.startsWith("/blog")) && <Navbar />}
           <main className="flex-grow">{children}</main>
-          <Footer />
-          <WhatsAppButton />
-          <CartSidebar />
+          {(!isBlogOnly || pathname.startsWith("/blog")) && <Footer />}
+          {!isBlogOnly && <WhatsAppButton />}
+          {!isBlogOnly && <CartSidebar />}
         </SharedProvider>
 
         {/* Google Analytics Component */}

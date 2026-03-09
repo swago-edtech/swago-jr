@@ -59,58 +59,63 @@ export default function Navbar() {
           </button>
         </div>
 
-        {/* Desktop Links */}
         <div className="hidden md:flex items-center gap-6 text-sm font-medium text-slate-600">
-          <motion.div whileHover={{ y: -2 }}>
-            <Link href="/about" className="transition-colors hover:text-black">About Us</Link>
-          </motion.div>
+          {process.env.NEXT_PUBLIC_BLOG_ONLY_MODE === "true" ? (
+            <Link href="/blog/child-brain-quiz" className="transition-colors hover:text-black font-bold">Child Brain Quiz</Link>
+          ) : (
+            <>
+              <motion.div whileHover={{ y: -2 }}>
+                <Link href="/about" className="transition-colors hover:text-black">About Us</Link>
+              </motion.div>
 
-          {/* Shop By Age Dropdown */}
-          <motion.div className="relative" ref={ageDropdownRef} whileHover={{ y: -2 }}>
-            <button onClick={() => setAgeDropdownOpen(!isAgeDropdownOpen)} className="transition-colors hover:text-black flex items-center gap-1">
-              Shop by Age <HiChevronDown className="w-5 h-5" />
-            </button>
-            <AnimatePresence>
-              {isAgeDropdownOpen && (
-                <motion.div
-                  className="absolute top-full left-0 mt-2 w-40 bg-white rounded-md shadow-lg z-20 border border-slate-200 p-1 border-t-4 border-t-black"
-                  variants={dropdownVariants}
-                  initial="hidden"
-                  animate="visible"
-                  exit="exit"
-                >
-                  <Link href="/products" onClick={() => setAgeDropdownOpen(false)} className="block px-3 py-1.5 text-sm rounded-sm font-semibold hover:bg-slate-100 uppercase tracking-tighter">All Ages</Link>
-                  <Link href="/products?age=5-7" onClick={() => setAgeDropdownOpen(false)} className="block px-3 py-1.5 text-sm rounded-sm hover:bg-slate-100">Ages 5-7</Link>
-                  <Link href="/products?age=8-10" onClick={() => setAgeDropdownOpen(false)} className="block px-3 py-1.5 text-sm rounded-sm hover:bg-slate-100">Ages 8-10</Link>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </motion.div>
+              {/* Shop By Age Dropdown */}
+              <motion.div className="relative" ref={ageDropdownRef} whileHover={{ y: -2 }}>
+                <button onClick={() => setAgeDropdownOpen(!isAgeDropdownOpen)} className="transition-colors hover:text-black flex items-center gap-1">
+                  Shop by Age <HiChevronDown className="w-5 h-5" />
+                </button>
+                <AnimatePresence>
+                  {isAgeDropdownOpen && (
+                    <motion.div
+                      className="absolute top-full left-0 mt-2 w-40 bg-white rounded-md shadow-lg z-20 border border-slate-200 p-1 border-t-4 border-t-black"
+                      variants={dropdownVariants}
+                      initial="hidden"
+                      animate="visible"
+                      exit="exit"
+                    >
+                      <Link href="/products" onClick={() => setAgeDropdownOpen(false)} className="block px-3 py-1.5 text-sm rounded-sm font-semibold hover:bg-slate-100 uppercase tracking-tighter">All Ages</Link>
+                      <Link href="/products?age=5-7" onClick={() => setAgeDropdownOpen(false)} className="block px-3 py-1.5 text-sm rounded-sm hover:bg-slate-100">Ages 5-7</Link>
+                      <Link href="/products?age=8-10" onClick={() => setAgeDropdownOpen(false)} className="block px-3 py-1.5 text-sm rounded-sm hover:bg-slate-100">Ages 8-10</Link>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
 
-          {/* Shop By Categories Dropdown */}
-          <motion.div className="relative" ref={elementDropdownRef} whileHover={{ y: -2 }}>
-            <button onClick={() => setElementDropdownOpen(!isElementDropdownOpen)} className="transition-colors hover:text-black flex items-center gap-1">
-              Shop by Categories <HiChevronDown className="w-5 h-5" />
-            </button>
-            <AnimatePresence>
-              {isElementDropdownOpen && (
-                <motion.div
-                  className="absolute top-full left-0 mt-2 w-48 bg-white rounded-md shadow-lg z-20 border border-slate-200 p-1 border-t-4 border-t-black"
-                  variants={dropdownVariants}
-                  initial="hidden"
-                  animate="visible"
-                  exit="exit"
-                >
-                  <Link href="/products" onClick={() => setElementDropdownOpen(false)} className="block px-3 py-1.5 text-sm rounded-sm font-semibold hover:bg-slate-100 uppercase tracking-tighter">All Categories</Link>
-                  <Link href="/products?elements=S" onClick={() => setElementDropdownOpen(false)} className="block px-3 py-1.5 text-sm rounded-sm hover:bg-slate-100">S – Smart Tech</Link>
-                  <Link href="/products?elements=W" onClick={() => setElementDropdownOpen(false)} className="block px-3 py-1.5 text-sm rounded-sm hover:bg-slate-100">W – Willpower</Link>
-                  <Link href="/products?elements=A" onClick={() => setElementDropdownOpen(false)} className="block px-3 py-1.5 text-sm rounded-sm hover:bg-slate-100">A – Ambition</Link>
-                  <Link href="/products?elements=G" onClick={() => setElementDropdownOpen(false)} className="block px-3 py-1.5 text-sm rounded-sm hover:bg-slate-100">G – Growth</Link>
-                  <Link href="/products?elements=O" onClick={() => setElementDropdownOpen(false)} className="block px-3 py-1.5 text-sm rounded-sm hover:bg-slate-100">O – Optimization</Link>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </motion.div>
+              {/* Shop By Categories Dropdown */}
+              <motion.div className="relative" ref={elementDropdownRef} whileHover={{ y: -2 }}>
+                <button onClick={() => setElementDropdownOpen(!isElementDropdownOpen)} className="transition-colors hover:text-black flex items-center gap-1">
+                  Shop by Categories <HiChevronDown className="w-5 h-5" />
+                </button>
+                <AnimatePresence>
+                  {isElementDropdownOpen && (
+                    <motion.div
+                      className="absolute top-full left-0 mt-2 w-48 bg-white rounded-md shadow-lg z-20 border border-slate-200 p-1 border-t-4 border-t-black"
+                      variants={dropdownVariants}
+                      initial="hidden"
+                      animate="visible"
+                      exit="exit"
+                    >
+                      <Link href="/products" onClick={() => setElementDropdownOpen(false)} className="block px-3 py-1.5 text-sm rounded-sm font-semibold hover:bg-slate-100 uppercase tracking-tighter">All Categories</Link>
+                      <Link href="/products?elements=S" onClick={() => setElementDropdownOpen(false)} className="block px-3 py-1.5 text-sm rounded-sm hover:bg-slate-100">S – Smart Tech</Link>
+                      <Link href="/products?elements=W" onClick={() => setElementDropdownOpen(false)} className="block px-3 py-1.5 text-sm rounded-sm hover:bg-slate-100">W – Willpower</Link>
+                      <Link href="/products?elements=A" onClick={() => setElementDropdownOpen(false)} className="block px-3 py-1.5 text-sm rounded-sm hover:bg-slate-100">A – Ambition</Link>
+                      <Link href="/products?elements=G" onClick={() => setElementDropdownOpen(false)} className="block px-3 py-1.5 text-sm rounded-sm hover:bg-slate-100">G – Growth</Link>
+                      <Link href="/products?elements=O" onClick={() => setElementDropdownOpen(false)} className="block px-3 py-1.5 text-sm rounded-sm hover:bg-slate-100">O – Optimization</Link>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            </>
+          )}
         </div>
       </div>
 
@@ -121,32 +126,35 @@ export default function Navbar() {
 
       {/* 3. RIGHT SECTION: Icons (Wishlist, Cart, User) */}
       <div className="flex-initial md:flex-1 flex justify-end items-center gap-2 md:gap-4">
+        {process.env.NEXT_PUBLIC_BLOG_ONLY_MODE !== "true" && (
+          <>
+            {/* Wishlist Button - Desktop Only */}
+            <motion.div className="hidden md:block" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Link href="/wishlist" className="relative p-2 flex items-center gap-1 group transition-colors" aria-label="Wishlist">
+                <HiHeart className="w-6 h-6 text-black group-hover:scale-110 transition-transform" />
+                {wishlist.length > 0 && (
+                  <span className="absolute top-0 right-1 sm:right-0 bg-black text-white rounded-full w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center text-[10px] font-bold">
+                    {wishlist.length}
+                  </span>
+                )}
+                <span className="hidden lg:inline text-sm font-bold text-black">Wishlist</span>
+              </Link>
+            </motion.div>
 
-        {/* Wishlist Button - Desktop Only */}
-        <motion.div className="hidden md:block" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-          <Link href="/wishlist" className="relative p-2 flex items-center gap-1 group transition-colors" aria-label="Wishlist">
-            <HiHeart className="w-6 h-6 text-black group-hover:scale-110 transition-transform" />
-            {wishlist.length > 0 && (
-              <span className="absolute top-0 right-1 sm:right-0 bg-black text-white rounded-full w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center text-[10px] font-bold">
-                {wishlist.length}
-              </span>
-            )}
-            <span className="hidden lg:inline text-sm font-bold text-black">Wishlist</span>
-          </Link>
-        </motion.div>
-
-        {/* Cart Button - Desktop & Mobile */}
-        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-          <button onClick={openCartSidebar} className="relative p-2 flex items-center gap-1 group transition-colors" aria-label="Cart">
-            <HiShoppingCart className="w-6 h-6 text-black group-hover:scale-110 transition-transform" />
-            {itemCount > 0 && (
-              <span className="absolute top-0 right-1 sm:right-0 bg-black text-white rounded-full w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center text-[10px] font-bold">
-                {itemCount}
-              </span>
-            )}
-            <span className="hidden lg:inline text-sm font-bold text-black">Cart</span>
-          </button>
-        </motion.div>
+            {/* Cart Button - Desktop & Mobile */}
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <button onClick={openCartSidebar} className="relative p-2 flex items-center gap-1 group transition-colors" aria-label="Cart">
+                <HiShoppingCart className="w-6 h-6 text-black group-hover:scale-110 transition-transform" />
+                {itemCount > 0 && (
+                  <span className="absolute top-0 right-1 sm:right-0 bg-black text-white rounded-full w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center text-[10px] font-bold">
+                    {itemCount}
+                  </span>
+                )}
+                <span className="hidden lg:inline text-sm font-bold text-black">Cart</span>
+              </button>
+            </motion.div>
+          </>
+        )}
 
         {/* User Menu */}
         <div className="relative" ref={userMenuRef}>
