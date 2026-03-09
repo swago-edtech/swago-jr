@@ -18,7 +18,7 @@ export async function GET() {
             isPublished: true,
             author: "Swago Team",
             content: [
-                { type: "paragraph", data: { text: "Every parent has had a moment like this. You’re standing in the grocery store line. Your child sees a candy bar. You gently say 'no' … and suddenly it feels like the whole world has ended right there." } },
+                { type: "paragraph", data: { text: "Every parent has had a moment like this. You’re standing in the grocery store line. Your child sees a candy bar. You gently say 'no'... and suddenly it feels like the whole world has ended right there." } },
                 { type: "paragraph", data: { text: "Or sometimes it’s the opposite. You say no, and your child just shrugs and moves on like it’s no big deal. Same situation. Completely different reactions." } },
                 { type: "paragraph", data: { text: "And in that moment, many parents quietly wonder: 'Why does my child react like this?'" } },
                 { type: "paragraph", data: { text: "The truth is, most children are not trying to be difficult. They’re simply reacting in the way their brain naturally works." } },
