@@ -4,6 +4,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useSharedContext } from "@/context/SharedContext";
 import { USER_EVENTS } from "@/context/SharedContext";
 import Script from "next/script";
+import Image from "next/image";
+import { motion, AnimatePresence } from "framer-motion";
+import { HiLockClosed } from "react-icons/hi";
 
 type AuthMode = "signup" | "signin";
 
@@ -414,179 +417,206 @@ export default function LoginForm() {
         </div>
       )}
 
-      {/* ✅ Main form - show when widget is ready OR in OTP step */}
+      {/* ✅ Main form - New Design */}
       {(widgetReady || step === "otp") && (
-        <div className="max-w-md w-full bg-white p-8 rounded-xl shadow-lg border">
-          <h1 className="text-3xl font-bold text-center mb-6">
-            {authMode === "signup" ? "Create Account" : "Welcome Back"}
-          </h1>
+        <div className="w-full max-w-[640px] px-4 py-8 flex flex-col items-center">
+          {/* Mascot Image Header */}
+          <div className="w-72 h-72 md:w-[400px] md:h-[400px] relative mb-[-120px] z-20 drop-shadow-2xl translate-y-8">
+            <Image
+              src="/images/blog/quiz_assets.jpg"
+              alt="Swago Mascots"
+              fill
+              className="object-contain"
+              priority
+            />
+          </div>
 
-          {step === "form" && (
-            <div className="flex mb-6 bg-gray-100 rounded-lg p-1">
-              <button
-                onClick={() => setAuthMode("signup")}
-                className={`flex-1 py-2 px-4 rounded-md font-medium transition-colors ${authMode === "signup"
-                  ? "bg-white text-[hsl(var(--swago-purple))] shadow-sm"
-                  : "text-gray-600 hover:text-gray-800"
-                  }`}
-              >
-                New User
-              </button>
-              <button
-                onClick={() => setAuthMode("signin")}
-                className={`flex-1 py-2 px-4 rounded-md font-medium transition-colors ${authMode === "signin"
-                  ? "bg-white text-[hsl(var(--swago-purple))] shadow-sm"
-                  : "text-gray-600 hover:text-gray-800"
-                  }`}
-              >
-                Already a User
-              </button>
-            </div>
-          )}
+          <div className="w-full bg-white shadow-[0_30px_100px_-20px_rgba(0,0,0,0.08)] border border-slate-50 relative z-10 pt-28 pb-12 px-8 md:px-20 text-center"
+            style={{
+              borderRadius: "50px 50px 50px 50px",
+            }}
+          >
+            {/* Top Dip Visual Element (The U-Shape) */}
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-[2px] w-[420px] h-[80px] bg-white z-0"
+              style={{
+                borderRadius: "0 0 150px 150px",
+                boxShadow: "0 4px 30px rgba(0,0,0,0.03)"
+              }}
+            />
 
-          {process.env.NODE_ENV === "development" && (
-            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-center">
-              <p className="text-xs text-blue-600">
-                💡 <strong>Demo:</strong> Use {DEMO_PHONE} → OTP: {DEMO_OTP_HINT}
-              </p>
-            </div>
-          )}
+            <h1 className="text-3xl md:text-4xl font-black text-slate-900 mb-2 tracking-tight">
+              Start Your SWAGO Journey
+            </h1>
+            <p className="text-slate-400 text-sm md:text-base mb-10 font-medium">
+              Create your account to unlock fun learning experiences.
+            </p>
 
-          {step === "form" && (
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Phone Number <span className="text-red-500">*</span>
-                </label>
-                <div className="flex gap-2">
-                  <div className="w-20">
-                    <input
-                      type="text"
-                      value="+91"
-                      disabled
-                      aria-label="Country code"
-                      title="India country code"
-                      className="w-full border border-slate-300 rounded-md p-3 bg-gray-50 text-gray-700 font-medium text-center"
-                    />
-                  </div>
-                  <input
-                    type="tel"
-                    value={phone}
-                    onChange={(e) => {
-                      const value = e.target.value.replace(/\D/g, "");
-                      if (value.length <= 10) {
-                        setPhone(value);
-                      }
-                    }}
-                    placeholder="Enter 10-digit number"
-                    maxLength={10}
-                    aria-label="Phone number"
-                    className="flex-1 border border-slate-300 rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  />
-                </div>
-              </div>
-
-              {authMode === "signup" && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Full Name <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Enter your full name"
-                    className="w-full border border-slate-300 rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  />
-                </div>
-              )}
-
-              {authMode === "signup" && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Email Address <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="your.email@example.com"
-                    className="w-full border border-slate-300 rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  />
-                </div>
-              )}
-
-              <button
-                onClick={sendOtp}
-                disabled={loading || !phone || phone.length !== 10}
-                className="w-full bg-[hsl(var(--swago-purple))] text-white font-bold py-3 rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
-              >
-                {loading ? "Sending..." : "Send OTP"}
-              </button>
-
-              <div className="text-center pt-4 border-t border-gray-200">
+            {step === "form" && (
+              <div className="flex mb-10 bg-slate-50/80 rounded-2xl p-1.5 border border-slate-100">
                 <button
-                  onClick={() => router.push("/login/email")}
-                  className="text-sm text-gray-600 hover:text-[hsl(var(--swago-purple))] transition-colors">
-                  Not in India? Use Email Login →
+                  onClick={() => setAuthMode("signup")}
+                  className={`flex-1 py-4 px-4 rounded-xl font-black text-sm uppercase tracking-wider transition-all duration-300 ${authMode === "signup"
+                    ? "bg-white text-[hsl(var(--swago-purple))] shadow-xl shadow-purple-900/10"
+                    : "text-slate-400 hover:text-slate-600"
+                    }`}
+                >
+                  New User
+                </button>
+                <button
+                  onClick={() => setAuthMode("signin")}
+                  className={`flex-1 py-4 px-4 rounded-xl font-black text-sm uppercase tracking-wider transition-all duration-300 ${authMode === "signin"
+                    ? "bg-white text-[hsl(var(--swago-purple))] shadow-xl shadow-purple-900/10"
+                    : "text-slate-400 hover:text-slate-600"
+                    }`}
+                >
+                  Already a User
                 </button>
               </div>
-            </div>
-          )}
+            )}
 
-          {step === "otp" && (
-            <div className="space-y-4">
-              <div className="text-center text-sm text-gray-600 mb-2">
-                OTP sent to: <strong>+91{phone}</strong>
-                {authMode === "signup" && name && (
-                  <div className="mt-1 text-xs text-gray-500">
-                    Creating account for: {name}
+            {step === "form" && (
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-sm font-black text-slate-700 mb-2.5 ml-1">
+                    Phone Number <span className="text-[hsl(var(--swago-pink))]">*</span>
+                  </label>
+                  <div className="flex gap-3">
+                    <div className="w-20">
+                      <div className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 text-slate-900 font-black text-center text-base">
+                        +91
+                      </div>
+                    </div>
+                    <input
+                      type="tel"
+                      value={phone}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/\D/g, "");
+                        if (value.length <= 10) setPhone(value);
+                      }}
+                      placeholder="Enter 10-digit number"
+                      maxLength={10}
+                      className="flex-1 bg-white border border-slate-100 rounded-2xl p-4 text-base focus:outline-none focus:ring-4 focus:ring-purple-100 focus:border-[hsl(var(--swago-purple))] transition-all placeholder:text-slate-300 font-medium"
+                    />
                   </div>
-                )}
+                </div>
+
+                <AnimatePresence mode="wait">
+                  {authMode === "signup" && (
+                    <motion.div
+                      key="signup-fields"
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="space-y-6 overflow-hidden"
+                    >
+                      <div>
+                        <label className="block text-sm font-black text-slate-700 mb-2.5 ml-1">
+                          Full Name <span className="text-[hsl(var(--swago-pink))]">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
+                          placeholder="Enter your full name"
+                          className="w-full bg-white border border-slate-100 rounded-2xl p-4 text-base focus:outline-none focus:ring-4 focus:ring-purple-100 focus:border-[hsl(var(--swago-purple))] transition-all placeholder:text-slate-300 font-medium"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-black text-slate-700 mb-2.5 ml-1">
+                          Email Address <span className="text-[hsl(var(--swago-pink))]">*</span>
+                        </label>
+                        <input
+                          type="email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          placeholder="your.email@example.com"
+                          className="w-full bg-white border border-slate-100 rounded-2xl p-4 text-base focus:outline-none focus:ring-4 focus:ring-purple-100 focus:border-[hsl(var(--swago-purple))] transition-all placeholder:text-slate-300 font-medium"
+                        />
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                <button
+                  onClick={sendOtp}
+                  disabled={loading || !phone || phone.length !== 10}
+                  className="w-full bg-[hsl(var(--swago-purple))] text-white font-black py-5 rounded-[20px] text-lg uppercase tracking-widest transition-all hover:scale-[1.02] active:scale-98 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_15px_30px_-5px_hsla(var(--swago-purple),0.35)]"
+                >
+                  {loading ? "Please wait..." : "Send OTP"}
+                </button>
+
+                <div className="flex flex-col items-center pt-8 space-y-4">
+                  <div className="flex items-center gap-2 text-slate-400 font-bold text-xs">
+                    <HiLockClosed className="w-4 h-4 text-slate-400" />
+                    <span>Your information is secure with us</span>
+                  </div>
+                  <button
+                    onClick={() => router.push("/login/email")}
+                    className="text-xs font-black text-[hsl(var(--swago-purple))] hover:underline underline-offset-4 tracking-tighter uppercase"
+                  >
+                    Prefer email login?
+                  </button>
+                </div>
               </div>
+            )}
 
-              <input
-                type="text"
-                value={code}
-                onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-                placeholder="Enter 6-digit OTP"
-                maxLength={6}
-                className="w-full border border-slate-300 rounded-md p-3 text-center text-2xl tracking-widest focus:outline-none focus:ring-2 focus:ring-green-500"
-              />
+            {step === "otp" && (
+              <div className="space-y-8 py-4">
+                <div className="text-center space-y-2">
+                  <p className="text-slate-400 font-medium">OTP sent to:</p>
+                  <p className="text-2xl font-black text-slate-800">+91 {phone}</p>
+                </div>
 
-              <button
-                onClick={verifyOtp}
-                disabled={loading || code.length < 6}
-                className="w-full bg-green-500 text-white font-bold py-3 rounded-lg hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                <div className="relative group">
+                  <input
+                    type="text"
+                    value={code}
+                    onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+                    placeholder="......"
+                    maxLength={6}
+                    className="w-full bg-slate-50 border border-slate-100 rounded-[20px] p-6 text-center text-4xl font-black tracking-[0.4em] focus:outline-none focus:ring-4 focus:ring-purple-100 focus:border-[hsl(var(--swago-purple))] transition-all placeholder:text-slate-200"
+                  />
+                </div>
+
+                <button
+                  onClick={verifyOtp}
+                  disabled={loading || code.length < 6}
+                  className="w-full bg-[hsl(var(--swago-purple))] text-white font-black py-5 rounded-[20px] text-lg uppercase tracking-widest transition-all hover:scale-[1.02] active:scale-98 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_15px_30px_-5px_hsla(var(--swago-purple),0.35)]"
+                >
+                  {loading ? "Verifying..." : authMode === "signup" ? "Confirm Account" : "Let's Go!"}
+                </button>
+
+                <div className="text-center">
+                  <button
+                    onClick={() => {
+                      setStep("form");
+                      setCode("");
+                      setMessage("");
+                    }}
+                    className="text-xs font-black text-slate-400 hover:text-slate-600 uppercase tracking-widest border-b-2 border-slate-100 pb-0.5"
+                  >
+                    Change phone number
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {message && (
+              <motion.p
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={`mt-8 text-center text-xs font-bold leading-relaxed px-4 py-3 rounded-xl border ${message.includes("✅")
+                  ? "bg-green-50 text-green-600 border-green-100"
+                  : message.includes("🚧")
+                    ? "bg-blue-50 text-blue-600 border-blue-100"
+                    : "bg-red-50 text-red-600 border-red-100"
+                  }`}
               >
-                {loading ? "Verifying..." : authMode === "signup" ? "Create Account" : "Sign In"}
-              </button>
-
-              <button
-                onClick={() => {
-                  setStep("form");
-                  setCode("");
-                  setMessage("");
-                }}
-                className="w-full text-sm text-gray-600 hover:text-gray-800 underline"
-              >
-                Change phone number
-              </button>
-            </div>
-          )}
-
-          {message && (
-            <p
-              className={`mt-4 text-center text-sm ${message.includes("✅")
-                ? "text-green-600"
-                : message.includes("🚧")
-                  ? "text-blue-600"
-                  : "text-red-600"
-                }`}
-            >
-              {message}
-            </p>
-          )}
+                {message}
+              </motion.p>
+            )}
+          </div>
         </div>
       )}
     </>

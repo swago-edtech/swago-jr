@@ -8,7 +8,7 @@ function Loading() {
 
 export default function LoginPage() {
   return (
-    <div className="min-h-[60vh] flex items-center justify-center bg-slate-50">
+    <div className="min-h-screen flex items-center justify-center bg-white overflow-x-hidden">
       <Suspense fallback={<Loading />}>
         <LoginForm />
       </Suspense>
