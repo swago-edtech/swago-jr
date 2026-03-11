@@ -129,11 +129,11 @@ function Quiz({ data }: { data: any }) {
                     <Logo />
                 </div>
 
-                <div className="inline-block px-5 py-2 bg-yellow-400 text-slate-900 rounded-full text-[10px] font-black uppercase tracking-[0.3em] mb-4 shadow-lg transform rotate-1">
-                    YOUR PERSONALITY RESULT
-                </div>
-
-                <div className="mb-8">
+                <div className="mb-6 text-center">
+                    <p className="text-xl md:text-2xl font-black mb-6 leading-tight">
+                        Congratulations! You’ve completed the quiz.<br />
+                        <span className="opacity-70 text-lg md:text-xl font-bold">Your child’s brain style is</span>
+                    </p>
                     <p className="text-sm font-black uppercase tracking-widest opacity-60 mb-2">{result.points}</p>
                     <h3 className="text-4xl md:text-5xl font-black uppercase tracking-tight leading-tight">{result.title}</h3>
                 </div>
@@ -156,56 +156,21 @@ function Quiz({ data }: { data: any }) {
                     <p className="text-sm md:text-base opacity-80 italic border-l-2 border-white/20 pl-4">{result.extra}</p>
                 </div>
 
-                {/* Growth Section */}
-                <div className="w-full text-left space-y-10 mt-12 pt-12 border-t border-white/10">
-                    <div className="space-y-4">
-                        <h4 className="text-xl md:text-2xl font-black uppercase tracking-tight">How Play and Activities Strengthen These Skills</h4>
-                        <p className="text-sm md:text-base opacity-80 leading-relaxed font-medium">Research in child development shows that structured play helps children strengthen important abilities such as the following:</p>
-                        <ul className="grid grid-cols-2 gap-3">
-                            {["focus", "confidence", "emotional resilience", "problem-solving"].map((item, i) => (
-                                <li key={i} className="flex items-center gap-2">
-                                    <span className="w-1.5 h-1.5 bg-yellow-400 rounded-full" />
-                                    <span className="text-xs font-black uppercase tracking-wider">{item}</span>
-                                </li>
-                            ))}
-                        </ul>
-                        <p className="text-xs md:text-sm opacity-60 italic pt-2">Play-based learning allows children to practice these skills naturally while enjoying the experience.</p>
-                    </div>
+                <div className="pt-8 w-full">
+                    <Link
+                        href="https://chat.whatsapp.com/CwGGxSas1NVIRXOkBqe9XD?mode=gi_t"
+                        target="_blank"
+                        className="inline-block w-full bg-slate-900 text-white px-8 py-5 rounded-2xl font-black uppercase tracking-widest text-sm hover:scale-[1.02] transition-transform text-center shadow-2xl shadow-black/20"
+                    >
+                        Join Our Community
+                    </Link>
 
-                    <div className="bg-slate-900 rounded-3xl p-6 md:p-8 space-y-4 border border-white/5 shadow-2xl">
-                        <h4 className="text-lg md:text-xl font-black leading-tight text-white mb-2">How to Actually Build Your Child's Focus, Confidence, and Emotional Strength</h4>
-                        <div className="space-y-4 text-xs md:text-sm opacity-80 leading-relaxed font-medium">
-                            <p>Understanding your child's brain type is step one. The real work is actually building those skills in a way your child enjoys.</p>
-                            <p>That's exactly the gap that <span className="text-[hsl(var(--swago-purple))] font-black">SWAGO</span> was built to fill.</p>
-                            <p><span className="text-[hsl(var(--swago-purple))] font-black">SWAGO</span> is a gamified skill-building system for kids that turns everyday play into real growth.</p>
-                            <p>Instead of worksheets, children progress through skill levels like a game — where every activity is quietly training the exact abilities this quiz measures.</p>
-                            <p className="font-black text-white pt-2 border-t border-white/10 mt-4">Because the best time to build these skills isn't when kids are adults struggling with them. It's right now while their brains are still wide open.</p>
-                        </div>
-
-                        <div className="pt-4">
-                            <Link
-                                href="/products"
-                                className="inline-block w-full bg-[hsl(var(--swago-purple))] text-white px-8 py-4 rounded-xl font-black uppercase tracking-widest text-xs hover:scale-[1.02] transition-transform text-center shadow-lg shadow-purple-900/20"
-                            >
-                                Explore Growth Kits
-                            </Link>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="pt-12 grid grid-cols-1 md:grid-cols-2 gap-4">
                     <button
                         onClick={() => { setStep(0); setCurrentQuestionIndex(0); setTotalScore(0); }}
-                        className="bg-white text-[hsl(var(--swago-purple))] px-6 py-4 rounded-xl font-black uppercase tracking-widest text-xs"
+                        className="w-full mt-4 text-white/40 hover:text-white font-black uppercase tracking-widest text-[10px] transition-colors"
                     >
                         Retake Quiz
                     </button>
-                    {/* <Link
-                        href="/products"
-                        className="bg-slate-900 text-white px-6 py-4 rounded-xl font-black uppercase tracking-widest text-xs shadow-xl shadow-black/20"
-                    >
-                        Explore Growth Kits
-                    </Link> */}
                 </div>
             </div>
         </motion.div>
