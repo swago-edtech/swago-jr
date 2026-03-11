@@ -12,7 +12,7 @@ export default function FeaturedProducts() {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const res = await fetch('/api/products?featured=true');
+        const res = await fetch('/api/products');
         const data = await res.json();
 
         if (data.success) {

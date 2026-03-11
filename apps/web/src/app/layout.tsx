@@ -25,20 +25,20 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   // Check if current route is kids section
   const isKidsRoute = pathname.startsWith("/kids");
   const isBlogOnly = process.env.BLOG_ONLY_MODE === "true";
-
+  const isLoginRoute = pathname === "/login";
 
   return (
     <html lang="en">
       <body className="flex flex-col min-h-screen bg-gray-50">
         <SharedProvider>
           {/* Show announcement banner on all pages except /kids/* and blog-only mode */}
-          {!isKidsRoute && !isBlogOnly && <AnnouncementBanner />}
+          {!isKidsRoute && !isBlogOnly && !isLoginRoute && <AnnouncementBanner />}
 
-          {(!isBlogOnly || pathname.startsWith("/blog")) && <Navbar />}
+          {(!isBlogOnly || pathname.startsWith("/blog")) && !isLoginRoute && <Navbar />}
           <main className="flex-grow">{children}</main>
-          {(!isBlogOnly || pathname.startsWith("/blog")) && <Footer />}
-          {!isBlogOnly && <WhatsAppButton />}
-          {!isBlogOnly && <CartSidebar />}
+          {(!isBlogOnly || pathname.startsWith("/blog")) && !isLoginRoute && <Footer />}
+          {!isBlogOnly && !isLoginRoute && <WhatsAppButton />}
+          {!isBlogOnly && !isLoginRoute && <CartSidebar />}
         </SharedProvider>
 
         {/* Google Analytics Component */}
