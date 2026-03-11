@@ -27,21 +27,43 @@ function Quiz({ data }: { data: any }) {
     const getResult = () => {
         if (totalScore >= 36) return {
             title: "The Calm Captain",
-            description: "Your child may naturally show strong patience and self-control in everyday situations. They often stay calm when plans change, try again after small mistakes, and follow instructions more easily."
+            points: "36–45 Points",
+            description: "Your child may naturally show strong patience and self-control in everyday situations.",
+            bullets: [
+                "Stay calm when plans change.",
+                "try again after small mistakes",
+                "follow instructions more easily",
+                "approach new experiences with curiosity"
+            ],
+            extra: "These children often enjoy exploring challenges and figuring things out. Even with these strengths, they still benefit from encouragement and opportunities to try new things, because confidence grows through experience."
         };
         if (totalScore >= 26) return {
             title: "The Curious Explorer",
-            description: "Your child may have a natural curiosity about the world and enjoy discovering new things. They might sometimes feel frustrated or distracted when tasks become difficult, which is a common stage of development."
+            points: "26–35 Points",
+            description: "Your child may have a natural curiosity about the world and enjoy discovering new things. At the same time, they might sometimes feel frustrated or distracted when tasks become difficult.",
+            bullets: [
+                "asks many questions",
+                "enjoys exploring ideas or activities",
+                "sometimes loses patience when things don’t work"
+            ],
+            extra: "With supportive guidance and playful learning experiences, these children can develop strong problem-solving and creative thinking skills."
         };
         return {
             title: "The Growing Adventurer",
-            description: "Your child is still developing some important skills like emotional recovery, patience, or confidence when trying new things. These are exactly the moments where children learn and grow the most."
+            points: "15–25 Points",
+            description: "Your child is still developing some important skills, like emotional recovery, patience, or confidence when trying new things.",
+            bullets: [
+                "Frustration feels overwhelming.",
+                "new challenges feel intimidating",
+                "waiting or following instructions feels difficult"
+            ],
+            extra: "In fact, these are exactly the kinds of moments where children learn and grow the most. With gentle encouragement, practice, and positive experiences, these abilities often strengthen over time."
         };
     };
 
     if (step === 0) {
         return (
-            <div className="bg-white rounded-[2.5rem] p-10 md:p-16 shadow-2xl border-4 border-[hsl(var(--swago-purple))] text-center space-y-8 relative overflow-hidden">
+            <div className="bg-white rounded-[2.5rem] p-10 md:p-16 shadow-2xl border-4 border-[hsl(var(--swago-purple))] text-center space-y-8 relative overflow-hidden max-w-2xl mx-auto">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-[hsl(var(--swago-purple))]/5 rounded-bl-full -mr-10 -mt-10" />
                 <div className="flex justify-center mb-0 transform scale-125">
                     <Logo />
@@ -64,7 +86,7 @@ function Quiz({ data }: { data: any }) {
     if (step === 1) {
         const q = questions[currentQuestionIndex];
         return (
-            <div className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-2xl border border-slate-100 flex flex-col min-h-[500px]">
+            <div className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-2xl border border-slate-100 flex flex-col min-h-[500px] max-w-2xl mx-auto">
                 <div className="flex justify-between items-center mb-12">
                     <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Question {currentQuestionIndex + 1} of {questions.length}</span>
                     <div className="w-32 h-2 bg-slate-100 rounded-full overflow-hidden">
@@ -92,27 +114,84 @@ function Quiz({ data }: { data: any }) {
         );
     }
 
-    const { title, description } = getResult();
+    const result = getResult();
     return (
         <motion.div
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ type: "spring", damping: 15 }}
-            className="bg-[hsl(var(--swago-purple))] rounded-[2.5rem] p-10 md:p-16 shadow-2xl text-white text-center space-y-8 relative overflow-hidden"
+            className="bg-[hsl(var(--swago-purple))] rounded-[2.5rem] min-h-[600px] p-8 md:p-12 shadow-2xl text-white text-center relative overflow-hidden max-w-2xl mx-auto"
         >
             <div className="absolute top-0 left-0 w-64 h-64 bg-white/5 rounded-br-full -ml-20 -mt-20 blur-3xl" />
 
-            <div className="relative z-10">
-                <div className="flex justify-center mb-8">
-                    <div className="bg-white px-6 py-3 rounded-2xl shadow-xl transform -rotate-2">
-                        <Logo />
-                    </div>
+            <div className="relative z-10 flex flex-col items-center">
+                <div className="bg-white px-5 py-2 rounded-2xl shadow-xl transform -rotate-1 mb-6">
+                    <Logo />
                 </div>
-                <div className="inline-block px-6 py-2 bg-yellow-400 text-slate-900 rounded-full text-xs font-black uppercase tracking-[0.3em] mb-6 shadow-lg transform rotate-1">
+
+                <div className="inline-block px-5 py-2 bg-yellow-400 text-slate-900 rounded-full text-[10px] font-black uppercase tracking-[0.3em] mb-4 shadow-lg transform rotate-1">
                     YOUR PERSONALITY RESULT
                 </div>
-                <h3 className="text-5xl md:text-7xl font-black mb-8 uppercase tracking-tight leading-tight drop-shadow-md">{title}</h3>
-                <p className="text-xl md:text-3xl opacity-95 leading-relaxed max-w-2xl mx-auto font-bold mb-12">{description}</p>
+
+                <div className="mb-8">
+                    <p className="text-sm font-black uppercase tracking-widest opacity-60 mb-2">{result.points}</p>
+                    <h3 className="text-4xl md:text-5xl font-black uppercase tracking-tight leading-tight">{result.title}</h3>
+                </div>
+
+                <div className="bg-white/10 backdrop-blur-md rounded-[2rem] p-6 md:p-8 text-left space-y-6 border border-white/10 w-full mb-8">
+                    <p className="text-lg md:text-xl font-bold leading-relaxed">{result.description}</p>
+
+                    <div>
+                        <p className="text-xs font-black uppercase tracking-widest opacity-60 mb-3">Key Characteristics:</p>
+                        <ul className="space-y-3">
+                            {result.bullets.map((b, i) => (
+                                <li key={i} className="flex gap-3">
+                                    <span className="flex-shrink-0 w-5 h-5 bg-white/20 rounded-full flex items-center justify-center text-[10px] font-black">✓</span>
+                                    <span className="text-sm md:text-base font-medium opacity-90">{b}</span>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+
+                    <p className="text-sm md:text-base opacity-80 italic border-l-2 border-white/20 pl-4">{result.extra}</p>
+                </div>
+
+                {/* Growth Section */}
+                <div className="w-full text-left space-y-10 mt-12 pt-12 border-t border-white/10">
+                    <div className="space-y-4">
+                        <h4 className="text-xl md:text-2xl font-black uppercase tracking-tight">How Play and Activities Strengthen These Skills</h4>
+                        <p className="text-sm md:text-base opacity-80 leading-relaxed font-medium">Research in child development shows that structured play helps children strengthen important abilities such as the following:</p>
+                        <ul className="grid grid-cols-2 gap-3">
+                            {["focus", "confidence", "emotional resilience", "problem-solving"].map((item, i) => (
+                                <li key={i} className="flex items-center gap-2">
+                                    <span className="w-1.5 h-1.5 bg-yellow-400 rounded-full" />
+                                    <span className="text-xs font-black uppercase tracking-wider">{item}</span>
+                                </li>
+                            ))}
+                        </ul>
+                        <p className="text-xs md:text-sm opacity-60 italic pt-2">Play-based learning allows children to practice these skills naturally while enjoying the experience.</p>
+                    </div>
+
+                    <div className="bg-slate-900 rounded-3xl p-6 md:p-8 space-y-4 border border-white/5 shadow-2xl">
+                        <h4 className="text-lg md:text-xl font-black leading-tight text-white mb-2">How to Actually Build Your Child's Focus, Confidence, and Emotional Strength</h4>
+                        <div className="space-y-4 text-xs md:text-sm opacity-80 leading-relaxed font-medium">
+                            <p>Understanding your child's brain type is step one. The real work is actually building those skills in a way your child enjoys.</p>
+                            <p>That's exactly the gap that <span className="text-[hsl(var(--swago-purple))] font-black">SWAGO</span> was built to fill.</p>
+                            <p><span className="text-[hsl(var(--swago-purple))] font-black">SWAGO</span> is a gamified skill-building system for kids that turns everyday play into real growth.</p>
+                            <p>Instead of worksheets, children progress through skill levels like a game — where every activity is quietly training the exact abilities this quiz measures.</p>
+                            <p className="font-black text-white pt-2 border-t border-white/10 mt-4">Because the best time to build these skills isn't when kids are adults struggling with them. It's right now while their brains are still wide open.</p>
+                        </div>
+
+                        <div className="pt-4">
+                            <Link
+                                href="/products"
+                                className="inline-block w-full bg-[hsl(var(--swago-purple))] text-white px-8 py-4 rounded-xl font-black uppercase tracking-widest text-xs hover:scale-[1.02] transition-transform text-center shadow-lg shadow-purple-900/20"
+                            >
+                                Explore Growth Kits
+                            </Link>
+                        </div>
+                    </div>
+                </div>
 
                 <div className="pt-12 grid grid-cols-1 md:grid-cols-2 gap-4">
                     <button
