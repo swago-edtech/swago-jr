@@ -43,10 +43,13 @@ function Quiz({ data }: { data: any }) {
         return (
             <div className="bg-white rounded-[2.5rem] p-10 md:p-16 shadow-2xl border-4 border-[hsl(var(--swago-purple))] text-center space-y-8 relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-[hsl(var(--swago-purple))]/5 rounded-bl-full -mr-10 -mt-10" />
-                <div className="flex justify-center mb-4 transform scale-90">
+                <div className="flex justify-center mb-0 transform scale-125">
                     <Logo />
                 </div>
-                <h3 className="text-3xl md:text-4xl font-black text-slate-900 leading-tight uppercase tracking-tight">{data.title}</h3>
+                <div className="inline-block px-4 py-1.5 bg-yellow-400 text-slate-800 rounded-lg text-[10px] font-black uppercase tracking-[0.3em] mb-4">
+                    KIDS PERSONALITY QUIZ
+                </div>
+                <h3 className="text-3xl md:text-5xl font-black text-slate-900 leading-tight uppercase tracking-tight">{data.title}</h3>
                 <p className="text-xl text-slate-500 font-medium">Take this 2-minute quiz to understand your child's brain type—and learn how to build their focus, confidence, and emotional strength.</p>
                 <button
                     onClick={() => setStep(1)}
@@ -99,15 +102,17 @@ function Quiz({ data }: { data: any }) {
         >
             <div className="absolute top-0 left-0 w-64 h-64 bg-white/5 rounded-br-full -ml-20 -mt-20 blur-3xl" />
 
-            <div className="relative">
-                <div className="flex justify-center mb-8 opacity-40 grayscale brightness-200">
-                    <Logo />
+            <div className="relative z-10">
+                <div className="flex justify-center mb-8">
+                    <div className="bg-white px-6 py-3 rounded-2xl shadow-xl transform -rotate-2">
+                        <Logo />
+                    </div>
                 </div>
-                <div className="inline-block px-4 py-1.5 bg-white/20 backdrop-blur-md rounded-full text-[10px] font-black uppercase tracking-[0.3em] mb-4">
-                    Quiz Result Revealed
+                <div className="inline-block px-6 py-2 bg-yellow-400 text-slate-900 rounded-full text-xs font-black uppercase tracking-[0.3em] mb-6 shadow-lg transform rotate-1">
+                    YOUR PERSONALITY RESULT
                 </div>
-                <h3 className="text-4xl md:text-6xl font-black mb-8 uppercase tracking-tight">{title}</h3>
-                <p className="text-xl md:text-2xl opacity-90 leading-relaxed max-w-2xl mx-auto font-medium">{description}</p>
+                <h3 className="text-5xl md:text-7xl font-black mb-8 uppercase tracking-tight leading-tight drop-shadow-md">{title}</h3>
+                <p className="text-xl md:text-3xl opacity-95 leading-relaxed max-w-2xl mx-auto font-bold mb-12">{description}</p>
 
                 <div className="pt-12 grid grid-cols-1 md:grid-cols-2 gap-4">
                     <button
