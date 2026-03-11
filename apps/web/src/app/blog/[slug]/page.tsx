@@ -157,20 +157,22 @@ function Quiz({ data }: { data: any }) {
                 </div>
 
                 <div className="pt-8 w-full">
-                    <Link
-                        href="https://chat.whatsapp.com/CwGGxSas1NVIRXOkBqe9XD?mode=gi_t"
-                        target="_blank"
-                        className="inline-block w-full bg-slate-900 text-white px-8 py-5 rounded-2xl font-black uppercase tracking-widest text-sm hover:scale-[1.02] transition-transform text-center shadow-2xl shadow-black/20"
-                    >
-                        Join Our Community
-                    </Link>
+                    <div className="grid grid-cols-2 gap-4">
+                        <Link
+                            href="https://chat.whatsapp.com/CwGGxSas1NVIRXOkBqe9XD?mode=gi_t"
+                            target="_blank"
+                            className="bg-slate-900 text-white px-4 py-4 rounded-xl font-black uppercase tracking-widest text-[10px] hover:scale-[1.02] transition-transform text-center shadow-xl shadow-black/20 flex items-center justify-center"
+                        >
+                            Join Community
+                        </Link>
 
-                    <button
-                        onClick={() => { setStep(0); setCurrentQuestionIndex(0); setTotalScore(0); }}
-                        className="w-full mt-4 text-white/40 hover:text-white font-black uppercase tracking-widest text-[10px] transition-colors"
-                    >
-                        Retake Quiz
-                    </button>
+                        <button
+                            onClick={() => { setStep(0); setCurrentQuestionIndex(0); setTotalScore(0); }}
+                            className="border-2 border-white/20 text-white px-4 py-4 rounded-xl font-black uppercase tracking-widest text-[10px] hover:bg-white/10 transition-all flex items-center justify-center"
+                        >
+                            Retake Quiz
+                        </button>
+                    </div>
                 </div>
             </div>
         </motion.div>

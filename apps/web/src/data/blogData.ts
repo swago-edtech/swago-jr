@@ -11,6 +11,23 @@ export const CHILD_BRAIN_QUIZ_BLOG = {
     content: [
         { type: "paragraph", data: { text: "Every parent has had a moment like this. You’re standing in the grocery store line. Your child sees a candy bar. You gently say 'no' … and suddenly it feels like the whole world has ended right there." } },
 
+
+        { type: "paragraph", data: { text: "Or sometimes it’s the opposite. You say no, and your child just shrugs and moves on like it’s no big deal. Same situation. Completely different reactions." } },
+        { type: "paragraph", data: { text: "And in that moment, many parents quietly wonder: 'Why does my child react like this?'" } },
+        { type: "paragraph", data: { text: "A child’s reactions are often shaped by many small things, such as:" } },
+        {
+            type: "list", data: {
+                type: "unordered", items: [
+                    "How they naturally process situations and emotions",
+                    "The environment they are growing up in at home",
+                    "The kind of connection and relationship they feel with their parents"
+                ]
+            }
+        },
+        { type: "paragraph", data: { text: "Every child handles things differently: waiting, frustration, mistakes, or new challenges. Some children stay calm, some get upset quickly, and some need a little more time to adjust." } },
+        { type: "paragraph", data: { text: "And that’s normal." } },
+        { type: "paragraph", data: { text: "When parents start to understand how their child naturally reacts to situations, it becomes much easier to guide them, support them, and help them grow with confidence." } },
+        { type: "paragraph", data: { text: "If you’d like to explore these patterns a little more deeply, you can try the short child personality quiz below." } },
         {
             type: "quiz", data: {
                 title: "Child Personality Quiz",
@@ -33,23 +50,6 @@ export const CHILD_BRAIN_QUIZ_BLOG = {
                 ]
             }
         },
-
-        { type: "paragraph", data: { text: "Or sometimes it’s the opposite. You say no, and your child just shrugs and moves on like it’s no big deal. Same situation. Completely different reactions." } },
-        { type: "paragraph", data: { text: "And in that moment, many parents quietly wonder: 'Why does my child react like this?'" } },
-        { type: "paragraph", data: { text: "A child’s reactions are often shaped by many small things, such as:" } },
-        {
-            type: "list", data: {
-                type: "unordered", items: [
-                    "How they naturally process situations and emotions",
-                    "The environment they are growing up in at home",
-                    "The kind of connection and relationship they feel with their parents"
-                ]
-            }
-        },
-        { type: "paragraph", data: { text: "Every child handles things differently: waiting, frustration, mistakes, or new challenges. Some children stay calm, some get upset quickly, and some need a little more time to adjust." } },
-        { type: "paragraph", data: { text: "And that’s normal." } },
-        { type: "paragraph", data: { text: "When parents start to understand how their child naturally reacts to situations, it becomes much easier to guide them, support them, and help them grow with confidence." } },
-        { type: "paragraph", data: { text: "If you’d like to explore these patterns a little more deeply, you can try the short child personality quiz above." } },
 
         { type: "heading", data: { text: "Why Understanding Your Child’s Brain Style Matters", level: 2 } },
         { type: "paragraph", data: { text: "Child development research consistently shows that children develop skills at different rates." } },
