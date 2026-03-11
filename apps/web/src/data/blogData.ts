@@ -4,7 +4,7 @@ export const CHILD_BRAIN_QUIZ_BLOG = {
     title: "How Does Your Child's Brain Really Work? (Take This 2-Minute Quiz to Find Out)",
     slug: "child-brain-quiz",
     metaDescription: "Wondering why your child reacts the way they do? Take this free 2-minute child personality quiz to understand your child's brain type—and learn how to build their focus, confidence, and emotional strength.",
-    coverImage: "/images/blog/child-brain-quiz.png",
+    coverImage: "/images/blog/quiz_assets.jpg",
     isPublished: true,
     author: "Swago Team",
     createdAt: new Date().toISOString(),

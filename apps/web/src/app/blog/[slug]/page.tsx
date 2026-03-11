@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { HiArrowLeft, HiShare, HiChevronRight } from "react-icons/hi";
+import { motion, AnimatePresence } from "framer-motion";
+import Logo from "@/components/Logo";
 
 // Quiz Component
 function Quiz({ data }: { data: any }) {
@@ -41,6 +43,9 @@ function Quiz({ data }: { data: any }) {
         return (
             <div className="bg-white rounded-[2.5rem] p-10 md:p-16 shadow-2xl border-4 border-[hsl(var(--swago-purple))] text-center space-y-8 relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-[hsl(var(--swago-purple))]/5 rounded-bl-full -mr-10 -mt-10" />
+                <div className="flex justify-center mb-4 transform scale-90">
+                    <Logo />
+                </div>
                 <h3 className="text-3xl md:text-4xl font-black text-slate-900 leading-tight uppercase tracking-tight">{data.title}</h3>
                 <p className="text-xl text-slate-500 font-medium">Take this 2-minute quiz to understand your child's brain type—and learn how to build their focus, confidence, and emotional strength.</p>
                 <button
@@ -86,12 +91,22 @@ function Quiz({ data }: { data: any }) {
 
     const { title, description } = getResult();
     return (
-        <div className="bg-[hsl(var(--swago-purple))] rounded-[2.5rem] p-10 md:p-16 shadow-2xl text-white text-center space-y-8 relative overflow-hidden">
+        <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ type: "spring", damping: 15 }}
+            className="bg-[hsl(var(--swago-purple))] rounded-[2.5rem] p-10 md:p-16 shadow-2xl text-white text-center space-y-8 relative overflow-hidden"
+        >
             <div className="absolute top-0 left-0 w-64 h-64 bg-white/5 rounded-br-full -ml-20 -mt-20 blur-3xl" />
 
             <div className="relative">
-                <span className="text-[10px] font-black uppercase tracking-[0.3em] opacity-60">Your child's brain style is</span>
-                <h3 className="text-4xl md:text-6xl font-black mt-4 mb-8 uppercase tracking-tight">{title}</h3>
+                <div className="flex justify-center mb-8 opacity-40 grayscale brightness-200">
+                    <Logo />
+                </div>
+                <div className="inline-block px-4 py-1.5 bg-white/20 backdrop-blur-md rounded-full text-[10px] font-black uppercase tracking-[0.3em] mb-4">
+                    Quiz Result Revealed
+                </div>
+                <h3 className="text-4xl md:text-6xl font-black mb-8 uppercase tracking-tight">{title}</h3>
                 <p className="text-xl md:text-2xl opacity-90 leading-relaxed max-w-2xl mx-auto font-medium">{description}</p>
 
                 <div className="pt-12 grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -109,7 +124,7 @@ function Quiz({ data }: { data: any }) {
                     </Link> */}
                 </div>
             </div>
-        </div>
+        </motion.div>
     );
 }
 
@@ -228,7 +243,14 @@ export default function SingleBlogPage() {
                                             {block.data.items.map((item: string, ii: number) => (
                                                 <li key={ii} className="relative">
                                                     {block.data.type === 'unordered' && <span className="absolute -left-8 text-[hsl(var(--swago-purple))] font-black">•</span>}
-                                                    {item}
+                                                    {item.includes(':') ? (
+                                                        <>
+                                                            <span className="font-black text-slate-900 uppercase tracking-tight mr-1">
+                                                                {item.split(':')[0]}:
+                                                            </span>
+                                                            {item.split(':').slice(1).join(':')}
+                                                        </>
+                                                    ) : item}
                                                 </li>
                                             ))}
                                         </ListTag>
