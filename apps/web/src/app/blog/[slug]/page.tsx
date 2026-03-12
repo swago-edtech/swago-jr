@@ -4,10 +4,10 @@ import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { HiArrowLeft, HiShare, HiChevronRight } from "react-icons/hi";
-import { FaWhatsapp, FaLightbulb, FaLock, FaCheckCircle } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import Logo from "@/components/Logo";
 import Image from "next/image";
+import { FaWhatsapp, FaLightbulb, FaLock, FaCheckCircle } from "react-icons/fa";
 
 // Quiz Component
 function Quiz({ data }: { data: any }) {
@@ -118,35 +118,36 @@ function Quiz({ data }: { data: any }) {
 
     const result = getResult();
     return (
-        <section className="bg-[hsl(260,100%,98%)] rounded-[3rem] py-16 px-4 md:px-8 relative overflow-hidden max-w-2xl mx-auto border border-violet-100 shadow-inner">
-            {/* Background Texture/Shine */}
-            <div className="absolute top-0 left-0 w-full h-full opacity-40 pointer-events-none">
-                <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-violet-200 rounded-full blur-[100px]" />
-                <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-200 rounded-full blur-[100px]" />
-            </div>
+        <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 30 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ type: "spring", damping: 20, stiffness: 100 }}
+            className="w-full max-w-2xl mx-auto py-12 px-4 md:px-8 bg-[#fdfaff] rounded-[3rem] relative overflow-hidden"
+        >
+            {/* Background Texture/Soft Blur */}
+            <div className="absolute top-0 right-0 w-96 h-96 bg-purple-100/50 rounded-full blur-[100px] -mr-48 -mt-48" />
+            <div className="absolute bottom-0 left-0 w-96 h-96 bg-purple-50/50 rounded-full blur-[100px] -ml-48 -mb-48" />
 
-            <motion.div
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="relative z-10 flex flex-col items-center"
-            >
-                {/* Logo Card */}
-                <div className="bg-white px-8 py-3 rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.05)] mb-10 border border-slate-50">
-                    <Logo />
+            <div className="relative z-10 flex flex-col items-center">
+                {/* 1. Logo */}
+                <div className="mb-0 transform scale-90">
+                    <div className="bg-white/80 backdrop-blur-sm px-6 py-2 rounded-2xl shadow-sm border border-purple-50">
+                        <Logo />
+                    </div>
                 </div>
 
-                {/* Header Section */}
-                <div className="text-center mb-8">
-                    <h2 className="text-xl md:text-2xl font-black text-slate-800 tracking-tight leading-tight mb-1">
+                {/* 2. Completion Message */}
+                <div className="text-center mt-10 mb-8 max-w-md">
+                    <p className="text-[#3a2d5e] text-xl md:text-2xl font-black mb-1 leading-tight tracking-tight">
                         Congratulations! You’ve completed the quiz.
-                    </h2>
-                    <p className="text-slate-400 font-bold text-sm md:text-base">
+                    </p>
+                    <p className="text-slate-400 text-sm md:text-base font-bold">
                         Your child’s brain style is
                     </p>
                 </div>
 
-                {/* Mascot & Badge Group */}
-                <div className="relative w-full max-w-[320px] aspect-square mb-[-60px] z-20">
+                {/* 3. Mascot Image (Overlapping) */}
+                <div className="w-56 h-48 md:w-64 md:h-56 relative z-20 -mb-28 drop-shadow-2xl">
                     <Image
                         src="/images/blog/quiz_assets.jpg"
                         alt="Swago Mascots"
@@ -154,35 +155,38 @@ function Quiz({ data }: { data: any }) {
                         className="object-contain"
                         priority
                     />
-                    {/* Point Badge */}
-                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-[hsl(260,100%,94%)] text-[hsl(var(--swago-purple))] px-6 py-2 rounded-full border border-violet-200 shadow-sm">
-                        <span className="text-sm font-black tracking-widest whitespace-nowrap">{result.points}</span>
-                    </div>
                 </div>
 
-                {/* Main Result Card */}
-                <div className="w-full bg-white rounded-[40px] shadow-[0_40px_100px_-20px_rgba(0,0,0,0.1)] p-8 md:p-12 pt-20 border border-slate-50 relative z-10">
-                    <h3 className="text-3xl md:text-4xl font-black text-[hsl(var(--swago-purple))] text-center leading-none tracking-tight mb-10 uppercase">
-                        {result.title.split(' ').map((word, i) => (
-                            <span key={i} className="block">{word}</span>
-                        ))}
-                    </h3>
+                {/* 4. The Result Card */}
+                <div className="w-full bg-white rounded-[3rem] shadow-[0_30px_100px_-20px_rgba(58,45,94,0.12)] border border-purple-50/50 pt-28 pb-10 px-6 md:px-12 relative z-10">
+                    
+                    {/* Points Badge (Absolute) */}
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#efebff] px-6 py-2.5 rounded-full border-2 border-white shadow-lg z-30">
+                        <span className="text-[#5e43aa] text-sm font-black tracking-widest">{result.points}</span>
+                    </div>
 
-                    <div className="bg-slate-50 border border-slate-100 rounded-[2.5rem] p-6 md:p-8 text-left space-y-8 text-slate-700">
-                        <p className="text-base md:text-lg font-bold leading-relaxed">
+                    <div className="text-center mb-10">
+                        <h3 className="text-[#5e43aa] text-3xl md:text-[2.75rem] font-black uppercase tracking-tight leading-[1.1]">
+                            {result.title}
+                        </h3>
+                    </div>
+
+                    {/* Description Box */}
+                    <div className="bg-slate-50/40 rounded-[2rem] p-6 md:p-8 space-y-6 border border-slate-100/50 text-left">
+                        <p className="text-slate-600 text-base md:text-lg font-bold leading-relaxed">
                             {result.description}
                         </p>
 
                         <div className="space-y-4">
-                            <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Key Characteristics:</h5>
-                            <ul className="space-y-4">
+                            <h4 className="text-[#5e43aa] text-[10px] font-black uppercase tracking-[0.2em] opacity-80 pl-1">
+                                KEY CHARACTERISTICS:
+                            </h4>
+                            <ul className="space-y-3 pl-1">
                                 {result.bullets.map((b, i) => (
-                                    <li key={i} className="flex gap-4 items-start">
-                                        <div className="mt-1 w-5 h-5 flex-shrink-0 text-violet-400">
-                                            <FaCheckCircle className="w-full h-full" />
-                                        </div>
-                                        <span className="text-sm md:text-base font-bold leading-tight">
-                                            {b.charAt(0).toUpperCase() + b.slice(1)}.
+                                    <li key={i} className="flex items-start gap-3">
+                                        <FaCheckCircle className="flex-shrink-0 w-4 h-4 text-[#bdb2ff] mt-1" />
+                                        <span className="text-slate-500 text-sm md:text-base font-bold opacity-90 leading-snug">
+                                            {b}{!b.endsWith('.') ? '.' : ''}
                                         </span>
                                     </li>
                                 ))}
@@ -190,43 +194,47 @@ function Quiz({ data }: { data: any }) {
                         </div>
 
                         {/* Tip Box */}
-                        <div className="bg-violet-50/80 border border-violet-100 rounded-3xl p-5 flex gap-4 items-center">
-                            <div className="w-10 h-10 bg-yellow-400 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg shadow-yellow-200 text-white">
-                                <FaLightbulb className="w-5 h-5" />
+                        <div className="bg-[#f3f0ff] rounded-2xl p-4 flex items-start gap-3 border border-purple-100/50">
+                            <div className="bg-yellow-400 p-1.5 rounded-lg shadow-sm mt-0.5">
+                                <FaLightbulb className="w-3 h-3 text-white" />
                             </div>
-                            <p className="text-xs md:text-sm font-bold leading-tight">
-                                With gentle encouragement, <span className="text-slate-900">practice & positive</span> experiences, these abilities <span className="text-slate-900">strengthen</span> over time.
+                            <p className="text-[#5e43aa] text-xs md:text-sm font-bold leading-relaxed">
+                                {result.extra.includes('With gentle encouragement') 
+                                    ? result.extra.split('strength')[0] // Truncating if extra long for visual match
+                                    : "With gentle encouragement, practice & positive experiences, these abilities strengthen over time."}
                             </p>
                         </div>
                     </div>
 
-                    {/* Action Buttons */}
+                    {/* Actions */}
                     <div className="mt-10 space-y-4">
                         <Link
                             href="https://chat.whatsapp.com/CwGGxSas1NVIRXOkBqe9XD?mode=gi_t"
                             target="_blank"
-                            className="flex items-center justify-center gap-3 w-full bg-gradient-to-r from-[hsl(var(--swago-purple))] to-[hsl(280,70%,60%)] text-white py-5 rounded-[20px] shadow-[0_15px_30px_-5px_hsla(var(--swago-purple),0.3)] transition-all hover:scale-[1.02] active:scale-95 group"
+                            className="w-full bg-gradient-to-r from-[#8e7aff] to-[#b3a1ff] text-white py-5 rounded-[2rem] font-black uppercase tracking-[0.1em] text-sm md:text-base flex items-center justify-center gap-3 shadow-[0_15px_30px_-5px_rgba(142,122,255,0.4)] hover:scale-[1.02] transition-all active:scale-95"
                         >
                             <FaWhatsapp className="w-6 h-6" />
-                            <span className="text-base font-black uppercase tracking-widest">Join SWAGO Parent Circle</span>
+                            <span>Join SWAGO Parent Circle</span>
                         </Link>
 
                         <button
                             onClick={() => { setStep(0); setCurrentQuestionIndex(0); setTotalScore(0); }}
-                            className="w-full bg-slate-50 text-slate-400 py-5 rounded-[20px] transition-all hover:bg-slate-100 flex items-center justify-center"
+                            className="w-full py-5 rounded-[2rem] font-black uppercase tracking-[0.2em] text-[10px] md:text-xs text-slate-300 hover:text-slate-500 transition-colors bg-slate-50/50"
                         >
-                            <span className="text-sm font-black uppercase tracking-[0.15em]">Retake Quiz</span>
+                            Retake Quiz
                         </button>
                     </div>
                 </div>
 
-                {/* Footer Message */}
-                <div className="mt-8 flex items-center gap-2 text-slate-400 text-xs font-bold opacity-80">
+                {/* Bottom Footer */}
+                <div className="mt-6 flex items-center gap-2 opacity-30 text-slate-900">
                     <FaLock className="w-3 h-3" />
-                    <span>Be part of a community trusted by 10,000+ parents</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest">
+                        Be part of a community trusted by 10,000+ parents
+                    </span>
                 </div>
-            </motion.div>
-        </section>
+            </div>
+        </motion.div>
     );
 }
 
