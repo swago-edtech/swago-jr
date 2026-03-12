@@ -147,7 +147,7 @@ function Quiz({ data }: { data: any }) {
                 </div>
 
                 {/* 3. Mascot Image (Behind the card) */}
-                <div className="w-80 h-64 md:w-96 md:h-80 relative z-0 -mb-36">
+                <div className="w-full max-w-[320px] md:max-w-[480px] aspect-[4/3] relative z-0 -mb-40 md:-mb-48 transform scale-110">
                     <Image
                         src="/images/blog/swago_mascots.png"
                         alt="Swago Mascots"
@@ -158,22 +158,22 @@ function Quiz({ data }: { data: any }) {
                 </div>
 
                 {/* 4. The Result Card */}
-                <div className="w-full bg-white rounded-[3rem] shadow-[0_30px_100px_-20px_rgba(58,45,94,0.12)] border border-purple-50/50 pt-28 pb-10 px-6 md:px-12 relative z-10">
+                <div className="w-full bg-white rounded-[2rem] md:rounded-[3rem] shadow-[0_30px_100px_-20px_rgba(58,45,94,0.12)] border border-purple-50/50 pt-24 md:pt-32 pb-8 md:pb-12 px-5 md:px-12 relative z-10">
                     
                     {/* Points Badge (Absolute) */}
                     <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#efebff] px-6 py-2.5 rounded-full border-2 border-white shadow-lg z-30">
                         <span className="text-[#5e43aa] text-sm font-black tracking-widest">{result.points}</span>
                     </div>
 
-                    <div className="text-center mb-10">
-                        <h3 className="text-[#5e43aa] text-3xl md:text-[2.75rem] font-black uppercase tracking-tight leading-[1.1]">
+                    <div className="text-center mb-8 md:mb-10">
+                        <h3 className="text-[#5e43aa] text-2xl md:text-[2.75rem] font-black uppercase tracking-tight leading-[1.1]">
                             {result.title}
                         </h3>
                     </div>
 
                     {/* Description Box */}
-                    <div className="bg-slate-50/40 rounded-[2rem] p-6 md:p-8 space-y-6 border border-slate-100/50 text-left">
-                        <p className="text-slate-600 text-base md:text-lg font-bold leading-relaxed">
+                    <div className="bg-slate-50/40 rounded-[1.5rem] md:rounded-[2rem] p-5 md:p-8 space-y-5 md:space-y-6 border border-slate-100/50 text-left">
+                        <p className="text-slate-600 text-sm md:text-lg font-bold leading-relaxed">
                             {result.description}
                         </p>
 
@@ -207,19 +207,19 @@ function Quiz({ data }: { data: any }) {
                     </div>
 
                     {/* Actions */}
-                    <div className="mt-10 space-y-4">
+                    <div className="mt-8 md:mt-10 space-y-3 md:space-y-4">
                         <Link
                             href="https://chat.whatsapp.com/CwGGxSas1NVIRXOkBqe9XD?mode=gi_t"
                             target="_blank"
-                            className="w-full bg-[#7c5dfa] text-white py-5 rounded-full font-black uppercase tracking-widest text-sm md:text-base flex items-center justify-center gap-3 shadow-[0_15px_30px_-5px_rgba(124,93,250,0.3)] hover:scale-[1.02] transition-all active:scale-95"
+                            className="w-full bg-[#7c5dfa] text-white py-4 md:py-5 rounded-full font-black uppercase tracking-widest text-xs md:text-base flex items-center justify-center gap-2 md:gap-3 shadow-[0_15px_30px_-5px_rgba(124,93,250,0.3)] hover:scale-[1.02] transition-all active:scale-95 px-4"
                         >
-                            <FaWhatsapp className="w-6 h-6 text-green-400" />
-                            <span>Join SWAGO Parent Circle</span>
+                            <FaWhatsapp className="w-5 h-5 md:w-6 h-6 text-green-400 flex-shrink-0" />
+                            <span className="truncate">Join SWAGO Parent Circle</span>
                         </Link>
 
                         <button
                             onClick={() => { setStep(0); setCurrentQuestionIndex(0); setTotalScore(0); }}
-                            className="w-full bg-white text-[#5e43aa] py-5 rounded-full font-black uppercase tracking-widest text-[10px] md:text-xs shadow-sm border border-purple-50 hover:bg-slate-50 transition-all flex items-center justify-center"
+                            className="w-full bg-white text-[#5e43aa] py-4 md:py-5 rounded-full font-black uppercase tracking-widest text-[10px] md:text-xs shadow-sm border border-purple-50 hover:bg-slate-50 transition-all flex items-center justify-center"
                         >
                             Retake Quiz
                         </button>
@@ -228,10 +228,7 @@ function Quiz({ data }: { data: any }) {
 
                 {/* Bottom Footer */}
                 <div className="mt-6 flex items-center gap-2 opacity-30 text-slate-900">
-                    <FaLock className="w-3 h-3" />
-                    <span className="text-[10px] font-black uppercase tracking-widest">
-                        Be part of a community trusted by 10,000+ parents
-                    </span>
+                  
                 </div>
             </div>
         </motion.div>
