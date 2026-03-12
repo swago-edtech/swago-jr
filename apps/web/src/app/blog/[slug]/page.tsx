@@ -147,7 +147,7 @@ function Quiz({ data }: { data: any }) {
                 </div>
 
                 {/* 3. Mascot Image (Behind the card) */}
-                <div className="w-full max-w-[320px] md:max-w-[480px] aspect-[4/3] relative z-0 -mb-40 md:-mb-48 transform scale-110">
+                <div className="w-full max-w-[320px] md:max-w-[480px] aspect-[4/3] relative z-0 -mb-28 md:-mb-36 transform scale-110">
                     <Image
                         src="/images/blog/swago_mascots.png"
                         alt="Swago Mascots"
