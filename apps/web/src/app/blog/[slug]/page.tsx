@@ -211,15 +211,15 @@ function Quiz({ data }: { data: any }) {
                         <Link
                             href="https://chat.whatsapp.com/CwGGxSas1NVIRXOkBqe9XD?mode=gi_t"
                             target="_blank"
-                            className="w-full bg-gradient-to-r from-[#8e7aff] to-[#b3a1ff] text-white py-5 rounded-[2rem] font-black uppercase tracking-[0.1em] text-sm md:text-base flex items-center justify-center gap-3 shadow-[0_15px_30px_-5px_rgba(142,122,255,0.4)] hover:scale-[1.02] transition-all active:scale-95"
+                            className="w-full bg-[#7c5dfa] text-white py-5 rounded-full font-black uppercase tracking-widest text-sm md:text-base flex items-center justify-center gap-3 shadow-[0_15px_30px_-5px_rgba(124,93,250,0.3)] hover:scale-[1.02] transition-all active:scale-95"
                         >
-                            <FaWhatsapp className="w-6 h-6" />
+                            <FaWhatsapp className="w-6 h-6 text-green-400" />
                             <span>Join SWAGO Parent Circle</span>
                         </Link>
 
                         <button
                             onClick={() => { setStep(0); setCurrentQuestionIndex(0); setTotalScore(0); }}
-                            className="w-full py-5 rounded-[2rem] font-black uppercase tracking-[0.2em] text-[10px] md:text-xs text-slate-300 hover:text-slate-500 transition-colors bg-slate-50/50"
+                            className="w-full bg-white text-[#5e43aa] py-5 rounded-full font-black uppercase tracking-widest text-[10px] md:text-xs shadow-sm border border-purple-50 hover:bg-slate-50 transition-all flex items-center justify-center"
                         >
                             Retake Quiz
                         </button>
