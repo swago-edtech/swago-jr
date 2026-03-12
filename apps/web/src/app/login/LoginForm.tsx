@@ -423,7 +423,7 @@ export default function LoginForm() {
           {/* Mascot Image Header */}
           <div className="w-72 h-72 md:w-[400px] md:h-[400px] relative mb-[-120px] z-20 drop-shadow-2xl translate-y-8">
             <Image
-              src="/images/blog/quiz_assets.jpg"
+              src="/images/blog/swago_mascots.png"
               alt="Swago Mascots"
               fill
               className="object-contain"

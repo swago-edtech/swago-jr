@@ -149,7 +149,7 @@ function Quiz({ data }: { data: any }) {
                 {/* 3. Mascot Image (Behind the card) */}
                 <div className="w-80 h-64 md:w-96 md:h-80 relative z-0 -mb-36">
                     <Image
-                        src="/images/blog/quiz_assets.jpg"
+                        src="/images/blog/swago_mascots.png"
                         alt="Swago Mascots"
                         fill
                         className="object-contain"
