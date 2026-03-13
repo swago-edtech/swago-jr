@@ -1,10 +1,11 @@
 // apps/web/src/data/blogData.ts
 
 export const CHILD_BRAIN_QUIZ_BLOG = {
-    title: "How Does Your Child's Brain Really Work? (Take This 2-Minute Quiz to Find Out)",
+    title: "How does your child's brain really work? (take this 2-minute quiz to find out)",
     slug: "child-brain-quiz",
     metaDescription: "Wondering why your child reacts the way they do? Take this free 2-minute child personality quiz to understand your child's brain type—and learn how to build their focus, confidence, and emotional strength.",
-    coverImage: "/images/blog/child-brain-quiz.png",
+    coverImage: "/images/blog/blogbanner copy.jpeg",
+    coverImagePosition: "center 30%", // Adjust this to move image up/down (e.g., "top", "bottom", "center 20%")
     isPublished: true,
     author: "Swago Team",
     createdAt: new Date().toISOString(),
@@ -99,6 +100,7 @@ export const CHILD_BRAIN_QUIZ_BLOG = {
         { type: "paragraph", data: { text: "That's exactly the gap that SWAGO was built to fill. SWAGO is a gamified skill-building system for kids that turns everyday play into real growth." } },
         { type: "paragraph", data: { text: "Instead of worksheets and lectures, children progress through skill levels like a game where every SWAGO smart box is quietly training the exact abilities this quiz measures." } },
         { type: "paragraph", data: { text: "Because the best time to build these skills isn't when kids are adults struggling with them. It's right now while their brains are still wide open." } },
+        { type: "paragraph", data: { text: "If you enjoyed this quiz and would like more quizzes and learning activities for your child, join our WhatsApp community and become part of the SWAGO Parent Circle." } },
 
     ]
 };

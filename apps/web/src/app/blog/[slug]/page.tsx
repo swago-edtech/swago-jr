@@ -73,7 +73,7 @@ function Quiz({ data }: { data: any }) {
                 <div className="inline-block px-4 py-1.5 bg-yellow-400 text-slate-800 rounded-lg text-[10px] font-black uppercase tracking-[0.3em] mb-4">
                     KIDS PERSONALITY QUIZ
                 </div>
-                <h3 className="text-3xl md:text-5xl font-black text-slate-900 leading-tight uppercase tracking-tight">{data.title}</h3>
+                <h3 className="text-3xl md:text-5xl font-black text-slate-900 leading-tight tracking-tight">{data.title}</h3>
                 <p className="text-xl text-slate-500 font-medium">Take this 2-minute quiz to understand your child's brain type—and learn how to build their focus, confidence, and emotional strength.</p>
                 <button
                     onClick={() => setStep(1)}
@@ -159,7 +159,7 @@ function Quiz({ data }: { data: any }) {
 
                 {/* 4. The Result Card */}
                 <div className="w-full bg-white rounded-[2rem] md:rounded-[3rem] shadow-[0_30px_100px_-20px_rgba(58,45,94,0.12)] border border-purple-50/50 pt-24 md:pt-32 pb-8 md:pb-12 px-5 md:px-12 relative z-10">
-                    
+
                     {/* Points Badge (Absolute) */}
                     <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#efebff] px-6 py-2.5 rounded-full border-2 border-white shadow-lg z-30">
                         <span className="text-[#5e43aa] text-sm font-black tracking-widest">{result.points}</span>
@@ -199,7 +199,7 @@ function Quiz({ data }: { data: any }) {
                                 <FaLightbulb className="w-3 h-3 text-white" />
                             </div>
                             <p className="text-[#5e43aa] text-xs md:text-sm font-bold leading-relaxed">
-                                {result.extra.includes('With gentle encouragement') 
+                                {result.extra.includes('With gentle encouragement')
                                     ? result.extra.split('strength')[0] // Truncating if extra long for visual match
                                     : "With gentle encouragement, practice & positive experiences, these abilities strengthen over time."}
                             </p>
@@ -228,7 +228,7 @@ function Quiz({ data }: { data: any }) {
 
                 {/* Bottom Footer */}
                 <div className="mt-6 flex items-center gap-2 opacity-30 text-slate-900">
-                  
+
                 </div>
             </div>
         </motion.div>
@@ -274,13 +274,20 @@ export default function SingleBlogPage() {
                 {/* Cover Section */}
                 {blog.coverImage ? (
                     <div className="w-full h-[50vh] min-h-[400px] relative">
-                        <img src={blog.coverImage} alt={blog.title} className="w-full h-full object-cover" />
+                        <img
+                            src={blog.coverImage}
+                            alt={blog.title}
+                            className="w-full h-full object-cover"
+                            width={1920}
+                            height={1080}
+                            style={{ objectPosition: blog.coverImagePosition || 'center' }}
+                        />
                         <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 to-transparent" />
                         <div className="absolute bottom-12 left-1/2 -translate-x-1/2 w-full max-w-4xl px-4 text-center">
                             <Link href="/blog" className="inline-flex items-center gap-2 text-white/80 font-black text-xs uppercase tracking-widest mb-6 hover:text-white transition-colors">
                                 <HiArrowLeft /> Back to Insights
                             </Link>
-                            <h1 className="text-4xl md:text-6xl font-black text-white leading-tight uppercase tracking-tight">{blog.title}</h1>
+                            <h1 className="text-4xl md:text-6xl font-black text-white leading-tight tracking-tight">{blog.title}</h1>
                         </div>
                     </div>
                 ) : (
@@ -289,7 +296,7 @@ export default function SingleBlogPage() {
                             <Link href="/blog" className="inline-flex items-center gap-2 text-slate-400 font-black text-xs uppercase tracking-widest mb-8 hover:text-slate-900 transition-colors">
                                 <HiArrowLeft /> Back to Insights
                             </Link>
-                            <h1 className="text-4xl md:text-7xl font-black text-slate-900 leading-tight uppercase tracking-tight">{blog.title}</h1>
+                            <h1 className="text-4xl md:text-7xl font-black text-slate-900 leading-tight tracking-tight">{blog.title}</h1>
                         </div>
                     </div>
                 )}
@@ -327,6 +334,28 @@ export default function SingleBlogPage() {
                                         </Tag>
                                     );
                                 case "paragraph":
+                                    if (block.data.text.includes("join our WhatsApp community")) {
+                                        return (
+                                            <div key={i} className="my-16 p-8 md:p-12 rounded-[2.5rem] bg-[#f5f0ff] border-2 border-[hsl(var(--swago-purple))]/10 relative overflow-hidden group">
+                                                <div className="absolute top-0 right-0 w-32 h-32 bg-[hsl(var(--swago-purple))]/5 rounded-bl-full -mr-10 -mt-10" />
+                                                <div className="absolute bottom-0 left-0 w-24 h-24 bg-purple-200/20 rounded-tr-full -ml-8 -mb-8 blur-2xl" />
+
+                                                <div className="relative z-10 flex flex-col items-center text-center gap-6">
+                                                    <p className="text-xl md:text-2xl font-black text-[#3a2d5e] leading-tight tracking-tight max-w-xl">
+                                                        {block.data.text}
+                                                    </p>
+                                                    <Link
+                                                        href="https://chat.whatsapp.com/CwGGxSas1NVIRXOkBqe9XD?mode=gi_t"
+                                                        target="_blank"
+                                                        className="bg-[#25D366] text-white px-6 py-3 rounded-xl font-black uppercase text-xs flex items-center gap-2 shadow-xl shadow-green-200/40 hover:scale-105 active:scale-95 transition-all"
+                                                    >
+                                                        <FaWhatsapp className="w-5 h-5" />
+                                                        <span>Join Parent Circle</span>
+                                                    </Link>
+                                                </div>
+                                            </div>
+                                        );
+                                    }
                                     return (
                                         <p
                                             key={i}

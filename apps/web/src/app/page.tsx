@@ -6,6 +6,7 @@ import CallToAction from "@/components/CallToAction";
 import AnimateOnScroll from "@/components/AnimateOnScroll";
 import FeaturedProducts from "@/components/FeaturedProducts";
 import ShopByPrice from "@/components/ShopByPrice";
+import SkillBuildingSystem from "@/components/SkillBuildingSystem";
 import Link from "next/link";
 
 import { redirect } from "next/navigation";
@@ -31,6 +32,10 @@ export default function Home() {
 
       <AnimateOnScroll className="mb-5">
         <ShopByPrice />
+      </AnimateOnScroll>
+
+      <AnimateOnScroll className="mb-5">
+        <SkillBuildingSystem />
       </AnimateOnScroll>
 
 
