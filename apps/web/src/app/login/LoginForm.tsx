@@ -418,7 +418,6 @@ export default function LoginForm() {
       )}
 
       {/* ✅ Main form - New Design */}
-      {/* ✅ Main form - New Design */}
       {(widgetReady || step === "otp") && (
         <div className="w-full max-w-7xl mx-auto px-4 py-12 flex flex-col md:flex-row items-center justify-center gap-12 md:gap-20">
           
@@ -457,7 +456,7 @@ export default function LoginForm() {
           <div className="w-full max-w-[540px] relative">
             
             {/* Mobile Mascot (Shown only on mobile) */}
-            <div className="md:hidden w-64 h-64 relative mx-auto mb-[-80px] z-20 drop-shadow-xl">
+            <div className="md:hidden w-64 h-64 relative mx-auto mb-[-95px] z-20 drop-shadow-xl transform translate-y-4">
               <Image
                 src="/images/blog/swago_mascots.png"
                 alt="Swago Mascots"
@@ -467,12 +466,19 @@ export default function LoginForm() {
               />
             </div>
 
-            <div className="w-full bg-white shadow-[0_40px_100px_-20px_rgba(58,45,94,0.1)] border border-slate-50/50 relative z-10 p-8 md:p-14 text-left overflow-hidden"
+            <div className="w-full bg-white shadow-[0_40px_100px_-20px_rgba(58,45,94,0.1)] border border-slate-50/50 relative z-10 p-8 md:p-14 md:pt-16 text-left overflow-visible"
               style={{ borderRadius: "40px" }}
             >
+              {/* U-type Curve (SVG Notch) */}
+              <div className="absolute -top-[59px] left-0 w-full h-[60px] pointer-events-none z-0">
+                <svg viewBox="0 0 100 20" preserveAspectRatio="none" className="w-full h-full fill-white">
+                  <path d="M0 20 L0 0 Q50 35 100 0 L100 20 Z" />
+                </svg>
+              </div>
+
               {/* Title Section */}
-              <div className="mb-10 text-center md:text-left">
-                <h1 className="text-3xl md:text-[2.25rem] font-black text-slate-900 mb-3 tracking-tight">
+              <div className="mb-10 text-center md:text-left pt-2 md:pt-0">
+                <h1 className="text-3xl md:text-[2.25rem] font-black text-slate-900 mb-2 tracking-tight">
                   Start Your SWAGO Journey
                 </h1>
                 <p className="text-slate-400 text-sm md:text-base font-medium">
@@ -500,7 +506,7 @@ export default function LoginForm() {
                         : "text-slate-400 hover:text-slate-600"
                         }`}
                     >
-                      Login
+                      Already a User
                     </button>
                   </div>
 
