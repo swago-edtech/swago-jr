@@ -4,80 +4,88 @@ import Image from "next/image";
 import { motion } from "framer-motion";
 
 export default function SkillBuildingSystem() {
-  const mascots = [
-    { name: "Aga", trait: "Smart Tech", image: "/images/home/aga_profile.png", color: "text-blue-500" },
-    { name: "Woo", trait: "Willpower", image: "/images/home/woo_profile.png", color: "text-orange-500" },
-    { name: "Gogo", trait: "Ambition", image: "/images/home/gogo_profile.png", color: "text-amber-500" },
-    { name: "Op", trait: "Growth", image: "/images/home/op_profile.png", color: "text-pink-500" },
-    { name: "Skoo", trait: "OptimiZation", image: "/images/home/skoo_profile.png", color: "text-green-600" },
-  ];
-
   return (
-    <section className="py-16 md:py-24 bg-[#FFFBF7] overflow-hidden">
-      <div className="container mx-auto px-4 max-w-7xl">
-        <div className="flex flex-col lg:flex-row gap-12 lg:gap-20 items-center mb-20 md:mb-32">
+    <section className="py-20 md:py-32 bg-[#FFFBF7] overflow-hidden relative">
+      <div className="container mx-auto px-4 max-w-7xl relative z-10">
+        <div className="flex flex-col lg:flex-row gap-12 lg:gap-20 items-center">
           
           {/* Left Column: Video Card */}
-          <div className="w-full lg:w-1/2">
+          <div className="w-full lg:w-[45%]">
             <motion.div 
-              initial={{ opacity: 0, x: -30 }}
-              whileInView={{ opacity: 1, x: 0 }}
+              initial={{ opacity: 0, scale: 0.95 }}
+              whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
-              className="bg-white rounded-[3rem] shadow-[0_30px_80px_-15px_rgba(0,0,0,0.06)] p-6 md:p-10 border border-white relative overflow-hidden"
+              className="bg-white rounded-[2.5rem] shadow-[0_40px_100px_-20px_rgba(0,0,0,0.08)] overflow-hidden border border-white"
             >
-              <div className="absolute top-0 right-0 w-40 h-40 bg-purple-50 rounded-bl-[100%] -mr-20 -mt-20 opacity-50" />
-              
-              <div className="relative aspect-video rounded-[2.5rem] overflow-hidden group cursor-pointer shadow-inner">
+              {/* Video/Image Container */}
+              <div className="relative aspect-[1.1/1] w-full overflow-hidden group cursor-pointer">
                 <Image
-                  src="/images/home/video_thumbnail.png"
-                  alt="Skill Building System Presentation"
+                  src="/images/SwatiGoyal.jpeg"
+                  alt="Swati Goyal - Founder"
                   fill
                   className="object-cover transition-transform duration-700 group-hover:scale-105"
                 />
+                
                 {/* Play Button Overlay */}
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-20 h-20 bg-white/90 rounded-full flex items-center justify-center shadow-2xl transition-transform duration-300 group-hover:scale-110">
-                    <div className="w-0 h-0 border-t-[12px] border-t-transparent border-l-[20px] border-l-[hsl(var(--swago-purple))] border-b-[12px] border-b-transparent ml-2" />
+                  <div className="w-24 h-24 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 group-hover:scale-110">
+                    <div className="w-0 h-0 border-t-[14px] border-t-transparent border-l-[24px] border-l-slate-800 border-b-[14px] border-b-transparent ml-2" />
                   </div>
                 </div>
+
                 {/* Logo Overlay */}
-                <div className="absolute top-6 left-6 w-24">
-                   <div className="bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-xl shadow-sm">
-                      <Image src="/Swago_logo.png" alt="SWAGO" width={80} height={30} className="object-contain" />
+                <div className="absolute top-6 left-6">
+                   <div className="bg-white/90 backdrop-blur-sm px-4 py-2 rounded-2xl shadow-sm border border-white/50">
+                      <Image src="/Swago_logo.png" alt="SWAGO" width={90} height={30} className="object-contain" />
                    </div>
                 </div>
-                {/* Video Controls Mock */}
-                <div className="absolute bottom-4 left-4 right-4 h-1.5 bg-white/20 rounded-full overflow-hidden">
-                   <div className="h-full bg-[hsl(var(--swago-purple))] w-[40%] rounded-full shadow-[0_0_10px_#7c5dfa]" />
+
+                {/* Video Info Overlay (bottom) */}
+                <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/60 to-transparent flex items-center justify-between pointer-events-none">
+                  <div className="flex items-center gap-4 w-full">
+                    <div className="w-full h-1 bg-white/30 rounded-full overflow-hidden">
+                      <div className="h-full bg-white w-1/3 rounded-full" />
+                    </div>
+                    <span className="text-white text-[10px] font-bold whitespace-nowrap">0:00 / 2:20</span>
+                  </div>
+                  <div className="flex gap-3 ml-4">
+                    <div className="w-3 h-3 border border-white rounded-sm" />
+                    <div className="w-3 h-3 border border-white rounded-sm" />
+                  </div>
                 </div>
               </div>
 
               {/* Quote Section */}
-              <div className="mt-10 text-center px-4 relative">
-                <blockquote className="text-xl md:text-[1.75rem] font-medium text-slate-800 leading-relaxed italic">
-                  <span className="text-5xl text-slate-200 absolute -top-4 left-0 select-none">“</span>
-                  Every child deserves the confidence to say &quot;Yes, I Can.&quot;
-                </blockquote>
-                <p className="mt-6 text-[hsl(var(--swago-purple))] font-black text-xl md:text-2xl uppercase tracking-widest">
-                  — Swati Goyal
-                </p>
+              <div className="p-10 pt-8 bg-white border-t border-slate-50">
+                <div className="relative">
+                  <span className="absolute -top-4 -left-2 text-5xl text-slate-100 font-serif">&ldquo;</span>
+                  <p className="text-xl md:text-2xl font-medium text-slate-600 leading-relaxed italic text-center relative z-10 px-4">
+                    Every child deserves the confidence to say &quot;Yes, I Can.&quot;
+                  </p>
+                </div>
+                <div className="mt-8 text-center">
+                  <p className="text-[hsl(var(--swago-purple))] font-black text-sm md:text-base tracking-widest uppercase">
+                    &mdash; Swati Goyal
+                  </p>
+                </div>
               </div>
             </motion.div>
           </div>
 
           {/* Right Column: Text Content */}
-          <div className="w-full lg:w-1/2 text-left">
+          <div className="w-full lg:w-[55%] text-left">
             <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0, x: 30 }}
+              whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
+              className="max-w-2xl"
             >
-              <h2 className="text-4xl md:text-6xl font-black text-slate-900 leading-[1.1] mb-10 tracking-tight">
+              <h2 className="text-4xl md:text-6xl font-black text-slate-900 leading-[1.05] mb-8 tracking-tight">
                 More Than Toys. <br />
                 <span className="text-[hsl(var(--swago-purple))]">A Skill-Building System.</span>
               </h2>
               
-              <div className="space-y-8 text-slate-500 font-bold text-lg md:text-xl leading-relaxed max-w-xl">
+              <div className="space-y-6 text-slate-500 font-bold text-lg md:text-xl leading-relaxed">
                 <p>
                   Kids today face challenges we never did growing up &ndash; short attention spans, 
                   low confidence, and too much passive screen time.
@@ -93,60 +101,35 @@ export default function SkillBuildingSystem() {
                 </p>
               </div>
 
-              <div className="mt-14">
-                <button className="bg-[hsl(var(--swago-purple))] hover:bg-purple-600 text-white font-black px-12 py-6 rounded-2xl text-xl uppercase tracking-widest shadow-[0_20px_50px_-10px_rgba(124,93,250,0.4)] transition-all hover:-translate-y-1 active:scale-95">
+              <div className="mt-12">
+                <button className="bg-[hsl(var(--swago-purple))] hover:bg-purple-600 text-white font-black px-12 py-5 rounded-2xl text-base md:text-lg uppercase tracking-widest shadow-[0_20px_40px_-10px_rgba(124,93,250,0.3)] transition-all hover:-translate-y-1 active:scale-95">
                   Explore the SWAGO System
                 </button>
               </div>
             </motion.div>
           </div>
         </div>
+      </div>
 
-        {/* Bottom Part: Mascots & Playgroup */}
-        <div className="flex flex-col lg:flex-row items-end gap-12 lg:gap-20">
+      {/* Bottom Decorative Elements */}
+      <div className="absolute bottom-0 left-0 right-0 h-40 pointer-events-none overflow-hidden hidden md:block">
+        <div className="container mx-auto px-4 max-w-7xl h-full relative">
+          {/* Mascot peaking */}
+          <div className="absolute bottom-0 left-1/2 translate-x-[150px] w-48 h-48">
+            <Image src="/images/home/aga_profile.png" alt="" fill className="object-contain object-bottom opacity-20" />
+          </div>
           
-          {/* Mascot Profiles Row */}
-          <div className="w-full lg:w-auto flex flex-wrap lg:flex-nowrap justify-center lg:justify-start gap-8 md:gap-10 pb-4">
-             {mascots.map((mascot, idx) => (
-               <motion.div 
-                 key={mascot.name}
-                 initial={{ opacity: 0, y: 20 }}
-                 whileInView={{ opacity: 1, y: 0 }}
-                 transition={{ delay: idx * 0.1 }}
-                 viewport={{ once: true }}
-                 className="flex flex-col items-center text-center group"
-               >
-                 <div className="relative w-24 h-24 md:w-32 md:h-32 rounded-full overflow-hidden mb-6 shadow-[0_15px_30px_-5px_rgba(0,0,0,0.1)] border-4 border-white group-hover:scale-110 transition-transform duration-300">
-                   <Image 
-                     src={mascot.image} 
-                     alt={mascot.name} 
-                     fill 
-                     className="object-cover"
-                   />
-                 </div>
-                 <h4 className={`text-2xl md:text-3xl font-black ${mascot.color} tracking-tight mb-1`}>{mascot.name}</h4>
-                 <p className="text-sm md:text-base text-slate-400 font-bold uppercase tracking-[0.15em]">{mascot.trait}</p>
-               </motion.div>
-             ))}
+          {/* Balloons/Shapes placeholders based on design */}
+          <div className="absolute bottom-12 left-1/2 translate-x-[350px] w-12 h-12 bg-red-400/20 rounded-full" />
+          <div className="absolute bottom-4 left-1/2 translate-x-[420px] w-16 h-16 bg-blue-400/20 rounded-full" />
+          <div className="absolute bottom-24 left-1/2 translate-x-[480px] w-8 h-8 bg-amber-400/20 rounded-full" />
+          
+          {/* Trophy placeholder */}
+          <div className="absolute bottom-8 left-1/2 translate-x-[280px] w-16 h-16 opacity-10">
+             <svg viewBox="0 0 24 24" fill="currentColor" className="text-amber-500">
+               <path d="M18 2h-1V1h-2v1H9V1H7v1H6C4.9 2 4 2.9 4 4v3c0 2.2 1.8 4 4 4h1.1l1.1 2.2c-.4.7-.6 1.4-.2 2.3.4.9 1.2 1.5 2 1.5H12c.3 0 .5-.2.5-.5s-.2-.5-.5-.5h-.1c-.4 0-.8-.3-1-.8-.2-.4-.1-.8.1-1.2l1.5-3h-.9l-1.1-2.2c-.4-.7-.6-1.4-.2-2.3.4-.9 1.2-1.5 2-1.5h1.2l1.1 2.2c.4.7.6 1.4.2 2.3-.4.9-1.2 1.5-2 1.5H12c-.3 0-.5.2-.5.5s.2.5.5.5h.1c.4 0 .8.3 1 .8.2.4.1.8-.1 1.2l-1.5 3h.9l1.1 2.2c.4.7.6 1.4.2 2.3-.4.9-1.2 1.5-2 1.5H12c.3 0 .5-.2.5-.5s-.2-.5-.5-.5h-.1c-.4 0-.8-.3-1-.8-.2-.4-.1-.8.1-1.2l1.5-3h-.9l-1.1-2.2c-.4-.7-.6-1.4-.2-2.3.4-.9 1.2-1.5 2-1.5h1.2" />
+             </svg>
           </div>
-
-          {/* Large Playgroup Illustration */}
-          <div className="flex-1 w-full relative">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, x: 20 }}
-              whileInView={{ opacity: 1, scale: 1, x: 0 }}
-              viewport={{ once: true }}
-              className="relative w-full aspect-[4/3] md:aspect-[1.8/1]"
-            >
-              <Image 
-                src="/images/home/mascots_playgroup.png" 
-                alt="Kids playing with SWAGO mascots" 
-                fill
-                className="object-contain object-right-bottom"
-              />
-            </motion.div>
-          </div>
-
         </div>
       </div>
     </section>

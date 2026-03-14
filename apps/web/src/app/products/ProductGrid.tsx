@@ -6,7 +6,8 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { HiChevronRight } from "react-icons/hi";
 import ProductCard from "@/components/ProductCard";
-import FilterSidebar, { Filters } from "@/components/FilterSidebar";
+import { Filters } from "@/components/FilterSidebar";
+import FilterDrawer from "@/components/FilterDrawer";
 import { Product } from "@/context/SharedContext";
 
 export default function ProductGrid() {
@@ -140,6 +141,11 @@ export default function ProductGrid() {
     setActiveAccordion(activeAccordion === id ? null : id);
   };
 
+  const handleClearFilters = () => {
+    setFilters(initialFilters);
+    setIsFilterOpen(false);
+  };
+
   return (
     <div className="flex flex-col gap-4 py-8 md:py-12">
       {/* Breadcrumbs */}
@@ -149,207 +155,75 @@ export default function ProductGrid() {
         <span className="text-slate-900 font-bold uppercase tracking-tighter">Products</span>
       </nav>
 
-      {/* Mobile Filter & Sort Bar */}
-      <div className="md:hidden grid grid-cols-2 border-y border-slate-200 bg-white mb-2 sticky top-[72px] z-30">
-        <button
-          onClick={() => setIsFilterOpen(true)}
-          className="flex items-center justify-center gap-2.5 py-4 text-[11px] font-black tracking-[0.15em] text-slate-800"
-        >
-          FILTER
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-          </svg>
-        </button>
-        <button
-          onClick={() => setIsSortOpen(!isSortOpen)}
-          className={`flex items-center justify-center gap-2.5 py-4 text-[11px] font-black tracking-[0.15em] border-l border-slate-200 transition-colors ${isSortOpen ? 'text-[hsl(var(--swago-purple))]' : 'text-slate-800'}`}
-        >
-          SORT
-          <svg className={`w-3.5 h-3.5 transition-transform ${isSortOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />
-          </svg>
-        </button>
+      {/* Filter and Sort Section */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-2">
+        <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tight text-slate-900">
+          All Kits
+        </h2>
+
+        <div className="flex items-center gap-3 self-end md:self-auto">
+          {/* Desktop Sort Dropdown */}
+          <div className="hidden md:block relative">
+             <button
+              onClick={() => setIsSortOpen(!isSortOpen)}
+              className="flex items-center gap-2 text-[11px] font-bold tracking-wider text-[hsl(var(--swago-purple))] uppercase group"
+            >
+              Sort
+              <svg className={`w-4 h-4 transition-transform ${isSortOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />
+              </svg>
+            </button>
+            <AnimatePresence>
+              {isSortOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 10 }}
+                  className="absolute right-0 mt-2 w-56 bg-white border border-slate-100 rounded-2xl shadow-2xl z-40 overflow-hidden"
+                >
+                  <div className="flex flex-col p-2">
+                    {[
+                      { id: "newest", label: "Newest Arrivals" },
+                      { id: "price-low", label: "Price: Low to High" },
+                      { id: "price-high", label: "Price: High to Low" },
+                    ].map((opt) => (
+                      <button
+                        key={opt.id}
+                        onClick={() => { setSortBy(opt.id); setIsSortOpen(false); }}
+                        className={`w-full py-3 px-4 text-left text-xs font-bold rounded-xl transition-all ${sortBy === opt.id ? 'bg-purple-50 text-[hsl(var(--swago-purple))]' : 'text-slate-600 hover:bg-slate-50'}`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          <button
+            onClick={() => setIsFilterOpen(true)}
+            className="flex items-center gap-2 text-[11px] font-bold tracking-wider text-[hsl(var(--swago-purple))] uppercase group"
+          >
+            Filter
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+            </svg>
+          </button>
+        </div>
       </div>
 
-      {/* Mobile Sort Dropdown (Inline) */}
-      <AnimatePresence>
-        {isSortOpen && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="md:hidden overflow-hidden bg-white border-b border-slate-200"
-          >
-            <div className="flex flex-col divide-y divide-slate-100">
-              {[
-                { id: "newest", label: "Newest Arrivals" },
-                { id: "price-low", label: "Price: Low to High" },
-                { id: "price-high", label: "Price: High to Low" },
-              ].map((opt) => (
-                <button
-                  key={opt.id}
-                  onClick={() => { setSortBy(opt.id); setIsSortOpen(false); }}
-                  className={`w-full py-4 px-6 text-left text-sm font-medium transition-colors ${sortBy === opt.id ? 'text-[hsl(var(--swago-purple))] bg-purple-50' : 'text-slate-600 hover:bg-slate-50'}`}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <FilterDrawer 
+        isOpen={isFilterOpen}
+        onClose={() => setIsFilterOpen(false)}
+        filters={filters}
+        setFilters={setFilters}
+        totalResults={sortedAndFilteredProducts.length}
+      />
 
-      {/* Mobile Side Drawer Filter */}
-      <AnimatePresence>
-        {isFilterOpen && (
-          <>
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsFilterOpen(false)}
-              className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100] md:hidden"
-            />
-            {/* Drawer */}
-            <motion.div
-              initial={{ x: "100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "100%" }}
-              transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="fixed top-0 right-0 h-full w-[80%] bg-white z-[101] md:hidden shadow-2xl flex flex-col"
-            >
-              <div className="p-6 flex items-center justify-between border-b border-slate-100">
-                <h2 className="text-lg font-black tracking-wider uppercase">Filters</h2>
-                <button onClick={() => setIsFilterOpen(false)} className="p-2 hover:bg-slate-100 rounded-full">✕</button>
-              </div>
-
-              <div className="flex-grow overflow-y-auto">
-                {/* Search */}
-                <div className="p-6 border-b border-slate-50">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Keyword</p>
-                  <input
-                    type="text"
-                    value={filters.search}
-                    onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-                    placeholder="Search kits..."
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm focus:ring-2 focus:ring-[hsl(var(--swago-purple))] focus:border-transparent outline-none transition-all"
-                  />
-                </div>
-
-                {/* Accordions */}
-                <div className="flex flex-col">
-                  {/* Age Accordion */}
-                  <div className="border-b border-slate-100">
-                    <button
-                      onClick={() => toggleAccordion("age")}
-                      className="w-full p-6 flex items-center justify-between group"
-                    >
-                      <span className={`text-sm font-bold uppercase tracking-wider transition-colors ${activeAccordion === 'age' ? 'text-[hsl(var(--swago-purple))]' : 'text-slate-700'}`}>Age Group</span>
-                      <HiChevronRight className={`w-5 h-5 transition-transform duration-300 ${activeAccordion === 'age' ? 'rotate-90 text-[hsl(var(--swago-purple))]' : 'text-slate-300'}`} />
-                    </button>
-                    <AnimatePresence>
-                      {activeAccordion === "age" && (
-                        <motion.div
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: "auto", opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          className="overflow-hidden px-6 pb-6"
-                        >
-                          <div className="flex flex-wrap gap-2">
-                            {["All", "5-7", "8-10"].map(age => (
-                              <button
-                                key={age}
-                                onClick={() => setFilters({ ...filters, age: age === 'All' ? '' : age })}
-                                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${(filters.age === age || (filters.age === "" && age === "All"))
-                                  ? "bg-[hsl(var(--swago-purple))] text-white shadow-lg shadow-purple-200"
-                                  : "bg-slate-50 text-slate-500 hover:bg-slate-100"
-                                  }`}
-                              >
-                                {age}
-                              </button>
-                            ))}
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-
-                  {/* Categories Accordion */}
-                  <div className="border-b border-slate-100">
-                    <button
-                      onClick={() => toggleAccordion("categories")}
-                      className="w-full p-6 flex items-center justify-between group"
-                    >
-                      <span className={`text-sm font-bold uppercase tracking-wider transition-colors ${activeAccordion === 'categories' ? 'text-[hsl(var(--swago-purple))]' : 'text-slate-700'}`}>Categories</span>
-                      <HiChevronRight className={`w-5 h-5 transition-transform duration-300 ${activeAccordion === 'categories' ? 'rotate-90 text-[hsl(var(--swago-purple))]' : 'text-slate-300'}`} />
-                    </button>
-                    <AnimatePresence>
-                      {activeAccordion === "categories" && (
-                        <motion.div
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: "auto", opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          className="overflow-hidden px-6 pb-6"
-                        >
-                          <div className="flex flex-col gap-3">
-                            {[
-                              { id: "S", name: "Smart Tech" },
-                              { id: "W", name: "Willpower" },
-                              { id: "A", name: "Ambition" },
-                              { id: "G", name: "Growth" },
-                              { id: "O", name: "Optimization" },
-                            ].map(element => (
-                              <button
-                                key={element.id}
-                                onClick={() => {
-                                  const current = filters.elements;
-                                  const next = current.includes(element.id)
-                                    ? current.filter(id => id !== element.id)
-                                    : [...current, element.id];
-                                  setFilters({ ...filters, elements: next });
-                                }}
-                                className={`flex items-center gap-3 p-3 rounded-xl transition-all ${filters.elements.includes(element.id)
-                                  ? "bg-purple-50 text-[hsl(var(--swago-purple))]"
-                                  : "text-slate-600 hover:bg-slate-50"
-                                  }`}
-                              >
-                                <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors ${filters.elements.includes(element.id) ? "bg-[hsl(var(--swago-purple))] border-transparent" : "border-slate-200"
-                                  }`}>
-                                  {filters.elements.includes(element.id) && <span className="text-[10px] text-white">✓</span>}
-                                </div>
-                                <span className="text-sm font-bold">{element.name}</span>
-                              </button>
-                            ))}
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-6 border-t border-slate-100">
-                <button
-                  onClick={() => setIsFilterOpen(false)}
-                  className="w-full py-4 bg-black text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-slate-900 transition-colors shadow-xl"
-                >
-                  Show Results ({sortedAndFilteredProducts.length})
-                </button>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-        {/* Desktop Sidebar */}
-        <div className="hidden md:block md:col-span-1">
-          <FilterSidebar filters={filters} onFilterChange={setFilters} />
-        </div>
-
+      <div className="grid grid-cols-1 gap-8">
         {/* Product Grid Area */}
-        <div className="md:col-span-3">
+        <div className="w-full">
           {loading ? (
             <p className="text-sm text-slate-500 mb-4 px-1">Loading products...</p>
           ) : (
