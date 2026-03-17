@@ -59,7 +59,7 @@ export default function AnnouncementBanner() {
         animate={{ height: "auto", opacity: 1 }}
         exit={{ height: 0, opacity: 0 }}
         transition={{ duration: 0.3, ease: "easeOut" }}
-        className={`${getBackgroundClass(announcement.backgroundColor)} overflow-hidden py-2 relative border-b border-black/5`}
+        className={`${getBackgroundClass(announcement.backgroundColor)} overflow-hidden py-1 relative border-b border-black/5`}
       >
         {announcement.isScrolling ? (
           <div className="flex overflow-hidden whitespace-nowrap relative">

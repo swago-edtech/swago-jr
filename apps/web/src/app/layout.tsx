@@ -6,7 +6,6 @@ import { GoogleAnalytics } from '@next/third-parties/google';
 import Navbar from "@/components/Navbar";
 import { SharedProvider } from "@/context/SharedContext";
 import Footer from "@/components/Footer";
-import WhatsAppButton from "@/components/WhatsAppButton";
 import CartSidebar from "@/components/CartSidebar";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
 
@@ -37,7 +36,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           {(!isBlogOnly || pathname.startsWith("/blog")) && !isLoginRoute && <Navbar />}
           <main className="flex-grow">{children}</main>
           {(!isBlogOnly || pathname.startsWith("/blog")) && !isLoginRoute && <Footer />}
-          {!isBlogOnly && !isLoginRoute && <WhatsAppButton />}
           {!isBlogOnly && !isLoginRoute && <CartSidebar />}
         </SharedProvider>
 

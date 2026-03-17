@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useSharedContext, Product, CartItem } from "@/context/SharedContext";
 import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import ReviewList from "./ReviewList";
+import RelatedProducts from "./RelatedProducts";
 import { AiFillHeart, AiOutlineHeart } from "react-icons/ai";
 import { RiShareForwardFill } from "react-icons/ri";
 
@@ -18,19 +19,33 @@ const CheckIcon = () => (
 
 function AccordionItem({ title, content, isOpen, onToggle }: { title: string; content: React.ReactNode; isOpen: boolean; onToggle: () => void; }) {
   return (
-    <div className="border-b">
-      <button onClick={onToggle} className="w-full flex justify-between items-center py-4 text-left">
-        <span className="text-lg font-semibold">{title}</span>
-        <motion.span animate={{ rotate: isOpen ? 45 : 0 }}>
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+    <div className={`border-b border-purple-50 transition-colors duration-300 ${isOpen ? 'bg-purple-50/10' : ''}`}>
+      <button 
+        onClick={onToggle} 
+        className="w-full flex justify-between items-center py-5 text-left group"
+      >
+        <span className={`text-lg font-bold transition-colors ${isOpen ? 'text-[hsl(var(--swago-purple))]' : 'text-slate-800 group-hover:text-[hsl(var(--swago-purple))]'}`}>
+          {title}
+        </span>
+        <motion.span 
+          animate={{ rotate: isOpen ? 45 : 0 }}
+          className={`p-1 rounded-full transition-colors ${isOpen ? 'bg-[hsl(var(--swago-purple))] text-white' : 'bg-slate-50 text-slate-400 group-hover:bg-purple-100 group-hover:text-[hsl(var(--swago-purple))]'}`}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
           </svg>
         </motion.span>
       </button>
       <AnimatePresence>
         {isOpen && (
-          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.3, ease: "easeInOut" }} className="overflow-hidden">
-            <div className="pb-4 text-slate-600 prose-sm">{content}</div>
+          <motion.div 
+            initial={{ height: 0, opacity: 0 }} 
+            animate={{ height: "auto", opacity: 1 }} 
+            exit={{ height: 0, opacity: 0 }} 
+            transition={{ duration: 0.3, ease: "easeInOut" }} 
+            className="overflow-hidden"
+          >
+            <div className="pb-6 text-slate-600 leading-relaxed text-[15px]">{content}</div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -64,6 +79,21 @@ export default function ProductPageClient({ product }: { product: Product }) {
   const [openAccordion, setOpenAccordion] = useState<string | null>("description");
   const [showFullName, setShowFullName] = useState(false);
   const { cart, addToCart, isWishlisted, addToWishlist, removeFromWishlist, user, openCartSidebar, increaseQty, decreaseQty } = useSharedContext();
+  const [showStickyBar, setShowStickyBar] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      // Show sticky bar after scrolling past the main product info (around 600px)
+      if (window.scrollY > 600) {
+        setShowStickyBar(true);
+      } else {
+        setShowStickyBar(false);
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   // Get product identifier for routing - always use MongoDB _id or slug
   const getProductNumericId = (product: any): number | null => {
@@ -191,10 +221,17 @@ export default function ProductPageClient({ product }: { product: Product }) {
 
   const handleBuyNow = () => {
     if (isOutOfStock) return;
-    addToCart(product, quantity);
+    
+    if (!isInCart) {
+      addToCart(product, quantity);
+    }
 
     if (typeof window !== 'undefined' && window.innerWidth > 768) {
-      openCartSidebar();
+      if (!isInCart) {
+        openCartSidebar();
+      } else {
+        router.push("/cart");
+      }
     } else {
       router.push("/cart");
     }
@@ -238,12 +275,12 @@ export default function ProductPageClient({ product }: { product: Product }) {
 
   return (
     <>
-      <div className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-12 items-start">
+      <div className="container mx-auto px-4 py-2 md:py-12">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-8 items-start">
 
-          {/* Image Gallery Section */}
-          <div className="md:col-span-2">
-            <div className="relative w-full h-[20rem] md:h-[32rem] bg-slate-100 rounded-lg overflow-hidden shadow-lg group">
+          {/* Image Gallery Section (60% Space) */}
+          <div className="md:col-span-7">
+            <div className="relative w-full h-[14rem] sm:h-[18rem] md:h-auto md:aspect-[4/5] md:max-h-[550px] bg-slate-100 rounded-lg overflow-hidden shadow-lg group">
               {isOutOfStock && (
                 <div className="absolute top-4 left-4 bg-red-500 text-white text-xs md:text-sm font-bold px-3 md:px-4 py-1 md:py-2 rounded-full z-10">
                   Out of Stock
@@ -255,26 +292,26 @@ export default function ProductPageClient({ product }: { product: Product }) {
                 </div>
               )}
 
-              <div className="absolute top-4 right-4 flex gap-2 z-10">
+              <div className="absolute top-3 right-3 flex gap-1.5 z-10">
                 <button
                   onClick={handleShareClick}
-                  className="p-2 rounded-full bg-white/80 backdrop-blur-sm hover:bg-white transition"
+                  className="p-1.5 rounded-full bg-white/80 backdrop-blur-sm hover:bg-white transition shadow-sm"
                   aria-label="Share product"
                   title="Share product"
                 >
-                  <RiShareForwardFill className="w-5 h-5 md:w-6 md:h-6 text-slate-600" />
+                  <RiShareForwardFill className="w-4 h-4 md:w-5 md:h-5 text-slate-600" />
                 </button>
 
                 <button
                   onClick={handleWishlistClick}
-                  className="p-2 rounded-full bg-white/80 backdrop-blur-sm hover:bg-white transition"
+                  className="p-1.5 rounded-full bg-white/80 backdrop-blur-sm hover:bg-white transition shadow-sm"
                   aria-label={isLiked ? "Remove from wishlist" : "Add to wishlist"}
                   title={isLiked ? "Remove from wishlist" : "Add to wishlist"}
                 >
                   {isLiked ? (
-                    <AiFillHeart className="w-5 h-5 md:w-6 md:h-6 text-[hsl(var(--swago-pink))]" />
+                    <AiFillHeart className="w-4 h-4 md:w-5 md:h-5 text-[hsl(var(--swago-pink))]" />
                   ) : (
-                    <AiOutlineHeart className="w-5 h-5 md:w-6 md:h-6 text-slate-600" />
+                    <AiOutlineHeart className="w-4 h-4 md:w-5 md:h-5 text-slate-600" />
                   )}
                 </button>
               </div>
@@ -319,11 +356,26 @@ export default function ProductPageClient({ product }: { product: Product }) {
                       <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
                     </svg>
                   </button>
+
+                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10 bg-black/10 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20">
+                    {product.images.map((img, index) => (
+                      <button
+                        key={index}
+                        onClick={() => handleThumbnailClick(img)}
+                        className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
+                          mainImage === img 
+                            ? "bg-white w-4" 
+                            : "bg-white/50 hover:bg-white/80"
+                        }`}
+                        aria-label={`Go to image ${index + 1}`}
+                      />
+                    ))}
+                  </div>
                 </>
               )}
             </div>
 
-            <div className="grid grid-cols-4 gap-4 mt-4">
+            <div className="flex overflow-x-auto gap-2 mt-3 pb-2 scrollbar-none snap-x md:grid md:grid-cols-5 lg:grid-cols-6 md:gap-3 md:mt-4 md:pb-0">
               {product.images.map((img, index) => (
                 <button
                   key={index}
@@ -331,7 +383,7 @@ export default function ProductPageClient({ product }: { product: Product }) {
                   onClick={() => handleThumbnailClick(img)}
                   title={`View image ${index + 1}`}
                   aria-label={`View image ${index + 1}`}
-                  className={`relative w-full h-20 bg-slate-100 rounded-md overflow-hidden border-2 transition-colors ${mainImage === img ? "border-[hsl(var(--swago-purple))]" : "border-transparent"
+                  className={`relative flex-shrink-0 w-12 h-12 sm:w-14 sm:h-14 md:w-full md:h-14 lg:h-16 bg-slate-100 rounded-md overflow-hidden border-2 transition-colors snap-start ${mainImage === img ? "border-[hsl(var(--swago-purple))]" : "border-transparent"
                     }`}
                 >
                   <Image src={img} alt={`${product.name} thumbnail ${index + 1}`} fill className="object-cover object-bottom" />
@@ -340,14 +392,14 @@ export default function ProductPageClient({ product }: { product: Product }) {
             </div>
           </div>
 
-          <div className="md:col-span-3">
-            <div className="mb-2">
-              <h1 className="text-2xl md:text-4xl font-bold text-zoom-in">
+          <div className="md:col-span-5 pt-2 md:pt-0">
+            <div className="mb-1">
+              <h1 className="text-xl md:text-4xl font-bold text-zoom-in leading-tight">
                 {displayName}
                 {isLongName && (
                   <button
                     onClick={() => setShowFullName(!showFullName)}
-                    className="text-[hsl(var(--swago-purple))] text-base md:text-lg ml-2 hover:underline"
+                    className="text-[hsl(var(--swago-purple))] text-sm md:text-lg ml-2 hover:underline inline-block"
                   >
                     {showFullName ? 'Show less' : 'Read more'}
                   </button>
@@ -355,8 +407,8 @@ export default function ProductPageClient({ product }: { product: Product }) {
               </h1>
             </div>
 
-            <div className="mt-2 flex items-center gap-3 flex-wrap">
-              <span className="inline-flex items-center bg-[hsl(var(--swago-purple))] text-white text-xs md:text-sm font-semibold px-2 md:px-3 py-1 rounded-full">
+            <div className="mt-1 flex items-center gap-2 flex-wrap">
+              <span className="inline-flex items-center bg-[hsl(var(--swago-purple))] text-white text-[10px] md:text-sm font-semibold px-2 py-0.5 md:px-3 md:py-1 rounded-full">
                 Age: {ageCategory}
               </span>
 
@@ -370,34 +422,30 @@ export default function ProductPageClient({ product }: { product: Product }) {
                     <span className="inline-flex items-center bg-orange-100 text-orange-700 text-xs md:text-sm font-semibold px-2 md:px-3 py-1 rounded-full">
                       Only {stock} left
                     </span>
-                  ) : (
-                    <span className="inline-flex items-center bg-green-100 text-green-700 text-xs md:text-sm font-semibold px-2 md:px-3 py-1 rounded-full">
-                      In Stock ({stock} available)
-                    </span>
-                  )}
+                  ) : null}
                 </>
               )}
             </div>
 
-            <div className="flex items-center gap-2 md:gap-3 flex-wrap my-4">
-              <p className="text-2xl md:text-3xl font-bold text-slate-900 text-pop-bounce">
+            <div className="flex items-center gap-2 md:gap-3 flex-wrap my-1.5">
+              <p className="text-2xl md:text-3xl font-black text-slate-900 text-pop-bounce">
                 ₹{product.price}
               </p>
               {originalPrice && (
-                <>
-                  <span className="text-lg md:text-xl text-slate-400 line-through">
+                <div className="flex items-center gap-2">
+                  <span className="text-base md:text-xl text-slate-400 line-through">
                     ₹{originalPrice}
                   </span>
-                  <span className="inline-block bg-[hsl(var(--swago-orange))] text-white text-xs md:text-sm font-bold px-2 md:px-3 py-0.5 md:py-1 rounded">
+                  <span className="inline-block bg-[hsl(var(--swago-orange))] text-white text-[10px] md:text-sm font-bold px-1.5 md:px-3 py-0.5 md:py-1 rounded">
                     {percentOff}% OFF
                   </span>
-                </>
+                </div>
               )}
             </div>
 
             {/* Show quantity selector ONLY if NOT in cart */}
             {!isOutOfStock && !isInCart && (
-              <div className="flex items-center gap-4 mb-6 flex-wrap">
+              <div className="flex items-center gap-4 mb-4 flex-wrap">
                 <label className="font-semibold text-sm md:text-base">Quantity:</label>
                 <div className="flex items-center border rounded-lg">
                   <button
@@ -439,16 +487,18 @@ export default function ProductPageClient({ product }: { product: Product }) {
             {/* ✅ FIXED: Buttons - quantity controls replace Add to Cart when in cart */}
             <div className="flex gap-3 md:gap-4">
               {!isInCart ? (
-                <button
+                <motion.button
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.99 }}
                   onClick={handleAddToCart}
                   disabled={isOutOfStock}
-                  className={`flex-1 font-bold py-2.5 md:py-3 rounded-lg text-sm md:text-base transition ${isOutOfStock
+                  className={`flex-1 font-bold py-2.5 md:py-3 rounded-lg text-sm md:text-base transition-all duration-300 ${isOutOfStock
                     ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    : 'btn-shine btn-text-pop bg-[hsl(var(--swago-purple))] text-white'
+                    : 'btn-shine bg-[hsl(var(--swago-purple))] text-white shadow-sm hover:shadow-md'
                     }`}
                 >
-                  <span>{isOutOfStock ? 'Out of Stock' : 'Add to Cart'}</span>
-                </button>
+                  <span className="relative z-10">{isOutOfStock ? 'Out of Stock' : 'Add to Cart'}</span>
+                </motion.button>
               ) : (
                 <div className="flex-1 flex items-center justify-center gap-2 border-2 border-[hsl(var(--swago-purple))] rounded-lg bg-purple-50 py-1.5 md:py-2">
                   <button
@@ -472,16 +522,24 @@ export default function ProductPageClient({ product }: { product: Product }) {
                 </div>
               )}
 
-              <button
-                onClick={handleBuyNow}
+              <motion.button
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
+                onClick={() => {
+                  if (isInCart) {
+                    router.push('/cart');
+                  } else {
+                    handleBuyNow();
+                  }
+                }}
                 disabled={isOutOfStock}
-                className={`flex-1 font-bold py-2.5 md:py-3 rounded-lg text-sm md:text-base transition ${isOutOfStock
+                className={`flex-1 font-bold py-2.5 md:py-3 rounded-lg text-sm md:text-base transition-all duration-300 ${isOutOfStock
                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'btn-shine btn-text-pop bg-[hsl(var(--swago-orange))] text-white'
+                  : 'btn-shine bg-[hsl(var(--swago-orange))] text-white shadow-sm hover:shadow-md'
                   }`}
               >
-                <span>{isOutOfStock ? 'Out of Stock' : isInCart ? 'View Cart' : 'Buy It Now'}</span>
-              </button>
+                <span className="relative z-10">{isOutOfStock ? 'Out of Stock' : isInCart ? 'View Cart' : 'Buy It Now'}</span>
+              </motion.button>
             </div>
 
             <div className="mt-8">
@@ -499,13 +557,90 @@ export default function ProductPageClient({ product }: { product: Product }) {
         <div className="mt-16 border-t pt-12">
           <ReviewList productId={productIdForReviews} currentUserId={user?.phone} />
         </div>
+
+        <RelatedProducts 
+          currentProductId={productIdForReviews} 
+          ageCategory={ageCategory} 
+        />
       </div>
 
-      <div className="text-center pt-8 pb-16">
-        <Link href="/products" className="btn-shine btn-text-pop inline-block bg-[hsl(var(--swago-orange))] text-white font-bold px-8 py-3 rounded-full shadow-lg">
-          <span>View More Products</span>
-        </Link>
-      </div>
+
+      {/* Sticky Bottom Bar */}
+      <AnimatePresence>
+        {showStickyBar && (
+          <motion.div
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 100, opacity: 0 }}
+            className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-xl border-t border-slate-100 z-50 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)] py-3 px-4"
+          >
+            <div className="container mx-auto flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 overflow-hidden">
+                <div className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-lg overflow-hidden bg-slate-100 flex-shrink-0">
+                  <Image src={product.images[0]} alt={product.name} fill className="object-cover" />
+                </div>
+                <div className="flex flex-col">
+                  <h4 className="font-bold text-slate-800 truncate max-w-[120px] sm:max-w-[300px] text-sm sm:text-base">
+                    {product.name}
+                  </h4>
+                  <div className="flex items-center gap-2">
+                    <span className="font-black text-[hsl(var(--swago-purple))] text-sm sm:text-base">₹{product.price}</span>
+                    {originalPrice && (
+                      <span className="text-[10px] sm:text-xs text-slate-400 line-through">₹{originalPrice}</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 sm:gap-4">
+                {!isInCart ? (
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={handleAddToCart}
+                    disabled={isOutOfStock}
+                    className={`font-black px-4 sm:px-6 py-2 sm:py-2.5 rounded-xl text-[10px] sm:text-xs uppercase tracking-wider transition-all duration-300 whitespace-nowrap ${isOutOfStock
+                        ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                        : 'bg-[hsl(var(--swago-purple))] text-white shadow-sm hover:shadow-md'
+                      }`}
+                  >
+                    <span className="relative z-10">{isOutOfStock ? 'Out' : 'Add to Cart'}</span>
+                  </motion.button>
+                ) : (
+                  <div className="flex items-center bg-purple-50 border border-purple-100 rounded-xl px-2">
+                    <button onClick={handleDecrease} className="p-2 text-[hsl(var(--swago-purple))] font-bold">−</button>
+                    <span className="px-2 font-bold text-[hsl(var(--swago-purple))] min-w-[1.5rem] text-center">{quantityInCart}</span>
+                    <button onClick={handleIncrease} className="p-2 text-[hsl(var(--swago-purple))] font-bold">+</button>
+                  </div>
+                )}
+                
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleBuyNow}
+                  className={`${isInCart ? 'hidden lg:block' : 'block'} bg-[hsl(var(--swago-orange))] text-white font-black px-4 sm:px-6 py-2 sm:py-2.5 rounded-xl text-[10px] sm:text-xs uppercase tracking-wider transition-all duration-300 shadow-sm hover:shadow-md whitespace-nowrap`}
+                >
+                  Buy Now
+                </motion.button>
+
+                {isInCart && (
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => router.push('/cart')}
+                    className="bg-[hsl(var(--swago-purple))] text-white font-black px-4 sm:px-6 py-2 sm:py-3 rounded-xl text-[10px] sm:text-xs uppercase tracking-wider transition-all duration-300 shadow-md hover:shadow-lg whitespace-nowrap flex items-center justify-center gap-2"
+                  >
+                    Checkout
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-3.5 h-3.5">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+                    </svg>
+                  </motion.button>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }

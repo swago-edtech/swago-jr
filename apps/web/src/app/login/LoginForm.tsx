@@ -419,7 +419,7 @@ export default function LoginForm() {
 
       {/* ✅ Main form - New Design */}
       {(widgetReady || step === "otp") && (
-        <div className="w-full max-w-7xl mx-auto px-4 py-12 flex flex-col md:flex-row items-center justify-center gap-12 md:gap-20">
+        <div className="w-full max-w-7xl mx-auto px-4 py-12 flex flex-col md:flex-row items-center justify-center gap-12 md:gap-20 overflow-visible">
           
           {/* Left Column: Mascot & Speech Bubble (Desktop Only) */}
           <div className="hidden md:flex flex-col items-end relative -mt-20">
@@ -455,8 +455,8 @@ export default function LoginForm() {
           {/* Right Column: The Login Card */}
           <div className="w-full max-w-[540px] relative">
             
-            {/* Mobile Mascot (Shown only on mobile) */}
-            <div className="md:hidden w-64 h-64 relative mx-auto mb-[-95px] z-20 drop-shadow-xl transform translate-y-4">
+            {/* Mobile Mascot (Shown only on mobile - Now Behind text) */}
+            <div className="md:hidden w-64 h-64 relative mx-auto mb-[-110px] z-0 opacity-40 transform translate-y-4 pointer-events-none">
               <Image
                 src="/images/blog/swago_mascots.png"
                 alt="Swago Mascots"

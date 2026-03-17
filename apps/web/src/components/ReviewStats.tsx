@@ -25,11 +25,18 @@ export default function ReviewStats({ stats }: ReviewStatsProps) {
   };
 
   return (
-    <div className="bg-slate-50 p-6 rounded-xl border border-slate-200">
-      <h3 className="text-xl font-bold mb-4">Customer Reviews</h3>
+    <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+      <h3 className="text-xl font-bold mb-6 text-slate-900 border-l-4 border-[hsl(var(--swago-purple))] pl-3">
+        Customer Reviews
+      </h3>
 
       {totalReviews === 0 ? (
-        <p className="text-slate-500">No reviews yet. Be the first to review!</p>
+        <div className="flex flex-col items-center py-4">
+          <StarRating rating={0} size="sm" />
+          <p className="text-slate-600 font-medium mt-3 text-center">
+            Be the first parent to review this smart box.
+          </p>
+        </div>
       ) : (
         <div className="space-y-4">
           {/* Average Rating */}
@@ -58,7 +65,7 @@ export default function ReviewStats({ stats }: ReviewStatsProps) {
                         initial={{ width: 0 }}
                         animate={{ width: `${percentage}%` }}
                         transition={{ duration: 0.5, delay: star * 0.1 }}
-                        className="h-full bg-yellow-400"
+                        className="h-full bg-[hsl(var(--swago-purple))]"
                       />
                     </div>
                     <span className="text-sm text-slate-600 w-12 text-right">

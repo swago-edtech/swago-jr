@@ -1,22 +1,32 @@
 import type { Metadata } from "next";
 import ProductPageClient from "@/components/ProductPageClient";
 import { notFound } from "next/navigation";
+import { connectDB, Product } from "@swago/database";
+import { isValidObjectId } from "mongoose";
 
-// Fetch product from API
+// Fetch product directly from DB
 async function getProduct(id: string) {
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/products/${id}`, {
-      cache: 'no-store' // Always get fresh product data (stock changes)
-    });
+    await connectDB();
+    
+    let product = await Product.findOne({
+      slug: id,
+      isActive: true
+    }).select("-__v").lean();
 
-    if (res.ok) {
-      const data = await res.json();
-      if (data.success) {
-        return data.product;
-      }
+    if (!product && isValidObjectId(id)) {
+      product = await Product.findOne({
+        _id: id,
+        isActive: true
+      }).select("-__v").lean();
+    }
+
+    if (product) {
+       // Convert _id to string for serialization
+       return JSON.parse(JSON.stringify(product));
     }
   } catch (error) {
-    console.error('Error fetching product:', error);
+    console.error('Error fetching product from DB:', error);
   }
 
   return null;
@@ -24,15 +34,14 @@ async function getProduct(id: string) {
 
 export async function generateStaticParams() {
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/products`);
-    const data = await res.json();
-    if (data.success) {
-      return data.products.map((product: any) => ({
-        id: product.slug || product._id,
-      }));
-    }
+    await connectDB();
+    const products = await Product.find({ isActive: true }).select("slug _id").lean();
+    
+    return products.map((product: any) => ({
+      id: product.slug || product._id.toString(),
+    }));
   } catch (error) {
-    console.error('Error generating static params:', error);
+    console.error('Error generating static params from DB:', error);
   }
   return [];
 }

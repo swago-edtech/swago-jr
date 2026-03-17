@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { HiChevronRight } from "react-icons/hi";
+import { HiChevronUp, HiChevronDown } from "react-icons/hi";
 import { Filters } from "./FilterSidebar";
 
 type FilterDrawerProps = {
@@ -14,9 +14,6 @@ type FilterDrawerProps = {
 };
 
 export default function FilterDrawer({ isOpen, onClose, filters, setFilters, totalResults }: FilterDrawerProps) {
-  // We'll manage sections internal to FilterSection components
-
-
   return (
     <AnimatePresence>
       {isOpen && (
@@ -34,93 +31,97 @@ export default function FilterDrawer({ isOpen, onClose, filters, setFilters, tot
             initial={{ x: "100%" }}
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
-            transition={{ type: "spring", damping: 25, stiffness: 200 }}
+            transition={{ type: "spring", damping: 30, stiffness: 300 }}
             className="fixed top-0 right-0 h-full w-[85%] md:w-[400px] bg-white z-[101] shadow-2xl flex flex-col"
           >
-            <div className="p-6 flex items-center justify-between border-b border-slate-100 relative">
-              <div className="w-full text-center">
-                <h2 className="text-sm font-bold tracking-wider uppercase text-[hsl(var(--swago-purple))]">Filters</h2>
-              </div>
+            <div className="p-6 pb-2 flex items-center justify-between border-b border-slate-50 relative">
+              <h2 className="text-2xl font-black text-slate-800">Refine By</h2>
               <button 
                 onClick={onClose} 
-                className="absolute right-6 p-2 text-slate-400 hover:text-black transition-colors"
+                className="p-2 text-slate-400 hover:text-black transition-colors"
               >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
 
-            <div className="flex-grow overflow-y-auto">
-              {/* Age Group */}
-              <FilterSection 
-                title="Age" 
-                isOpen={true} 
-              >
-                <div className="flex flex-wrap gap-2">
-                  {["All", "5-7", "8-10"].map(age => (
-                    <button
-                      key={age}
-                      onClick={() => setFilters({ ...filters, age: age === 'All' ? '' : age })}
-                      className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${(filters.age === age || (filters.age === "" && age === "All"))
-                        ? "bg-[hsl(var(--swago-purple))] text-white shadow-lg shadow-purple-200"
-                        : "bg-slate-50 text-slate-500 hover:bg-slate-100"
-                        }`}
-                    >
-                      {age}
-                    </button>
-                  ))}
-                </div>
+            <div className="flex-grow overflow-y-auto custom-scrollbar">
+              {/* Price Filter Section */}
+              <FilterSection title="PRICE" defaultOpen={true}>
+                <PriceSlider 
+                  min={filters.minPrice ?? 0}
+                  max={filters.maxPrice ?? 3000}
+                  onChange={(min, max) => setFilters({ ...filters, minPrice: min, maxPrice: max })}
+                />
               </FilterSection>
 
-              {/* Swago Elements */}
-              <FilterSection 
-                title="Interest/Gameplay" 
-                isOpen={true}
-              >
-                <div className="flex flex-col gap-2">
+              {/* Age Group Filter Section */}
+              <FilterSection title="AGE GROUP" defaultOpen={true}>
+                <div className="flex flex-col gap-4 mt-2">
                   {[
-                    { id: "S", name: "Smart Tech" },
-                    { id: "W", name: "Willpower" },
-                    { id: "A", name: "Ambition" },
-                    { id: "G", name: "Growth" },
-                    { id: "O", name: "Optimization" },
-                  ].map(element => (
-                    <button
-                      key={element.id}
-                      onClick={() => {
-                        const current = filters.elements;
-                        const next = current.includes(element.id)
-                          ? current.filter(id => id !== element.id)
-                          : [...current, element.id];
-                        setFilters({ ...filters, elements: next });
-                      }}
-                      className={`flex items-center gap-3 p-3 rounded-xl transition-all ${filters.elements.includes(element.id)
-                        ? "bg-purple-50 text-[hsl(var(--swago-purple))]"
-                        : "text-slate-600 hover:bg-slate-50"
-                        }`}
-                    >
-                      <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors ${filters.elements.includes(element.id) ? "bg-[hsl(var(--swago-purple))] border-transparent" : "border-slate-200"
-                        }`}>
-                        {filters.elements.includes(element.id) && <span className="text-[10px] text-white">✓</span>}
-                      </div>
-                      <span className="text-sm font-bold">{element.name}</span>
-                    </button>
-                  ))}
+                    { label: "2+", count: 1 },
+                    { label: "3+", count: 21 },
+                    { label: "4+", count: 5 },
+                    { label: "5+", count: 2 },
+                    { label: "6+", count: 1 }
+                  ].map(age => {
+                    const value = age.label.replace('+', '');
+                    // For mapping to existing structure: match labels or convert
+                    // Assuming age values map to strings like "2", "3", etc.
+                    return (
+                      <label key={age.label} className="flex items-center gap-3 cursor-pointer group">
+                        <div className="relative flex items-center justify-center">
+                          <input 
+                            type="checkbox"
+                            checked={filters.age === age.label}
+                            onChange={() => setFilters({ ...filters, age: filters.age === age.label ? '' : age.label })}
+                            className="w-5 h-5 border-2 border-slate-300 rounded-sm appearance-none checked:bg-black checked:border-black transition-colors cursor-pointer"
+                          />
+                          <svg className={`absolute w-3 h-3 text-white pointer-events-none transform transition-transform ${filters.age === age.label ? 'scale-100' : 'scale-0'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                        </div>
+                        <span className="text-base text-slate-700 font-medium group-hover:text-black">
+                          {age.label} ({age.count})
+                        </span>
+                      </label>
+                    );
+                  })}
                 </div>
               </FilterSection>
 
-              {/* Price Range Slider */}
-              <FilterSection 
-                title="Price Range" 
-                isOpen={true}
-              >
-                <div className="pt-8 pb-4 px-2">
-                  <PriceSlider 
-                    min={filters.minPrice ?? 0}
-                    max={filters.maxPrice ?? 3000}
-                    onChange={(min, max) => setFilters({ ...filters, minPrice: min, maxPrice: max })}
-                  />
+              {/* Product Type Section */}
+              <FilterSection title="PRODUCT TYPE" defaultOpen={true}>
+                <div className="flex flex-col gap-4 mt-2">
+                  {[
+                    { label: "Activity Kit", id: "Activity", count: 22 },
+                    { label: "Construction Type", id: "Construction", count: 1 },
+                    { label: "Educational Toys", id: "Educational", count: 8 }
+                  ].map(type => (
+                    <label key={type.id} className="flex items-center gap-3 cursor-pointer group">
+                      <div className="relative flex items-center justify-center">
+                        <input 
+                          type="checkbox"
+                          checked={filters.elements.includes(type.id)}
+                          onChange={() => {
+                            const current = filters.elements;
+                            const next = current.includes(type.id)
+                              ? current.filter(id => id !== type.id)
+                              : [...current, type.id];
+                            setFilters({ ...filters, elements: next });
+                          }}
+                          className="w-5 h-5 border-2 border-slate-300 rounded-sm appearance-none checked:bg-black checked:border-black transition-colors cursor-pointer"
+                        />
+                        <svg className={`absolute w-3 h-3 text-white pointer-events-none transform transition-transform ${filters.elements.includes(type.id) ? 'scale-100' : 'scale-0'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                      <span className="text-base text-slate-700 font-medium group-hover:text-black">
+                        {type.label} ({type.count})
+                      </span>
+                    </label>
+                  ))}
                 </div>
               </FilterSection>
             </div>
@@ -130,13 +131,13 @@ export default function FilterDrawer({ isOpen, onClose, filters, setFilters, tot
                 onClick={() => {
                    setFilters({ ...filters, search: "", age: "", elements: [], minPrice: undefined, maxPrice: undefined });
                 }}
-                className="flex-1 py-3 border border-slate-300 transition text-slate-600 rounded-md font-bold uppercase tracking-widest text-[10px] hover:bg-slate-50"
+                className="flex-1 py-4 border-2 border-black transition text-black bg-white rounded-lg font-black uppercase tracking-widest text-xs hover:bg-slate-50 active:scale-[0.98]"
               >
-                Clear
+                Clear All
               </button>
               <button
                 onClick={onClose}
-                className="flex-1 py-3 bg-[hsl(var(--swago-purple))] text-white rounded-md font-bold uppercase tracking-widest text-[10px] hover:bg-opacity-90 transition-colors shadow-lg"
+                className="flex-1 py-4 bg-black text-white rounded-lg font-black uppercase tracking-widest text-xs hover:bg-slate-800 transition-colors shadow-lg active:scale-[0.98]"
               >
                 Apply
               </button>
@@ -148,8 +149,8 @@ export default function FilterDrawer({ isOpen, onClose, filters, setFilters, tot
   );
 }
 
-function FilterSection({ title, children, isOpen: defaultOpen = false }: { title: string, children: React.ReactNode, isOpen?: boolean }) {
-  const [isOpen, setIsOpen] = useState(defaultOpen); // Local state for each section toggle
+function FilterSection({ title, children, defaultOpen = false }: { title: string, children: React.ReactNode, defaultOpen?: boolean }) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
   
   return (
     <div className="border-b border-slate-100 last:border-0">
@@ -157,20 +158,27 @@ function FilterSection({ title, children, isOpen: defaultOpen = false }: { title
         onClick={() => setIsOpen(!isOpen)}
         className="w-full p-6 flex items-center justify-between group"
       >
-        <span className={`text-sm font-bold uppercase tracking-wider transition-colors ${isOpen ? 'text-[hsl(var(--swago-purple))]' : 'text-slate-700'}`}>
+        <span className="text-sm font-black text-slate-700 tracking-[0.1em] uppercase">
           {title}
         </span>
-        <HiChevronRight className={`w-5 h-5 transition-transform duration-300 ${isOpen ? 'rotate-90 text-[hsl(var(--swago-purple))]' : 'text-slate-300'}`} />
+        {isOpen ? (
+          <HiChevronUp className="w-6 h-6 text-slate-400 group-hover:text-black transition-colors" />
+        ) : (
+          <HiChevronDown className="w-6 h-6 text-slate-400 group-hover:text-black transition-colors" />
+        )}
       </button>
-      <AnimatePresence>
+      <AnimatePresence initial={false}>
         {isOpen && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden px-6 pb-6"
+            transition={{ duration: 0.3, ease: [0.04, 0.62, 0.23, 0.98] }}
+            className="overflow-hidden"
           >
-            {children}
+            <div className="px-6 pb-8">
+              {children}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -178,7 +186,7 @@ function FilterSection({ title, children, isOpen: defaultOpen = false }: { title
   );
 }
 
-const pricePoints = [0, 499, 999, 1500, 3000];
+const pricePoints = [0, 499, 899, 999, 1500, 3000];
 
 function PriceSlider({ min, max, onChange }: { min: number, max: number, onChange: (min: number, max: number) => void }) {
   const trackRef = useRef<HTMLDivElement>(null);
@@ -198,7 +206,6 @@ function PriceSlider({ min, max, onChange }: { min: number, max: number, onChang
     const percent = Math.max(0, Math.min(1, x / rect.width));
     const index = Math.round(percent * (pricePoints.length - 1));
 
-    // Determine which thumb to move based on proximity
     const distMin = Math.abs(index - safeMinIdx);
     const distMax = Math.abs(index - safeMaxIdx);
 
@@ -210,74 +217,66 @@ function PriceSlider({ min, max, onChange }: { min: number, max: number, onChang
   };
 
   return (
-    <div className="w-full px-1 pt-2 pb-6 group">
-      {/* Sleek Price Labels */}
-      <div className="flex justify-between items-end mb-10 px-0.5">
-        <div className="flex flex-col gap-0.5">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest opacity-60">Minimum</span>
-          <span className="text-xl font-medium text-slate-900 leading-none tabular-nums">₹{pricePoints[safeMinIdx]}</span>
-        </div>
-        <div className="flex flex-col gap-0.5 text-right">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest opacity-60">Maximum</span>
-          <span className="text-xl font-medium text-slate-900 leading-none tabular-nums">
-            {pricePoints[safeMaxIdx] === 3000 ? '₹3000+' : `₹${pricePoints[safeMaxIdx]}`}
-          </span>
-        </div>
-      </div>
-
-      {/* Minimal Slider Bar */}
+    <div className="w-full pt-4">
+      {/* Slider Visual */}
       <div 
         ref={trackRef}
-        className="relative h-1.5 w-full bg-slate-100 rounded-full cursor-pointer transition-colors hover:bg-slate-200"
+        className="relative h-[6px] w-full bg-slate-100 rounded-full cursor-pointer mb-10"
         onMouseDown={(e) => handleInteraction(e.clientX)}
-        onTouchStart={(e) => handleInteraction(e.touches[0].clientX)}
       >
-        {/* Active Segment */}
+        <div className="absolute inset-0 bg-slate-900/10 rounded-full" />
         <motion.div 
-          className="absolute h-full bg-[hsl(var(--swago-purple))] rounded-full shadow-[0_0_10px_rgba(124,93,250,0.3)]"
+          className="absolute h-full bg-slate-900 rounded-full"
           initial={false}
           animate={{ 
             left: `${getPercentage(safeMinIdx)}%`, 
             width: `${getPercentage(safeMaxIdx) - getPercentage(safeMinIdx)}%` 
           }}
         />
-
-        {/* Minimal Thumbs (Buttons) */}
+        
+        {/* Thumbs */}
         <div className="absolute inset-0 pointer-events-none">
-          {/* Min Handle */}
           <motion.div
-            className="absolute top-1/2 -translate-y-1/2 -ml-2.5 w-5 h-5 bg-white border-2 border-[hsl(var(--swago-purple))] rounded-full shadow-md z-30 transition-transform hover:scale-110 active:scale-95"
+            className="absolute top-1/2 -translate-y-1/2 -ml-3 w-6 h-6 bg-slate-900 rounded-full cursor-pointer pointer-events-auto border-4 border-white shadow-sm"
             animate={{ left: `${getPercentage(safeMinIdx)}%` }}
             initial={false}
+            onMouseDown={(e) => {
+              e.stopPropagation();
+              // Add dragging logic if needed, but for now interaction handles click-to-move
+            }}
           />
-          {/* Max Handle */}
           <motion.div
-            className="absolute top-1/2 -translate-y-1/2 -ml-2.5 w-5 h-5 bg-white border-2 border-[hsl(var(--swago-purple))] rounded-full shadow-md z-30 transition-transform hover:scale-110 active:scale-95"
+            className="absolute top-1/2 -translate-y-1/2 -ml-3 w-6 h-6 bg-slate-900 rounded-full cursor-pointer pointer-events-auto border-4 border-white shadow-sm"
             animate={{ left: `${getPercentage(safeMaxIdx)}%` }}
             initial={false}
+            onMouseDown={(e) => {
+              e.stopPropagation();
+            }}
           />
         </div>
       </div>
 
-      {/* Discrete Scale Labels */}
-      <div className="relative mt-8 flex justify-between px-0.5">
-        {pricePoints.map((point, i) => (
-          <button
-            key={point}
-            onClick={() => handleInteraction(0)} // Placeholder, interaction logic is handled by point specific math if needed, but the track click handles this
-            className="flex flex-col items-center gap-2 group/btn"
-            style={{ pointerEvents: 'none' }} // Labels are visual
-          >
-            <div className={`w-1 h-1 rounded-full bg-slate-200 transition-all ${
-              i >= safeMinIdx && i <= safeMaxIdx ? 'bg-purple-300 scale-125' : ''
-            }`} />
-            <span className={`text-[9px] font-bold tracking-tight transition-colors ${
-              i === safeMinIdx || i === safeMaxIdx ? 'text-[hsl(var(--swago-purple))]' : 'text-slate-300'
-            }`}>
-              ₹{point === 3000 ? '3000+' : point}
-            </span>
-          </button>
-        ))}
+      {/* Input Fields */}
+      <div className="flex items-center gap-4">
+        <div className="flex-1 flex items-center border border-slate-200 rounded-md px-3 py-2.5 bg-white">
+          <span className="text-slate-500 mr-2 text-lg">₹</span>
+          <input 
+            type="text" 
+            value={pricePoints[safeMinIdx]}
+            readOnly
+            className="w-full text-right outline-none text-slate-400 font-medium bg-transparent"
+          />
+        </div>
+        <span className="text-slate-500 font-medium">To</span>
+        <div className="flex-1 flex items-center border border-slate-200 rounded-md px-3 py-2.5 bg-white">
+          <span className="text-slate-500 mr-2 text-lg">₹</span>
+          <input 
+            type="text" 
+            value={pricePoints[safeMaxIdx].toFixed(1)}
+            readOnly
+            className="w-full text-right outline-none text-slate-400 font-medium bg-transparent"
+          />
+        </div>
       </div>
     </div>
   );
