@@ -429,6 +429,87 @@ export default function CartPage() {
             </button>
          </div>
       </div>
+      {/* Coupon Bottom Sheet */}
+      {couponSheetOpen && (
+        <>
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50" onClick={() => setCouponSheetOpen(false)} />
+          <div
+            className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-[2rem] shadow-[0_-20px_60px_rgba(0,0,0,0.15)] max-h-[85vh] flex flex-col"
+            style={{ animation: 'slideUp 0.3s cubic-bezier(0.32,0.72,0,1)' }}
+          >
+            <style>{`@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }`}</style>
+            <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
+              <div className="w-10 h-1 bg-slate-200 rounded-full" />
+            </div>
+            <div className="flex items-center justify-between px-5 py-3 border-b border-slate-100 flex-shrink-0">
+              <div>
+                <h3 className="text-base font-black text-slate-900 uppercase tracking-tight">Coupons & Offers</h3>
+                <p className="text-[10px] text-slate-400 font-bold mt-0.5">Cart value · ₹{total.toFixed(0)}</p>
+              </div>
+              <button onClick={() => setCouponSheetOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 text-slate-500">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="px-5 py-3 border-b border-slate-100 flex-shrink-0">
+              <div className="flex gap-2">
+                <div className="flex-1 flex items-center bg-slate-50 border border-slate-200 rounded-2xl px-4 gap-2 focus-within:border-[#61498C] transition-all">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 text-slate-400 flex-shrink-0">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3Z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 6h.008v.008H6V6Z" />
+                  </svg>
+                  <input
+                    type="text"
+                    value={couponInput}
+                    onChange={(e) => { setCouponInput(e.target.value.toUpperCase()); setCouponError(''); }}
+                    placeholder="Enter coupon code"
+                    className="flex-1 bg-transparent py-3 text-sm font-bold text-slate-800 placeholder:text-slate-400 outline-none uppercase tracking-widest"
+                  />
+                </div>
+                <button
+                  onClick={() => applyCoupon(couponInput)}
+                  disabled={!couponInput.trim() || couponLoading}
+                  className="bg-[#61498C] text-white font-black text-xs px-4 rounded-2xl uppercase tracking-wider disabled:opacity-50 transition-all active:scale-95"
+                >
+                  {couponLoading ? '...' : 'Apply'}
+                </button>
+              </div>
+              {couponError && <p className="text-[10px] text-rose-500 font-bold mt-2 ml-1">❌ {couponError}</p>}
+            </div>
+            <div className="overflow-y-auto flex-1 px-5 py-4 space-y-3">
+              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Available Coupons</p>
+              {AVAILABLE_COUPONS.map((coupon) => {
+                const isEligible = total >= coupon.minOrder;
+                return (
+                  <div key={coupon.code} className={`rounded-2xl border p-4 ${isEligible ? 'border-slate-100 bg-white shadow-sm' : 'border-slate-100 bg-slate-50 opacity-60'}`}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-[10px] font-black px-2 py-0.5 rounded-full text-white" style={{ backgroundColor: coupon.accent }}>{coupon.label}</span>
+                          <span className="text-sm font-black text-slate-900 tracking-wide">{coupon.code}</span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 font-medium">{coupon.description}</p>
+                        {isEligible
+                          ? <p className="text-[10px] text-emerald-600 font-bold mt-1">✓ Eligible on your order</p>
+                          : <p className="text-[10px] text-rose-500 font-bold mt-1">Add ₹{(coupon.minOrder - total).toFixed(0)} more to use this</p>
+                        }
+                      </div>
+                      <button
+                        onClick={() => isEligible && applyCoupon(coupon.code)}
+                        disabled={!isEligible || couponLoading}
+                        className={`flex-shrink-0 text-[11px] font-black uppercase tracking-widest px-4 py-2 rounded-xl transition-all active:scale-95 ${isEligible ? 'bg-[#61498C] text-white hover:bg-[#533d7a] shadow-md' : 'bg-slate-100 text-slate-400 cursor-not-allowed'}`}
+                      >
+                        Apply
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
