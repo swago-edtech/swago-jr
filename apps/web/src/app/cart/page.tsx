@@ -78,7 +78,7 @@ export default function CartPage() {
   return (
     <div className="bg-[#FBFCFD] min-h-screen pb-24">
       {/* Header Sticky Section */}
-      <div className="bg-white border-b border-slate-100 sticky top-0 z-30 px-4 py-4 md:py-6 shadow-sm">
+      <div className="bg-white border-b border-slate-100 sticky top-0 z-30 px-4 py-2 md:py-3 shadow-sm">
         <div className="container mx-auto flex items-center justify-between">
            <div className="flex items-center gap-4">
               <Link href="/products" className="p-2 hover:bg-slate-50 rounded-full transition-colors">
@@ -104,8 +104,8 @@ export default function CartPage() {
           <div className="lg:col-span-8 space-y-3">
             
             {/* Rewards Progress Banner */}
-            <div className="bg-white rounded-[2rem] px-5 pt-3 pb-6 border border-slate-100 shadow-sm relative overflow-hidden">
-               <p className="text-[#6B5A99] text-xs font-bold text-center mb-4 uppercase tracking-wider">
+            <div className="bg-white rounded-[2rem] px-5 pt-3 pb-5 border border-slate-100 shadow-sm">
+                <p className="text-[#6B5A99] text-[10px] font-bold text-center mb-3 uppercase tracking-wider">
                   {total >= giftThreshold 
                     ? "🎉 All rewards added to your order!" 
                     : total >= shippingThreshold 
@@ -113,71 +113,77 @@ export default function CartPage() {
                       : "Free Gift on PRE-PAID orders"}
                 </p>
 
-                <div className="relative px-8 md:px-12 max-w-2xl mx-auto">
-                  {/* Progress Line */}
-                  <div className="absolute top-1/2 left-0 w-full h-1 bg-slate-100 -translate-y-1/2 rounded-full" />
-                  <div 
-                    className="absolute top-1/2 left-0 h-1 bg-[#61498C] -translate-y-1/2 rounded-full transition-all duration-1000 ease-out"
-                    style={{ width: `${progressPercent}%` }}
-                  />
-                  
-                  {/* Milestone Markers */}
-                  <div className="flex justify-between items-center relative z-10">
-                    <div /> {/* Start spacing */}
-                    
-                    {/* Free Shipping Milestone (500) */}
-                    <div className="relative">
-                      <div className={`w-10 h-10 md:w-12 md:h-12 rounded-2xl flex items-center justify-center border-4 border-white shadow-xl transition-all duration-500 scale-110 ${total >= shippingThreshold ? 'bg-[#61498C] text-white' : 'bg-slate-50 text-slate-300'}`}>
+                {/* Progress track + milestones */}
+                <div className="px-4 md:px-8 max-w-xl mx-auto">
+                  {/* Icon row with connecting line */}
+                  <div className="relative flex items-center justify-between">
+                    {/* Background line */}
+                    <div className="absolute top-1/2 left-0 w-full h-1 bg-slate-100 -translate-y-1/2 rounded-full" />
+                    {/* Progress fill */}
+                    <div
+                      className="absolute top-1/2 left-0 h-1 bg-[#61498C] -translate-y-1/2 rounded-full transition-all duration-1000 ease-out"
+                      style={{ width: `${progressPercent}%` }}
+                    />
+                    {/* Start dot */}
+                    <div className="relative z-10 w-3 h-3 rounded-full bg-[#61498C] ring-2 ring-white shadow" />
+
+                    {/* Free Shipping Milestone */}
+                    <div className="relative z-10 flex flex-col items-center gap-1">
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center border-4 border-white shadow-lg transition-all duration-500 ${total >= shippingThreshold ? 'bg-[#61498C] text-white' : 'bg-slate-100 text-slate-400'}`}>
                         {total >= shippingThreshold ? (
-                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-5 h-5 md:w-6 md:h-6">
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-4 h-4">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                           </svg>
                         ) : (
-                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 md:w-6 md:h-6">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 0 1-3 0 m3 0 a1.5 1.5 0 0 0-3 0 m3 0 h6 m-9 0 H3.375a1.125 1.125 0 0 1-1.125-1.125 V14.25 m17.25 4.5 a1.5 1.5 0 0 1-3 0 m3 0 a1.5 1.5 0 0 0-3 0 m3 0 h1.125 c.621 0 1.129-.504 1.129-1.127 V11.25 M7.5 7.5 h7.875 c.621 0 1.125.504 1.125 1.125 v17.25 m-17.25-4.5 V3.375 C3.375 2.754 3.879 2.25 4.5 2.25 H9.75 m11.25 7.5 V10.5 M3.375 14.25 h17.25 m-17.25 0 V5.25 m17.25 9V5.25" />
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 0 1-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h1.125c.621 0 1.129-.504 1.129-1.127V11.25M7.5 7.5h7.875c.621 0 1.125.504 1.125 1.125v7.25m-17.25-4.5V3.375C3.375 2.754 3.879 2.25 4.5 2.25H9.75" />
                           </svg>
                         )}
-                      </div>
-                      <div className="absolute top-14 left-1/2 -translate-x-1/2 text-center">
-                        <span className={`block text-[10px] md:text-xs font-black ${total >= shippingThreshold ? 'text-slate-900' : 'text-slate-400'}`}>₹{shippingThreshold}</span>
-                        <span className={`block text-[8px] md:text-[10px] font-bold uppercase tracking-tight whitespace-nowrap ${total >= shippingThreshold ? 'text-slate-500' : 'text-slate-400'}`}>Free Shipping</span>
                       </div>
                     </div>
 
-                    {/* Free Gift Milestone (1000) */}
-                    <div className="relative">
-                      <div className={`w-10 h-10 md:w-12 md:h-12 rounded-2xl flex items-center justify-center border-4 border-white shadow-xl transition-all duration-500 scale-110 ${total >= giftThreshold ? 'bg-[#61498C] text-white' : 'bg-slate-50 text-slate-300'}`}>
+                    {/* Free Gift Milestone */}
+                    <div className="relative z-10 flex flex-col items-center gap-1">
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center border-4 border-white shadow-lg transition-all duration-500 ${total >= giftThreshold ? 'bg-[#61498C] text-white' : 'bg-slate-100 text-slate-400'}`}>
                         {total >= giftThreshold ? (
-                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-5 h-5 md:w-6 md:h-6">
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-4 h-4">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                           </svg>
                         ) : (
-                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 md:w-6 md:h-6">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M21 11.25v8.25a1.5 1.5 0 0 1-1.5 1.5H4.5a1.5 1.5 0 0 1-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 1 0 9.375 7.5H12 m0 -2.625 V7.5 m0-2.625 A2.625 2.625 0 1 1 14.625 7.5 H12 m0 0 V21 m-8.625-9.75h17.25" />
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M21 11.25v8.25a1.5 1.5 0 0 1-1.5 1.5H4.5a1.5 1.5 0 0 1-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 1 0 9.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1 1 14.625 7.5H12m0 0V21m-8.625-9.75h17.25" />
                           </svg>
                         )}
                       </div>
-                      <div className="absolute top-14 left-1/2 -translate-x-1/2 text-center">
-                        <span className={`block text-[10px] md:text-xs font-black ${total >= giftThreshold ? 'text-slate-900' : 'text-slate-400'}`}>₹{giftThreshold}</span>
-                        <span className={`block text-[8px] md:text-[10px] font-bold uppercase tracking-tight whitespace-nowrap ${total >= giftThreshold ? 'text-slate-500' : 'text-slate-400'}`}>+ Free Gift</span>
-                      </div>
+                    </div>
+                  </div>
+
+                  {/* Labels row — aligned to milestones */}
+                  <div className="flex items-start justify-between mt-1.5 px-0">
+                    <div className="w-3" /> {/* spacer for start dot */}
+                    <div className="flex flex-col items-center">
+                      <span className={`text-[10px] font-black ${total >= shippingThreshold ? 'text-slate-900' : 'text-slate-400'}`}>₹{shippingThreshold}</span>
+                      <span className={`text-[8px] font-bold uppercase tracking-tight whitespace-nowrap ${total >= shippingThreshold ? 'text-slate-500' : 'text-slate-400'}`}>Free Shipping</span>
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <span className={`text-[10px] font-black ${total >= giftThreshold ? 'text-slate-900' : 'text-slate-400'}`}>₹{giftThreshold}</span>
+                      <span className={`text-[8px] font-bold uppercase tracking-tight whitespace-nowrap ${total >= giftThreshold ? 'text-slate-500' : 'text-slate-400'}`}>+ Free Gift</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Progress Message Banner */}
-                <div className="mt-12 text-center px-4">
+                <div className="mt-3 text-center px-4">
                   {total >= giftThreshold ? (
-                    <div className="bg-emerald-50 text-[#1E8B4F] py-2 px-4 rounded-xl border border-emerald-100 inline-flex items-center justify-center gap-2 animate-bounce-subtle">
+                    <div className="bg-emerald-50 text-[#1E8B4F] py-2 px-4 rounded-xl border border-emerald-100 inline-flex items-center justify-center gap-2">
                       <span className="text-lg">🎉</span>
                       <p className="text-[10px] font-black uppercase tracking-widest">Surprise Toy Added!</p>
                     </div>
                   ) : (
-                    <div className="bg-slate-50 py-2 px-4 rounded-xl border border-slate-100 inline-flex flex-col md:flex-row items-center gap-1.5">
-                        <p className="text-[10px] md:text-xs font-bold text-slate-500 uppercase tracking-widest leading-none">
-                           Add <span className="text-[#61498C] font-black text-sm mx-1 tabular-nums">₹{(giftThreshold - total).toFixed(0)}</span> more for your
-                        </p>
-                        <span className="text-[10px] md:text-xs font-black text-slate-800 uppercase tracking-widest leading-none">FREE TOY! 🎁</span>
+                    <div className="bg-slate-50 py-1.5 px-3 rounded-xl border border-slate-100 inline-flex items-center gap-1">
+                      <p className="text-[9px] md:text-xs font-bold text-slate-500 uppercase tracking-widest leading-none">
+                        Add <span className="text-[#61498C] font-black text-xs md:text-sm mx-0.5 tabular-nums">₹{(giftThreshold - total).toFixed(0)}</span> more for your <span className="text-slate-800 font-black">FREE TOY! 🎁</span>
+                      </p>
                     </div>
                   )}
                 </div>
@@ -248,41 +254,41 @@ export default function CartPage() {
           {/* Sidebar / Bottom Bar Column */}
           <div className="lg:col-span-4 space-y-4">
             
-            {/* Coupons Card */}
-            <div className="bg-white rounded-[2rem] p-6 border border-slate-100 shadow-sm">
-               <div className="flex items-center gap-3 mb-6">
-                  <div className="bg-emerald-50 p-2 rounded-xl text-emerald-500">
-                     <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" className="w-5 h-5">
-                       <path d="M2.25 12a.75.75 0 0 1 .75-.75h1.12a.75.75 0 1 1 0 1.5H3a.75.75 0 0 1-.75-.75Zm6.732-5.464a.75.75 0 0 1 1.06 0l.793.793a.75.75 0 1 1-1.06 1.06l-.793-.793a.75.75 0 0 1 0-1.06Zm1.06 9.868a.75.75 0 0 1 0 1.06l-.793.793a.75.75 0 1 1-1.06-1.06l.793-.793a.75.75 0 0 1 1.06 0ZM15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm3 0a.75.75 0 0 1 .75-.75H21a.75.75 0 0 1 0 1.5h-2.25a.75.75 0 0 1-.75-.75Zm-6.732-5.464a.75.75 0 0 1 0 1.06l-.793.793a.75.75 0 0 1-1.06-1.06l.793-.793a.75.75 0 0 1 1.06 0Zm-1.06 9.868a.75.75 0 0 1-1.06 0l-.793-.793a.75.75 0 1 1 1.06-1.06l.793.793a.75.75 0 0 1 0 1.06ZM12 2.25a.75.75 0 0 1 .75.75V4.12a.75.75 0 0 1-1.5 0V3a.75.75 0 0 1 .75-.75Zm0 17.63a.75.75 0 0 1 .75.75v1.12a.75.75 0 0 1-1.5 0V20.63a.75.75 0 0 1 .75-.75Z" />
-                     </svg>
-                  </div>
-                  <h2 className="text-xl font-black text-slate-900 tracking-tight uppercase">Coupons</h2>
-               </div>
-               
-               <button className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 group flex items-center justify-between hover:bg-white hover:border-[#61498C] transition-all">
-                  <div className="flex flex-col items-start">
-                    <span className="text-base font-black text-slate-800 tracking-wide">SAVE25</span>
-                    <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest mt-0.5">Available for you!</span>
-                  </div>
-                  <div className="bg-white p-1.5 rounded-xl border border-slate-100 group-hover:bg-[#61498C] group-hover:text-white transition-all shadow-sm">
-                    <span className="text-[10px] font-black uppercase px-2">Apply</span>
-                  </div>
-               </button>
-            </div>
+             {/* Coupons Card */}
+             <div className="bg-white rounded-[1.5rem] p-3 border border-slate-100 shadow-sm">
+                <div className="flex items-center gap-2 mb-2">
+                   <div className="bg-emerald-50 p-1 rounded-xl text-emerald-500">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" className="w-3.5 h-3.5">
+                        <path d="M2.25 12a.75.75 0 0 1 .75-.75h1.12a.75.75 0 1 1 0 1.5H3a.75.75 0 0 1-.75-.75Zm6.732-5.464a.75.75 0 0 1 1.06 0l.793.793a.75.75 0 1 1-1.06 1.06l-.793-.793a.75.75 0 0 1 0-1.06Zm1.06 9.868a.75.75 0 0 1 0 1.06l-.793.793a.75.75 0 1 1-1.06-1.06l.793-.793a.75.75 0 0 1 1.06 0ZM15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm3 0a.75.75 0 0 1 .75-.75H21a.75.75 0 1 1 0 1.5h-2.25a.75.75 0 0 1-.75-.75Zm-6.732-5.464a.75.75 0 0 1 0 1.06l-.793.793a.75.75 0 0 1-1.06-1.06l.793-.793a.75.75 0 0 1 1.06 0Zm-1.06 9.868a.75.75 0 0 1-1.06 0l-.793-.793a.75.75 0 1 1 1.06-1.06l.793.793a.75.75 0 0 1 0 1.06ZM12 2.25a.75.75 0 0 1 .75.75V4.12a.75.75 0 0 1-1.5 0V3a.75.75 0 0 1 .75-.75Zm0 17.63a.75.75 0 0 1 .75.75v1.12a.75.75 0 0 1-1.5 0V20.63a.75.75 0 0 1 .75-.75Z" />
+                      </svg>
+                   </div>
+                   <h2 className="text-[13px] font-black text-slate-900 tracking-tight uppercase">Coupons</h2>
+                </div>
+                
+                <button className="w-full bg-slate-50 border border-slate-100 rounded-xl p-2 group flex items-center justify-between hover:bg-white hover:border-[#61498C] transition-all">
+                   <div className="flex flex-col items-start">
+                     <span className="text-[13px] font-black text-slate-800 tracking-wide">SAVE25</span>
+                     <span className="text-[8px] font-black text-emerald-600 uppercase tracking-widest mt-0.5">Available for you!</span>
+                   </div>
+                   <div className="bg-white p-1 rounded-lg border border-slate-100 group-hover:bg-[#61498C] group-hover:text-white transition-all shadow-sm">
+                     <span className="text-[9px] font-black uppercase px-2">Apply</span>
+                   </div>
+                </button>
+             </div>
 
             {/* You will also love to buy section */}
-            <div className="bg-white rounded-[1.5rem] p-4 border border-slate-100 shadow-sm overflow-hidden">
-               <h2 className="text-sm font-black text-slate-900 tracking-tight uppercase mb-3 flex items-center gap-2">
+            <div className="bg-white rounded-[1.25rem] p-2 border border-slate-100 shadow-sm overflow-hidden">
+               <h2 className="text-[10px] font-black text-slate-900 tracking-tight uppercase mb-1.5 flex items-center gap-2">
                   <span className="text-pink-500">✨</span> You will also love to buy
                </h2>
-               <div className="flex overflow-x-auto gap-3 pb-2 scrollbar-none snap-x snap-mandatory">
-                 <RelatedProductsCompact currentProductId="cart" />
+               <div className="flex overflow-x-auto gap-2 pb-1 scrollbar-none snap-x snap-mandatory">
+                  <RelatedProductsCompact currentProductId="cart" />
                </div>
             </div>
 
             {/* Summary Card */}
             <div className="bg-white rounded-[1.5rem] p-5 border border-slate-100 shadow-md space-y-3">
-              <h2 className="text-lg font-black text-slate-900 tracking-tight uppercase mb-1">Final Summary</h2>
+              <h2 className="text-base font-black text-slate-900 tracking-tight uppercase mb-1">Final Summary</h2>
               
               <div className="space-y-3">
                 <div className="flex justify-between text-slate-400 text-[10px] font-black uppercase tracking-widest">

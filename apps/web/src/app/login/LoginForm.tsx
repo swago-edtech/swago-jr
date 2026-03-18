@@ -419,7 +419,7 @@ export default function LoginForm() {
 
       {/* ✅ Main form - New Design */}
       {(widgetReady || step === "otp") && (
-        <div className="w-full max-w-7xl mx-auto px-4 py-12 flex flex-col md:flex-row items-center justify-center gap-12 md:gap-20 overflow-visible">
+        <div className="w-full max-w-7xl mx-auto px-4 pt-6 pb-12 flex flex-col md:flex-row items-center justify-center gap-0 md:gap-20 overflow-visible">
           
           {/* Left Column: Mascot & Speech Bubble (Desktop Only) */}
           <div className="hidden md:flex flex-col items-end relative -mt-20">
@@ -453,36 +453,36 @@ export default function LoginForm() {
           </div>
 
           {/* Right Column: The Login Card */}
-          <div className="w-full max-w-[540px] relative">
+          <div className="w-full max-w-[480px] relative flex flex-col items-center">
             
-            {/* Mobile Mascot (Shown only on mobile - Now Behind text) */}
-            <div className="md:hidden w-64 h-64 relative mx-auto mb-[-110px] z-0 opacity-40 transform translate-y-4 pointer-events-none">
+            {/* Mobile Mascot - sits naturally above card, fully visible */}
+            <div className="md:hidden w-64 h-52 relative z-10 -mb-14 drop-shadow-[0_0_40px_rgba(124,93,250,0.3)] flex-shrink-0">
               <Image
                 src="/images/blog/swago_mascots.png"
                 alt="Swago Mascots"
                 fill
-                className="object-contain"
+                className="object-contain object-bottom"
                 priority
               />
             </div>
 
-            <div className="w-full bg-white shadow-[0_40px_100px_-20px_rgba(58,45,94,0.1)] border border-slate-50/50 relative z-10 p-8 md:p-14 md:pt-16 text-left overflow-visible"
-              style={{ borderRadius: "40px" }}
+            <div className="w-full bg-white shadow-[0_40px_100px_-20px_rgba(58,45,94,0.15)] border border-slate-100 relative z-10 p-7 md:p-12 md:pt-14 text-left overflow-visible"
+              style={{ borderRadius: "32px" }}
             >
               {/* U-type Curve (SVG Notch) */}
-              <div className="absolute -top-[59px] left-0 w-full h-[60px] pointer-events-none z-0">
-                <svg viewBox="0 0 100 20" preserveAspectRatio="none" className="w-full h-full fill-white">
+              <div className="absolute -top-[55px] -left-[2px] w-[calc(100%+6px)] h-[80px] pointer-events-none z-0">
+                <svg viewBox="0 0 100 20" preserveAspectRatio="none" className="w-full h-full" style={{ fill: '#ffffff' }}>
                   <path d="M0 20 L0 0 Q50 35 100 0 L100 20 Z" />
                 </svg>
               </div>
 
               {/* Title Section */}
-              <div className="mb-10 text-center md:text-left pt-2 md:pt-0">
-                <h1 className="text-3xl md:text-[2.25rem] font-black text-slate-900 mb-2 tracking-tight">
+              <div className="mb-8 text-center md:text-left pt-2 md:pt-0">
+                <h1 className="text-2xl md:text-[2rem] font-black text-slate-900 mb-1.5 tracking-tight">
                   Start Your SWAGO Journey
                 </h1>
-                <p className="text-slate-400 text-sm md:text-base font-medium">
-                  Create your account to unlock fun learning experiences.
+                <p className="text-slate-400 text-xs md:text-sm font-medium">
+                  Create your account to unlock fun learning.
                 </p>
               </div>
 
@@ -492,8 +492,8 @@ export default function LoginForm() {
                   <div className="flex bg-slate-50/80 rounded-2xl p-1.5 border border-slate-100">
                     <button
                       onClick={() => setAuthMode("signup")}
-                      className={`flex-1 py-4 px-4 rounded-xl font-black text-sm uppercase tracking-wider transition-all duration-300 ${authMode === "signup"
-                        ? "bg-white text-[hsl(var(--swago-purple))] shadow-[0_10px_25px_rgba(58,45,94,0.1)]"
+                      className={`flex-1 py-3.5 px-3 rounded-xl font-black text-xs uppercase tracking-wider transition-all duration-300 ${authMode === "signup"
+                        ? "bg-white text-[hsl(var(--swago-purple))] shadow-[0_8px_20px_rgba(58,45,94,0.1)]"
                         : "text-slate-400 hover:text-slate-600"
                         }`}
                     >
@@ -501,8 +501,8 @@ export default function LoginForm() {
                     </button>
                     <button
                       onClick={() => setAuthMode("signin")}
-                      className={`flex-1 py-4 px-4 rounded-xl font-black text-sm uppercase tracking-wider transition-all duration-300 ${authMode === "signin"
-                        ? "bg-white text-[hsl(var(--swago-purple))] shadow-[0_10px_25px_rgba(58,45,94,0.1)]"
+                      className={`flex-1 py-3.5 px-3 rounded-xl font-black text-xs uppercase tracking-wider transition-all duration-300 ${authMode === "signin"
+                        ? "bg-white text-[hsl(var(--swago-purple))] shadow-[0_8px_20px_rgba(58,45,94,0.1)]"
                         : "text-slate-400 hover:text-slate-600"
                         }`}
                     >

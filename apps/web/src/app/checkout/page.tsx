@@ -223,8 +223,8 @@ export default function CheckoutPage() {
             onClick={() => setIsSummaryExpanded(!isSummaryExpanded)}
             className="flex items-center justify-between group"
          >
-            <div className="flex items-center gap-2 text-blue-600 text-sm font-bold">
-               <RiShoppingBag3Line className="text-blue-500" />
+            <div className="flex items-center gap-2 text-[#61498C] text-sm font-bold">
+               <RiShoppingBag3Line className="text-[#61498C]" />
                <span>{isSummaryExpanded ? "Hide order summary" : "Show order summary"}</span>
                <svg className={`w-4 h-4 transition-transform ${isSummaryExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -491,14 +491,14 @@ function OrderSummary({
           {nextTier && (
              <div className="bg-white border rounded-lg p-4 shadow-sm">
                 <div className="flex justify-between items-center mb-1">
-                   <p className="text-[10px] font-black text-blue-800 uppercase tracking-widest leading-none">Redemption Progress</p>
+                   <p className="text-[10px] font-black text-[#61498C] uppercase tracking-widest leading-none">Redemption Progress</p>
                    {total >= nextTier.target && <span className="text-[8px] bg-green-100 text-green-600 px-1.5 py-0.5 rounded-full font-black">UNLOCKED!</span>}
                 </div>
                 <div className="flex justify-between mb-1.5">
                    <p className="text-[9px] text-slate-500">Shop for ₹{nextTier.target - total} more for ₹{nextTier.off} off</p>
                 </div>
                 <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                   <div className="h-full bg-blue-600 transition-all duration-1000" style={{ width: `${progressPercent}%` }} />
+                   <div className="h-full bg-[#61498C] transition-all duration-1000" style={{ width: `${progressPercent}%` }} />
                 </div>
              </div>
           )}

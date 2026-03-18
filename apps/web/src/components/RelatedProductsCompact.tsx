@@ -41,10 +41,10 @@ export default function RelatedProductsCompact({ currentProductId }: RelatedProd
       {products.map((product) => (
         <div 
           key={product._id || product.id} 
-          className="flex-shrink-0 w-32 snap-start group bg-slate-50 rounded-xl p-2 border border-slate-100/50"
+          className="flex-shrink-0 w-28 snap-start group bg-slate-50 rounded-xl p-1.5 border border-slate-100/50"
         >
           <Link href={`/products/${product._id || product.id}`}>
-            <div className="relative aspect-square rounded-lg overflow-hidden bg-white mb-2 shadow-sm">
+            <div className="relative aspect-square rounded-lg overflow-hidden bg-white mb-1.5 shadow-sm">
               <Image 
                 src={product.images?.[0] || "/images/placeholder.png"} 
                 alt={product.name} 
@@ -53,18 +53,18 @@ export default function RelatedProductsCompact({ currentProductId }: RelatedProd
               />
             </div>
           </Link>
-          <div className="space-y-1">
-            <h4 className="text-[10px] font-black text-slate-900 leading-tight line-clamp-1 truncate uppercase tracking-tight">{product.name}</h4>
+          <div className="space-y-0.5">
+            <h4 className="text-[9px] font-black text-slate-900 leading-tight line-clamp-1 truncate uppercase tracking-tighter">{product.name}</h4>
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-black text-[#61498C]">₹{product.price}</span>
+              <span className="text-[8px] font-black text-[#61498C]">₹{product.price}</span>
               <button 
                 onClick={(e) => {
                   e.stopPropagation();
                   addToCart(product);
                 }}
-                className="bg-white border border-[#61498C] text-[#61498C] rounded-md p-1 hover:bg-[#61498C] hover:text-white transition-all transform active:scale-90"
+                className="bg-white border border-[#61498C] text-[#61498C] rounded-md p-0.5 hover:bg-[#61498C] hover:text-white transition-all transform active:scale-90"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-2.5 h-2.5">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-2 h-2">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                 </svg>
               </button>
