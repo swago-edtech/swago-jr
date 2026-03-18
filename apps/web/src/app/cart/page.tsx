@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { useState, useEffect } from "react";
-import RelatedProducts from "@/components/RelatedProducts";
+import RelatedProductsCompact from "@/components/RelatedProductsCompact";
 
 interface StockInfo {
   [key: string]: {
@@ -270,6 +270,16 @@ export default function CartPage() {
                </button>
             </div>
 
+            {/* You will also love to buy section */}
+            <div className="bg-white rounded-[1.5rem] p-4 border border-slate-100 shadow-sm overflow-hidden">
+               <h2 className="text-sm font-black text-slate-900 tracking-tight uppercase mb-3 flex items-center gap-2">
+                  <span className="text-pink-500">✨</span> You will also love to buy
+               </h2>
+               <div className="flex overflow-x-auto gap-3 pb-2 scrollbar-none snap-x snap-mandatory">
+                 <RelatedProductsCompact currentProductId="cart" />
+               </div>
+            </div>
+
             {/* Summary Card */}
             <div className="bg-white rounded-[1.5rem] p-5 border border-slate-100 shadow-md space-y-3">
               <h2 className="text-lg font-black text-slate-900 tracking-tight uppercase mb-1">Final Summary</h2>
@@ -325,14 +335,6 @@ export default function CartPage() {
           </div>
         </div>
 
-        {/* Global Footer Area */}
-        <div className="mt-20 border-t border-slate-200 pt-16">
-           <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-12">
-              <h2 className="text-2xl font-black text-slate-900 tracking-tighter uppercase max-w-sm text-center md:text-left leading-none">Parents also loved these smart choices</h2>
-              <Link href="/products" className="bg-white border-2 border-slate-900 text-slate-900 font-black px-6 py-3 rounded-xl hover:bg-slate-900 hover:text-white transition-all uppercase tracking-widest text-xs">Explore Everything</Link>
-           </div>
-           <RelatedProducts currentProductId="cart" />
-        </div>
       </div>
 
       {/* Mobile Sticky CTA: Precise & Professional */}
