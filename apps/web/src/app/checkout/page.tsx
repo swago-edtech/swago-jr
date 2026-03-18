@@ -255,8 +255,8 @@ export default function CheckoutPage() {
 
       <main className="flex-1 w-full grid grid-cols-1 md:grid-cols-[1fr_400px] lg:grid-cols-[1fr_480px]">
         {/* Left Column: Form */}
-        <div className="flex justify-end bg-white">
-          <div className="w-full max-w-[700px] p-6 md:p-12 md:pr-16 space-y-10">
+        <div className="flex justify-center bg-white">
+          <div className="w-full max-w-[650px] p-6 md:p-12 space-y-10">
             {/* Contact Section */}
           <section>
             <div className="flex justify-between items-center mb-4">
