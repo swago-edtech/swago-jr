@@ -98,14 +98,14 @@ export default function CartPage() {
       </div>
 
       <div className="container mx-auto px-4 py-6 md:py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 lg:gap-8 items-start">
           
           {/* Main Cart Items Column */}
           <div className="lg:col-span-8 space-y-3">
             
             {/* Rewards Progress Banner */}
             <div className="bg-white rounded-[2rem] px-5 pt-3 pb-5 border border-slate-100 shadow-sm">
-                <p className="text-[#6B5A99] text-[10px] font-bold text-center mb-3 uppercase tracking-wider">
+                <p className="text-[#6B5A99] text-[10px] font-bold text-center mb-4 uppercase tracking-wider">
                   {total >= giftThreshold 
                     ? "🎉 All rewards added to your order!" 
                     : total >= shippingThreshold 
@@ -113,23 +113,26 @@ export default function CartPage() {
                       : "Free Gift on PRE-PAID orders"}
                 </p>
 
-                {/* Progress track + milestones */}
-                <div className="px-4 md:px-8 max-w-xl mx-auto">
-                  {/* Icon row with connecting line */}
-                  <div className="relative flex items-center justify-between">
-                    {/* Background line */}
-                    <div className="absolute top-1/2 left-0 w-full h-1 bg-slate-100 -translate-y-1/2 rounded-full" />
+                {/* Progress track — milestones positioned at exact % */}
+                <div className="relative mx-4">
+                  {/* Height container for icons (36px) */}
+                  <div className="relative h-9">
+                    {/* Background track */}
+                    <div className="absolute top-1/2 left-0 right-0 h-[3px] bg-slate-100 -translate-y-1/2 rounded-full" />
                     {/* Progress fill */}
                     <div
-                      className="absolute top-1/2 left-0 h-1 bg-[#61498C] -translate-y-1/2 rounded-full transition-all duration-1000 ease-out"
+                      className="absolute top-1/2 left-0 h-[3px] bg-[#61498C] -translate-y-1/2 rounded-full transition-all duration-1000 ease-out"
                       style={{ width: `${progressPercent}%` }}
                     />
-                    {/* Start dot */}
-                    <div className="relative z-10 w-3 h-3 rounded-full bg-[#61498C] ring-2 ring-white shadow" />
+                    {/* Start dot at left edge */}
+                    <div className="absolute top-1/2 left-0 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-[#61498C] ring-2 ring-white shadow-md z-10" />
 
-                    {/* Free Shipping Milestone */}
-                    <div className="relative z-10 flex flex-col items-center gap-1">
-                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center border-4 border-white shadow-lg transition-all duration-500 ${total >= shippingThreshold ? 'bg-[#61498C] text-white' : 'bg-slate-100 text-slate-400'}`}>
+                    {/* ₹500 Shipping — centered at exactly 50% of bar */}
+                    <div
+                      className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 z-10"
+                      style={{ left: `${(shippingThreshold / giftThreshold) * 100}%` }}
+                    >
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center border-[3px] border-white shadow-lg transition-all duration-500 ${total >= shippingThreshold ? 'bg-[#61498C] text-white' : 'bg-slate-100 text-slate-400'}`}>
                         {total >= shippingThreshold ? (
                           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-4 h-4">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
@@ -142,9 +145,9 @@ export default function CartPage() {
                       </div>
                     </div>
 
-                    {/* Free Gift Milestone */}
-                    <div className="relative z-10 flex flex-col items-center gap-1">
-                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center border-4 border-white shadow-lg transition-all duration-500 ${total >= giftThreshold ? 'bg-[#61498C] text-white' : 'bg-slate-100 text-slate-400'}`}>
+                    {/* ₹1000 Gift — right edge of bar */}
+                    <div className="absolute top-1/2 right-0 -translate-y-1/2 z-10">
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center border-[3px] border-white shadow-lg transition-all duration-500 ${total >= giftThreshold ? 'bg-[#61498C] text-white' : 'bg-slate-100 text-slate-400'}`}>
                         {total >= giftThreshold ? (
                           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-4 h-4">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
@@ -158,22 +161,26 @@ export default function CartPage() {
                     </div>
                   </div>
 
-                  {/* Labels row — aligned to milestones */}
-                  <div className="flex items-start justify-between mt-1.5 px-0">
-                    <div className="w-3" /> {/* spacer for start dot */}
-                    <div className="flex flex-col items-center">
-                      <span className={`text-[10px] font-black ${total >= shippingThreshold ? 'text-slate-900' : 'text-slate-400'}`}>₹{shippingThreshold}</span>
-                      <span className={`text-[8px] font-bold uppercase tracking-tight whitespace-nowrap ${total >= shippingThreshold ? 'text-slate-500' : 'text-slate-400'}`}>Free Shipping</span>
+                  {/* Labels row — exactly aligned under their icons */}
+                  <div className="relative h-7 mt-1">
+                    {/* ₹500 label centered at 50% */}
+                    <div
+                      className="absolute -translate-x-1/2 text-center"
+                      style={{ left: `${(shippingThreshold / giftThreshold) * 100}%` }}
+                    >
+                      <span className={`block text-[10px] font-black leading-none ${total >= shippingThreshold ? 'text-slate-900' : 'text-slate-400'}`}>₹{shippingThreshold}</span>
+                      <span className={`block text-[8px] font-bold uppercase tracking-tight whitespace-nowrap mt-0.5 ${total >= shippingThreshold ? 'text-slate-500' : 'text-slate-400'}`}>Free Shipping</span>
                     </div>
-                    <div className="flex flex-col items-center">
-                      <span className={`text-[10px] font-black ${total >= giftThreshold ? 'text-slate-900' : 'text-slate-400'}`}>₹{giftThreshold}</span>
-                      <span className={`text-[8px] font-bold uppercase tracking-tight whitespace-nowrap ${total >= giftThreshold ? 'text-slate-500' : 'text-slate-400'}`}>+ Free Gift</span>
+                    {/* ₹1000 label right-aligned */}
+                    <div className="absolute right-0 text-right">
+                      <span className={`block text-[10px] font-black leading-none ${total >= giftThreshold ? 'text-slate-900' : 'text-slate-400'}`}>₹{giftThreshold}</span>
+                      <span className={`block text-[8px] font-bold uppercase tracking-tight whitespace-nowrap mt-0.5 ${total >= giftThreshold ? 'text-slate-500' : 'text-slate-400'}`}>+ Free Gift</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Progress Message Banner */}
-                <div className="mt-3 text-center px-4">
+                <div className="mt-3 text-center">
                   {total >= giftThreshold ? (
                     <div className="bg-emerald-50 text-[#1E8B4F] py-2 px-4 rounded-xl border border-emerald-100 inline-flex items-center justify-center gap-2">
                       <span className="text-lg">🎉</span>
