@@ -22,6 +22,46 @@ export default function CartPage() {
   const [stockInfo, setStockInfo] = useState<StockInfo>({});
   const [activeTab, setActiveTab] = useState('Today');
 
+  // Coupon state
+  const [couponSheetOpen, setCouponSheetOpen] = useState(false);
+  const [couponInput, setCouponInput] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number } | null>(null);
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [couponError, setCouponError] = useState('');
+
+  const AVAILABLE_COUPONS = [
+    { code: 'SAVE25', label: '25% Off', description: 'Get 25% off on your order', minOrder: 0, color: 'from-purple-50 to-purple-100', accent: '#61498C' },
+    { code: 'EXTRA10', label: '10% Off', description: 'Extra 10% off on orders above ₹500', minOrder: 500, color: 'from-emerald-50 to-emerald-100', accent: '#1E8B4F' },
+    { code: 'FLAT50', label: 'Flat ₹50', description: 'Flat ₹50 off on prepaid orders', minOrder: 0, color: 'from-orange-50 to-orange-100', accent: '#EA580C' },
+  ];
+
+  const applyCoupon = async (code: string) => {
+    if (!code.trim()) return;
+    setCouponLoading(true);
+    setCouponError('');
+    try {
+      const res = await fetch('/api/coupon/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ couponCode: code.toUpperCase(), orderAmount: total, cartItems: cart }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setAppliedCoupon({ code: data.coupon.code, discount: data.discount.amount });
+        setCouponSheetOpen(false);
+        setCouponInput('');
+      } else {
+        setCouponError(data.error || 'Invalid coupon code');
+      }
+    } catch {
+      setCouponError('Could not validate coupon. Try again.');
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
+  const removeCoupon = () => setAppliedCoupon(null);
+
   // Fetch stock info for items in cart
   useEffect(() => {
     const fetchStock = async () => {
@@ -269,18 +309,36 @@ export default function CartPage() {
                         <path d="M2.25 12a.75.75 0 0 1 .75-.75h1.12a.75.75 0 1 1 0 1.5H3a.75.75 0 0 1-.75-.75Zm6.732-5.464a.75.75 0 0 1 1.06 0l.793.793a.75.75 0 1 1-1.06 1.06l-.793-.793a.75.75 0 0 1 0-1.06Zm1.06 9.868a.75.75 0 0 1 0 1.06l-.793.793a.75.75 0 1 1-1.06-1.06l.793-.793a.75.75 0 0 1 1.06 0ZM15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm3 0a.75.75 0 0 1 .75-.75H21a.75.75 0 1 1 0 1.5h-2.25a.75.75 0 0 1-.75-.75Zm-6.732-5.464a.75.75 0 0 1 0 1.06l-.793.793a.75.75 0 0 1-1.06-1.06l.793-.793a.75.75 0 0 1 1.06 0Zm-1.06 9.868a.75.75 0 0 1-1.06 0l-.793-.793a.75.75 0 1 1 1.06-1.06l.793.793a.75.75 0 0 1 0 1.06ZM12 2.25a.75.75 0 0 1 .75.75V4.12a.75.75 0 0 1-1.5 0V3a.75.75 0 0 1 .75-.75Zm0 17.63a.75.75 0 0 1 .75.75v1.12a.75.75 0 0 1-1.5 0V20.63a.75.75 0 0 1 .75-.75Z" />
                       </svg>
                    </div>
-                   <h2 className="text-[13px] font-black text-slate-900 tracking-tight uppercase">Coupons</h2>
+                   <h2 className="text-[13px] font-black text-slate-900 tracking-tight uppercase flex-1">Coupons</h2>
+                   {appliedCoupon && (
+                     <span className="text-[9px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full uppercase tracking-widest">Applied</span>
+                   )}
                 </div>
-                
-                <button className="w-full bg-slate-50 border border-slate-100 rounded-xl p-2 group flex items-center justify-between hover:bg-white hover:border-[#61498C] transition-all">
-                   <div className="flex flex-col items-start">
-                     <span className="text-[13px] font-black text-slate-800 tracking-wide">SAVE25</span>
-                     <span className="text-[8px] font-black text-emerald-600 uppercase tracking-widest mt-0.5">Available for you!</span>
-                   </div>
-                   <div className="bg-white p-1 rounded-lg border border-slate-100 group-hover:bg-[#61498C] group-hover:text-white transition-all shadow-sm">
-                     <span className="text-[9px] font-black uppercase px-2">Apply</span>
-                   </div>
-                </button>
+
+                {appliedCoupon ? (
+                  <div className="flex items-center justify-between bg-emerald-50 border border-emerald-100 rounded-xl p-2">
+                    <div>
+                      <span className="text-[11px] font-black text-emerald-700 tracking-wide">{appliedCoupon.code}</span>
+                      <p className="text-[9px] text-emerald-600 font-bold">Saved ₹{appliedCoupon.discount.toFixed(0)}!</p>
+                    </div>
+                    <button onClick={removeCoupon} className="text-[9px] font-black text-rose-500 uppercase tracking-widest border border-rose-100 px-2 py-1 rounded-lg hover:bg-rose-50 transition-all">Remove</button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setCouponSheetOpen(true)}
+                    className="w-full bg-slate-50 border border-slate-100 rounded-xl p-2 group flex items-center justify-between hover:bg-white hover:border-[#61498C] transition-all"
+                  >
+                    <div className="flex flex-col items-start">
+                      <span className="text-[13px] font-black text-slate-800 tracking-wide">Have a coupon?</span>
+                      <span className="text-[8px] font-black text-emerald-600 uppercase tracking-widest mt-0.5">{AVAILABLE_COUPONS.length} offers available for you!</span>
+                    </div>
+                    <div className="bg-[#61498C] p-1.5 rounded-lg text-white shadow-sm group-hover:scale-105 transition-transform">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+                      </svg>
+                    </div>
+                  </button>
+                )}
              </div>
 
             {/* You will also love to buy section */}
