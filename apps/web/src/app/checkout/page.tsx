@@ -114,7 +114,7 @@ export default function CheckoutPage() {
           }
         },
         prefill: { name: `${firstName} ${lastName}`, email, contact: phone },
-        theme: { color: "#0066FF" }
+        theme: { color: "#7c5dfa" }
       };
 
       const rzp = new (window as any).Razorpay(options);
@@ -206,7 +206,7 @@ export default function CheckoutPage() {
       <div className="min-h-screen flex items-center justify-center p-4">
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-4">Your cart is empty</h1>
-          <Link href="/products" className="text-blue-600 hover:underline">Go back to products</Link>
+          <Link href="/products" className="text-purple-600 hover:underline">Go back to products</Link>
         </div>
       </div>
     );
@@ -261,17 +261,17 @@ export default function CheckoutPage() {
           <section>
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-semibold text-slate-800">Contact</h2>
-              {!user && <Link href="/login" className="text-xs text-blue-600 hover:underline">Log in</Link>}
+              {!user && <Link href="/login" className="text-xs text-purple-600 hover:underline">Log in</Link>}
             </div>
             <div className="space-y-4">
               <input 
                  value={email}
                  onChange={(e) => setEmail(e.target.value)}
                  placeholder="Email or mobile phone number" 
-                 className="w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-blue-500 outline-none text-sm transition-all shadow-sm"
+                 className="w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-purple-500 outline-none text-sm transition-all shadow-sm"
               />
               <label className="flex items-center gap-2 cursor-pointer group">
-                 <input type="checkbox" defaultChecked className="w-4 h-4 rounded-md border-slate-300 text-blue-600 focus:ring-blue-500" />
+                 <input type="checkbox" defaultChecked className="w-4 h-4 rounded-md border-slate-300 text-purple-600 focus:ring-purple-500" />
                  <span className="text-xs text-slate-600 group-hover:text-slate-900 transition-colors">Email me with news and offers</span>
               </label>
             </div>
@@ -281,7 +281,7 @@ export default function CheckoutPage() {
           <section>
             <h2 className="text-lg font-semibold text-slate-800 mb-4">Delivery</h2>
             <div className="space-y-3">
-              <select className="w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-blue-500 outline-none text-sm bg-slate-50 shadow-sm appearance-none">
+              <select className="w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-purple-500 outline-none text-sm bg-slate-50 shadow-sm appearance-none">
                 <option>India</option>
               </select>
 
@@ -290,13 +290,13 @@ export default function CheckoutPage() {
                    placeholder="First name" 
                    value={firstName}
                    onChange={(e) => setFirstName(e.target.value)}
-                   className="w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-blue-500 outline-none text-sm shadow-sm" 
+                   className="w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-purple-500 outline-none text-sm shadow-sm" 
                 />
                 <input 
                    placeholder="Last name" 
                    value={lastName}
                    onChange={(e) => setLastName(e.target.value)}
-                   className="w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-blue-500 outline-none text-sm shadow-sm" 
+                   className="w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-purple-500 outline-none text-sm shadow-sm" 
                 />
               </div>
 
@@ -304,7 +304,7 @@ export default function CheckoutPage() {
                  <select 
                     value={age}
                     onChange={(e) => setAge(e.target.value)}
-                    className="w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-blue-500 outline-none text-sm bg-white shadow-sm appearance-none"
+                    className="w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-purple-500 outline-none text-sm bg-white shadow-sm appearance-none"
                  >
                     <option value="" disabled>Child's Age</option>
                     {[...Array(15)].map((_, i) => (
@@ -318,7 +318,7 @@ export default function CheckoutPage() {
                    placeholder="Address" 
                    value={address}
                    onChange={(e) => setAddress(e.target.value)}
-                   className="w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-blue-500 outline-none text-sm shadow-sm pr-10" 
+                   className="w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-purple-500 outline-none text-sm shadow-sm pr-10" 
                 />
                 <RiSearchLine className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" />
               </div>
@@ -328,12 +328,12 @@ export default function CheckoutPage() {
                     placeholder="City" 
                     value={city}
                     onChange={(e) => setCity(e.target.value)}
-                    className="w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-blue-500 outline-none text-sm shadow-sm" 
+                    className="w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-purple-500 outline-none text-sm shadow-sm" 
                  />
                  <select 
                     value={state}
                     onChange={(e) => setState(e.target.value)}
-                    className="w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-blue-500 outline-none text-sm bg-white shadow-sm"
+                    className="w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-purple-500 outline-none text-sm bg-white shadow-sm"
                  >
                     {INDIAN_STATES.map(s => <option key={s} value={s}>{s}</option>)}
                  </select>
@@ -341,7 +341,7 @@ export default function CheckoutPage() {
                     placeholder="PIN code" 
                     value={pincode}
                     onChange={(e) => setPincode(e.target.value)}
-                    className="w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-blue-500 outline-none text-sm shadow-sm" 
+                    className="w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-purple-500 outline-none text-sm shadow-sm" 
                  />
               </div>
 
@@ -350,18 +350,18 @@ export default function CheckoutPage() {
                     placeholder="Phone" 
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    className="w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-blue-500 outline-none text-sm shadow-sm" 
+                    className="w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-purple-500 outline-none text-sm shadow-sm" 
                  />
                  <RiInformationLine className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 cursor-help" />
               </div>
 
               <div className="space-y-2 pt-2">
                  <label className="flex items-center gap-2 cursor-pointer group">
-                    <input type="checkbox" className="w-4 h-4 rounded-md border-slate-300 text-blue-600 focus:ring-blue-500" />
+                    <input type="checkbox" className="w-4 h-4 rounded-md border-slate-300 text-purple-600 focus:ring-purple-500" />
                     <span className="text-xs text-slate-600 group-hover:text-slate-900 transition-colors">Save this information for next time</span>
                  </label>
                  <label className="flex items-center gap-2 cursor-pointer group">
-                    <input type="checkbox" className="w-4 h-4 rounded-md border-slate-300 text-blue-600 focus:ring-blue-500" />
+                    <input type="checkbox" className="w-4 h-4 rounded-md border-slate-300 text-purple-600 focus:ring-purple-500" />
                     <span className="text-xs text-slate-600 group-hover:text-slate-900 transition-colors">Text me with news and offers</span>
                  </label>
               </div>
@@ -385,18 +385,13 @@ export default function CheckoutPage() {
 
             <div className="border rounded-lg overflow-hidden border-slate-200">
                {/* Razorpay Option */}
-               <div className={`p-4 flex items-start gap-4 cursor-pointer transition-colors ${paymentMethod === 'razorpay' ? 'bg-blue-50' : 'bg-white hover:bg-slate-50'}`} onClick={() => setPaymentMethod('razorpay')}>
-                  <div className={`w-5 h-5 rounded-full border-2 mt-0.5 flex items-center justify-center transition-all ${paymentMethod === 'razorpay' ? 'border-blue-600' : 'border-slate-300'}`}>
-                     {paymentMethod === 'razorpay' && <div className="w-2.5 h-2.5 bg-blue-600 rounded-full" />}
+               <div className={`p-4 flex items-start gap-4 cursor-pointer transition-colors ${paymentMethod === 'razorpay' ? 'bg-purple-50' : 'bg-white hover:bg-slate-50'}`} onClick={() => setPaymentMethod('razorpay')}>
+                  <div className={`w-5 h-5 rounded-full border-2 mt-0.5 flex items-center justify-center transition-all ${paymentMethod === 'razorpay' ? 'border-purple-600' : 'border-slate-300'}`}>
+                     {paymentMethod === 'razorpay' && <div className="w-2.5 h-2.5 bg-purple-600 rounded-full" />}
                   </div>
                   <div className="flex-1">
                      <div className="flex justify-between items-center mb-1">
                         <span className="text-sm font-bold text-slate-900">Online Payment</span>
-                        <div className="flex gap-1.5 opacity-80">
-                           <div className="w-8 h-5 bg-white border border-slate-200 rounded flex items-center justify-center text-[8px] font-bold">UPI</div>
-                           <div className="w-8 h-5 bg-white border border-slate-200 rounded flex items-center justify-center text-[8px] font-bold">VISA</div>
-                           <div className="w-8 h-5 bg-white border border-slate-200 rounded flex items-center justify-center text-[8px] font-bold">+10</div>
-                        </div>
                      </div>
                      <AnimatePresence>
                        {paymentMethod === 'razorpay' && (
@@ -413,10 +408,10 @@ export default function CheckoutPage() {
                   </div>
                </div>
 
-               {/* COD Option */}
-               <div className={`p-4 border-t flex items-start gap-4 cursor-pointer transition-colors ${paymentMethod === 'cod' ? 'bg-blue-50' : 'bg-white hover:bg-slate-50'}`} onClick={() => setPaymentMethod('cod')}>
-                  <div className={`w-5 h-5 rounded-full border-2 mt-0.5 flex items-center justify-center transition-all ${paymentMethod === 'cod' ? 'border-blue-600' : 'border-slate-300'}`}>
-                     {paymentMethod === 'cod' && <div className="w-2.5 h-2.5 bg-blue-600 rounded-full" />}
+                {/* COD Option */}
+               <div className={`p-4 border-t flex items-start gap-4 cursor-pointer transition-colors ${paymentMethod === 'cod' ? 'bg-purple-50' : 'bg-white hover:bg-slate-50'}`} onClick={() => setPaymentMethod('cod')}>
+                  <div className={`w-5 h-5 rounded-full border-2 mt-0.5 flex items-center justify-center transition-all ${paymentMethod === 'cod' ? 'border-purple-600' : 'border-slate-300'}`}>
+                     {paymentMethod === 'cod' && <div className="w-2.5 h-2.5 bg-purple-600 rounded-full" />}
                   </div>
                   <div className="flex-1">
                      <span className="text-sm font-bold text-slate-900">Cash on Delivery (COD)</span>
@@ -429,15 +424,15 @@ export default function CheckoutPage() {
           <section>
             <h2 className="text-lg font-semibold text-slate-800 mb-4">Billing address</h2>
             <div className="border rounded-lg overflow-hidden border-slate-200">
-               <div className={`p-4 flex items-center gap-4 cursor-pointer transition-colors ${billingAddressType === 'same' ? 'bg-blue-50' : 'bg-white hover:bg-slate-50'}`} onClick={() => setBillingAddressType('same')}>
-                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${billingAddressType === 'same' ? 'border-blue-600' : 'border-slate-300'}`}>
-                     {billingAddressType === 'same' && <div className="w-2.5 h-2.5 bg-blue-600 rounded-full" />}
+               <div className={`p-4 flex items-center gap-4 cursor-pointer transition-colors ${billingAddressType === 'same' ? 'bg-purple-50' : 'bg-white hover:bg-slate-50'}`} onClick={() => setBillingAddressType('same')}>
+                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${billingAddressType === 'same' ? 'border-purple-600' : 'border-slate-300'}`}>
+                     {billingAddressType === 'same' && <div className="w-2.5 h-2.5 bg-purple-600 rounded-full" />}
                   </div>
                   <span className="text-sm font-bold text-slate-900">Same as shipping address</span>
                </div>
-               <div className={`p-4 border-t flex items-center gap-4 cursor-pointer transition-colors ${billingAddressType === 'different' ? 'bg-blue-50' : 'bg-white hover:bg-slate-50'}`} onClick={() => setBillingAddressType('different')}>
-                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${billingAddressType === 'different' ? 'border-blue-600' : 'border-slate-300'}`}>
-                     {billingAddressType === 'different' && <div className="w-2.5 h-2.5 bg-blue-600 rounded-full" />}
+               <div className={`p-4 border-t flex items-center gap-4 cursor-pointer transition-colors ${billingAddressType === 'different' ? 'bg-purple-50' : 'bg-white hover:bg-slate-50'}`} onClick={() => setBillingAddressType('different')}>
+                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${billingAddressType === 'different' ? 'border-purple-600' : 'border-slate-300'}`}>
+                     {billingAddressType === 'different' && <div className="w-2.5 h-2.5 bg-purple-600 rounded-full" />}
                   </div>
                   <span className="text-sm font-bold text-slate-900">Use a different billing address</span>
                </div>
@@ -447,14 +442,14 @@ export default function CheckoutPage() {
           <button 
              onClick={handlePayNow}
              disabled={processing}
-             className="w-full h-14 bg-[#0066FF] hover:bg-[#0052CC] text-white font-black rounded-lg text-lg uppercase tracking-widest shadow-xl shadow-blue-100 transition-all transform active:scale-95 disabled:opacity-50"
+             className="w-full h-14 btn-shine bg-[hsl(var(--swago-purple))] hover:brightness-110 text-white font-black rounded-lg text-lg uppercase tracking-widest shadow-xl shadow-purple-100 transition-all transform active:scale-95 disabled:opacity-50"
           >
              {processing ? "Processing..." : "Pay now"}
           </button>
 
           {message && <p className="text-center text-sm font-bold text-slate-600">{message}</p>}
 
-          <footer className="pt-8 border-t flex flex-wrap gap-x-6 gap-y-2 text-[10px] text-blue-600 uppercase tracking-widest font-black">
+          <footer className="pt-8 border-t flex flex-wrap gap-x-6 gap-y-2 text-[10px] text-purple-600 uppercase tracking-widest font-black">
              <Link href="/refund-policy" className="hover:underline">Refund policy</Link>
              <Link href="/privacy-policy" className="hover:underline">Privacy policy</Link>
              <Link href="/terms-of-service" className="hover:underline">Terms of service</Link>

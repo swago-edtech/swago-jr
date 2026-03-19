@@ -30,9 +30,9 @@ export default function CartPage() {
   const [couponError, setCouponError] = useState('');
 
   const AVAILABLE_COUPONS = [
-    { code: 'SAVE25', label: '25% Off', description: 'Get 25% off on your order', minOrder: 0, color: 'from-purple-50 to-purple-100', accent: '#61498C' },
+    { code: 'SAVE25', label: '25% Off', description: 'Get 25% off on your order', minOrder: 0, color: 'from-purple-50 to-purple-100', accent: '#7C5DFA' },
     { code: 'EXTRA10', label: '10% Off', description: 'Extra 10% off on orders above ₹500', minOrder: 500, color: 'from-emerald-50 to-emerald-100', accent: '#1E8B4F' },
-    { code: 'FLAT50', label: 'Flat ₹50', description: 'Flat ₹50 off on prepaid orders', minOrder: 0, color: 'from-orange-50 to-orange-100', accent: '#EA580C' },
+    { code: 'FLAT50', label: 'Flat ₹50', description: 'Flat ₹50 off on prepaid orders', minOrder: 0, color: 'from-purple-50 to-purple-100', accent: '#7C5DFA' },
   ];
 
   const applyCoupon = async (code: string) => {
@@ -137,15 +137,15 @@ export default function CartPage() {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-6 md:py-12">
+      <div className="container mx-auto px-6 md:px-4 py-6 md:py-12">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 lg:gap-8 items-start">
           
           {/* Main Cart Items Column */}
           <div className="lg:col-span-8 space-y-3">
             
             {/* Rewards Progress Banner */}
-            <div className="bg-white rounded-[2rem] px-3 pt-3 pb-5 border border-slate-100 shadow-sm">
-                <p className="text-[#6B5A99] text-[10px] font-bold text-center mb-4 uppercase tracking-wider">
+            <div className="bg-white rounded-[2rem] px-5 pt-3 pb-5 border border-slate-100 shadow-sm">
+                <p className={`text-[10px] font-black text-center mb-4 uppercase tracking-widest ${total >= shippingThreshold ? 'text-[#1EAA5F]' : 'text-[#6B5A99]'}`}>
                   {total >= giftThreshold 
                     ? "🎉 All rewards added to your order!" 
                     : total >= shippingThreshold 
@@ -154,7 +154,7 @@ export default function CartPage() {
                 </p>
 
                 {/* Progress track — milestones positioned at exact % */}
-                <div className="relative mx-1">
+                <div className="relative mx-4">
                   {/* Height container for icons (36px) */}
                   <div className="relative h-9">
                     {/* Background track */}
@@ -302,7 +302,7 @@ export default function CartPage() {
           <div className="lg:col-span-4 space-y-4">
             
              {/* Coupons Card */}
-             <div className="bg-white rounded-[1.5rem] p-3 border border-slate-100 shadow-sm">
+             <div className="bg-white rounded-[1.5rem] px-5 py-4 border border-slate-100 shadow-sm">
                 <div className="flex items-center gap-2 mb-2">
                    <div className="bg-emerald-50 p-1 rounded-xl text-emerald-500">
                       <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" className="w-3.5 h-3.5">
@@ -434,10 +434,10 @@ export default function CartPage() {
         <>
           <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50" onClick={() => setCouponSheetOpen(false)} />
           <div
-            className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-[2rem] shadow-[0_-20px_60px_rgba(0,0,0,0.15)] max-h-[85vh] flex flex-col"
-            style={{ animation: 'slideUp 0.3s cubic-bezier(0.32,0.72,0,1)' }}
+            className="fixed bottom-4 left-4 right-4 z-50 bg-white rounded-[2.5rem] shadow-[0_20px_60px_rgba(0,0,0,0.2)] max-h-[85vh] flex flex-col border border-slate-100 md:max-w-md md:mx-auto md:bottom-12"
+            style={{ animation: 'slideUpFloating 0.4s cubic-bezier(0.32,0.72,0,1)' }}
           >
-            <style>{`@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }`}</style>
+            <style>{`@keyframes slideUpFloating { from { transform: translateY(110%); } to { transform: translateY(0); } }`}</style>
             <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
               <div className="w-10 h-1 bg-slate-200 rounded-full" />
             </div>
@@ -475,7 +475,7 @@ export default function CartPage() {
                   {couponLoading ? '...' : 'Apply'}
                 </button>
               </div>
-              {couponError && <p className="text-[10px] text-rose-500 font-bold mt-2 ml-1">❌ {couponError}</p>}
+              {couponError && <p className="text-[10px] text-purple-600 font-bold mt-2 ml-1">⚠️ {couponError}</p>}
             </div>
             <div className="overflow-y-auto flex-1 px-5 py-4 space-y-3">
               <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Available Coupons</p>
@@ -492,7 +492,7 @@ export default function CartPage() {
                         <p className="text-[11px] text-slate-500 font-medium">{coupon.description}</p>
                         {isEligible
                           ? <p className="text-[10px] text-emerald-600 font-bold mt-1">✓ Eligible on your order</p>
-                          : <p className="text-[10px] text-rose-500 font-bold mt-1">Add ₹{(coupon.minOrder - total).toFixed(0)} more to use this</p>
+                          : <p className="text-[10px] text-slate-500 font-bold mt-1 uppercase tracking-tight">Add ₹{(coupon.minOrder - total).toFixed(0)} more to use this</p>
                         }
                       </div>
                       <button
