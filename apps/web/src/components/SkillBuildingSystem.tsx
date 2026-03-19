@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 
 export default function SkillBuildingSystem() {
   return (
-    <section className="py-16 md:py-24 bg-[#FFFBF7] overflow-hidden relative">
+    <section className="py-10 md:py-14 bg-[#FFFBF7] overflow-hidden relative">
       <div className="container mx-auto px-4 max-w-7xl relative z-10">
         <div className="flex flex-col lg:flex-row gap-12 lg:gap-20 items-center">
           

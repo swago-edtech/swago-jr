@@ -44,7 +44,7 @@ export default function FeaturedProducts() {
 
   if (loading) {
     return (
-      <section className="py-16 md:py-24 bg-white overflow-hidden">
+      <section className="py-10 md:py-14 bg-white overflow-hidden">
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-4xl md:text-5xl font-black mb-3 uppercase tracking-tight text-slate-900">
             NEW <span className="text-[hsl(var(--swago-purple))]">ARRIVALS</span>
@@ -56,7 +56,7 @@ export default function FeaturedProducts() {
   }
 
   return (
-    <section className="py-16 md:py-24 bg-white overflow-hidden">
+    <section className="py-10 md:py-14 bg-white overflow-hidden">
       <div className="container mx-auto px-4 text-center">
         <h2 className="text-4xl md:text-5xl font-black mb-3 uppercase tracking-tight text-slate-900">
           NEW <span className="text-[hsl(var(--swago-purple))]">ARRIVALS</span>
@@ -75,7 +75,7 @@ export default function FeaturedProducts() {
             {featured.map((product) => (
               <div
                 key={getProductKey(product)}
-                className="flex-none w-[82vw] md:w-[320px] snap-start"
+                className="flex-none w-[75vw] md:w-[320px] snap-start"
               >
                 <ProductCard product={product} />
               </div>

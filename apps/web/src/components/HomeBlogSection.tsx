@@ -38,7 +38,7 @@ export default function HomeBlogSection() {
     if (loading || !blog) return null;
 
     return (
-        <section className="py-16 md:py-24 bg-white overflow-hidden">
+        <section className="py-10 md:py-14 bg-white overflow-hidden">
             <div className="container mx-auto px-4 max-w-6xl">
                 <div className="flex flex-col md:flex-row items-center justify-between mb-12 gap-6">
                     <div className="text-left">

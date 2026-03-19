@@ -420,11 +420,11 @@ export default function LoginForm() {
       {/* ✅ Main form - New Design */}
       {(widgetReady || step === "otp") && (
         <div className="w-full max-w-7xl mx-auto px-4 pt-6 pb-12 flex flex-col md:flex-row items-center justify-center gap-0 md:gap-20 overflow-visible">
-          
+
           {/* Left Column: Mascot & Speech Bubble (Desktop Only) */}
           <div className="hidden md:flex flex-col items-end relative -mt-20">
             {/* Speech Bubble */}
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.8, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               className="bg-white p-8 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.05)] border border-slate-50 relative mb-[-40px] mr-[-20px] z-30 max-w-[320px]"
@@ -454,7 +454,7 @@ export default function LoginForm() {
 
           {/* Right Column: The Login Card */}
           <div className="w-full max-w-[480px] relative flex flex-col items-center">
-            
+
             {/* Mobile Mascot - sits naturally above card, fully visible */}
             <div className="md:hidden w-64 h-52 relative z-10 -mb-14 drop-shadow-[0_0_40px_rgba(124,93,250,0.3)] flex-shrink-0">
               <Image
@@ -472,7 +472,7 @@ export default function LoginForm() {
               {/* U-type Curve (SVG Notch) */}
               <div className="absolute -top-[50px] left-1 right-1.9 h-[80px] pointer-events-none z-0">
                 <svg viewBox="0 0 100 20" preserveAspectRatio="none" className="w-full h-full" style={{ fill: '#ffffff' }}>
-                  <path d="M0 20 L0 0 Q50 35 100 0 L100 20 Z" />
+                  <path d="M0 20 L0 5 Q0 0 10 0 Q50 35 90 0 Q100 0 100 5 L100 20 Z" />
                 </svg>
               </div>
 
@@ -577,7 +577,7 @@ export default function LoginForm() {
                     <button
                       onClick={sendOtp}
                       disabled={loading || !phone || phone.length !== 10}
-                      className="w-full bg-[#c8b6ff] hover:bg-[#b8a2ff] text-white font-black py-5 rounded-2xl text-lg uppercase tracking-widest transition-all hover:scale-[1.01] active:scale-98 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_10px_25px_-5px_rgba(200,182,255,0.4)] md:mt-4"
+                      className="w-full btn-shine bg-[hsl(var(--swago-purple))] hover:brightness-110 text-white font-black py-5 rounded-2xl text-lg uppercase tracking-[.25em] transition-all hover:scale-[1.01] active:scale-98 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_20px_40px_-10px_rgba(124,93,250,0.4)] md:mt-4"
                     >
                       {loading ? "Please wait..." : "Send OTP"}
                     </button>

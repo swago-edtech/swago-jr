@@ -413,7 +413,7 @@ export default function EmailLoginForm() {
               <button
                 onClick={sendOtp}
                 disabled={loading || !email}
-                className="w-full bg-[hsl(var(--swago-purple))] text-white font-bold py-3 rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
+                className="w-full btn-shine bg-[hsl(var(--swago-purple))] hover:brightness-110 text-white font-black py-4 rounded-xl text-base uppercase tracking-widest shadow-[0_15px_30px_-5px_rgba(124,93,250,0.3)] disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95"
               >
                 {loading ? "Sending..." : "Send OTP"}
               </button>
@@ -452,7 +452,7 @@ export default function EmailLoginForm() {
               <button
                 onClick={verifyOtp}
                 disabled={loading || code.length < 6}
-                className="w-full bg-green-500 text-white font-bold py-3 rounded-lg hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="w-full btn-shine bg-emerald-500 hover:bg-emerald-600 text-white font-black py-4 rounded-xl text-base uppercase tracking-widest shadow-[0_15px_30px_-5px_rgba(16,185,129,0.3)] disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95"
               >
                 {loading ? "Verifying..." : authMode === "signup" ? "Create Account" : "Sign In"}
               </button>

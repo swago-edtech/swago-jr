@@ -144,7 +144,7 @@ export default function CartPage() {
           <div className="lg:col-span-8 space-y-3">
             
             {/* Rewards Progress Banner */}
-            <div className="bg-white rounded-[2rem] px-5 pt-3 pb-5 border border-slate-100 shadow-sm">
+            <div className="bg-white rounded-[2rem] px-3 pt-3 pb-5 border border-slate-100 shadow-sm">
                 <p className="text-[#6B5A99] text-[10px] font-bold text-center mb-4 uppercase tracking-wider">
                   {total >= giftThreshold 
                     ? "🎉 All rewards added to your order!" 
@@ -154,7 +154,7 @@ export default function CartPage() {
                 </p>
 
                 {/* Progress track — milestones positioned at exact % */}
-                <div className="relative mx-4">
+                <div className="relative mx-1">
                   {/* Height container for icons (36px) */}
                   <div className="relative h-9">
                     {/* Background track */}
