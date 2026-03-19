@@ -470,7 +470,7 @@ export default function LoginForm() {
               style={{ borderRadius: "32px" }}
             >
               {/* U-type Curve (SVG Notch) */}
-              <div className="absolute -top-[55px] -left-[2px] w-[calc(100%+6px)] h-[80px] pointer-events-none z-0">
+              <div className="absolute -top-[50px] left-1 right-1.9 h-[80px] pointer-events-none z-0">
                 <svg viewBox="0 0 100 20" preserveAspectRatio="none" className="w-full h-full" style={{ fill: '#ffffff' }}>
                   <path d="M0 20 L0 0 Q50 35 100 0 L100 20 Z" />
                 </svg>

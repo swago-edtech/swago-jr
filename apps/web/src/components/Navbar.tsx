@@ -7,7 +7,7 @@ import { useSharedContext, USER_EVENTS } from "@/context/SharedContext";
 import { useState, useEffect, useRef } from "react";
 import Logo from "./Logo";
 import { motion, AnimatePresence, Variants } from "framer-motion";
-import { HiChevronDown, HiShoppingCart, HiHeart, HiUserCircle, HiMenu } from "react-icons/hi";
+import { HiChevronDown, HiHeart, HiMenu } from "react-icons/hi";
 
 const dropdownVariants: Variants = {
   hidden: { opacity: 0, y: -10, scale: 0.95 },
@@ -146,7 +146,9 @@ export default function Navbar() {
             {/* Cart Button - Desktop & Mobile */}
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <button onClick={openCartSidebar} className="relative p-2 flex items-center gap-1 group transition-colors" aria-label="Cart">
-                <HiShoppingCart className="w-6 h-6 text-black group-hover:scale-110 transition-transform" />
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-6 h-6 text-black group-hover:scale-110 transition-transform">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
+                </svg>
                 {itemCount > 0 && (
                   <span className="absolute top-0 right-1 sm:right-0 bg-black text-white rounded-full w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center text-[10px] font-bold">
                     {itemCount}
@@ -169,7 +171,9 @@ export default function Navbar() {
                   onClick={() => setUserMenuOpen(!isUserMenuOpen)}
                   className="p-2 rounded-full border border-transparent hover:border-slate-200 transition-colors flex items-center justify-center"
                 >
-                  <HiUserCircle className="w-6 h-6 text-black" />
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-6 h-6 text-black">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17.982 18.725A7.488 7.488 0 0 0 12 15.75a7.488 7.488 0 0 0-5.982 2.975m11.963 0a9 9 0 1 0-11.963 0m11.963 0A8.966 8.966 0 0 1 12 21a8.966 8.966 0 0 1-5.982-2.275M15 9.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                  </svg>
                 </motion.button>
                 <AnimatePresence>
                   {isUserMenuOpen && (
@@ -198,7 +202,9 @@ export default function Navbar() {
             ) : (
               <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
                 <Link href="/login" aria-label="Login" className="p-2 rounded-full text-black hover:bg-slate-100 transition-colors flex items-center justify-center">
-                  <HiUserCircle className="w-6 h-6" />
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-6 h-6">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17.982 18.725A7.488 7.488 0 0 0 12 15.75a7.488 7.488 0 0 0-5.982 2.975m11.963 0a9 9 0 1 0-11.963 0m11.963 0A8.966 8.966 0 0 1 12 21a8.966 8.966 0 0 1-5.982-2.275M15 9.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                  </svg>
                 </Link>
               </motion.div>
             )}

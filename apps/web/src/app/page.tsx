@@ -18,29 +18,24 @@ export default function Home() {
 
   return (
     <div className="w-full">
-      <AnimateOnScroll className="mb-5">
+      <AnimateOnScroll>
         <HeroCarousel />
       </AnimateOnScroll>
 
-      <AnimateOnScroll className="mb-5">
+      <AnimateOnScroll>
         <ChooseYourKit />
       </AnimateOnScroll>
 
-      <AnimateOnScroll className="mb-5">
+      <AnimateOnScroll>
         <FeaturedProducts />
       </AnimateOnScroll>
 
-      <AnimateOnScroll className="mb-5">
+      <AnimateOnScroll>
         <ShopByPrice />
       </AnimateOnScroll>
 
-      <AnimateOnScroll className="mb-5">
+      <AnimateOnScroll>
         <SkillBuildingSystem />
-      </AnimateOnScroll>
-
-
-      <AnimateOnScroll className="mb-5">
-        <SwagoElementsSection />
       </AnimateOnScroll>
 
       <AnimateOnScroll>

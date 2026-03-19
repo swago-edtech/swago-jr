@@ -46,7 +46,7 @@ export default function ShopByPrice() {
     if (loading) return null;
 
     return (
-        <section className="py-12 md:py-20 bg-white overflow-hidden">
+        <section className="py-16 md:py-24 bg-white overflow-hidden">
             <div className="container mx-auto px-4">
                 <div className="flex justify-end mb-4">
                     <Link

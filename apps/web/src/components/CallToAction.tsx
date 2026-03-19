@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export default function CallToAction() {
   return (
-    <section className="container mx-auto px-4 py-10">
+    <section className="container mx-auto px-4 py-16 md:py-24">
       <div className="relative rounded-2xl overflow-hidden p-12 text-center bg-[hsl(var(--swago-purple))]/60">
         <div className="flex flex-col items-center text-white">
           <h2 className="text-4xl font-bold">Build Your Swago Score Today</h2>
