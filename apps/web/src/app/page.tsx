@@ -1,10 +1,9 @@
-// src/app/page.tsx
 import HeroCarousel from "@/components/HeroCarousel";
 import ChooseYourKit from "@/components/ChooseYourKit";
 import AnimateOnScroll from "@/components/AnimateOnScroll";
 import FeaturedProducts from "@/components/FeaturedProducts";
 import ShopByPrice from "@/components/ShopByPrice";
-import SkillBuildingSystem from "@/components/SkillBuildingSystem";
+import SkillUnlockSlider from "@/components/SkillUnlockSlider";
 import HomeBlogSection from "@/components/HomeBlogSection";
 import Link from "next/link";
 
@@ -34,7 +33,7 @@ export default function Home() {
       </AnimateOnScroll>
 
       <AnimateOnScroll>
-        <SkillBuildingSystem />
+        <SkillUnlockSlider />
       </AnimateOnScroll>
 
       <AnimateOnScroll>
