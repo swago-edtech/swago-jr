@@ -35,6 +35,7 @@ export type Product = {
   label?: string;
   rating?: number;
   numReviews?: number;
+  skills?: { title: string; image: string }[];
   createdAt?: string;
   updatedAt?: string;
 };

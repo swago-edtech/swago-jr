@@ -30,9 +30,9 @@ export default function CartPage() {
   const [couponError, setCouponError] = useState('');
 
   const AVAILABLE_COUPONS = [
-    { code: 'SAVE25', label: '25% Off', description: 'Get 25% off on your order', minOrder: 0, color: 'from-purple-50 to-purple-100', accent: '#7C5DFA' },
-    { code: 'EXTRA10', label: '10% Off', description: 'Extra 10% off on orders above ₹500', minOrder: 500, color: 'from-emerald-50 to-emerald-100', accent: '#1E8B4F' },
-    { code: 'FLAT50', label: 'Flat ₹50', description: 'Flat ₹50 off on prepaid orders', minOrder: 0, color: 'from-purple-50 to-purple-100', accent: '#7C5DFA' },
+    { code: 'SAVE25', label: '25% Off', description: 'Get 25% off on your order', minOrder: 0, color: 'from-purple-50 to-purple-100', accent: 'hsl(var(--swago-purple))' },
+    { code: 'EXTRA10', label: '10% Off', description: 'Extra 10% off on orders above ₹500', minOrder: 500, color: 'from-purple-50 to-purple-100', accent: 'hsl(var(--swago-purple))' },
+    { code: 'FLAT50', label: 'Flat ₹50', description: 'Flat ₹50 off on prepaid orders', minOrder: 0, color: 'from-purple-50 to-purple-100', accent: 'hsl(var(--swago-purple))' },
   ];
 
   const applyCoupon = async (code: string) => {
@@ -326,13 +326,13 @@ export default function CartPage() {
                 ) : (
                   <button
                     onClick={() => setCouponSheetOpen(true)}
-                    className="w-full bg-slate-50 border border-slate-100 rounded-xl p-2 group flex items-center justify-between hover:bg-white hover:border-[#61498C] transition-all"
+                    className="w-full bg-slate-50 border border-slate-100 rounded-xl p-2 group flex items-center justify-between hover:bg-white hover:border-[hsl(var(--swago-purple))] transition-all"
                   >
                     <div className="flex flex-col items-start">
                       <span className="text-[13px] font-black text-slate-800 tracking-wide">Have a coupon?</span>
-                      <span className="text-[8px] font-black text-emerald-600 uppercase tracking-widest mt-0.5">{AVAILABLE_COUPONS.length} offers available for you!</span>
+                      <span className="text-[8px] font-black text-[hsl(var(--swago-purple))] uppercase tracking-widest mt-0.5">{AVAILABLE_COUPONS.length} offers available for you!</span>
                     </div>
-                    <div className="bg-[#61498C] p-1.5 rounded-lg text-white shadow-sm group-hover:scale-105 transition-transform">
+                    <div className="bg-[hsl(var(--swago-purple))] p-1.5 rounded-lg text-white shadow-sm group-hover:scale-105 transition-transform">
                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5">
                         <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
                       </svg>
@@ -380,7 +380,7 @@ export default function CartPage() {
               <button
                 onClick={handleCheckout}
                 disabled={loading}
-                className="w-full bg-[#61498C] text-white font-black py-4 px-6 rounded-[1.5rem] text-base shadow-2xl shadow-purple-100 hover:bg-[#533d7a] transition-all transform active:scale-[0.98] uppercase tracking-[0.15em] mt-4 flex items-center justify-between group"
+                className="w-full bg-[hsl(var(--swago-purple))] text-white font-black py-4 px-6 rounded-[1.5rem] text-base shadow-2xl shadow-purple-100 hover:bg-[#533d7a] transition-all transform active:scale-[0.98] uppercase tracking-[0.15em] mt-4 flex items-center justify-between group"
               >
                 <span className="ml-2">Proceed</span>
                 <div className="bg-white/20 p-1.5 rounded-xl backdrop-blur-md group-hover:translate-x-1 transition-transform">
@@ -420,7 +420,7 @@ export default function CartPage() {
             </div>
             <button 
                onClick={handleCheckout}
-               className="flex-1 bg-[#61498C] text-white font-black h-12 rounded-xl shadow-xl shadow-purple-100 active:scale-95 transition-all text-xs uppercase tracking-[0.15em] whitespace-nowrap flex items-center justify-center gap-2"
+               className="flex-1 bg-[hsl(var(--swago-purple))] text-white font-black h-12 rounded-xl shadow-xl shadow-purple-100 active:scale-95 transition-all text-xs uppercase tracking-[0.15em] whitespace-nowrap flex items-center justify-center gap-2"
             >
                Checkout
                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-3.5 h-3.5">
@@ -434,14 +434,14 @@ export default function CartPage() {
         <>
           <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50" onClick={() => setCouponSheetOpen(false)} />
           <div
-            className="fixed bottom-4 left-4 right-4 z-50 bg-white rounded-[2.5rem] shadow-[0_20px_60px_rgba(0,0,0,0.2)] max-h-[85vh] flex flex-col border border-slate-100 md:max-w-md md:mx-auto md:bottom-12"
+            className="fixed bottom-4 left-4 right-4 z-50 bg-slate-50 rounded-[2.5rem] shadow-[0_20px_60px_rgba(0,0,0,0.2)] max-h-[85vh] flex flex-col border border-slate-100 md:max-w-md md:mx-auto md:bottom-12"
             style={{ animation: 'slideUpFloating 0.4s cubic-bezier(0.32,0.72,0,1)' }}
           >
             <style>{`@keyframes slideUpFloating { from { transform: translateY(110%); } to { transform: translateY(0); } }`}</style>
             <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
               <div className="w-10 h-1 bg-slate-200 rounded-full" />
             </div>
-            <div className="flex items-center justify-between px-5 py-3 border-b border-slate-100 flex-shrink-0">
+            <div className="flex items-center justify-between px-5 py-3 border-b border-slate-100 flex-shrink-0 bg-white rounded-t-[2.5rem]">
               <div>
                 <h3 className="text-base font-black text-slate-900 uppercase tracking-tight">Coupons & Offers</h3>
                 <p className="text-[10px] text-slate-400 font-bold mt-0.5">Cart value · ₹{total.toFixed(0)}</p>
@@ -452,7 +452,7 @@ export default function CartPage() {
                 </svg>
               </button>
             </div>
-            <div className="px-5 py-3 border-b border-slate-100 flex-shrink-0">
+            <div className="px-5 py-4 border-b border-slate-100 flex-shrink-0 bg-white">
               <div className="flex gap-2">
                 <div className="flex-1 flex items-center bg-slate-50 border border-slate-200 rounded-2xl px-4 gap-2 focus-within:border-[#61498C] transition-all">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 text-slate-400 flex-shrink-0">
@@ -470,19 +470,19 @@ export default function CartPage() {
                 <button
                   onClick={() => applyCoupon(couponInput)}
                   disabled={!couponInput.trim() || couponLoading}
-                  className="bg-[#61498C] text-white font-black text-xs px-4 rounded-2xl uppercase tracking-wider disabled:opacity-50 transition-all active:scale-95"
+                  className="bg-[hsl(var(--swago-purple))] text-white font-black text-xs px-4 rounded-2xl uppercase tracking-wider disabled:opacity-50 transition-all active:scale-95"
                 >
                   {couponLoading ? '...' : 'Apply'}
                 </button>
               </div>
-              {couponError && <p className="text-[10px] text-purple-600 font-bold mt-2 ml-1">⚠️ {couponError}</p>}
+              {couponError && <p className="text-[10px] text-rose-600 font-bold mt-2 ml-1">⚠️ {couponError}</p>}
             </div>
-            <div className="overflow-y-auto flex-1 px-5 py-4 space-y-3">
+            <div className="overflow-y-auto flex-1 px-5 py-6 space-y-4">
               <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Available Coupons</p>
               {AVAILABLE_COUPONS.map((coupon) => {
                 const isEligible = total >= coupon.minOrder;
                 return (
-                  <div key={coupon.code} className={`rounded-2xl border p-4 ${isEligible ? 'border-slate-100 bg-white shadow-sm' : 'border-slate-100 bg-slate-50 opacity-60'}`}>
+                  <div key={coupon.code} className={`rounded-2xl border p-5 transition-all bg-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] ${isEligible ? 'border-slate-100' : 'border-slate-100 opacity-70'}`}>
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
@@ -498,7 +498,7 @@ export default function CartPage() {
                       <button
                         onClick={() => isEligible && applyCoupon(coupon.code)}
                         disabled={!isEligible || couponLoading}
-                        className={`flex-shrink-0 text-[11px] font-black uppercase tracking-widest px-4 py-2 rounded-xl transition-all active:scale-95 ${isEligible ? 'bg-[#61498C] text-white hover:bg-[#533d7a] shadow-md' : 'bg-slate-100 text-slate-400 cursor-not-allowed'}`}
+                        className={`flex-shrink-0 text-[11px] font-black uppercase tracking-widest px-4 py-2 rounded-xl transition-all active:scale-95 ${isEligible ? 'bg-[hsl(var(--swago-purple))] text-white hover:bg-[#533d7a] shadow-md' : 'bg-slate-100 text-slate-400 cursor-not-allowed'}`}
                       >
                         Apply
                       </button>

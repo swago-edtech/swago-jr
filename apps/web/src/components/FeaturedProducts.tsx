@@ -56,12 +56,12 @@ export default function FeaturedProducts() {
   }
 
   return (
-    <section className="py-10 md:py-14 bg-white overflow-hidden">
+    <section className="py-8 md:py-12 bg-white overflow-hidden">
       <div className="container mx-auto px-4 text-center">
         <h2 className="text-4xl md:text-5xl font-black mb-3 uppercase tracking-tight text-slate-900">
           NEW <span className="text-[hsl(var(--swago-purple))]">ARRIVALS</span>
         </h2>
-        <p className="text-slate-500 font-medium mb-12 text-lg">
+        <p className="text-slate-500 font-medium mb-10 text-lg">
           Our latest offerings
         </p>
 

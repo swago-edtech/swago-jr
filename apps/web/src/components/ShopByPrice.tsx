@@ -50,9 +50,9 @@ export default function ShopByPrice() {
     if (loading) return null;
 
     return (
-        <section className="py-12 md:py-20 bg-[#F9F9F9]">
+        <section className="py-8 md:py-12 bg-[#F9F9F9]">
             <div className="container mx-auto px-4 max-w-7xl">
-                <div className="mb-10 md:mb-14 ">
+                <div className="mb-6 md:mb-10 ">
                     <h2 className="text-3xl md:text-4xl font-bold text-black text-center tracking-tight">
                         Shop By <span className="text-[#5C33CF]">Price</span>
                     </h2>

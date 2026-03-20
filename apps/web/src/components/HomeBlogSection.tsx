@@ -75,9 +75,9 @@ export default function HomeBlogSection() {
     if (loading || blogs.length === 0) return null;
 
     return (
-        <section className="py-16 md:py-24 bg-white overflow-hidden">
+        <section className="py-8 md:py-12 bg-white overflow-hidden">
             <div className="container mx-auto px-4 max-w-7xl">
-                <div className="text-center mb-12">
+                <div className="text-center mb-10">
                     <h2 className="text-3xl md:text-5xl font-bold text-[#2D2D2D] tracking-tight">
                         Blogs
                     </h2>

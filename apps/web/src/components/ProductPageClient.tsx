@@ -11,27 +11,25 @@ import RelatedProducts from "./RelatedProducts";
 import { AiFillHeart, AiOutlineHeart } from "react-icons/ai";
 import { RiShareForwardFill } from "react-icons/ri";
 
-const CheckIcon = () => (
-  <svg className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-  </svg>
+const BulletPoint = () => (
+  <span className="w-1.5 h-1.5 rounded-full bg-black flex-shrink-0 mt-[0.6rem]" />
 );
 
 function AccordionItem({ title, content, isOpen, onToggle }: { title: string; content: React.ReactNode; isOpen: boolean; onToggle: () => void; }) {
   return (
-    <div className={`border-b border-purple-50 transition-colors duration-300 ${isOpen ? 'bg-purple-50/10' : ''}`}>
+    <div className="mb-4">
       <button 
         onClick={onToggle} 
-        className="w-full flex justify-between items-center py-5 text-left group"
+        className="group w-full flex justify-between items-center px-6 py-4 text-left transition-all rounded-xl bg-slate-100 hover:bg-slate-200/70 shadow-sm"
       >
-        <span className={`text-lg font-bold transition-colors ${isOpen ? 'text-[hsl(var(--swago-purple))]' : 'text-slate-800 group-hover:text-[hsl(var(--swago-purple))]'}`}>
+        <span className={`text-lg font-bold transition-colors duration-300 ${isOpen ? 'text-[hsl(var(--swago-purple))]' : 'text-slate-900 group-hover:text-[hsl(var(--swago-purple))]'}`}>
           {title}
         </span>
         <motion.span 
           animate={{ rotate: isOpen ? 45 : 0 }}
-          className={`p-1 rounded-full transition-colors ${isOpen ? 'bg-[hsl(var(--swago-purple))] text-white' : 'bg-slate-50 text-slate-400 group-hover:bg-purple-100 group-hover:text-[hsl(var(--swago-purple))]'}`}
+          className="text-[hsl(var(--swago-purple))]"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={4} stroke="currentColor" className="w-6 h-6">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
           </svg>
         </motion.span>
@@ -45,7 +43,7 @@ function AccordionItem({ title, content, isOpen, onToggle }: { title: string; co
             transition={{ duration: 0.3, ease: "easeInOut" }} 
             className="overflow-hidden"
           >
-            <div className="pb-6 text-slate-600 leading-relaxed text-[15px]">{content}</div>
+            <div className="px-6 py-6 text-slate-800 font-medium leading-relaxed text-[15px]">{content}</div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -257,10 +255,10 @@ export default function ProductPageClient({ product }: { product: Product }) {
   const renderListContent = (text: string | undefined) => {
     if (!text) return null;
     return (
-      <ul className="space-y-2">
+      <ul className="space-y-3">
         {text.split("\n").map((item, index) => item.trim() && (
           <li key={index} className="flex items-start gap-3">
-            <CheckIcon /><span>{item.trim().replace(/^✅\s*/, "")}</span>
+            <BulletPoint /><span>{item.trim().replace(/^✅\s*/, "")}</span>
           </li>
         ))}
       </ul>
@@ -269,8 +267,8 @@ export default function ProductPageClient({ product }: { product: Product }) {
 
   const accordionItems = [
     { title: "Description", content: (<div className="whitespace-pre-wrap">{product.description}</div>), key: "description" },
-    { title: "Benefits", content: renderListContent(benefits), key: "benefits" },
-    { title: "What's in the box", content: renderListContent(boxContents), key: "box_contents" },
+    { title: "Learn & Grow", content: renderListContent(benefits), key: "benefits" },
+    { title: "What's in the Box", content: renderListContent(boxContents), key: "box_contents" },
   ];
 
   return (
@@ -408,7 +406,7 @@ export default function ProductPageClient({ product }: { product: Product }) {
             </div>
 
             <div className="mt-1 flex items-center gap-2 flex-wrap">
-              <span className="inline-flex items-center bg-[hsl(var(--swago-purple))] text-white text-[10px] md:text-sm font-semibold px-2 py-0.5 md:px-3 md:py-1 rounded-full">
+              <span className="inline-flex items-center bg-[hsl(var(--swago-purple))] text-white text-[10px] md:text-xs font-black px-3 py-1.5 rounded-full shadow-sm uppercase tracking-tight">
                 Age: {ageCategory}
               </span>
 
@@ -547,14 +545,39 @@ export default function ProductPageClient({ product }: { product: Product }) {
                 (benefits && item.key === "benefits" && benefits.trim() !== "") ||
                   (boxContents && item.key === "box_contents" && boxContents.trim() !== "") ||
                   item.key === "description" ? (
-                  <AccordionItem key={item.key} title={item.title} content={item.content} isOpen={openAccordion === item.key} onToggle={() => setOpenAccordion(openAccordion === item.key ? null : item.key)} />
+                  <AccordionItem 
+                    key={item.key} 
+                    title={item.title} 
+                    content={item.content} 
+                    isOpen={openAccordion === item.key} 
+                    onToggle={() => setOpenAccordion(openAccordion === item.key ? null : item.key)} 
+                  />
                 ) : null
               )}
             </div>
           </div>
         </div>
 
-        <div className="mt-16 border-t pt-12">
+        {/* Skills Section */}
+        {product.skills && product.skills.length > 0 && (
+          <div className="mt-16 border-t pt-12">
+            <h2 className="text-2xl md:text-3xl font-black text-slate-900 mb-8 uppercase tracking-tight">Skills Unlocked 🚀</h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+              {product.skills.map((skill: any, index: number) => (
+                <div key={index} className="relative aspect-square rounded-[2rem] overflow-hidden group shadow-lg border border-slate-100">
+                  <Image src={skill.image} alt={skill.title} fill className="object-cover transition-transform duration-700 group-hover:scale-110" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent flex flex-col justify-end p-4 md:p-6">
+                    <h4 className="text-white font-black text-xs md:text-xl leading-tight uppercase tracking-widest md:tracking-wider drop-shadow-md">
+                      {skill.title}
+                    </h4>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="mt-8 border-t pt-10">
           <ReviewList productId={productIdForReviews} currentUserId={user?.phone} />
         </div>
 

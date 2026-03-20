@@ -19,13 +19,13 @@ const categories = [
 
 export default function ChooseYourKit() {
   return (
-    <section className="py-10 md:py-14 bg-white">
+    <section className="py-8 md:py-12 bg-white">
       <div className="container mx-auto px-4 text-center">
         <h2 className="text-3xl md:text-5xl font-black mb-3 uppercase tracking-tight text-slate-900">
           Shop by Age
         </h2>
 
-        <p className="text-slate-500 font-medium mb-16 text-lg">
+        <p className="text-slate-500 font-medium mb-10 text-lg">
           Learning kits for 5-10 years
         </p>
 

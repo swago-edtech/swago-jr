@@ -55,7 +55,11 @@ export default function Navbar() {
         {/* Mobile Hamburger Icon */}
         {process.env.NEXT_PUBLIC_BLOG_ONLY_MODE !== "true" && (
           <div className="md:hidden">
-            <button onClick={() => setMobileMenuOpen(!isMobileMenuOpen)} aria-label="Open main menu">
+            <button 
+              onClick={() => setMobileMenuOpen(!isMobileMenuOpen)} 
+              aria-label="Open main menu"
+              className="p-2 -ml-2 rounded-full hover:bg-slate-50 transition-colors"
+            >
               <HiMenu className="w-6 h-6" />
             </button>
           </div>
@@ -171,7 +175,7 @@ export default function Navbar() {
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
                   onClick={() => setUserMenuOpen(!isUserMenuOpen)}
-                  className="p-2 rounded-full border border-transparent hover:border-slate-200 transition-colors flex items-center justify-center"
+                  className="p-2 -mr-2 rounded-full border border-transparent hover:border-slate-200 transition-colors flex items-center justify-center"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-6 h-6 text-black">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M17.982 18.725A7.488 7.488 0 0 0 12 15.75a7.488 7.488 0 0 0-5.982 2.975m11.963 0a9 9 0 1 0-11.963 0m11.963 0A8.966 8.966 0 0 1 12 21a8.966 8.966 0 0 1-5.982-2.275M15 9.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
@@ -203,7 +207,7 @@ export default function Navbar() {
               </>
             ) : (
               <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-                <Link href="/login" aria-label="Login" className="p-2 rounded-full text-black hover:bg-slate-100 transition-colors flex items-center justify-center">
+                <Link href="/login" aria-label="Login" className="p-2 -mr-2 rounded-full text-black hover:bg-slate-100 transition-colors flex items-center justify-center">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-6 h-6">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M17.982 18.725A7.488 7.488 0 0 0 12 15.75a7.488 7.488 0 0 0-5.982 2.975m11.963 0a9 9 0 1 0-11.963 0m11.963 0A8.966 8.966 0 0 1 12 21a8.966 8.966 0 0 1-5.982-2.275M15 9.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
                   </svg>

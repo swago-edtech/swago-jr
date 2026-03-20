@@ -122,6 +122,12 @@ const ProductSchema = new mongoose.Schema(
       default: 0
     },
 
+    // Skills highlighted for this product
+    skills: [{
+      title: { type: String, required: true },
+      image: { type: String, required: true }
+    }],
+
     // SEO & Routing
     slug: {
       type: String,

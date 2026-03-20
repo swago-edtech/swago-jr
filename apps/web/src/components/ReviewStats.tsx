@@ -25,19 +25,8 @@ export default function ReviewStats({ stats }: ReviewStatsProps) {
   };
 
   return (
-    <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
-      <h3 className="text-xl font-bold mb-6 text-slate-900 border-l-4 border-[hsl(var(--swago-purple))] pl-3">
-        Customer Reviews
-      </h3>
-
-      {totalReviews === 0 ? (
-        <div className="flex flex-col items-center py-4">
-          <StarRating rating={0} size="sm" />
-          <p className="text-slate-600 font-medium mt-3 text-center">
-            Be the first parent to review this smart box.
-          </p>
-        </div>
-      ) : (
+    <div className="bg-white">
+      {totalReviews > 0 && (
         <div className="space-y-4">
           {/* Average Rating */}
           <div className="flex items-center gap-4">

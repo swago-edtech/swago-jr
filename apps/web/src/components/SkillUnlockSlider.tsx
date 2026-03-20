@@ -81,9 +81,9 @@ export default function SkillUnlockSlider() {
   }, [emblaApi, onSelect]);
 
   return (
-    <section className="py-16 md:py-24 bg-[#F8F9FB] overflow-hidden">
+    <section className="py-10 md:py-16 bg-[#F8F9FB] overflow-hidden">
       {/* Centered Header */}
-      <div className="container mx-auto px-4 max-w-7xl mb-12 md:mb-16">
+      <div className="container mx-auto px-4 max-w-7xl mb-8 md:mb-12">
         <div className="text-center">
           <h2 className="text-3xl md:text-5xl font-bold text-[#2D2D2D] tracking-tight">
             What Your Child Unlocks with Swago?
@@ -172,7 +172,7 @@ export default function SkillUnlockSlider() {
           </div>
   
           {/* Pagination Dots */}
-          <div className="flex justify-center gap-2 mt-12 md:mt-16">
+          <div className="flex justify-center gap-2 mt-8 md:mt-12">
             {skills.map((_, index) => (
               <button
                 key={index}

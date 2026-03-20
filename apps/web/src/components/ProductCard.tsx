@@ -175,24 +175,28 @@ export default function ProductCard({ product }: { product: Product }) {
               fill
               className="object-cover transition-transform duration-300 group-hover:scale-105"
             />
+            {/* Mobile Age Badge - Top Right of Image area */}
+            <div className="md:hidden absolute top-2 right-2 z-10 bg-[hsl(var(--swago-purple))] text-white text-[9px] font-black px-2 py-1 rounded-full shadow-md uppercase tracking-tight whitespace-nowrap">
+              {ageCategory}
+            </div>
 
-            {/* Action buttons - Heart at bottom-left for premium look */}
+            {/* Action buttons - Heart at bottom-left */}
             <div className="absolute bottom-3 left-3 z-10">
               <button
                 onClick={handleWishlistClick}
-                className="w-10 h-10 rounded-full bg-white shadow-lg flex items-center justify-center border border-slate-100 transition-all hover:scale-110 active:scale-95"
+                className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-white shadow-lg flex items-center justify-center border border-slate-100 transition-all hover:scale-110 active:scale-95"
                 aria-label={isLiked ? "Remove from wishlist" : "Add to wishlist"}
               >
                 {isLiked ? (
-                  <AiFillHeart className="w-5 h-5 text-[hsl(var(--swago-pink))]" />
+                  <AiFillHeart className="w-4 h-4 md:w-5 md:h-5 text-[hsl(var(--swago-pink))]" />
                 ) : (
-                  <AiOutlineHeart className="w-5 h-5 text-slate-800" />
+                  <AiOutlineHeart className="w-4 h-4 md:w-5 md:h-5 text-slate-800" />
                 )}
               </button>
             </div>
 
-            {/* Share button moved to top-right */}
-            <div className="absolute top-3 right-3 z-10">
+            {/* Share button moved for desktop, hidden on mobile in favor of age? or keep both */}
+            <div className="hidden md:block absolute top-3 right-3 z-10">
               <button
                 onClick={handleShareClick}
                 className="p-2 rounded-full bg-white/90 backdrop-blur-sm shadow-sm hover:bg-white transition-all"
@@ -251,7 +255,7 @@ export default function ProductCard({ product }: { product: Product }) {
                     <span className="text-[10px] sm:text-xs text-slate-400 line-through font-medium">₹{originalPrice}</span>
                   )}
                 </div>
-                <span className="inline-block bg-slate-50 text-slate-500 text-[10px] sm:text-[11px] font-bold px-2 py-1 rounded-md border border-slate-100 uppercase tracking-tighter">
+                <span className="hidden md:inline-block bg-[hsl(var(--swago-purple))] text-white text-[10px] sm:text-[11px] font-extrabold px-3 py-1.5 rounded-full uppercase tracking-tight whitespace-nowrap shadow-sm">
                   {ageCategory}
                 </span>
               </div>
