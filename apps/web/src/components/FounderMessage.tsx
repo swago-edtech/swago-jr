@@ -44,14 +44,14 @@ export default function FounderMessage() {
                 Traditional learning often told him what he couldn&apos;t do.
                 <br />
                 So we tried a different path <b> movement, games, joy, and
-                patience. </b>
+                  patience. </b>
               </p>
 
               <p>Slowly, something powerful happened.</p>
 
               <p>
                 Before solving sums or writing answers, he started <b>solving
-                problems.  </b>
+                  problems.  </b>
                 <br />
                 Before scoring marks, he started <b> believing in himself. </b>
                 <br />
@@ -74,9 +74,9 @@ export default function FounderMessage() {
 
               <p>
                 Because in a world where AI can do many things, the most
-                important skill a child can have is the courage to say 
+                important skill a child can have is the courage to say
                 <br />
-               <b> &quot;Yes, I can.&quot; </b>
+                <b> &quot;Yes, I can.&quot; </b>
               </p>
 
               <p>
@@ -103,41 +103,41 @@ export default function FounderMessage() {
         </motion.div>
       </div>
       {/* Content */}
-              <div className="relative z-10 pt-8 md:pt-12 text-center">
-                {/* Badge */}
-                <div className="inline-block mb-6 px-4 py-1.5 bg-purple-100 rounded-full text-xs font-bold text-purple-700">
-                  Limited Spots Available
-                </div>
-      
-                {/* Title - Simple Design */}
-                <h2 className="text-2xl md:text-3xl font-bold mb-8 text-slate-800">
-                  Join our Swago Kid Brand Ambassador Program
-                </h2>
-      
-                {/* CTA Button */}
-                <Link
-                  href="/ambassador"
-                  className="inline-block btn-shine bg-[hsl(var(--swago-purple))] text-white font-bold text-base md:text-lg px-8 py-3.5 rounded-full shadow-xl hover:scale-105 transition-all duration-300"
-                >
-                  <span className="flex items-center gap-2">
-                    Start Your Journey
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      strokeWidth={3}
-                      stroke="currentColor"
-                      className="w-5 h-5"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"
-                      />
-                    </svg>
-                  </span>
-                </Link>
-              </div>
+      <div className="relative z-10 pt-8 md:pt-12 text-center">
+        {/* Badge */}
+        <div className="inline-block mb-6 px-4 py-1.5 bg-purple-100 rounded-full text-xs font-bold text-purple-700">
+          Limited Spots Available
+        </div>
+
+        {/* Title - Simple Design */}
+        <h2 className="text-2xl md:text-3xl font-bold mb-8 text-slate-800">
+          Join our Swago Kid Brand Ambassador Program
+        </h2>
+
+        {/* CTA Button */}
+        <Link
+          href="/ambassador"
+          className="inline-block btn-shine bg-[hsl(var(--swago-purple))] text-white font-bold text-base md:text-lg px-8 py-3.5 rounded-full shadow-xl hover:scale-105 transition-all duration-300"
+        >
+          <span className="flex items-center gap-2">
+            Start Your Journey
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={3}
+              stroke="currentColor"
+              className="w-5 h-5"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"
+              />
+            </svg>
+          </span>
+        </Link>
+      </div>
     </section>
   );
 }

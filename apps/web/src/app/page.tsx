@@ -4,6 +4,7 @@ import AnimateOnScroll from "@/components/AnimateOnScroll";
 import FeaturedProducts from "@/components/FeaturedProducts";
 import ShopByPrice from "@/components/ShopByPrice";
 import SkillUnlockSlider from "@/components/SkillUnlockSlider";
+import SkillBuildingSystem from "@/components/SkillBuildingSystem";
 import HomeBlogSection from "@/components/HomeBlogSection";
 import Link from "next/link";
 
@@ -34,6 +35,10 @@ export default function Home() {
 
       <AnimateOnScroll>
         <SkillUnlockSlider />
+      </AnimateOnScroll>
+
+      <AnimateOnScroll>
+        <SkillBuildingSystem />
       </AnimateOnScroll>
 
       <AnimateOnScroll>
