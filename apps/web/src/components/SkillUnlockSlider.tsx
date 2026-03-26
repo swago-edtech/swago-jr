@@ -118,27 +118,18 @@ export default function SkillUnlockSlider() {
                         className="object-cover transition-transform duration-1000 group-hover:scale-110"
                       />
                       
-                      {/* Dark Blend Overlay */}
-                      <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none" />
-
-                      {/* Floating Content Section */}
-                      <div className="absolute inset-0 p-6 md:p-8 flex flex-col justify-end text-left">
-                         <div className="flex items-center gap-3 mb-2.5">
-                            <div className="w-10 h-10 rounded-xl bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20">
+                      {/* Floating Content Section - Minimal & Clean */}
+                      <div className="absolute inset-0 p-6 md:p-8 flex flex-col justify-end text-left z-30">
+                         <div className="flex items-center gap-3 mb-2">
+                            <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 shadow-sm">
                               {React.cloneElement(skill.icon as any, { className: 'w-5 h-5 text-white' })}
                             </div>
-                            <h3 className="text-3xl md:text-4xl font-black text-white tracking-tighter uppercase italic drop-shadow-lg">{skill.title}</h3>
+                            <h3 className="text-3xl md:text-4xl font-black text-white tracking-tighter uppercase italic drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">{skill.title}</h3>
                          </div>
                          
-                         <p className="text-white font-bold text-[13px] md:text-sm leading-tight opacity-90 mb-6 max-w-[220px]">
+                         <p className="text-white font-bold text-[13px] md:text-sm leading-tight max-w-[220px] drop-shadow-[0_1.5px_3px_rgba(0,0,0,0.5)]">
                             {skill.description}
                          </p>
-                         
-                         <button 
-                           className="w-full bg-white text-slate-900 font-black py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all hover:scale-105 active:scale-95 text-xs md:text-sm tracking-widest uppercase shadow-xl"
-                         >
-                            {skill.buttonText} <ChevronRight className="w-4 h-4 stroke-[4px]" />
-                         </button>
                       </div>
                     </div>
                   </div>
