@@ -152,7 +152,11 @@ export default function ProfilePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...kidForm, age: parseInt(kidForm.age) }),
       });
-      if (res.ok) router.push("/kids/dashboard");
+      if (res.ok) {
+        // Instead of navigating away, refresh the current profile view to show the new dashboard
+        await fetchKidProfiles();
+        setIsOnboarding(false);
+      }
     } catch (err) {
       setKidError("An error occurred");
     } finally {
