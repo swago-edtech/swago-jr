@@ -3,7 +3,6 @@
 import React from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { Brain, Gamepad2, MonitorOff } from "lucide-react";
 
 const features = [
   {
@@ -60,7 +59,7 @@ export default function WhySwagoIsFunSection() {
           <div className="w-24 h-2 bg-gradient-to-r from-[hsl(var(--swago-purple))] to-[hsl(var(--swago-orange))] mx-auto rounded-full" />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-12">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-12 px-4 md:px-0">
           {features.map((feature, idx) => (
             <motion.div
               key={idx}
@@ -70,8 +69,8 @@ export default function WhySwagoIsFunSection() {
               transition={{ delay: idx * 0.1 }}
               className="flex flex-col group cursor-default w-full max-w-[320px] md:max-w-none mx-auto"
             >
-              {/* Custom Card Box */}
-              <div className={`relative h-full flex flex-col items-center p-8 md:p-10 pt-16 text-center rounded-[3rem] transition-all duration-300 group-hover:shadow-2xl group-hover:-translate-y-2 bg-white overflow-hidden border-2 border-t-0 border-dashed ${feature.borderColor} shadow-sm`}>
+              {/* Custom Card Box - Fully Dashed, Permanent Shadow/Hover Effect */}
+              <div className={`relative h-full flex flex-col items-center p-8 md:p-10 pt-16 text-center rounded-[3rem] bg-white transition-all duration-300 shadow-[0_22px_70px_-15px_rgba(0,0,0,0.12)] -translate-y-2 border-2 border-dashed ${feature.borderColor} overflow-hidden`}>
                 
                 {/* 5-Color Solid Top Line */}
                 <div className="absolute top-0 left-0 right-0 h-2 flex">
@@ -82,8 +81,8 @@ export default function WhySwagoIsFunSection() {
                   <div className="flex-1 bg-[hsl(var(--swago-orange))]" />
                 </div>
 
-                {/* Icon Container - Reduced to 50-60% size */}
-                <div className={`w-12 h-12 md:w-16 md:h-16 rounded-full ${feature.bgColor} flex items-center justify-center mb-8 border-2 ${feature.borderColor} group-hover:scale-110 transition-all duration-300 shadow-sm relative`}>
+                {/* Icon Container */}
+                <div className={`w-12 h-12 md:w-16 md:h-16 rounded-full ${feature.bgColor} flex items-center justify-center mb-8 border-2 ${feature.borderColor} shadow-sm relative`}>
                   <div className={`${feature.color} flex items-center justify-center`}>
                     {feature.icon || null}
                   </div>
@@ -93,7 +92,7 @@ export default function WhySwagoIsFunSection() {
                   {feature.title}
                 </h3>
                 
-                <p className="text-slate-600 font-bold text-xs md:text-base leading-relaxed opacity-90 max-w-[240px] mx-auto">
+                <p className="text-slate-600 font-bold text-xs md:text-sm leading-relaxed opacity-90 max-w-[240px] mx-auto">
                   {feature.description}
                 </p>
               </div>
