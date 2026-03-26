@@ -178,51 +178,83 @@ export default function ProfilePage() {
 
   if (isOnboarding && kidProfiles.length === 0) {
     return (
-      <div className="min-h-screen bg-[#F8FAFC] py-12 px-4 flex items-center justify-center">
-        <div className="max-w-md w-full">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white p-10 rounded-[2.5rem] shadow-[0_40px_100px_-20px_rgba(0,0,0,0.1)] border border-slate-100">
-            <div className="text-center mb-10">
-              <h1 className="text-3xl font-black text-slate-800 uppercase italic tracking-tight mb-2">Create Hero Profile</h1>
-              <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Enter your child's details to begin</p>
+      <div className="min-h-screen bg-slate-50 py-12 px-4">
+        <div className="max-w-2xl mx-auto">
+          <div className="mb-8 text-center">
+            <h1 className="text-3xl font-bold text-slate-800">Create Kid Profile 🌟</h1>
+            <p className="text-slate-600 mt-2">Create a profile and enter the Swagoverse!</p>
+          </div>
+
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white p-8 rounded-2xl shadow-lg border border-slate-100">
+            {/* Parent Info Section (Pre-filled, Read-only) */}
+            <div className="border-b pb-8 mb-8">
+              <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
+                👨‍👩‍👧 Parent Information
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-slate-500 mb-1.5 px-0.5">Name</label>
+                  <p className="p-3 bg-slate-50 rounded-lg text-slate-700 font-semibold border border-slate-100 italic">
+                    {user.name || "Not set"}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-500 mb-1.5 px-0.5">Phone</label>
+                  <p className="p-3 bg-slate-50 rounded-lg text-slate-700 font-semibold border border-slate-100 italic">
+                    {user.phone || "Not set"}
+                  </p>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-slate-500 mb-1.5 px-0.5">Email</label>
+                  <p className="p-3 bg-slate-50 rounded-lg text-slate-700 font-semibold border border-slate-100 italic">
+                    {user.email || "Not set"}
+                  </p>
+                </div>
+              </div>
             </div>
 
             <form onSubmit={handleKidSubmit} className="space-y-6">
-              <div>
-                <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 px-1">Child's Name</label>
-                <input type="text" name="name" value={kidForm.name} onChange={handleKidFormChange} placeholder="Enter Hero Name" className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 font-bold text-slate-700 outline-none focus:border-[hsl(var(--swago-purple))] focus:bg-white transition-all shadow-sm" required />
-              </div>
+              <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2 pt-2">
+                🧒 Child Details
+              </h3>
 
-              <div>
-                <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 px-1">Current City</label>
-                <input type="text" name="city" value={kidForm.city} onChange={handleKidFormChange} placeholder="Enter City" className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 font-bold text-slate-700 outline-none focus:border-[hsl(var(--swago-purple))] focus:bg-white transition-all shadow-sm" required />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 px-1">Date of Birth</label>
-                  <input type="date" name="dob" value={kidForm.dob} onChange={handleKidFormChange} className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 font-bold text-slate-700 outline-none focus:border-[hsl(var(--swago-purple))] focus:bg-white transition-all shadow-sm" required />
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Child's Name *</label>
+                  <input type="text" name="name" value={kidForm.name} onChange={handleKidFormChange} placeholder="Enter child's name" className="w-full border border-slate-300 rounded-lg p-3 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all" required />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 px-1">Calculated Age</label>
-                  <input type="text" value={kidForm.age + " Years"} readOnly className="w-full bg-slate-100 border-2 border-slate-100 rounded-2xl p-4 font-bold text-slate-400 outline-none cursor-not-allowed uppercase text-xs" />
+                  <label className="block text-sm font-medium text-slate-700 mb-2">City *</label>
+                  <input type="text" name="city" value={kidForm.city} onChange={handleKidFormChange} placeholder="Enter city" className="w-full border border-slate-300 rounded-lg p-3 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all" required />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Date of Birth *</label>
+                  <input type="date" name="dob" value={kidForm.dob} onChange={handleKidFormChange} className="w-full border border-slate-300 rounded-lg p-3 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all" required />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Age</label>
+                  <input type="text" value={kidForm.age ? `${kidForm.age} Years` : '—'} readOnly className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-slate-500 font-bold" />
                 </div>
               </div>
 
               <div>
-                <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 px-1">Gender</label>
-                <div className="grid grid-cols-2 gap-3">
-                  <button type="button" onClick={() => setKidForm(prev => ({ ...prev, gender: 'boy', avatarColor: '/images/kid_boy1.png' }))} className={`py-4 rounded-2xl border-2 font-black uppercase tracking-widest text-xs transition-all ${kidForm.gender === 'boy' ? 'border-[hsl(var(--swago-purple))] bg-indigo-50 text-indigo-700 shadow-md' : 'border-slate-50 bg-slate-50 text-slate-400'}`}>Boy</button>
-                  <button type="button" onClick={() => setKidForm(prev => ({ ...prev, gender: 'girl', avatarColor: '/images/kid_girl1.png' }))} className={`py-4 rounded-2xl border-2 font-black uppercase tracking-widest text-xs transition-all ${kidForm.gender === 'girl' ? 'border-pink-500 bg-pink-50 text-pink-700 shadow-md' : 'border-slate-50 bg-slate-50 text-slate-400'}`}>Girl</button>
-                </div>
+                <label className="block text-sm font-medium text-slate-700 mb-3">Gender *</label>
+                <select name="gender" value={kidForm.gender} onChange={handleKidFormChange} className="w-full border border-slate-300 rounded-lg p-3 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all">
+                  <option value="boy">Boy 👦</option>
+                  <option value="girl">Girl 👧</option>
+                </select>
               </div>
 
-              <div className="pt-4">
-                <button type="submit" disabled={isCreatingKid} className="w-full bg-[hsl(var(--swago-purple))] text-white py-5 rounded-2xl font-black text-lg uppercase italic shadow-[0_20px_40px_-5px_rgba(124,93,250,0.3)] hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-50">
-                  {isCreatingKid ? "Creating..." : "🚀 Enter Swagoverse"}
+              <div className="pt-6">
+                <button type="submit" disabled={isCreatingKid} className="w-full bg-[hsl(var(--swago-purple))] text-white py-4 rounded-xl font-bold text-lg hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-50 shadow-lg uppercase tracking-wide">
+                  {isCreatingKid ? "Creating Profile..." : "🚀 Enter the Swagoverse"}
                 </button>
               </div>
               
-              {kidError && <p className="text-red-500 text-xs font-bold text-center">{kidError}</p>}
+              {kidError && <p className="text-red-500 text-xs font-bold text-center mt-4">{kidError}</p>}
             </form>
           </motion.div>
         </div>
