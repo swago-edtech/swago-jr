@@ -142,7 +142,7 @@ export default function ProfilePage() {
     if (activeFilter === "Common") return allQuests.filter(q => q.product === "Common");
     
     // Check if filtering by Skill (S-W-A-G-O)
-    const skillsList = ["Self-Belief", "Wisdom", "Ambition", "Growth", "Optimization"];
+    const skillsList = ["Smart", "Wisdom", "Ambition", "Growth", "Optimization"];
     if (skillsList.includes(activeFilter)) {
       return allQuests.filter(q => q.skill === activeFilter);
     }
@@ -326,10 +326,10 @@ export default function ProfilePage() {
            </div>
            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
               <button 
-                onClick={() => setActiveFilter(activeFilter === "Self-Belief" ? "All" : "Self-Belief")}
-                className={`px-3 py-3 rounded-xl flex items-center justify-center gap-2 text-[9px] font-[1000] shadow-sm uppercase italic transition-all active:scale-95 ${activeFilter === "Self-Belief" ? 'bg-[#7C5DFA] text-white shadow-lg ring-4 ring-[#7C5DFA]/20 scale-105' : 'bg-slate-50 text-slate-400 hover:bg-[#7C5DFA]/10'}`}
+                onClick={() => setActiveFilter(activeFilter === "Smart" ? "All" : "Smart")}
+                className={`px-3 py-3 rounded-xl flex items-center justify-center gap-2 text-[9px] font-[1000] shadow-sm uppercase italic transition-all active:scale-95 ${activeFilter === "Smart" ? 'bg-[#7C5DFA] text-white shadow-lg ring-4 ring-[#7C5DFA]/20 scale-105' : 'bg-slate-50 text-slate-400 hover:bg-[#7C5DFA]/10'}`}
               >
-                 <Rocket className="w-3.5 h-3.5" /> Self-Belief
+                 <Rocket className="w-3.5 h-3.5" /> Smart
               </button>
               <button 
                 onClick={() => setActiveFilter(activeFilter === "Wisdom" ? "All" : "Wisdom")}

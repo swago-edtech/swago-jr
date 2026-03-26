@@ -9,7 +9,7 @@ const skills = [
   {
     id: 1,
     title: "S",
-    description: "Self-Belief & Confidence",
+    description: "Smart Thinking & Confidence",
     icon: <Rocket className="w-6 h-6" />,
     buttonText: "Explore S",
     color: "#7C5DFA", // Purple

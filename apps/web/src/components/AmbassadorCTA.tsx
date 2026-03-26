@@ -19,7 +19,7 @@ export default function AmbassadorCTA() {
 
             <p className="text-slate-800 text-base md:text-lg leading-relaxed max-w-5xl mx-auto text-center mt-4">
               Through our playful Swago Smart Boxes, simple challenges, and everyday moments, 
-              children learn to think, move, try, and express in ways that slowly build self-belief.
+              children learn to think, move, try, and express in ways that slowly build smart thinking.
               <br />
               <br />
               Swago isn&apos;t about being perfect , it&apos;s about discovering who you are, one small win at a time, 
