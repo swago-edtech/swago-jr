@@ -13,7 +13,7 @@ const skills = [
     icon: <Rocket className="w-6 h-6" />,
     buttonText: "Explore S",
     color: "#7C5DFA", // Purple
-    image: "/images/home/s.jpg",
+    image: "/images/home/g.jpg", // Corrected: This image contains the S content
     badge: "Swago Skill"
   },
   {
@@ -41,7 +41,7 @@ const skills = [
     icon: <Sprout className="w-6 h-6" />,
     buttonText: "Explore G",
     color: "#4CAF50", // Green
-    image: "/images/home/g.jpg"
+    image: "/images/home/o.jpg" // Corrected: This image contains the G content
   },
   {
     id: 5,
@@ -50,7 +50,7 @@ const skills = [
     icon: <Zap className="w-6 h-6" />,
     buttonText: "Explore O",
     color: "#3F51B5", // Indigo
-    image: "/images/home/o.jpg"
+    image: "/images/home/s.jpg" // Corrected: This image contains the O content
   }
 ];
 
