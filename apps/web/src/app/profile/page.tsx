@@ -136,9 +136,17 @@ export default function ProfilePage() {
       });
     });
 
-    // ✅ FIXED FILTER LOGIC: If a product is selected, show common tasks + that product's tasks
+    // ✅ FIXED FILTER LOGIC: Support both Product and Skill filtering
     if (activeFilter === "All") return allQuests;
     if (activeFilter === "Common") return allQuests.filter(q => q.product === "Common");
+    
+    // Check if filtering by Skill
+    const skillsList = ["Growth", "Optimization", "Willpower", "Ambition"];
+    if (skillsList.includes(activeFilter)) {
+      return allQuests.filter(q => q.skill === activeFilter);
+    }
+
+    // Default: Filter by Product
     return allQuests.filter(q => q.product === activeFilter || q.product === "Common");
   }, [activeFilter, purchasedBoxes]);
 
@@ -304,20 +312,42 @@ export default function ProfilePage() {
 
         {/* Tags Section */}
         <div className="bg-white rounded-[2.5rem] shadow-md border border-white/60 p-6 sm:p-8 mb-8">
-           <h3 className="text-xs font-[1000] text-slate-300 uppercase tracking-widest italic mb-6">Skills Hub</h3>
+           <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xs font-[1000] text-slate-300 uppercase tracking-widest italic">Skills Hub</h3>
+              {activeFilter !== "All" && (
+                <button 
+                  onClick={() => setActiveFilter("All")}
+                  className="text-[10px] font-black text-indigo-500 uppercase tracking-tighter hover:underline"
+                >
+                  Clear Filter ✕
+                </button>
+              )}
+           </div>
            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div className="bg-[#4ADE80] text-white px-5 py-3 rounded-xl flex items-center gap-2 text-xs font-[1000] shadow-sm uppercase italic">
+              <button 
+                onClick={() => setActiveFilter(activeFilter === "Growth" ? "All" : "Growth")}
+                className={`px-5 py-3 rounded-xl flex items-center justify-center gap-2 text-xs font-[1000] shadow-sm uppercase italic transition-all active:scale-95 ${activeFilter === "Growth" ? 'bg-[#4ADE80] text-white shadow-lg ring-4 ring-[#4ADE80]/20 scale-105' : 'bg-slate-50 text-slate-400 hover:bg-[#4ADE80]/10'}`}
+              >
                  <Star className="w-4 h-4" /> Growth
-              </div>
-              <div className="bg-[#818CF8] text-white px-5 py-3 rounded-xl flex items-center gap-2 text-xs font-[1000] shadow-sm uppercase italic">
+              </button>
+              <button 
+                onClick={() => setActiveFilter(activeFilter === "Optimization" ? "All" : "Optimization")}
+                className={`px-5 py-3 rounded-xl flex items-center justify-center gap-2 text-xs font-[1000] shadow-sm uppercase italic transition-all active:scale-95 ${activeFilter === "Optimization" ? 'bg-[#818CF8] text-white shadow-lg ring-4 ring-[#818CF8]/20 scale-105' : 'bg-slate-50 text-slate-400 hover:bg-[#818CF8]/10'}`}
+              >
                  <Zap className="w-4 h-4" /> Optimization
-              </div>
-              <div className="bg-[#FDBA74] text-white px-5 py-3 rounded-xl flex items-center gap-2 text-xs font-[1000] shadow-sm uppercase italic">
+              </button>
+              <button 
+                onClick={() => setActiveFilter(activeFilter === "Willpower" ? "All" : "Willpower")}
+                className={`px-5 py-3 rounded-xl flex items-center justify-center gap-2 text-xs font-[1000] shadow-sm uppercase italic transition-all active:scale-95 ${activeFilter === "Willpower" ? 'bg-[#FDBA74] text-white shadow-lg ring-4 ring-[#FDBA74]/20 scale-105' : 'bg-slate-50 text-slate-400 hover:bg-[#FDBA74]/10'}`}
+              >
                  <Brain className="w-4 h-4" /> Willpower
-              </div>
-              <div className="bg-[#FDE047] text-[#854D0E] px-5 py-3 rounded-xl flex items-center gap-2 text-xs font-[1000] shadow-sm uppercase italic">
+              </button>
+              <button 
+                onClick={() => setActiveFilter(activeFilter === "Ambition" ? "All" : "Ambition")}
+                className={`px-5 py-3 rounded-xl flex items-center justify-center gap-2 text-xs font-[1000] shadow-sm uppercase italic transition-all active:scale-95 ${activeFilter === "Ambition" ? 'bg-[#FDE047] text-[#854D0E] shadow-lg ring-4 ring-[#FDE047]/20 scale-105' : 'bg-slate-50 text-slate-400 hover:bg-[#FDE047]/10'}`}
+              >
                  <Target className="w-4 h-4" /> Ambition
-              </div>
+              </button>
            </div>
         </div>
 
