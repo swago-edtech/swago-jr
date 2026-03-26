@@ -118,18 +118,15 @@ export default function SkillUnlockSlider() {
                         className="object-cover transition-transform duration-1000 group-hover:scale-110"
                       />
                       
-                      {/* Glassmorphic Floating Content Section */}
-                      <div className="absolute inset-x-4 bottom-4 p-5 md:p-6 bg-white/10 backdrop-blur-md rounded-[1.5rem] border border-white/20 z-30 shadow-2xl">
-                         <div className="flex items-center gap-3 mb-1.5">
-                            <div className="w-9 h-9 rounded-lg bg-white/20 flex items-center justify-center border border-white/30 backdrop-blur-sm">
-                              {React.cloneElement(skill.icon as any, { className: 'w-5 h-5 text-white' })}
-                            </div>
-                            <h3 className="text-2xl md:text-3xl font-black text-white tracking-widest uppercase italic drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]">
+                      {/* Solid White Content Section - High Contrast */}
+                      <div className="absolute inset-x-4 bottom-4 p-6 bg-white rounded-[2rem] z-30 shadow-[0_20px_40px_-10px_rgba(0,0,0,0.15)] flex flex-col items-center text-center">
+                         <div className="flex items-center gap-2 mb-1">
+                            <h3 className="text-3xl md:text-4xl font-black text-[hsl(var(--swago-purple))] tracking-[0.2em] uppercase italic">
                               {skill.title}
                             </h3>
                          </div>
                          
-                         <p className="text-white font-bold text-[12px] md:text-sm leading-tight opacity-95 drop-shadow-[0_2px_3px_rgba(0,0,0,0.6)]">
+                         <p className="text-slate-500 font-bold text-[11px] md:text-xs leading-none uppercase tracking-widest opacity-80">
                             {skill.description}
                          </p>
                       </div>
