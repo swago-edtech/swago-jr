@@ -100,7 +100,7 @@ export default function ProfilePage() {
   const filteredQuests = useMemo(() => {
     let allQuests = [];
     
-    // 1. Common Mission (Corrected Reward: 25 Coins)
+    // 1. Common Mission
     allQuests.push({
       title: 'Focus Freeze Reel',
       description: 'Create a "Yes I Can" pose with your box',
@@ -117,7 +117,7 @@ export default function ProfilePage() {
       product: 'Common'
     });
 
-    // 2. Product-Specific Tickets (Corrected Reward: 20 Swago Dollars)
+    // 2. Product-Specific Tickets
     purchasedBoxes.forEach((boxName) => {
       allQuests.push({
         title: `${boxName} Lucky Ticket`,
@@ -128,7 +128,7 @@ export default function ProfilePage() {
         ],
         image: '/images/test/quest_treasure.png',
         reward: 20,
-        currency: "Swago Dollars",
+        currency: "SD",
         frequency: 'Once/per box',
         skill: 'Luck',
         id: `lottery-${boxName}`,
@@ -136,8 +136,10 @@ export default function ProfilePage() {
       });
     });
 
+    // ✅ FIXED FILTER LOGIC: If a product is selected, show common tasks + that product's tasks
     if (activeFilter === "All") return allQuests;
-    return allQuests.filter(q => q.product === activeFilter || (activeFilter === "Common" && q.product === "Common"));
+    if (activeFilter === "Common") return allQuests.filter(q => q.product === "Common");
+    return allQuests.filter(q => q.product === activeFilter || q.product === "Common");
   }, [activeFilter, purchasedBoxes]);
 
   const handleKidSubmit = async (e: React.FormEvent) => {
@@ -206,12 +208,12 @@ export default function ProfilePage() {
     );
   }
 
-  // MAIN PROFILE VIEW (REDUCED VERTICAL SPACE & UPDATED HEADER)
+  // MAIN PROFILE VIEW
   return (
     <div className="min-h-screen bg-[#F0F4F8] font-sans pb-10">
       <div className="max-w-4xl mx-auto px-4 pt-8">
         
-        {/* Updated Header: Parent Info */}
+        {/* Header: Parent Info */}
         <div className="flex items-center justify-between mb-8 px-2">
           <div className="flex items-center gap-5">
             <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-4 border-white shadow-xl overflow-hidden bg-slate-100 relative">

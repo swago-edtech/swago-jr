@@ -194,26 +194,6 @@ export default function HowToEarnSwagoMoney() {
           </div>
         </div>
 
-        {/* CTA Section */}
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.95 }}
-          whileInView={{ opacity: 1, scale: 1 }}
-          viewport={{ once: true }}
-          className="mt-20 p-10 bg-white rounded-[3rem] shadow-[0_40px_100px_rgba(0,0,0,0.05)] border border-slate-50 text-center"
-        >
-          <h3 className="text-2xl md:text-3xl font-black text-slate-800 mb-4">
-            Start Stacking Your Swago Dollars Today!
-          </h3>
-          <p className="text-slate-500 font-bold mb-8 italic">
-            Your journey in the Swagoverse is just beginning...
-          </p>
-          <button 
-            onClick={handleCardClick}
-            className="bg-[hsl(var(--swago-purple))] hover:bg-purple-600 text-white font-black px-12 py-5 rounded-2xl text-lg uppercase tracking-widest transition-all hover:-translate-y-1 active:scale-95 shadow-xl cursor-pointer"
-          >
-            Go to My Profile
-          </button>
-        </motion.div>
       </div>
     </section>
   );

@@ -4,7 +4,7 @@ import FeaturedProducts from "@/components/FeaturedProducts";
 import HowToEarnSwagoMoney from "@/components/HowToEarnSwagoMoney";
 import SwagoElementsSection from "@/components/SwagoElementsSection";
 import WhySwagoIsFunSection from "@/components/WhySwagoIsFunSection";
-import SkillBuildingSystem from "@/components/SkillBuildingSystem";
+import SwagoSkillsSection from "@/components/SwagoSkillsSection";
 import HomeBlogSection from "@/components/HomeBlogSection";
 import Link from "next/link";
 
@@ -34,7 +34,7 @@ export default function Home() {
       </AnimateOnScroll>
 
       <AnimateOnScroll>
-        <SkillBuildingSystem />
+        <SwagoSkillsSection />
       </AnimateOnScroll>
 
       <AnimateOnScroll>

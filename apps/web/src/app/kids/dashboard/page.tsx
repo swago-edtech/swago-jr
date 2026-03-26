@@ -52,7 +52,7 @@ export default function KidDashboardPage() {
   const router = useRouter();
   const [profile, setProfile] = useState<SelectedKidProfile | null>(null);
   const [ambassadorData, setAmbassadorData] = useState<AmbassadorData | null>(null);
-  const [user, setUser] = useState<{ name?: string, email?: string, orders?: any[], swagoMoney?: number } | null>(null);
+  const [user, setUser] = useState<{ _id: string, name?: string, email?: string, orders?: any[], swagoMoney?: number } | null>(null);
   const [purchasedProducts, setPurchasedProducts] = useState<string[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<string>("All");
   const [showFilters, setShowFilters] = useState(false);
@@ -143,7 +143,8 @@ export default function KidDashboardPage() {
       id: "reel",
       title: "Focus Freeze Reel",
       description: "Create a \"Yes I Can\" pose with your box",
-      reward: 50,
+      reward: 25,
+      currency: "Coins",
       frequency: "Once/per season",
       skill: "Optimization",
       tags: [
@@ -162,6 +163,7 @@ export default function KidDashboardPage() {
         title: `${boxName} Lucky Ticket`,
         description: `Treasure draw entry for your ${boxName}.`,
         reward: 20,
+        currency: "SD",
         frequency: "Once/per box",
         skill: "Luck",
         tags: [
@@ -174,8 +176,10 @@ export default function KidDashboardPage() {
       });
     });
 
+    // ✅ FIXED FILTER LOGIC: Show Common missions + Selected product missions
     if (selectedProduct === "All") return allQuests;
-    return allQuests.filter((q) => q.product === selectedProduct || (selectedProduct === "Common" && q.product === "Common"));
+    if (selectedProduct === "Common") return allQuests.filter(q => q.product === "Common");
+    return allQuests.filter((q) => q.product === selectedProduct || q.product === "Common");
   }, [router, purchasedProducts, selectedProduct]);
 
   if (loading || !profile) return <div className="min-h-screen bg-white" />;
@@ -184,7 +188,7 @@ export default function KidDashboardPage() {
     <div className="min-h-screen bg-[#F0F4F8] pb-10 font-sans">
       <div className="max-w-4xl mx-auto px-4 pt-8">
         
-        {/* Header - Compact & Updated to Parent Info */}
+        {/* Header - Parent Info */}
         <div className="flex items-center justify-between gap-6 mb-8 px-2">
           <div className="flex items-center gap-5">
             <button 
@@ -208,7 +212,7 @@ export default function KidDashboardPage() {
           </div>
         </div>
 
-        {/* Tags Section - Reduced vertical space */}
+        {/* Tags Section */}
         <div className="bg-white rounded-[2.5rem] shadow-md border border-white/60 p-6 sm:p-8 mb-8">
            <h3 className="text-xs font-[1000] text-slate-300 uppercase tracking-widest italic mb-6">Ambassador Hub</h3>
            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -220,7 +224,7 @@ export default function KidDashboardPage() {
            </div>
         </div>
 
-        {/* Quest Log Container - COMPACT */}
+        {/* Quest Log Container */}
         <div className="bg-white rounded-[3rem] shadow-lg border border-white p-6 sm:p-8 space-y-6">
             <div className="flex flex-col sm:flex-row gap-4 sm:items-center justify-between pb-2 border-b-2 border-slate-50">
                 <h2 className="text-2xl font-[1000] text-slate-800 tracking-tighter uppercase italic underline decoration-blue-500/10 decoration-4 underline-offset-4">Quest Log</h2>
@@ -252,14 +256,13 @@ export default function KidDashboardPage() {
             </div>
 
             <div className="space-y-4 pt-1">
-                {quests.map((quest) => (
-                    <motion.div key={quest.id} initial={{ opacity: 0, scale: 0.98 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} className="bg-white border border-slate-50 p-5 rounded-[2rem] shadow-sm flex items-center gap-6 group hover:shadow-xl hover:border-blue-100 transition-all duration-300">
+                {quests.map((quest, i) => (
+                    <motion.div key={i} initial={{ opacity: 0, scale: 0.98 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} className="bg-white border border-slate-50 p-5 rounded-[2rem] shadow-sm flex items-center gap-6 group hover:shadow-xl hover:border-blue-100 transition-all duration-300">
                         <div className="relative w-24 h-24 sm:w-28 sm:h-28 shrink-0 rounded-2xl overflow-hidden shadow-lg border-2 border-white group-hover:scale-105 transition-transform">
                             <Image src={quest.image} alt={quest.title} fill className="object-cover" />
                         </div>
 
                         <div className="flex-1 min-w-0 space-y-1.5">
-                            {/* Horizontal Stack Tags (No Wrap) */}
                             <div className="flex flex-row items-center gap-1.5 overflow-hidden">
                                 {quest.tags.map((tag, j) => (
                                     <div key={j} className={`${tag.color} text-white px-2.5 py-1 rounded-md flex items-center gap-1.5 text-[8px] font-black uppercase tracking-widest shadow-sm whitespace-nowrap`}>
@@ -274,7 +277,7 @@ export default function KidDashboardPage() {
                             <div className="flex items-center gap-4">
                                 <div className="flex items-center gap-2">
                                     <span className="text-lg">🪙</span>
-                                    <span className="text-sm font-[1000] text-slate-700">+{quest.reward} SD</span>
+                                    <span className="text-sm font-[1000] text-slate-700">+{quest.reward} {quest.currency}</span>
                                 </div>
                                 <span className="text-[9px] font-black text-slate-200 uppercase tracking-widest">{quest.frequency}</span>
                                 <span className="text-[9px] font-black text-slate-300 uppercase italic">Skill: {quest.skill}</span>
