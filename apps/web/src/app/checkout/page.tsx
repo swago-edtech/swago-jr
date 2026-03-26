@@ -44,6 +44,7 @@ export default function CheckoutPage() {
   const [discount, setDiscount] = useState<any>(null);
   const [age, setAge] = useState("");
   const [message, setMessage] = useState("");
+  const [errors, setErrors] = useState<string[]>([]);
 
   // Redirect if not logged in
   useEffect(() => {
@@ -59,7 +60,28 @@ export default function CheckoutPage() {
     }
   }, [user, isLoadingUser, router]);
 
+  const validateForm = () => {
+    const newErrors: string[] = [];
+    if (!email) newErrors.push("email");
+    if (!firstName) newErrors.push("firstName");
+    if (!lastName) newErrors.push("lastName");
+    if (!address) newErrors.push("address");
+    if (!city) newErrors.push("city");
+    if (!pincode) newErrors.push("pincode");
+    if (!phone) newErrors.push("phone");
+    if (!age) newErrors.push("age");
+    
+    setErrors(newErrors);
+    if (newErrors.length > 0) {
+      setMessage("Please fill in all the highlighted fields to continue.");
+      return false;
+    }
+    return true;
+  };
+
   const handlePayNow = async () => {
+    if (!validateForm()) return;
+
     if (paymentMethod === 'cod') {
       await handleCOD();
     } else {
@@ -266,10 +288,11 @@ export default function CheckoutPage() {
             <div className="space-y-4">
               <input 
                  value={email}
-                 onChange={(e) => setEmail(e.target.value)}
+                 onChange={(e) => { setEmail(e.target.value); if(errors.includes("email")) setErrors(errors.filter(f => f !== "email")); }}
                  placeholder="Email or mobile phone number" 
-                 className="w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-purple-500 outline-none text-sm transition-all shadow-sm"
+                 className={`w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-purple-500 outline-none text-sm transition-all shadow-sm ${errors.includes("email") ? 'border-red-500 bg-red-50 placeholder-red-300' : 'border-slate-200'}`}
               />
+              {errors.includes("email") && <p className="text-[10px] text-red-500 font-bold uppercase mt-1 px-1">You have missed filling this box</p>}
               <label className="flex items-center gap-2 cursor-pointer group">
                  <input type="checkbox" defaultChecked className="w-4 h-4 rounded-md border-slate-300 text-purple-600 focus:ring-purple-500" />
                  <span className="text-xs text-slate-600 group-hover:text-slate-900 transition-colors">Email me with news and offers</span>
@@ -286,73 +309,88 @@ export default function CheckoutPage() {
               </select>
 
               <div className="grid grid-cols-2 gap-3">
-                <input 
-                   placeholder="First name" 
-                   value={firstName}
-                   onChange={(e) => setFirstName(e.target.value)}
-                   className="w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-purple-500 outline-none text-sm shadow-sm" 
-                />
-                <input 
-                   placeholder="Last name" 
-                   value={lastName}
-                   onChange={(e) => setLastName(e.target.value)}
-                   className="w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-purple-500 outline-none text-sm shadow-sm" 
-                />
+                <div className="flex flex-col gap-1">
+                  <input 
+                     placeholder="First name" 
+                     value={firstName}
+                     onChange={(e) => { setFirstName(e.target.value); if(errors.includes("firstName")) setErrors(errors.filter(f => f !== "firstName")); }}
+                     className={`w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-purple-500 outline-none text-sm shadow-sm ${errors.includes("firstName") ? 'border-red-500 bg-red-50 placeholder-red-300' : 'border-slate-200'}`} 
+                  />
+                  {errors.includes("firstName") && <p className="text-[10px] text-red-500 font-bold uppercase">Missed this box</p>}
+                </div>
+                <div className="flex flex-col gap-1">
+                  <input 
+                     placeholder="Last name" 
+                     value={lastName}
+                     onChange={(e) => { setLastName(e.target.value); if(errors.includes("lastName")) setErrors(errors.filter(f => f !== "lastName")); }}
+                     className={`w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-purple-500 outline-none text-sm shadow-sm ${errors.includes("lastName") ? 'border-red-500 bg-red-50 placeholder-red-300' : 'border-slate-200'}`} 
+                  />
+                  {errors.includes("lastName") && <p className="text-[10px] text-red-500 font-bold uppercase">Missed this box</p>}
+                </div>
               </div>
 
-              <div className="grid grid-cols-1 gap-3">
+              <div className="flex flex-col gap-1">
                  <select 
                     value={age}
-                    onChange={(e) => setAge(e.target.value)}
-                    className="w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-purple-500 outline-none text-sm bg-white shadow-sm appearance-none"
+                    onChange={(e) => { setAge(e.target.value); if(errors.includes("age")) setErrors(errors.filter(f => f !== "age")); }}
+                    className={`w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-purple-500 outline-none text-sm bg-white shadow-sm appearance-none ${errors.includes("age") ? 'border-red-500 bg-red-50 text-red-900' : 'border-slate-200'}`}
                  >
                     <option value="" disabled>Child's Age</option>
                     {[...Array(15)].map((_, i) => (
                        <option key={i} value={i+1}>{i+1} Years</option>
                     ))}
                  </select>
+                 {errors.includes("age") && <p className="text-[10px] text-red-500 font-bold uppercase">You have missed filling the age</p>}
               </div>
 
-              <div className="relative">
+              <div className="relative flex flex-col gap-1">
                 <input 
                    placeholder="Address" 
                    value={address}
-                   onChange={(e) => setAddress(e.target.value)}
-                   className="w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-purple-500 outline-none text-sm shadow-sm pr-10" 
+                   onChange={(e) => { setAddress(e.target.value); if(errors.includes("address")) setErrors(errors.filter(f => f !== "address")); }}
+                   className={`w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-purple-500 outline-none text-sm shadow-sm pr-10 ${errors.includes("address") ? 'border-red-500 bg-red-50 placeholder-red-300' : 'border-slate-200'}`} 
                 />
-                <RiSearchLine className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                <RiSearchLine className="absolute right-4 top-[24px] -translate-y-1/2 text-slate-400" />
+                {errors.includes("address") && <p className="text-[10px] text-red-500 font-bold uppercase">Missed the address box</p>}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                 <input 
-                    placeholder="City" 
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                    className="w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-purple-500 outline-none text-sm shadow-sm" 
-                 />
+                 <div className="flex flex-col gap-1">
+                   <input 
+                      placeholder="City" 
+                      value={city}
+                      onChange={(e) => { setCity(e.target.value); if(errors.includes("city")) setErrors(errors.filter(f => f !== "city")); }}
+                      className={`w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-purple-500 outline-none text-sm shadow-sm ${errors.includes("city") ? 'border-red-500 bg-red-50 placeholder-red-300' : 'border-slate-200'}`} 
+                   />
+                   {errors.includes("city") && <p className="text-[10px] text-red-500 font-bold uppercase">Missed city</p>}
+                 </div>
                  <select 
                     value={state}
                     onChange={(e) => setState(e.target.value)}
-                    className="w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-purple-500 outline-none text-sm bg-white shadow-sm"
+                    className="w-full h-12 px-4 border rounded-md border-slate-200 focus:ring-1 focus:ring-purple-500 outline-none text-sm bg-white shadow-sm"
                  >
                     {INDIAN_STATES.map(s => <option key={s} value={s}>{s}</option>)}
                  </select>
-                 <input 
-                    placeholder="PIN code" 
-                    value={pincode}
-                    onChange={(e) => setPincode(e.target.value)}
-                    className="w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-purple-500 outline-none text-sm shadow-sm" 
-                 />
+                 <div className="flex flex-col gap-1">
+                   <input 
+                      placeholder="PIN code" 
+                      value={pincode}
+                      onChange={(e) => { setPincode(e.target.value); if(errors.includes("pincode")) setErrors(errors.filter(f => f !== "pincode")); }}
+                      className={`w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-purple-500 outline-none text-sm shadow-sm ${errors.includes("pincode") ? 'border-red-500 bg-red-50 placeholder-red-300' : 'border-slate-200'}`} 
+                   />
+                   {errors.includes("pincode") && <p className="text-[10px] text-red-500 font-bold uppercase">Missed PIN</p>}
+                 </div>
               </div>
 
-              <div className="relative">
+              <div className="relative flex flex-col gap-1">
                  <input 
                     placeholder="Phone" 
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    className="w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-purple-500 outline-none text-sm shadow-sm" 
+                    onChange={(e) => { setPhone(e.target.value); if(errors.includes("phone")) setErrors(errors.filter(f => f !== "phone")); }}
+                    className={`w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-purple-500 outline-none text-sm shadow-sm pr-10 ${errors.includes("phone") ? 'border-red-500 bg-red-50 placeholder-red-300' : 'border-slate-200'}`} 
                  />
-                 <RiInformationLine className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 cursor-help" />
+                 <RiInformationLine className="absolute right-4 top-[24px] -translate-y-1/2 text-slate-400 cursor-help" />
+                 {errors.includes("phone") && <p className="text-[10px] text-red-500 font-bold uppercase">Missed phone box</p>}
               </div>
 
               <div className="space-y-2 pt-2">
@@ -481,42 +519,6 @@ function OrderSummary({
 
   return (
     <>
-       {/* Bonus & Perks */}
-       <div className="space-y-4 mb-8">
-          {nextTier && (
-             <div className="bg-white border rounded-lg p-4 shadow-sm">
-                <div className="flex justify-between items-center mb-1">
-                   <p className="text-[10px] font-black text-[#61498C] uppercase tracking-widest leading-none">Redemption Progress</p>
-                   {total >= nextTier.target && <span className="text-[8px] bg-green-100 text-green-600 px-1.5 py-0.5 rounded-full font-black">UNLOCKED!</span>}
-                </div>
-                <div className="flex justify-between mb-1.5">
-                   <p className="text-[9px] text-slate-500">Shop for ₹{nextTier.target - total} more for ₹{nextTier.off} off</p>
-                </div>
-                <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                   <div className="h-full bg-[#61498C] transition-all duration-1000" style={{ width: `${progressPercent}%` }} />
-                </div>
-             </div>
-          )}
-
-          {promotion?.bonusItems?.filter((b: any) => total >= b.threshold && !isAlreadyAdded(b.slug)).map((item: any) => (
-             <div key={item.slug} className="bg-gradient-to-r from-purple-600 to-pink-600 p-2.5 rounded-xl text-white flex items-center justify-between shadow-lg">
-                <div className="flex items-center gap-2">
-                   <span className="text-base animate-pulse">🎁</span>
-                   <div className="flex flex-col">
-                      <span className="text-[9px] font-black uppercase tracking-tight leading-none mb-1 opacity-80">Bonus Item Unlocked!</span>
-                      <span className="text-[11px] font-bold leading-none">{item.label}</span>
-                   </div>
-                </div>
-                <button 
-                  onClick={() => addToCart({ ...item, price: 1 }, 1)}
-                  className="bg-white text-purple-600 text-[9px] font-black px-3 py-1.5 rounded-lg hover:scale-105 transition-transform"
-                >
-                  ADD AT ₹1
-                </button>
-             </div>
-          ))}
-       </div>
-
        {/* Cart Items */}
        <div className="space-y-5 mb-8">
           {cart.map((item: any) => (
@@ -537,22 +539,6 @@ function OrderSummary({
           ))}
        </div>
 
-       {/* Discount Code */}
-       <div className="flex gap-3 mb-8">
-          <input 
-             value={couponCode}
-             onChange={(e) => setCouponCode(e.target.value)}
-             placeholder="Discount code or gift card" 
-             className="flex-1 h-12 px-4 border rounded-md focus:ring-1 focus:ring-blue-500 outline-none text-sm bg-white"
-          />
-          <button 
-            onClick={applyCoupon}
-            className="px-6 h-12 bg-[hsl(var(--swago-purple))] text-white font-black rounded-md text-sm hover:opacity-90 transition-all active:scale-95 shadow-lg shadow-purple-50"
-          >
-            Apply
-          </button>
-       </div>
-
        {/* Pricing Breakdown */}
        <div className="space-y-3 text-sm">
           <div className="flex justify-between text-slate-600">
@@ -565,8 +551,8 @@ function OrderSummary({
           </div>
           {discount && (
             <div className="flex justify-between text-emerald-600 font-bold">
-              <span>Discount ({appliedCoupon?.code})</span>
-              <span>-₹{discount.savedAmount.toFixed(2)}</span>
+               <span>Discount ({appliedCoupon?.code || 'Applied'})</span>
+               <span>-₹{discount.savedAmount.toFixed(2)}</span>
             </div>
           )}
           
