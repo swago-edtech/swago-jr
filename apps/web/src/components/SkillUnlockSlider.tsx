@@ -81,74 +81,68 @@ export default function SkillUnlockSlider() {
   }, [emblaApi, onSelect]);
 
   return (
-    <section className="py-10 md:py-16 bg-[#F8F9FB] overflow-hidden">
+    <section className="py-20 md:py-28 bg-[#F8F9FB] overflow-hidden">
       {/* Centered Header */}
-      <div className="container mx-auto px-4 max-w-7xl mb-8 md:mb-12">
+      <div className="container mx-auto px-4 max-w-7xl mb-12 md:mb-16">
         <div className="text-center">
-          <h2 className="text-3xl md:text-5xl font-bold text-[#2D2D2D] tracking-tight">
-            What Your Child Unlocks with Swago?
+          <h2 className="text-4xl md:text-6xl font-black text-slate-800 tracking-tighter uppercase italic leading-none">
+            What Your Child <span className="text-[hsl(var(--swago-purple))]">Unlocks</span>
           </h2>
         </div>
       </div>
 
-      {/* Slider Area - More Shrinked on Desktop, Full-ish on Mobile */}
-      <div className="container mx-auto px-4 max-w-6xl">
+      {/* Slider Area - Full Screen Width Feel */}
+      <div className="w-full">
         <div className="relative">
-          <div className="relative w-full mx-auto">
+          <div className="relative w-full">
             {/* Main Viewport */}
-            <div className="overflow-hidden" ref={emblaRef}>
-              <div className="flex -ml-4 md:-ml-8">
+            <div className="overflow-visible" ref={emblaRef}>
+              <div className="flex">
                 {skills.map((skill, index) => (
                   <div 
                     key={skill.id} 
-                    className="flex-shrink-0 flex-grow-0 w-[80%] md:w-[60%] lg:w-[33.33%] pl-4 md:pl-8 min-w-0"
+                    className="flex-shrink-0 flex-grow-0 w-[85%] md:w-[45%] lg:w-[28%] px-4 min-w-0"
                     style={{
-                      opacity: selectedIndex === index ? 1 : 0.5,
-                      transition: 'all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                      transform: selectedIndex === index ? 'scale(1.1) translateY(-5px)' : 'scale(0.85) translateY(0)',
-                      zIndex: selectedIndex === index ? 20 : 10,
-                      position: 'relative'
+                      opacity: selectedIndex === index ? 1 : 0.3,
+                      transition: 'all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                      transform: selectedIndex === index ? 'scale(1.15)' : 'scale(0.85)',
+                      zIndex: selectedIndex === index ? 50 : 10,
                     }}
                   >
-                    <div className="bg-white rounded-[3rem] shadow-[0_30px_70px_-20px_rgba(0,0,0,0.12)] overflow-hidden h-full flex flex-col relative border border-gray-50">
-                      {/* Badge */}
-                      {skill.badge && (
-                        <div className="absolute top-6 left-6 z-20 bg-[#7C5DFA] text-white text-[10px] font-bold px-4 py-1.5 rounded-full flex items-center gap-1.5 shadow-lg">
-                          <span className="text-xs">✦</span> {skill.badge}
-                        </div>
-                      )}
+                    {/* Borderless Blended Image */}
+                    <div className="relative aspect-[4/5] rounded-[2.5rem] overflow-hidden group cursor-pointer shadow-[0_50px_100px_-20px_rgba(0,0,0,0.25)]">
+                      <Image 
+                        src={skill.image} 
+                        alt={skill.title} 
+                        fill
+                        className="object-cover transition-transform duration-1000 group-hover:scale-110"
+                      />
                       
-                      {/* Curved Image Section - Updated for real images */}
-                      <div className="relative aspect-[1/1] bg-white overflow-hidden">
-                         <Image 
-                           src={skill.image} 
-                           alt={skill.title} 
-                           fill
-                           className="object-cover relative z-10 transition-transform duration-500 group-hover:scale-110"
-                         />
-                         {/* Steeper Hill Curve - White, Over the image */}
-                         <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[160%] h-[130px] bg-white z-20 rounded-[100%] translate-y-[70%] shadow-[0_-20px_40px_-20px_rgba(0,0,0,0.05)]" />
-                      </div>
-  
-                      {/* Content Section - Extremely Compact, Overlaying the curve */}
-                      <div className="p-6 md:p-8 pt-2 md:pt-4 flex flex-col items-center text-center bg-white relative -mt-8 z-30">
-                         <div className="flex items-center gap-2 mb-1.5" style={{ color: skill.color }}>
-                            <div className="bg-gray-50/50 p-1.5 rounded-lg transform scale-90">
-                              {React.cloneElement(skill.icon as any, { className: 'w-5 h-5' })}
+                      {/* Dark Blend Overlay */}
+                      <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/80 via-black/30 to-transparent pointer-events-none" />
+
+                      {/* Floating Content Section */}
+                      <div className="absolute inset-0 p-8 md:p-10 flex flex-col justify-end text-left">
+                         <div className="flex items-center gap-3 mb-3">
+                            <div className="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20">
+                              {React.cloneElement(skill.icon as any, { className: 'w-6 h-6 text-white' })}
                             </div>
-                            <h3 className="text-2xl md:text-3xl font-extrabold tracking-tight">{skill.title}</h3>
+                            <h3 className="text-4xl md:text-5xl font-black text-white tracking-tighter uppercase italic drop-shadow-lg">{skill.title}</h3>
                          </div>
-                         <p className="text-gray-400 font-medium text-[13px] md:text-sm mb-6 leading-tight max-w-[200px]">
+                         
+                         <p className="text-white font-bold text-sm md:text-base leading-tight opacity-90 mb-8 max-w-[240px]">
                             {skill.description}
                          </p>
                          
                          <button 
-                           className="w-full text-white font-black py-3.5 rounded-[1rem] flex items-center justify-center gap-1.5 transition-all hover:brightness-95 hover:shadow-xl active:scale-95 text-sm md:text-base tracking-wide whitespace-nowrap px-4"
-                           style={{ backgroundColor: skill.color }}
+                           className="w-full bg-white text-slate-900 font-black py-4 rounded-2xl flex items-center justify-center gap-2 transition-all hover:scale-105 active:scale-95 text-sm md:text-base tracking-widest uppercase shadow-xl"
                          >
-                            {skill.buttonText} <ChevronRight className="w-4 h-4 stroke-[4px]" />
+                            {skill.buttonText} <ChevronRight className="w-5 h-5 stroke-[4px]" />
                          </button>
                       </div>
+
+                      {/* Edge Mask - Softening the blend into the background */}
+                      <div className="absolute inset-0 ring-1 ring-inset ring-black/5 rounded-[2.5rem]" />
                     </div>
                   </div>
                 ))}
@@ -159,27 +153,27 @@ export default function SkillUnlockSlider() {
             <div className="hidden md:block">
               <button
                 onClick={scrollPrev}
-                className="absolute top-1/2 -left-12 -translate-y-1/2 w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-md text-gray-400 hover:text-[#7C5DFA] transition-all z-30 group"
+                className="absolute top-1/2 left-8 -translate-y-1/2 w-14 h-14 bg-white/90 backdrop-blur-md rounded-full flex items-center justify-center shadow-2xl text-slate-800 hover:bg-[hsl(var(--swago-purple))] hover:text-white transition-all z-[60]"
               >
-                <ChevronLeft className="w-5 h-5 stroke-[3px]" />
+                <ChevronLeft className="w-6 h-6 stroke-[3px]" />
               </button>
               <button
                 onClick={scrollNext}
-                className="absolute top-1/2 -right-12 -translate-y-1/2 w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-md text-gray-400 hover:text-[#7C5DFA] transition-all z-30 group"
+                className="absolute top-1/2 right-8 -translate-y-1/2 w-14 h-14 bg-white/90 backdrop-blur-md rounded-full flex items-center justify-center shadow-2xl text-slate-800 hover:bg-[hsl(var(--swago-purple))] hover:text-white transition-all z-[60]"
               >
-                <ChevronRight className="w-5 h-5 stroke-[3px]" />
+                <ChevronRight className="w-6 h-6 stroke-[3px]" />
               </button>
             </div>
           </div>
   
           {/* Pagination Dots */}
-          <div className="flex justify-center gap-2 mt-8 md:mt-12">
+          <div className="flex justify-center gap-3 mt-12 md:mt-20">
             {skills.map((_, index) => (
               <button
                 key={index}
                 onClick={() => scrollTo(index)}
-                className={`w-3 h-3 rounded-full transition-all duration-300 ${
-                  index === selectedIndex ? "bg-[#7C5DFA] w-8" : "bg-gray-200 hover:bg-gray-300"
+                className={`h-2 rounded-full transition-all duration-500 ${
+                  index === selectedIndex ? "bg-[hsl(var(--swago-purple))] w-12" : "bg-slate-200 w-3 hover:bg-slate-300"
                 }`}
               />
             ))}
