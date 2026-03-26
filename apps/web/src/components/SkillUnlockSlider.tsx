@@ -8,49 +8,49 @@ import Image from 'next/image';
 const skills = [
   {
     id: 1,
-    title: "Curiosity",
-    description: "Asks better questions",
-    icon: <Brain className="w-6 h-6" />,
-    buttonText: "Explore Kits",
+    title: "S",
+    description: "Self-Belief & Confidence",
+    icon: <Rocket className="w-6 h-6" />,
+    buttonText: "Explore S",
     color: "#7C5DFA", // Purple
-    image: "/images/home/aga_profile.png",
-    badge: "Skill System"
+    image: "/images/home/s.jpg",
+    badge: "Swago Skill"
   },
   {
     id: 2,
-    title: "Confidence",
-    description: "Speaks without fear",
-    icon: <Rocket className="w-6 h-6" />,
-    buttonText: "Start Growing",
+    title: "W",
+    description: "Wisdom & Curiosity",
+    icon: <Brain className="w-6 h-6" />,
+    buttonText: "Explore W",
     color: "#E91E63", // Deep Pink
-    image: "/images/home/gogo_profile.png"
+    image: "/images/home/w.jpg"
   },
   {
     id: 3,
-    title: "Focus",
-    description: "Concentrates better",
+    title: "A",
+    description: "Ambition & Drive",
     icon: <Target className="w-6 h-6" />,
-    buttonText: "Boost Focus",
+    buttonText: "Explore A",
     color: "#FF5722", // Deep Orange
-    image: "/images/home/woo_profile.png"
+    image: "/images/home/a.jpg"
   },
   {
     id: 4,
-    title: "Boost",
-    description: "Boost Focus",
-    icon: <Zap className="w-6 h-6" />,
-    buttonText: "Boost Focus",
-    color: "#3F51B5", // Indigo
-    image: "/images/home/skoo_profile.png"
+    title: "G",
+    description: "Growth Mindset",
+    icon: <Sprout className="w-6 h-6" />,
+    buttonText: "Explore G",
+    color: "#4CAF50", // Green
+    image: "/images/home/g.jpg"
   },
   {
     id: 5,
-    title: "Growth",
-    description: "Learns beyond school",
-    icon: <Sprout className="w-6 h-6" />,
-    buttonText: "Unlock Potential",
-    color: "#4CAF50", // Green
-    image: "/images/home/mascot_profiles.png" // Placeholder or similar
+    title: "O",
+    description: "Optimization & Focus",
+    icon: <Zap className="w-6 h-6" />,
+    buttonText: "Explore O",
+    color: "#3F51B5", // Indigo
+    image: "/images/home/o.jpg"
   }
 ];
 
@@ -101,7 +101,7 @@ export default function SkillUnlockSlider() {
                 {skills.map((skill, index) => (
                   <div 
                     key={skill.id} 
-                    className="flex-shrink-0 flex-grow-0 w-[60%] md:w-[60%] lg:w-[33.33%] pl-4 md:pl-8 min-w-0"
+                    className="flex-shrink-0 flex-grow-0 w-[80%] md:w-[60%] lg:w-[33.33%] pl-4 md:pl-8 min-w-0"
                     style={{
                       opacity: selectedIndex === index ? 1 : 0.5,
                       transition: 'all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)',
@@ -118,14 +118,13 @@ export default function SkillUnlockSlider() {
                         </div>
                       )}
                       
-                      {/* Curved Image Section - More Curvier hill effect */}
-                      <div className="relative aspect-[1.1/1] bg-gradient-to-br from-[#F1F3F9] to-[#E5E9F0] flex items-center justify-center p-10 overflow-hidden">
+                      {/* Curved Image Section - Updated for real images */}
+                      <div className="relative aspect-[1/1] bg-white overflow-hidden">
                          <Image 
                            src={skill.image} 
                            alt={skill.title} 
-                           width={320} 
-                           height={320} 
-                           className="object-contain relative z-10 transition-transform duration-500 group-hover:scale-110"
+                           fill
+                           className="object-cover relative z-10 transition-transform duration-500 group-hover:scale-110"
                          />
                          {/* Steeper Hill Curve - White, Over the image */}
                          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[160%] h-[130px] bg-white z-20 rounded-[100%] translate-y-[70%] shadow-[0_-20px_40px_-20px_rgba(0,0,0,0.05)]" />
@@ -137,9 +136,9 @@ export default function SkillUnlockSlider() {
                             <div className="bg-gray-50/50 p-1.5 rounded-lg transform scale-90">
                               {React.cloneElement(skill.icon as any, { className: 'w-5 h-5' })}
                             </div>
-                            <h3 className="text-xl md:text-2xl font-extrabold tracking-tight">{skill.title}</h3>
+                            <h3 className="text-2xl md:text-3xl font-extrabold tracking-tight">{skill.title}</h3>
                          </div>
-                         <p className="text-gray-400 font-medium text-[13px] md:text-sm mb-6 leading-tight max-w-[180px]">
+                         <p className="text-gray-400 font-medium text-[13px] md:text-sm mb-6 leading-tight max-w-[200px]">
                             {skill.description}
                          </p>
                          
@@ -155,20 +154,22 @@ export default function SkillUnlockSlider() {
                 ))}
               </div>
             </div>
-  
+   
             {/* Navigation Arrows */}
-            <button
-              onClick={scrollPrev}
-              className="absolute top-1/2 -left-4 md:-left-12 -translate-y-1/2 w-10 h-10 md:w-12 md:h-12 bg-white rounded-full flex items-center justify-center shadow-md text-gray-400 hover:text-[#7C5DFA] transition-all z-30 group"
-            >
-              <ChevronLeft className="w-4 h-4 md:w-5 md:h-5 stroke-[3px]" />
-            </button>
-            <button
-              onClick={scrollNext}
-              className="absolute top-1/2 -right-4 md:-right-12 -translate-y-1/2 w-10 h-10 md:w-12 md:h-12 bg-white rounded-full flex items-center justify-center shadow-md text-gray-400 hover:text-[#7C5DFA] transition-all z-30 group"
-            >
-              <ChevronRight className="w-4 h-4 md:w-5 md:h-5 stroke-[3px]" />
-            </button>
+            <div className="hidden md:block">
+              <button
+                onClick={scrollPrev}
+                className="absolute top-1/2 -left-12 -translate-y-1/2 w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-md text-gray-400 hover:text-[#7C5DFA] transition-all z-30 group"
+              >
+                <ChevronLeft className="w-5 h-5 stroke-[3px]" />
+              </button>
+              <button
+                onClick={scrollNext}
+                className="absolute top-1/2 -right-12 -translate-y-1/2 w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-md text-gray-400 hover:text-[#7C5DFA] transition-all z-30 group"
+              >
+                <ChevronRight className="w-5 h-5 stroke-[3px]" />
+              </button>
+            </div>
           </div>
   
           {/* Pagination Dots */}
