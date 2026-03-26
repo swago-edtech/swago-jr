@@ -324,36 +324,36 @@ export default function ProfilePage() {
                 </button>
               )}
            </div>
-           <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
               <button 
                 onClick={() => setActiveFilter(activeFilter === "Self-Belief" ? "All" : "Self-Belief")}
-                className={`px-4 py-3 rounded-xl flex items-center justify-center gap-2 text-[10px] font-[1000] shadow-sm uppercase italic transition-all active:scale-95 ${activeFilter === "Self-Belief" ? 'bg-[#7C5DFA] text-white shadow-lg ring-4 ring-[#7C5DFA]/20 scale-105' : 'bg-slate-50 text-slate-400 hover:bg-[#7C5DFA]/10'}`}
+                className={`px-3 py-3 rounded-xl flex items-center justify-center gap-2 text-[9px] font-[1000] shadow-sm uppercase italic transition-all active:scale-95 ${activeFilter === "Self-Belief" ? 'bg-[#7C5DFA] text-white shadow-lg ring-4 ring-[#7C5DFA]/20 scale-105' : 'bg-slate-50 text-slate-400 hover:bg-[#7C5DFA]/10'}`}
               >
-                 <Rocket className="w-3.5 h-3.5" /> S
+                 <Rocket className="w-3.5 h-3.5" /> Self-Belief
               </button>
               <button 
                 onClick={() => setActiveFilter(activeFilter === "Wisdom" ? "All" : "Wisdom")}
-                className={`px-4 py-3 rounded-xl flex items-center justify-center gap-2 text-[10px] font-[1000] shadow-sm uppercase italic transition-all active:scale-95 ${activeFilter === "Wisdom" ? 'bg-[#E91E63] text-white shadow-lg ring-4 ring-[#E91E63]/20 scale-105' : 'bg-slate-50 text-slate-400 hover:bg-[#E91E63]/10'}`}
+                className={`px-3 py-3 rounded-xl flex items-center justify-center gap-2 text-[9px] font-[1000] shadow-sm uppercase italic transition-all active:scale-95 ${activeFilter === "Wisdom" ? 'bg-[#E91E63] text-white shadow-lg ring-4 ring-[#E91E63]/20 scale-105' : 'bg-slate-50 text-slate-400 hover:bg-[#E91E63]/10'}`}
               >
-                 <Brain className="w-3.5 h-3.5" /> W
+                 <Brain className="w-3.5 h-3.5" /> Wisdom
               </button>
               <button 
                 onClick={() => setActiveFilter(activeFilter === "Ambition" ? "All" : "Ambition")}
-                className={`px-4 py-3 rounded-xl flex items-center justify-center gap-2 text-[10px] font-[1000] shadow-sm uppercase italic transition-all active:scale-95 ${activeFilter === "Ambition" ? 'bg-[#FF5722] text-white shadow-lg ring-4 ring-[#FF5722]/20 scale-105' : 'bg-slate-50 text-slate-400 hover:bg-[#FF5722]/10'}`}
+                className={`px-3 py-3 rounded-xl flex items-center justify-center gap-2 text-[9px] font-[1000] shadow-sm uppercase italic transition-all active:scale-95 ${activeFilter === "Ambition" ? 'bg-[#FF5722] text-white shadow-lg ring-4 ring-[#FF5722]/20 scale-105' : 'bg-slate-50 text-slate-400 hover:bg-[#FF5722]/10'}`}
               >
-                 <Target className="w-3.5 h-3.5" /> A
+                 <Target className="w-3.5 h-3.5" /> Ambition
               </button>
               <button 
                 onClick={() => setActiveFilter(activeFilter === "Growth" ? "All" : "Growth")}
-                className={`px-4 py-3 rounded-xl flex items-center justify-center gap-2 text-[10px] font-[1000] shadow-sm uppercase italic transition-all active:scale-95 ${activeFilter === "Growth" ? 'bg-[#4CAF50] text-white shadow-lg ring-4 ring-[#4CAF50]/20 scale-105' : 'bg-slate-50 text-slate-400 hover:bg-[#4CAF50]/10'}`}
+                className={`px-3 py-3 rounded-xl flex items-center justify-center gap-2 text-[9px] font-[1000] shadow-sm uppercase italic transition-all active:scale-95 ${activeFilter === "Growth" ? 'bg-[#4CAF50] text-white shadow-lg ring-4 ring-[#4CAF50]/20 scale-105' : 'bg-slate-50 text-slate-400 hover:bg-[#4CAF50]/10'}`}
               >
-                 <Star className="w-3.5 h-3.5" /> G
+                 <Star className="w-3.5 h-3.5" /> Growth
               </button>
               <button 
                 onClick={() => setActiveFilter(activeFilter === "Optimization" ? "All" : "Optimization")}
-                className={`px-4 py-3 rounded-xl flex items-center justify-center gap-2 text-[10px] font-[1000] shadow-sm uppercase italic transition-all active:scale-95 ${activeFilter === "Optimization" ? 'bg-[#3F51B5] text-white shadow-lg ring-4 ring-[#3F51B5]/20 scale-105' : 'bg-slate-50 text-slate-400 hover:bg-[#3F51B5]/10'}`}
+                className={`px-3 py-3 rounded-xl flex items-center justify-center gap-2 text-[9px] font-[1000] shadow-sm uppercase italic transition-all active:scale-95 ${activeFilter === "Optimization" ? 'bg-[#3F51B5] text-white shadow-lg ring-4 ring-[#3F51B5]/20 scale-105' : 'bg-slate-50 text-slate-400 hover:bg-[#3F51B5]/10'}`}
               >
-                 <Zap className="w-3.5 h-3.5" /> O
+                 <Zap className="w-3.5 h-3.5" /> Optimization
               </button>
            </div>
         </div>
