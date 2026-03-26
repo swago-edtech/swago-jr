@@ -378,7 +378,10 @@ export default function LoginForm() {
               : "✅ Login successful!";
             setMessage(successMsg);
             window.dispatchEvent(new CustomEvent(USER_EVENTS.LOGIN));
-            setTimeout(() => router.push(redirectUrl || "/"), 500);
+            
+            // Redirect based on profile status
+            const nextUrl = responseData.hasKidProfiles ? (redirectUrl || "/") : "/profile?mode=create";
+            setTimeout(() => router.push(nextUrl), 800);
           } else {
             setMessage(`❌ ${responseData.error || "Verification failed"}`);
           }
@@ -455,8 +458,8 @@ export default function LoginForm() {
           {/* Right Column: The Login Card */}
           <div className="w-full max-w-[480px] relative flex flex-col items-center">
 
-            {/* Mobile Mascot - sits naturally above card, fully visible */}
-            <div className="md:hidden w-64 h-52 relative z-10 -mb-14 drop-shadow-[0_0_40px_rgba(124,93,250,0.3)] flex-shrink-0">
+            {/* Mobile Mascot - resized to fit better on screen */}
+            <div className="md:hidden w-48 h-40 relative z-10 -mb-8 drop-shadow-[0_0_40px_rgba(124,93,250,0.3)] flex-shrink-0">
               <Image
                 src="/images/blog/swago_mascots.png"
                 alt="Swago Mascots"
@@ -466,11 +469,11 @@ export default function LoginForm() {
               />
             </div>
 
-            <div className="w-full bg-white shadow-[0_40px_100px_-20px_rgba(58,45,94,0.15)] border border-slate-100 relative z-10 p-7 md:p-12 md:pt-14 text-left overflow-visible"
+            <div className="w-full bg-white shadow-[0_40px_100px_-20px_rgba(58,45,94,0.15)] border border-slate-100 relative z-10 p-5 md:p-12 md:pt-14 text-left overflow-visible"
               style={{ borderRadius: "32px" }}
             >
               {/* U-type Curve (SVG Notch) */}
-              <div className="absolute -top-[50px] left-1 right-1.9 h-[80px] pointer-events-none z-0">
+              <div className="absolute -top-[50px] left-1 right-1.9 h-[80px] pointer-events-none z-0 md:hidden">
                 <svg viewBox="0 0 100 20" preserveAspectRatio="none" className="w-full h-full" style={{ fill: '#ffffff' }}>
                   <path d="M0 20 L0 5 Q0 0 10 0 Q50 35 90 0 Q100 0 100 5 L100 20 Z" />
                 </svg>
@@ -492,18 +495,18 @@ export default function LoginForm() {
                   <div className="flex bg-slate-50/80 rounded-2xl p-1.5 border border-slate-100">
                     <button
                       onClick={() => setAuthMode("signup")}
-                      className={`flex-1 py-3.5 px-3 rounded-xl font-black text-xs uppercase tracking-wider transition-all duration-300 ${authMode === "signup"
-                        ? "bg-white text-[hsl(var(--swago-purple))] shadow-[0_8px_20px_rgba(58,45,94,0.1)]"
-                        : "text-slate-400 hover:text-slate-600"
+                      className={`flex-1 py-3 px-3 rounded-xl font-black text-xs uppercase tracking-wider transition-all duration-300 ${authMode === "signup"
+                        ? "bg-[hsl(var(--swago-purple))] text-white shadow-[0_8px_20px_rgba(58,45,94,0.2)]"
+                        : "bg-slate-100 text-slate-400 hover:text-slate-600"
                         }`}
                     >
                       New User
                     </button>
                     <button
                       onClick={() => setAuthMode("signin")}
-                      className={`flex-1 py-3.5 px-3 rounded-xl font-black text-xs uppercase tracking-wider transition-all duration-300 ${authMode === "signin"
-                        ? "bg-white text-[hsl(var(--swago-purple))] shadow-[0_8px_20px_rgba(58,45,94,0.1)]"
-                        : "text-slate-400 hover:text-slate-600"
+                      className={`flex-1 py-3 px-3 rounded-xl font-black text-xs uppercase tracking-wider transition-all duration-300 ${authMode === "signin"
+                        ? "bg-[hsl(var(--swago-purple))] text-white shadow-[0_8px_20px_rgba(58,45,94,0.2)]"
+                        : "bg-slate-100 text-slate-400 hover:text-slate-600"
                         }`}
                     >
                       Already a User
@@ -531,7 +534,7 @@ export default function LoginForm() {
                           }}
                           placeholder="Enter 10-digit number"
                           maxLength={10}
-                          className="flex-1 bg-white border border-slate-100 rounded-2xl p-4 text-base focus:outline-none focus:ring-4 focus:ring-purple-50 focus:border-[hsl(var(--swago-purple))] transition-all placeholder:text-slate-300 font-medium shadow-sm"
+                          className="flex-1 bg-white border border-slate-100 rounded-2xl p-4 text-base focus:outline-none focus:ring-4 focus:ring-purple-50 focus:border-[hsl(var(--swago-purple))] transition-all placeholder:text-slate-300 text-slate-900 font-bold shadow-sm"
                         />
                       </div>
                     </div>
@@ -554,7 +557,7 @@ export default function LoginForm() {
                               value={name}
                               onChange={(e) => setName(e.target.value)}
                               placeholder="Enter your full name"
-                              className="w-full bg-white border border-slate-100 rounded-2xl p-4 text-base focus:outline-none focus:ring-4 focus:ring-purple-50 focus:border-[hsl(var(--swago-purple))] transition-all placeholder:text-slate-300 font-medium shadow-sm"
+                              className="w-full bg-white border border-slate-100 rounded-2xl p-4 text-base focus:outline-none focus:ring-4 focus:ring-purple-50 focus:border-[hsl(var(--swago-purple))] transition-all placeholder:text-slate-300 text-slate-900 font-bold shadow-sm"
                             />
                           </div>
 
@@ -567,7 +570,7 @@ export default function LoginForm() {
                               value={email}
                               onChange={(e) => setEmail(e.target.value)}
                               placeholder="your.email@example.com"
-                              className="w-full bg-white border border-slate-100 rounded-2xl p-4 text-base focus:outline-none focus:ring-4 focus:ring-purple-50 focus:border-[hsl(var(--swago-purple))] transition-all placeholder:text-slate-300 font-medium shadow-sm"
+                              className="w-full bg-white border border-slate-100 rounded-2xl p-4 text-base focus:outline-none focus:ring-4 focus:ring-purple-50 focus:border-[hsl(var(--swago-purple))] transition-all placeholder:text-slate-300 text-slate-900 font-bold shadow-sm"
                             />
                           </div>
                         </motion.div>
@@ -612,7 +615,7 @@ export default function LoginForm() {
                       onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
                       placeholder="......"
                       maxLength={6}
-                      className="w-full bg-slate-50/50 border border-slate-100 rounded-[2rem] p-6 text-center text-4xl font-black tracking-[0.4em] focus:outline-none focus:ring-4 focus:ring-purple-50 focus:border-[hsl(var(--swago-purple))] transition-all placeholder:text-slate-200"
+                      className="w-full bg-slate-50/50 border border-slate-100 rounded-[2rem] p-6 text-center text-4xl font-black tracking-[0.4em] focus:outline-none focus:ring-4 focus:ring-purple-50 focus:border-[hsl(var(--swago-purple))] transition-all placeholder:text-slate-200 text-slate-900"
                     />
                   </div>
 

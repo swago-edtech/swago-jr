@@ -74,28 +74,6 @@ export default function Navbar() {
                 <Link href="/about" className="transition-colors hover:text-black">About Us</Link>
               </motion.div>
 
-              {/* Shop By Age Dropdown */}
-              <motion.div className="relative" ref={ageDropdownRef} whileHover={{ y: -2 }}>
-                <button onClick={() => setAgeDropdownOpen(!isAgeDropdownOpen)} className="transition-colors hover:text-black flex items-center gap-1">
-                  Shop by Age <HiChevronDown className="w-5 h-5" />
-                </button>
-                <AnimatePresence>
-                  {isAgeDropdownOpen && (
-                    <motion.div
-                      className="absolute top-full left-0 mt-2 w-40 bg-white rounded-md shadow-lg z-20 border border-slate-200 p-1 border-t-4 border-t-black"
-                      variants={dropdownVariants}
-                      initial="hidden"
-                      animate="visible"
-                      exit="exit"
-                    >
-                      <Link href="/products" onClick={() => setAgeDropdownOpen(false)} className="block px-3 py-1.5 text-sm rounded-sm font-semibold hover:bg-slate-100 uppercase tracking-tighter">All Ages</Link>
-                      <Link href="/products?age=5-7" onClick={() => setAgeDropdownOpen(false)} className="block px-3 py-1.5 text-sm rounded-sm hover:bg-slate-100">Ages 5-7</Link>
-                      <Link href="/products?age=8-10" onClick={() => setAgeDropdownOpen(false)} className="block px-3 py-1.5 text-sm rounded-sm hover:bg-slate-100">Ages 8-10</Link>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </motion.div>
-
               {/* Shop By Categories Dropdown */}
               <motion.div className="relative" ref={elementDropdownRef} whileHover={{ y: -2 }}>
                 <button onClick={() => setElementDropdownOpen(!isElementDropdownOpen)} className="transition-colors hover:text-black flex items-center gap-1">
@@ -151,7 +129,7 @@ export default function Navbar() {
 
             {/* Cart Button - Desktop & Mobile */}
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <button onClick={openCartSidebar} className="relative p-2 flex items-center gap-1 group transition-colors" aria-label="Cart">
+              <Link href="/cart" className="relative p-2 flex items-center gap-1 group transition-colors" aria-label="Cart">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-6 h-6 text-black group-hover:scale-110 transition-transform">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
                 </svg>
@@ -161,7 +139,7 @@ export default function Navbar() {
                   </span>
                 )}
                 <span className="hidden lg:inline text-sm font-bold text-black">Cart</span>
-              </button>
+              </Link>
             </motion.div>
           </>
         )}
@@ -252,17 +230,6 @@ export default function Navbar() {
                     )}
                   </Link>
                   <Link href="/about" onClick={() => setMobileMenuOpen(false)} className="block text-xl font-bold text-slate-800">About Us</Link>
-                  <hr className="border-slate-100" />
-
-                  <div>
-                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Shop By Age</h3>
-                    <div className="space-y-3 pl-2">
-                      <Link href="/products" onClick={() => setMobileMenuOpen(false)} className="block text-slate-600 hover:text-black font-medium">All Ages</Link>
-                      <Link href="/products?age=5-7" onClick={() => setMobileMenuOpen(false)} className="block text-slate-600 hover:text-black font-medium">Ages 5-7</Link>
-                      <Link href="/products?age=8-10" onClick={() => setMobileMenuOpen(false)} className="block text-slate-600 hover:text-black font-medium">Ages 8-10</Link>
-                    </div>
-                  </div>
-
                   <hr className="border-slate-100" />
 
                   <div>

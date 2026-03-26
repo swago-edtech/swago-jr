@@ -8,14 +8,22 @@ export default function JourneyStepsSection() {
   const steps = [
     {
       number: "1",
-      emoji: "🦸",
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-12 h-12 mx-auto">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+        </svg>
+      ),
       title: "Create Your Child's Swago Hero Profile",
       description: "This creates your child's digital identity inside the Swagoverse.",
       color: "[hsl(var(--swago-purple))]",
     },
     {
       number: "2",
-      emoji: "🎬",
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-12 h-12 mx-auto">
+          <path strokeLinecap="round" strokeLinejoin="round" d="m15.75 10.5 4.72-4.72a.75.75 0 0 1 1.28.53v11.38a.75.75 0 0 1-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25h-9A2.25 2.25 0 0 0 2.25 7.5v9a2.25 2.25 0 0 0 2.25 2.25Z" />
+        </svg>
+      ),
       title: "Complete the Entry Challenge",
       description: "Your child will do one fun, pressure-free task to enter the journey.",
       color: "[hsl(var(--swago-orange))]",
@@ -55,8 +63,8 @@ export default function JourneyStepsSection() {
                   {step.number}
                 </div>
 
-                {/* Emoji */}
-                <div className="text-5xl mb-4 text-center">{step.emoji}</div>
+                {/* Icon */}
+                <div className="text-slate-800 mb-4 text-center">{step.icon}</div>
 
                 {/* Title */}
                 <h3 className="text-xl font-bold text-slate-800 mb-3 text-center">

@@ -140,7 +140,7 @@ export default function ApplicationForm() {
   useEffect(() => {
     if (!isLoadingUser && user) {
       console.log("✅ User already logged in, redirecting to /kids/dashboard");
-      router.push('/kids/dashboard');
+      router.push('/profile');
     }
   }, [user, isLoadingUser, router]);
 
@@ -148,7 +148,7 @@ export default function ApplicationForm() {
   useEffect(() => {
     if (step === 'success') {
       const timer = setTimeout(() => {
-        router.push('/kids/dashboard');
+        router.push('/profile');
       }, 3000);
 
       return () => clearTimeout(timer);
@@ -521,7 +521,7 @@ export default function ApplicationForm() {
 
               // Redirect to dashboard (or /kids if no profiles)
               setTimeout(() => {
-                router.push(profileSelected ? '/kids/dashboard' : '/kids');
+                router.push('/profile');
               }, 500);
             } else {
               setError(responseData.error || "Login failed");
@@ -630,29 +630,14 @@ export default function ApplicationForm() {
               <p className="text-lg text-slate-600 mb-4">
                 Your account has been created successfully!
               </p>
-              <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg p-6 mb-6">
-                <p className="text-lg font-semibold text-slate-800 mb-2">
-                  🎁 {formData.childName} received:
-                </p>
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-center justify-center gap-2 text-yellow-600 font-bold">
-                    <span className="text-2xl">💰</span>
-                    <span className="text-xl">20 Swago Dollars</span>
-                  </div>
-                  <div className="flex items-center justify-center gap-2 text-purple-600 font-bold">
-                    <span className="text-2xl">🦸</span>
-                    <span className="text-lg">Swago Saviour Badge</span>
-                  </div>
-                </div>
-              </div>
-              <p className="text-sm text-slate-600 mb-6">
-                Redirecting to Kids Dashboard in 3 seconds...
+              <p className="text-sm text-slate-600 mb-6 font-bold uppercase tracking-tight">
+                Redirecting to your profile in 3 seconds...
               </p>
               <button
-                onClick={() => router.push("/kids/dashboard")}
-                className="inline-block bg-[hsl(var(--swago-orange))]  text-white font-bold px-8 py-3 rounded-full hover:opacity-90 transition-opacity"
+                onClick={() => router.push("/profile")}
+                className="inline-block bg-[hsl(var(--swago-orange))] text-white font-black px-8 py-3 rounded-full hover:opacity-90 transition-opacity uppercase tracking-widest text-xs"
               >
-                Go to Dashboard Now →
+                Go to Profile Now →
               </button>
             </div>
           </div>

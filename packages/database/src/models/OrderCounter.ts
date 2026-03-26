@@ -19,8 +19,7 @@ const OrderCounterSchema = new mongoose.Schema({
     timestamps: true
 });
 
-// Create index for fast lookups
-OrderCounterSchema.index({ date: 1 });
+// unique: true already creates the index, no need for explicit index()
 
 export default mongoose.models.OrderCounter ||
     mongoose.model("OrderCounter", OrderCounterSchema);

@@ -14,6 +14,7 @@ interface IUser {
   age?: number;
   address?: string;
   orders?: string[];
+  swagoMoney?: number;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -70,9 +71,9 @@ export async function GET() {
     let user: IUser | null = null;
     
     if (session.phone) {
-      user = await User.findOne({ phone: session.phone }).lean() as IUser | null;
+      user = await User.findOne({ phone: session.phone }).populate('orders').lean() as IUser | null;
     } else if (session.email) {
-      user = await User.findOne({ email: session.email }).lean() as IUser | null;
+      user = await User.findOne({ email: session.email }).populate('orders').lean() as IUser | null;
     }
 
     if (!user) {
@@ -85,7 +86,7 @@ export async function GET() {
     // Prepare user data
     const userData: IUser = {
       ...user,
-      orders: []
+      orders: user.orders || []
     };
 
     // Store in cache

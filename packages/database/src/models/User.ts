@@ -103,6 +103,10 @@ const UserSchema = new mongoose.Schema(
         default: Date.now 
       }
     }],
+    swagoMoney: {
+      type: Number,
+      default: 500, // Welcome Bonus
+    },
   },
   { timestamps: true }
 );

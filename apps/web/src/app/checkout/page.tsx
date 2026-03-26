@@ -547,7 +547,7 @@ function OrderSummary({
           />
           <button 
             onClick={applyCoupon}
-            className="px-6 h-12 bg-[#E1E1E1] text-[#666] font-bold rounded-md text-sm hover:bg-[#D4D4D4] transition-colors"
+            className="px-6 h-12 bg-[hsl(var(--swago-purple))] text-white font-black rounded-md text-sm hover:opacity-90 transition-all active:scale-95 shadow-lg shadow-purple-50"
           >
             Apply
           </button>

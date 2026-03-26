@@ -56,6 +56,7 @@ export type User = {
   wishlist: (number | string)[];
   email?: string;
   cart?: CartItem[];
+  swagoMoney?: number;
 };
 
 export type SelectedKid = {

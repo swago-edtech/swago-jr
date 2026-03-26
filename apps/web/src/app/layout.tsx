@@ -6,8 +6,14 @@ import { GoogleAnalytics } from '@next/third-parties/google';
 import Navbar from "@/components/Navbar";
 import { SharedProvider } from "@/context/SharedContext";
 import Footer from "@/components/Footer";
-import CartSidebar from "@/components/CartSidebar";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
+import { Poppins } from "next/font/google";
+
+const poppins = Poppins({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700", "800", "900"],
+  variable: "--font-poppins",
+});
 
 
 export const metadata = {
@@ -24,11 +30,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   // Check if current route is kids section
   const isKidsRoute = pathname.startsWith("/kids");
   const isBlogOnly = process.env.BLOG_ONLY_MODE === "true";
-  const isLoginRoute = pathname === "/login";
+  const isLoginRoute = pathname.startsWith("/login");
 
   return (
-    <html lang="en">
-      <body className="flex flex-col min-h-screen bg-gray-50">
+    <html lang="en" className={poppins.variable}>
+      <body className="flex flex-col min-h-screen bg-gray-50 font-poppins">
         <SharedProvider>
           {/* Show announcement banner on all pages except /kids/* and blog-only mode */}
           {!isKidsRoute && !isBlogOnly && !isLoginRoute && <AnnouncementBanner />}
@@ -36,7 +42,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           {(!isBlogOnly || pathname.startsWith("/blog")) && !isLoginRoute && <Navbar />}
           <main className="flex-grow">{children}</main>
           {(!isBlogOnly || pathname.startsWith("/blog")) && !isLoginRoute && <Footer />}
-          {!isBlogOnly && !isLoginRoute && <CartSidebar />}
         </SharedProvider>
 
         {/* Google Analytics Component */}

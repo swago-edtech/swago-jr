@@ -73,11 +73,20 @@ export async function POST(request: NextRequest) {
     };
     profile.ambassador.status = "entry_pending";
 
+    // Award 25 Swago Money for completion/submission
+    user.swagoMoney = (user.swagoMoney || 0) + 25;
+    
+    // Also award to kid profile for consistency
+    profile.ambassador.swagoMoney = (profile.ambassador.swagoMoney || 0) + 25;
+    profile.ambassador.totalEarnings = (profile.ambassador.totalEarnings || 0) + 25;
+
     await profile.save();
+    await user.save();
 
     return NextResponse.json({
       success: true,
-      message: "Reel submitted successfully! It's under review.",
+      message: "Reel submitted successfully! 25 Swago Dollars added to your wallet.",
+      swagoMoney: user.swagoMoney,
     });
   } catch (error) {
     console.error("Reel submission error:", error);

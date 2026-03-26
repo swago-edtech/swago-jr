@@ -137,6 +137,10 @@ export async function POST(req: NextRequest) {
       ticketType: ticketType,
     });
 
+    // Award 20 Swago Money to parent profile as well
+    user.swagoMoney = (user.swagoMoney || 0) + 20;
+    await user.save();
+
     // 10. Return success with detailed info
     // 🆕 CHANGED: Now includes kid profile info and ticket details
     return NextResponse.json({

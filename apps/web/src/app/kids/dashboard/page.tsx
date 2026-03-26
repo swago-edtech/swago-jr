@@ -1,12 +1,25 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import Image from "next/image";
-import ReelUploadForm from "@/components/ReelUploadForm";
-import BrainGymQuiz from "@/components/BrainGymQuiz";
 import { motion, AnimatePresence } from "framer-motion";
+import { 
+  ChevronDown, 
+  Coins, 
+  Target, 
+  Zap, 
+  Flame, 
+  Brain, 
+  Star,
+  Play,
+  RotateCcw,
+  Plus,
+  Package,
+  Layers,
+  Ticket as TicketIcon
+} from "lucide-react";
+import ReelUploadForm from "@/components/ReelUploadForm";
 
 type SelectedKidProfile = {
   _id: string;
@@ -26,43 +39,82 @@ type AmbassadorData = {
     status: string;
     reelUrl?: string;
   };
-  brainGym: {
-    completed: boolean;
-  };
 };
 
-const badgeEmojis: { [key: string]: string } = {
-  "Swago Saviour": "🦸",
-  "Entry Master": "🎬",
-  "Brain Champion": "🧠",
-  "Brand Ambassador": "⭐",
-};
+const TAGS = [
+  { name: "Growth", color: "bg-[#4ADE80]", textColor: "text-white", icon: Star },
+  { name: "Optimization", color: "bg-[#818CF8]", textColor: "text-white", icon: Zap },
+  { name: "Willpower", color: "bg-[#FDBA74]", textColor: "text-white", icon: Brain },
+  { name: "Ambition", color: "bg-[#FDE047]", textColor: "text-slate-700", icon: Target },
+];
 
 export default function KidDashboardPage() {
   const router = useRouter();
   const [profile, setProfile] = useState<SelectedKidProfile | null>(null);
   const [ambassadorData, setAmbassadorData] = useState<AmbassadorData | null>(null);
+  const [user, setUser] = useState<{ name?: string, email?: string, orders?: any[], swagoMoney?: number } | null>(null);
+  const [purchasedProducts, setPurchasedProducts] = useState<string[]>([]);
+  const [selectedProduct, setSelectedProduct] = useState<string>("All");
+  const [showFilters, setShowFilters] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showReelForm, setShowReelForm] = useState(false);
-  const [showBrainGym, setShowBrainGym] = useState(false);
-  const [showMoneyModal, setShowMoneyModal] = useState(false);
-  const [showBadgesModal, setShowBadgesModal] = useState(false);
-  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
-  const [showReelSuccessModal, setShowReelSuccessModal] = useState(false);
-  const [welcomeData, setWelcomeData] = useState<{ swagoMoney: number; badge: string } | null>(null);
 
   useEffect(() => {
-    const storedProfile = localStorage.getItem("selectedKidProfile");
-    if (!storedProfile) {
-      router.push("/kids");
-      return;
+    const savedProfile = localStorage.getItem("selectedKidProfile");
+    fetchUserInfo();
+    if (!savedProfile) {
+      checkUserProfilePresence();
+    } else {
+      const parsed = JSON.parse(savedProfile);
+      setProfile(parsed);
+      fetchProfileData(parsed._id);
     }
+  }, []);
 
-    const profileData = JSON.parse(storedProfile);
-    setProfile(profileData);
+  const fetchUserInfo = async () => {
+    try {
+      const res = await fetch("/api/me");
+      if (res.ok) {
+        const data = await res.json();
+        setUser(data.user);
+        
+        if (data.user?.orders) {
+          const products = new Set<string>();
+          data.user.orders.forEach((order: any) => {
+             if (['Paid', 'Delivered', 'Shipped', 'Completed'].includes(order.status)) {
+               order.items?.forEach((item: any) => {
+                 if (item.name) products.add(item.name);
+               });
+             }
+          });
+          setPurchasedProducts(Array.from(products));
+        }
+      }
+    } catch (error) {
+      console.error("Failed to fetch user info:", error);
+    }
+  };
 
-    fetchProfileData(profileData._id);
-  }, [router]);
+  const checkUserProfilePresence = async () => {
+    try {
+      const res = await fetch("/api/kid-profiles");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.profiles && data.profiles.length > 0) {
+          router.push("/kids");
+        } else {
+          router.push("/profile?mode=create");
+        }
+      } else {
+        router.push("/login");
+      }
+    } catch (error) {
+      console.error("Failed to check profiles:", error);
+      router.push("/profile");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchProfileData = async (profileId: string) => {
     try {
@@ -70,7 +122,6 @@ export default function KidDashboardPage() {
       if (res.ok) {
         const data = await res.json();
         setAmbassadorData(data.profile.ambassador || null);
-        console.log("🔍 Ambassador Data:", JSON.stringify(data.profile.ambassador, null, 2));
       }
     } catch (error) {
       console.error("Failed to fetch profile data:", error);
@@ -79,762 +130,185 @@ export default function KidDashboardPage() {
     }
   };
 
-  const handleActivateAmbassador = async () => {
-    if (!profile) return;
-
-    try {
-      const res = await fetch("/api/ambassador/activate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ kidProfileId: profile._id }),
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        fetchProfileData(profile._id);
-        setWelcomeData({ swagoMoney: data.swagoMoney, badge: data.badge });
-        setShowWelcomeModal(true);
-      }
-    } catch (error) {
-      console.error("Failed to activate ambassador:", error);
-    }
-  };
-
-  const handleReelSubmitSuccess = () => {
-    setShowReelForm(false);
-    fetchProfileData(profile!._id);
-    setShowReelSuccessModal(true);
-  };
-
-  const handleBrainGymComplete = () => {
-    setShowBrainGym(false);
-    fetchProfileData(profile!._id);
-  };
-
   const handleSwitchProfile = () => {
-    console.log("🔄 Switching profile...");
     localStorage.removeItem("selectedKidProfile");
-    console.log("✅ Profile cleared, redirecting to profile selection");
-    window.location.href = "/kids";
+    router.push("/kids");
   };
 
-  if (loading || !profile) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-blue-100 to-green-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-lg text-blue-800">Loading your space...</p>
-        </div>
-      </div>
-    );
-  }
+  const quests = useMemo(() => {
+    let allQuests = [];
 
-  const isAmbassador = ambassadorData?.isAmbassador || false;
-  const canUploadReel = isAmbassador && ambassadorData?.currentStep === 2 && !ambassadorData?.entryChallenge.submitted;
-  const isReelPending = ambassadorData?.entryChallenge.status === "pending";
-  const isReelApproved = ambassadorData?.entryChallenge.status === "approved";
-  const canPlayBrainGym = isReelApproved && !ambassadorData?.brainGym.completed;
+    // 1. Common Mission
+    allQuests.push({
+      id: "reel",
+      title: "Focus Freeze Reel",
+      description: "Create a \"Yes I Can\" pose with your box",
+      reward: 50,
+      frequency: "Once/per season",
+      skill: "Optimization",
+      tags: [
+        { name: "Optimization", color: "bg-[#818CF8]", icon: Zap },
+        { name: "Spotlight", color: "bg-[#4ADE80]", icon: Star }
+      ],
+      image: "/images/test/quest_ice_clock.png",
+      action: () => setShowReelForm(true),
+      product: "Common"
+    });
 
-  const currentStep = ambassadorData?.currentStep || 1;
-  const steps = [
-    { number: 1, label: "Profile Created", status: currentStep >= 1 ? "completed" : "locked" },
-    { number: 2, label: "First Ambassador Challenge", status: currentStep === 2 ? "active" : currentStep > 2 ? "completed" : "locked" },
-    { number: 3, label: "More Tasks", status: currentStep === 3 ? "active" : currentStep > 3 ? "completed" : "locked" },
-    { number: 4, label: "Brand Ambassador", status: currentStep >= 4 ? "active" : "locked" },
-  ];
+    // 2. Product-Specific Tickets
+    purchasedProducts.forEach((boxName) => {
+      allQuests.push({
+        id: `lottery-${boxName}`,
+        title: `${boxName} Lucky Ticket`,
+        description: `Treasure draw entry for your ${boxName}.`,
+        reward: 20,
+        frequency: "Once/per box",
+        skill: "Luck",
+        tags: [
+          { name: "Ticket", color: "bg-[#FDE047]", icon: TicketIcon },
+          { name: boxName, color: "bg-[#A7F3D0]", icon: Package }
+        ],
+        image: "/images/test/quest_treasure.png",
+        action: () => router.push("/lottery-code"),
+        product: boxName
+      });
+    });
+
+    if (selectedProduct === "All") return allQuests;
+    return allQuests.filter((q) => q.product === selectedProduct || (selectedProduct === "Common" && q.product === "Common"));
+  }, [router, purchasedProducts, selectedProduct]);
+
+  if (loading || !profile) return <div className="min-h-screen bg-white" />;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-100 to-green-100">
-      <main className="container mx-auto px-4 py-6">
-
-        {/* ========== MOBILE PROGRESS BAR (Top) ========== */}
-        {isAmbassador && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="md:hidden bg-white rounded-2xl shadow-lg p-4 mb-4"
-          >
-            <h3 className="text-sm font-bold text-gray-800 mb-4 text-center">
-              Your Ambassador Journey
-            </h3>
-
-            {/* Horizontal Progress Bar */}
-            <div className="flex items-start justify-between relative">
-              <div className="absolute top-5 left-0 right-0 h-1 bg-gray-200 z-0">
-                <motion.div
-                  className="h-full bg-[hsl(var(--swago-purple))]"
-                  initial={{ width: 0 }}
-                  animate={{ width: `${((currentStep - 1) / 3) * 100}%` }}
-                  transition={{ duration: 0.5, ease: "easeOut" }}
-                />
-              </div>
-
-              {steps.map((step, index) => (
-                <div key={step.number} className="flex flex-col items-center z-10 relative flex-1">
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ delay: index * 0.1 }}
-                    className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm mb-2 ${step.status === "completed"
-                      ? "bg-green-500 text-white"
-                      : step.status === "active"
-                        ? "bg-[hsl(var(--swago-purple))] text-white"
-                        : "bg-gray-300 text-gray-500"
-                      }`}
-                  >
-                    {step.status === "completed" ? "✓" : step.status === "locked" ? "🔒" : step.number}
-                  </motion.div>
-
-                  <p className={`text-[10px] leading-tight font-medium text-center px-0.5 min-h-[32px] flex items-center justify-center ${step.status === "locked" ? "text-gray-400" : "text-gray-700"
-                    }`}>
-                    {step.label}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </motion.div>
-        )}
-
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-
-          {/* ========== LEFT SIDEBAR (40%) ========== */}
-          <div className="lg:col-span-2 space-y-4">
-
-            {/* Profile Card */}
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="bg-white rounded-2xl shadow-lg p-6"
+    <div className="min-h-screen bg-[#F0F4F8] pb-10 font-sans">
+      <div className="max-w-4xl mx-auto px-4 pt-8">
+        
+        {/* Header - Compact & Updated to Parent Info */}
+        <div className="flex items-center justify-between gap-6 mb-8 px-2">
+          <div className="flex items-center gap-5">
+            <button 
+              onClick={handleSwitchProfile}
+              className="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-4 border-white shadow-xl overflow-hidden bg-slate-100 relative group transition-transform hover:scale-105"
             >
-              {/* Mobile Layout */}
-              <div className="md:hidden">
-                <div className="flex items-start gap-4">
-                  {/* Left: Avatar with Name/Age/Button below */}
-                  <div className="flex flex-col items-center flex-shrink-0">
-                    <div className="w-20 h-20 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center relative mb-2">
-                      {profile.avatarColor?.startsWith('#') ? (
-                        <div
-                          className="w-full h-full flex items-center justify-center text-white text-2xl font-bold"
-                          style={{ backgroundColor: profile.avatarColor }}
-                        >
-                          {profile.name.charAt(0).toUpperCase()}
-                        </div>
-                      ) : (
-                        <Image
-                          src={profile.avatarColor || "/images/swoo.png"}
-                          alt={profile.name}
-                          width={80}
-                          height={80}
-                          className="object-cover"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.src = "/images/swoo.png";
-                          }}
-                        />
-                      )}
-                    </div>
-                    <h1 className="text-base font-bold text-gray-800 text-center mb-1">
-                      {profile.name}
-                    </h1>
-                    <p className="text-xs text-gray-600 mb-2">Age {profile.age}</p>
-
-                    {/* ✅ Switch Profile Button */}
-                    <button
-                      onClick={handleSwitchProfile}
-                      className="bg-[hsl(var(--swago-purple))] hover:opacity-90 text-white px-3 py-1.5 rounded-lg font-medium transition-all text-xs"
-                    >
-                      Switch Profile
-                    </button>
-                  </div>
-
-                  {/* Right: Money & Badges */}
-                  {isAmbassador && (
-                    <div className="flex-1 space-y-3">
-                      {/* Swago Money Section */}
-                      <div>
-                        <p className="text-xs font-semibold text-gray-700 mb-1">You earned</p>
-                        <button
-                          onClick={() => setShowMoneyModal(true)}
-                          className="w-full bg-teal-500 text-white px-3 py-2 rounded-lg shadow-sm hover:bg-teal-600 transition-colors active:scale-95"
-                        >
-                          <p className="text-sm font-bold">🪙 {ambassadorData?.swagoMoney || 0} Swago Dollars</p>
-                        </button>
-                      </div>
-
-                      {/* Badges Section */}
-                      {ambassadorData?.badges && ambassadorData.badges.length > 0 && (
-                        <div>
-                          <p className="text-xs font-semibold text-gray-700 mb-1">You earned</p>
-                          <button
-                            onClick={() => setShowBadgesModal(true)}
-                            className="w-full bg-[hsl(var(--swago-orange))] text-white px-3 py-2 rounded-lg shadow-sm hover:opacity-90 transition-opacity active:scale-95"
-                          >
-                            {ambassadorData.badges.map(badge => (
-                              <p key={badge.name} className="text-sm font-bold">
-                                {badgeEmojis[badge.name] || "🎖️"} {badge.name} Badge
-                              </p>
-                            ))}
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Desktop Layout */}
-              <div className="hidden md:block">
-                <div className="flex items-start gap-10">
-                  {/* Left Column: Avatar + Button */}
-                  <div className="flex-col items-center gap-8 flex-shrink-0">
-                    {/* Avatar */}
-                    <div className="flex gap-5">
-                      <div className="w-20 h-20 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center relative">
-                        {profile.avatarColor?.startsWith('#') ? (
-                          <div
-                            className="w-full h-full flex items-center justify-center text-white text-2xl font-bold"
-                            style={{ backgroundColor: profile.avatarColor }}
-                          >
-                            {profile.name.charAt(0).toUpperCase()}
-                          </div>
-                        ) : (
-                          <Image
-                            src={profile.avatarColor || "/images/swoo.png"}
-                            alt={profile.name}
-                            width={80}
-                            height={80}
-                            className="object-cover"
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement;
-                              target.src = "/images/swoo.png";
-                            }}
-                          />
-                        )}
-                      </div>
-                      {/* Middle Column: Name & Age */}
-                      <div className="flex flex-col justify-center">
-                        <h1 className="text-xl font-bold text-gray-800">
-                          {profile.name}
-                        </h1>
-                        <p className="text-sm text-gray-600">Age {profile.age}</p>
-                      </div>
-                    </div>
-                    <br />
-
-                    {/* ✅ Switch Profile Button */}
-                    <button
-                      onClick={handleSwitchProfile}
-                      className="bg-[hsl(var(--swago-purple))] hover:opacity-90 text-white px-6 py-2.5 rounded-lg font-medium transition-all text-sm"
-                    >
-                      Switch Profile
-                    </button>
-                  </div>
-
-                  {/* Right Column: Stats Cards */}
-                  {isAmbassador && (
-                    <div className="flex-1 space-y-3 ml-auto">
-                      {/* Swago Money Section */}
-                      <div>
-                        <p className="text-sm font-semibold text-gray-700 mb-1">You earned</p>
-                        <div className="bg-teal-500 text-white px-4 py-2 rounded-lg shadow-sm text-center">
-                          <p className="text-sm font-bold">🪙 {ambassadorData?.swagoMoney || 0} Swago Dollars</p>
-                        </div>
-                      </div>
-
-                      {/* Badges Section */}
-                      {ambassadorData?.badges && ambassadorData.badges.length > 0 && (
-                        <div>
-                          <p className="text-sm font-semibold text-gray-700 mb-1">You earned</p>
-                          <div className="bg-[hsl(var(--swago-orange))] text-white px-4 py-2 rounded-lg shadow-sm text-center">
-                            {ambassadorData.badges.map(badge => (
-                              <p key={badge.name} className="text-sm font-bold">
-                                {badgeEmojis[badge.name] || "🎖️"} {badge.name} Badge
-                              </p>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </motion.div>
-
-            {/* Swago Money Card (Desktop Only) */}
-            {isAmbassador && (
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.1 }}
-                className="hidden lg:block bg-teal-500 rounded-2xl shadow-lg p-6 text-white"
-              >
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="text-5xl">💰</div>
-                  <div>
-                    <p className="text-sm font-medium opacity-90">Swago Dollars</p>
-                    <motion.p
-                      key={ambassadorData?.swagoMoney}
-                      initial={{ scale: 1.2 }}
-                      animate={{ scale: 1 }}
-                      className="text-4xl font-bold"
-                    >
-                      {ambassadorData?.swagoMoney || 0}
-                    </motion.p>
-                  </div>
-                </div>
-                <div className="bg-white/20 backdrop-blur rounded-lg p-3 text-xs">
-                  <p className="font-medium text-white/90">
-                    💡 Use Swago Dollars for discounts, blind bags &amp; special rewards.
-                  </p>
-                </div>
-              </motion.div>
-            )}
-
-            {/* Badges Card (Desktop Only) */}
-            {isAmbassador && ambassadorData?.badges && ambassadorData.badges.length > 0 && (
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.2 }}
-                className="hidden lg:block bg-white rounded-2xl shadow-lg p-6"
-              >
-                <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                  <span>🏆</span> Your Badges
-                </h3>
-
-                <div className="flex flex-wrap gap-3">
-                  {ambassadorData.badges.map((badge, index) => (
-                    <motion.div
-                      key={badge.name}
-                      initial={{ scale: 0, rotate: -180 }}
-                      animate={{ scale: 1, rotate: 0 }}
-                      transition={{ delay: index * 0.1, type: "spring" }}
-                      className="relative group"
-                    >
-                      <div className="bg-[hsl(var(--swago-orange))]/10 rounded-xl p-4 flex flex-col items-center gap-2 min-w-[100px] border-2 border-[hsl(var(--swago-orange))]/30 hover:border-[hsl(var(--swago-orange))] transition-all hover:scale-105 cursor-pointer">
-                        <div className="text-3xl">
-                          {badgeEmojis[badge.name] || "🎖️"}
-                        </div>
-                        <p className="text-xs font-bold text-gray-800 text-center">
-                          {badge.name}
-                        </p>
-                      </div>
-
-                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-1 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
-                        Awarded on {new Date(badge.awardedAt).toLocaleDateString()}
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              </motion.div>
-            )}
+              <Image src={profile.avatarColor || "/images/swoo.png"} alt={profile.name} fill className="object-cover" />
+              <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-white"><RotateCcw className="w-8 h-8" /></div>
+            </button>
+            <div className="space-y-0.5">
+              <h1 className="text-2xl sm:text-3xl font-[1000] text-slate-800 tracking-tighter uppercase italic leading-none">{user?.name}</h1>
+              <p className="text-slate-400 font-bold text-xs sm:text-sm tracking-tight opacity-80">{user?.email}</p>
+            </div>
           </div>
-
-          {/* ========== RIGHT CONTENT AREA (60%) ========== */}
-          <div className="lg:col-span-3 space-y-6">
-
-            {/* Progress Bar (Desktop Only) */}
-            {isAmbassador && (
-              <motion.div
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="hidden md:block bg-white rounded-2xl shadow-lg p-6"
-              >
-                <h3 className="text-lg font-bold text-gray-800 mb-6 text-center">
-                  Your Ambassador Journey
-                </h3>
-
-                {/* Desktop View - Horizontal */}
-                <div className="flex items-start justify-between relative">
-                  <div className="absolute top-6 left-0 right-0 h-1 bg-gray-200 z-0">
-                    <motion.div
-                      className="h-full bg-[hsl(var(--swago-purple))]"
-                      initial={{ width: 0 }}
-                      animate={{ width: `${((currentStep - 1) / 3) * 100}%` }}
-                      transition={{ duration: 0.5, ease: "easeOut" }}
-                    />
-                  </div>
-
-                  {steps.map((step, index) => (
-                    <div key={step.number} className="flex flex-col items-center z-10 relative flex-1">
-                      <motion.div
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        transition={{ delay: index * 0.1 }}
-                        className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg mb-3 ${step.status === "completed"
-                          ? "bg-green-500 text-white"
-                          : step.status === "active"
-                            ? "bg-[hsl(var(--swago-purple))] text-white animate-pulse"
-                            : "bg-gray-300 text-gray-500"
-                          }`}
-                      >
-                        {step.status === "completed" ? "✓" : step.status === "locked" ? "🔒" : step.number}
-                      </motion.div>
-
-                      <p
-                        className={`text-xs md:text-sm font-medium text-center px-2 min-h-[40px] flex items-center justify-center ${step.status === "locked" ? "text-gray-400" : "text-gray-700"
-                          }`}
-                      >
-                        {step.label}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </motion.div>
-            )}
-
-            {/* Activity Section */}
-            {isAmbassador ? (
-              <div className="space-y-6">
-                {/* Entry Challenge Section */}
-                {canUploadReel && !showReelForm && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="bg-[hsl(var(--swago-purple))] rounded-2xl shadow-xl p-8 text-white text-center"
-                  >
-                    <h2 className="text-lg md:text-3xl font-bold mb-3">
-                      Ready for the First Ambassador Challenge?
-                    </h2>
-
-                    <div className="flex flex-col sm:flex-col items-center justify-center gap-4">
-                      <button
-                        onClick={() => setShowReelForm(true)}
-                        className="bg-white text-[hsl(var(--swago-purple))] font-bold px-5 md:px-10 py-4 mt-5 rounded-full hover:bg-gray-100 transition-all text-md md:text-lg shadow-lg"
-                      >
-                        Complete the challenge
-                      </button>
-
-                      <Link
-                        href="/ambassador"
-                        className="bg-white/20 backdrop-blur-sm border-2 border-white text-white font-bold px-4 py-2 rounded-full hover:bg-white/30 transition-all text-md"
-                      >
-                        Know More
-                      </Link>
-                    </div>
-                  </motion.div>
-                )}
-
-                {/* Reel Upload Form */}
-                <AnimatePresence>
-                  {showReelForm && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
-                    >
-                      <ReelUploadForm
-                        kidProfileId={profile._id}
-                        onSuccess={handleReelSubmitSuccess}
-                      />
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                {/* Reel Under Review */}
-                {isReelPending && (
-                  <div className="bg-yellow-50 border-2 border-yellow-300 rounded-2xl p-8 text-center">
-                    <div className="text-6xl mb-4">⏳</div>
-                    <h3 className="text-2xl font-bold text-gray-800 mb-3">
-                      Your Reel is Under Review!
-                    </h3>
-                    <p className="text-gray-600 text-lg">
-                      We&apos;re checking your amazing reel. You&apos;ll be notified once it&apos;s approved!
-                    </p>
-                  </div>
-                )}
-
-                {/* More Tasks Section (Previously Brain Gym) */}
-                {canPlayBrainGym && !showBrainGym && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="bg-[hsl(var(--swago-purple))] rounded-2xl shadow-xl p-8 text-white text-center"
-                  >
-                    <div className="text-6xl mb-4">🚀</div>
-                    <h2 className="text-3xl font-bold mb-3">
-                      More Tasks Coming Soon!
-                    </h2>
-                    <p className="text-lg mb-6 opacity-90">
-                      Great job completing your first challenge! We&apos;re preparing more exciting tasks for you.
-                    </p>
-                    <div className="bg-white/20 backdrop-blur rounded-xl p-4 inline-block">
-                      <p className="text-sm font-medium">
-                        Keep collecting Swago Dollars through lottery codes! 🎟️
-                      </p>
-                      <p className="text-xs opacity-80 mt-2">
-                        Reach 200 Swago Dollars to become a Brand Ambassador! ⭐
-                      </p>
-                    </div>
-                  </motion.div>
-                )}
-
-                {/* Brain Gym Quiz */}
-                <AnimatePresence>
-                  {showBrainGym && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
-                    >
-                      <BrainGymQuiz
-                        kidProfileId={profile._id}
-                        onComplete={handleBrainGymComplete}
-                      />
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                {/* Completion Message */}
-                {ambassadorData?.brainGym.completed && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="bg-[hsl(var(--swago-orange))] rounded-2xl shadow-xl p-8 text-white text-center"
-                  >
-                    <div className="text-7xl mb-4">🎉</div>
-                    <h2 className="text-3xl font-bold mb-3">
-                      Congratulations, Ambassador!
-                    </h2>
-                    <p className="text-lg mb-4 opacity-90">
-                      You&apos;ve completed all challenges! Check your Swago Dollars and badges above.
-                    </p>
-                    <p className="text-sm opacity-75">
-                      More challenges coming soon! Stay tuned 🚀
-                    </p>
-                  </motion.div>
-                )}
-              </div>
-            ) : (
-              // Ambassador Program Invitation
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-[hsl(var(--swago-purple))] rounded-3xl shadow-2xl p-12 text-white"
-              >
-                <div className="text-center max-w-2xl mx-auto">
-                  <h2 className="text-lg md:text-3xl font-bold mb-4">
-                    Join the Swago Ambassador Program!
-                  </h2>
-                  <p className="text-sm md:text-lg mb-8 opacity-90">
-                    Become a Swago Ambassador, complete challenges, earn Swago Dollars, and unlock exclusive rewards!
-                  </p>
-
-                  <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                    <button
-                      onClick={handleActivateAmbassador}
-                      className="bg-white text-[hsl(var(--swago-purple))] font-bold px-5 py-5 rounded-full text-sm md:text-xl hover:bg-gray-100 transition-all shadow-lg"
-                    >
-                      Start Ambassador Journey 🚀
-                    </button>
-
-                    <Link
-                      href="/ambassador"
-                      className="bg-white/20 backdrop-blur-sm border-2 border-white text-white font-bold px-5 py-3 rounded-full text-xs md:text-lg hover:bg-white/30 transition-all"
-                    >
-                      Know More
-                    </Link>
-                  </div>
-                </div>
-              </motion.div>
-            )}
+          
+          <div className="flex items-center gap-3 bg-white/90 backdrop-blur-sm px-5 py-3 rounded-full shadow-lg border border-white">
+             <div className="w-8 h-8 sm:w-9 sm:h-9 bg-amber-400 rounded-full flex items-center justify-center shadow-md border-2 border-white">
+               <Coins className="w-5 h-5 text-amber-900" strokeWidth={3} />
+             </div>
+             <span className="text-xl sm:text-2xl font-[1000] text-slate-800 tracking-tighter">{user?.swagoMoney || 0}</span>
           </div>
         </div>
 
-        {/* ========== MODALS ========== */}
-
-        {/* Welcome Ambassador Modal */}
-        <AnimatePresence>
-          {showWelcomeModal && welcomeData && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"
-              onClick={() => setShowWelcomeModal(false)}
-            >
-              <motion.div
-                initial={{ scale: 0.8, y: 20 }}
-                animate={{ scale: 1, y: 0 }}
-                exit={{ scale: 0.8, y: 20 }}
-                className="bg-[hsl(var(--swago-purple))] rounded-3xl shadow-2xl p-8 text-white max-w-md w-full text-center"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className="text-7xl mb-4">🎉</div>
-                <h2 className="text-3xl font-bold mb-4">
-                  Welcome to the Ambassador Program!
-                </h2>
-                <div className="bg-white/20 backdrop-blur rounded-2xl p-6 mb-6">
-                  <p className="text-lg mb-3">You earned:</p>
-                  <div className="flex items-center justify-center gap-4 mb-3">
-                    <div className="bg-white/30 rounded-lg px-4 py-2">
-                      <p className="text-2xl font-bold">🪙 {welcomeData.swagoMoney}</p>
-                      <p className="text-xs">Swago Dollars</p>
-                    </div>
-                  </div>
-                  <div className="bg-white/30 rounded-lg px-4 py-3">
-                    <p className="text-lg font-bold">{badgeEmojis[welcomeData.badge] || "🎖️"} {welcomeData.badge}</p>
-                    <p className="text-xs">Badge Unlocked</p>
-                  </div>
+        {/* Tags Section - Reduced vertical space */}
+        <div className="bg-white rounded-[2.5rem] shadow-md border border-white/60 p-6 sm:p-8 mb-8">
+           <h3 className="text-xs font-[1000] text-slate-300 uppercase tracking-widest italic mb-6">Ambassador Hub</h3>
+           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {TAGS.map((tag, i) => (
+                <div key={i} className={`${tag.color} ${tag.textColor} px-5 py-3 rounded-xl flex items-center gap-2 text-xs font-[1000] shadow-sm uppercase italic`}>
+                  <tag.icon className="w-4 h-4" strokeWidth={3} /> {tag.name}
                 </div>
-                <button
-                  onClick={() => setShowWelcomeModal(false)}
-                  className="bg-white text-[hsl(var(--swago-purple))] font-bold px-8 py-3 rounded-full hover:bg-gray-100 transition-all shadow-lg"
-                >
-                  Awesome! Let&apos;s Go 🚀
-                </button>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+              ))}
+           </div>
+        </div>
 
-        {/* Reel Success Modal */}
-        <AnimatePresence>
-          {showReelSuccessModal && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"
-              onClick={() => setShowReelSuccessModal(false)}
-            >
-              <motion.div
-                initial={{ scale: 0.8, y: 20 }}
-                animate={{ scale: 1, y: 0 }}
-                exit={{ scale: 0.8, y: 20 }}
-                className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full text-center"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className="text-7xl mb-4">✅</div>
-                <h2 className="text-3xl font-bold text-gray-800 mb-4">
-                  Reel Submitted Successfully!
-                </h2>
-                <p className="text-gray-600 text-lg mb-6">
-                  Your reel is now under review. We&apos;ll notify you once it&apos;s approved!
-                </p>
-                <button
-                  onClick={() => setShowReelSuccessModal(false)}
-                  className="bg-[hsl(var(--swago-purple))] text-white font-bold px-8 py-3 rounded-full hover:opacity-90 transition-all shadow-lg"
-                >
-                  Got it!
-                </button>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Money Modal */}
-        <AnimatePresence>
-          {showMoneyModal && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 md:hidden"
-              onClick={() => setShowMoneyModal(false)}
-            >
-              <motion.div
-                initial={{ scale: 0.9, y: 20 }}
-                animate={{ scale: 1, y: 0 }}
-                exit={{ scale: 0.9, y: 20 }}
-                className="bg-teal-500 rounded-2xl shadow-2xl p-6 text-white max-w-sm w-full"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className="flex justify-between items-start mb-4">
-                  <h3 className="text-xl font-bold">💰 Swago Dollars</h3>
-                  <button
-                    onClick={() => setShowMoneyModal(false)}
-                    className="text-white/80 hover:text-white text-2xl leading-none"
-                  >
-                    ×
-                  </button>
-                </div>
-
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="text-6xl">💰</div>
-                  <div>
-                    <p className="text-sm font-medium opacity-90">Your Balance</p>
-                    <motion.p
-                      key={ambassadorData?.swagoMoney}
-                      initial={{ scale: 1.2 }}
-                      animate={{ scale: 1 }}
-                      className="text-5xl font-bold"
+        {/* Quest Log Container - COMPACT */}
+        <div className="bg-white rounded-[3rem] shadow-lg border border-white p-6 sm:p-8 space-y-6">
+            <div className="flex flex-col sm:flex-row gap-4 sm:items-center justify-between pb-2 border-b-2 border-slate-50">
+                <h2 className="text-2xl font-[1000] text-slate-800 tracking-tighter uppercase italic underline decoration-blue-500/10 decoration-4 underline-offset-4">Quest Log</h2>
+                
+                <div className="relative">
+                    <button 
+                        onClick={() => setShowFilters(!showFilters)}
+                        className="flex items-center justify-between gap-3 bg-slate-50 px-5 py-2.5 rounded-xl border border-slate-100 text-slate-400 font-black text-[9px] uppercase tracking-widest shadow-sm hover:bg-slate-100 transition-all"
                     >
-                      {ambassadorData?.swagoMoney || 0}
-                    </motion.p>
-                  </div>
-                </div>
+                        <span className="truncate">{selectedProduct === "All" ? "All Tasks" : selectedProduct}</span>
+                        <ChevronDown className={`w-3 h-3 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
+                    </button>
 
-                <div className="bg-white/20 backdrop-blur rounded-lg p-4">
-                  <p className="font-medium text-white/90 text-sm">
-                    💡 Use Swago Dollars for discounts, blind bags &amp; special rewards.
-                  </p>
+                    <AnimatePresence>
+                      {showFilters && (
+                        <motion.div 
+                          initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 5 }}
+                          className="absolute right-0 top-[calc(100%+8px)] w-44 bg-white rounded-xl shadow-2xl border border-slate-100 z-50 overflow-hidden py-1 px-1"
+                        >
+                           <button onClick={() => { setSelectedProduct("All"); setShowFilters(false); }} className={`w-full text-left px-4 py-2 font-black text-[9px] uppercase hover:bg-slate-50 rounded-xl transition-all ${selectedProduct === "All" ? 'text-blue-600 bg-blue-50' : 'text-slate-400'}`}>All Tasks</button>
+                           <button onClick={() => { setSelectedProduct("Common"); setShowFilters(false); }} className={`w-full text-left px-4 py-2 font-black text-[9px] uppercase hover:bg-slate-50 rounded-xl transition-all ${selectedProduct === "Common" ? 'text-blue-600 bg-blue-50' : 'text-slate-400'}`}>Common</button>
+                           {purchasedProducts.map(name => (
+                             <button key={name} onClick={() => { setSelectedProduct(name); setShowFilters(false); }} className={`w-full text-left px-4 py-2 font-black text-[9px] uppercase hover:bg-slate-50 rounded-xl transition-all ${selectedProduct === name ? 'text-blue-600 bg-blue-50' : 'text-slate-400'}`}>{name}</button>
+                           ))}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                 </div>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            </div>
 
-        {/* Badges Modal */}
-        <AnimatePresence>
-          {showBadgesModal && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 md:hidden"
-              onClick={() => setShowBadgesModal(false)}
-            >
-              <motion.div
-                initial={{ scale: 0.9, y: 20 }}
-                animate={{ scale: 1, y: 0 }}
-                exit={{ scale: 0.9, y: 20 }}
-                className="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full max-h-[80vh] overflow-y-auto"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className="flex justify-between items-start mb-4">
-                  <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                    <span>🏆</span> Your Badges
-                  </h3>
-                  <button
-                    onClick={() => setShowBadgesModal(false)}
-                    className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
-                  >
-                    ×
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  {ambassadorData?.badges?.map((badge, index) => (
-                    <motion.div
-                      key={badge.name}
-                      initial={{ scale: 0, rotate: -180 }}
-                      animate={{ scale: 1, rotate: 0 }}
-                      transition={{ delay: index * 0.1, type: "spring" }}
-                    >
-                      <div className="bg-[hsl(var(--swago-orange))]/10 rounded-xl p-4 flex flex-col items-center gap-2 border-2 border-[hsl(var(--swago-orange))]/30">
-                        <div className="text-4xl">
-                          {badgeEmojis[badge.name] || "🎖️"}
+            <div className="space-y-4 pt-1">
+                {quests.map((quest) => (
+                    <motion.div key={quest.id} initial={{ opacity: 0, scale: 0.98 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} className="bg-white border border-slate-50 p-5 rounded-[2rem] shadow-sm flex items-center gap-6 group hover:shadow-xl hover:border-blue-100 transition-all duration-300">
+                        <div className="relative w-24 h-24 sm:w-28 sm:h-28 shrink-0 rounded-2xl overflow-hidden shadow-lg border-2 border-white group-hover:scale-105 transition-transform">
+                            <Image src={quest.image} alt={quest.title} fill className="object-cover" />
                         </div>
-                        <p className="text-xs font-bold text-gray-800 text-center">
-                          {badge.name}
-                        </p>
-                        <p className="text-xs text-gray-600 text-center">
-                          {new Date(badge.awardedAt).toLocaleDateString('en-IN', {
-                            day: 'numeric',
-                            month: 'short',
-                            year: 'numeric'
-                          })}
-                        </p>
-                      </div>
+
+                        <div className="flex-1 min-w-0 space-y-1.5">
+                            {/* Horizontal Stack Tags (No Wrap) */}
+                            <div className="flex flex-row items-center gap-1.5 overflow-hidden">
+                                {quest.tags.map((tag, j) => (
+                                    <div key={j} className={`${tag.color} text-white px-2.5 py-1 rounded-md flex items-center gap-1.5 text-[8px] font-black uppercase tracking-widest shadow-sm whitespace-nowrap`}>
+                                        <tag.icon className="w-3 h-3" strokeWidth={4} /> {tag.name}
+                                    </div>
+                                ))}
+                            </div>
+
+                            <h3 className="text-xl sm:text-2xl font-[1000] text-slate-800 tracking-tight leading-tight uppercase italic truncate">{quest.title}</h3>
+                            <p className="text-[11px] font-bold text-slate-400 truncate opacity-80">{quest.description}</p>
+
+                            <div className="flex items-center gap-4">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-lg">🪙</span>
+                                    <span className="text-sm font-[1000] text-slate-700">+{quest.reward} SD</span>
+                                </div>
+                                <span className="text-[9px] font-black text-slate-200 uppercase tracking-widest">{quest.frequency}</span>
+                                <span className="text-[9px] font-black text-slate-300 uppercase italic">Skill: {quest.skill}</span>
+                            </div>
+                        </div>
+
+                        <div className="shrink-0 pr-2">
+                            <button
+                                onClick={quest.action}
+                                className="bg-gradient-to-r from-emerald-400 to-emerald-500 text-white px-8 py-3 rounded-full text-sm font-[1000] shadow-md hover:scale-110 active:scale-95 transition-all uppercase italic"
+                            >
+                                Start
+                            </button>
+                        </div>
                     </motion.div>
-                  ))}
-                </div>
-              </motion.div>
+                ))}
+            </div>
+        </div>
+      </div>
+
+      {/* Reel Modal */}
+      <AnimatePresence>
+        {showReelForm && profile && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md">
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="w-full max-w-lg bg-white rounded-[3rem] shadow-2xl relative">
+              <button 
+                onClick={() => setShowReelForm(false)}
+                className="absolute top-6 right-6 font-bold text-slate-400 hover:text-slate-800"
+              >✕</button>
+              <div className="p-10"><ReelUploadForm kidProfileId={profile._id} onSuccess={() => { setShowReelForm(false); fetchProfileData(profile._id); }} /></div>
             </motion.div>
-          )}
-        </AnimatePresence>
-      </main>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

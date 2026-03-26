@@ -111,7 +111,7 @@ export default function ReviewList({ productId, currentUserId }: ReviewListProps
   return (
     <div className="space-y-6">
       {/* Reviews List & Stats in a single card */}
-      <div className="bg-white p-6 md:p-8 rounded-[2rem] border border-slate-100 shadow-sm">
+      <div className="bg-white p-4 md:p-6 rounded-[2rem] border border-slate-100 shadow-sm">
         <div className="mb-6">
           <h3 className="text-xl md:text-2xl font-black text-slate-900 uppercase tracking-tight mb-1">
             How do you like our product?
@@ -148,20 +148,20 @@ export default function ReviewList({ productId, currentUserId }: ReviewListProps
         )}
 
         {/* Individual Reviews */}
-        <div className="space-y-6">
+        <div className="space-y-4">
           {sortedReviews.length === 0 ? (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="text-center py-16 bg-gradient-to-b from-purple-50/50 to-transparent rounded-3xl border-2 border-dashed border-purple-100"
+              className="text-center py-12 bg-gradient-to-b from-purple-50/50 to-transparent rounded-3xl border-2 border-dashed border-purple-100"
             >
-              <div className="flex justify-center mb-6">
+              <div className="flex justify-center mb-4">
                 <StarRating rating={0} size="lg" />
               </div>
-              <p className="text-xl font-bold text-slate-900 px-4">
+              <h4 className="text-lg font-bold text-slate-900 px-4">
                 Be the first parent to review this smart box.
-              </p>
-              <p className="text-slate-500 mt-3 px-6 max-w-md mx-auto">
+              </h4>
+              <p className="text-slate-500 mt-2 px-6 max-w-md mx-auto text-sm">
                 Your feedback helps other parents choose the perfect learning experience for their kids.
               </p>
             </motion.div>

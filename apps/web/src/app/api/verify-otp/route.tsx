@@ -302,6 +302,10 @@ export async function POST(req: Request) {
         .setExpirationTime("7d")
         .sign(secret);
 
+      // ✅ NEW: Count kid profiles to determine if user should go to onboarding
+      const { KidProfile } = await import("@swago/database");
+      const kidProfileCount = await KidProfile.countDocuments({ parentId: user._id });
+
       // ✅ Create response - cart already has full details, no populate needed
       const response = NextResponse.json({
         success: true,
@@ -315,6 +319,7 @@ export async function POST(req: Request) {
           orders: user.orders || [],
           cart: user.cart || [],
         },
+        hasKidProfiles: kidProfileCount > 0
       });
 
       // Set session cookie

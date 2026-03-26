@@ -10,40 +10,54 @@ if (!MONGODB_URI) {
   throw new Error("Please define the MONGODB_URI environment variable inside .env.local");
 }
 
-async function connectDB(): Promise<Mongoose> {
-  // If already connected, return immediately
-  if (mongoose.connection.readyState === 1) {
-    return mongoose;
-  }
-
-  // If connecting, wait for it
-  if (mongoose.connection.readyState === 2) {
-    await new Promise<void>((resolve) => {
-      mongoose.connection.once('connected', () => resolve());
-    });
-    return mongoose;
-  }
-
-  // ✅ SECURITY FIX: Disable automatic index creation globally
-  mongoose.set('autoIndex', false);
-
-  // Otherwise, create new connection WITH OPTIMIZED POOLING
-  const opts: ConnectOptions = {
-    bufferCommands: false,
-    maxPoolSize: 100,
-    minPoolSize: 20,
-    socketTimeoutMS: 45000,
-    serverSelectionTimeoutMS: 10000,
-    maxIdleTimeMS: 30000,
-    waitQueueTimeoutMS: 5000,
-    retryWrites: true,
-    retryReads: true,
+declare global {
+  var mongoose: {
+    conn: Mongoose | null;
+    promise: Promise<Mongoose> | null;
   };
+}
 
-  await mongoose.connect(MONGODB_URI, opts);
-  console.log('✅ MongoDB connected (autoIndex: OFF - manual indexes required)');
-  
-  return mongoose;
+let cached = global.mongoose;
+
+if (!cached) {
+  cached = global.mongoose = { conn: null, promise: null };
+}
+
+async function connectDB(): Promise<Mongoose> {
+  if (cached.conn) {
+    return cached.conn;
+  }
+
+  if (!cached.promise) {
+    // ✅ SECURITY FIX: Disable automatic index creation globally
+    mongoose.set('autoIndex', false);
+
+    const opts: ConnectOptions = {
+      bufferCommands: true, // Allow buffering until connection is ready
+      maxPoolSize: 100,
+      minPoolSize: 10,
+      socketTimeoutMS: 60000,
+      serverSelectionTimeoutMS: 30000,
+      maxIdleTimeMS: 60000,
+      waitQueueTimeoutMS: 30000, // Significant increase to avoid timeouts under load
+      retryWrites: true,
+      retryReads: true,
+    };
+
+    cached.promise = mongoose.connect(MONGODB_URI, opts).then((m) => {
+      console.log('✅ MongoDB connected (autoIndex: OFF - manual indexes required)');
+      return m;
+    });
+  }
+
+  try {
+    cached.conn = await cached.promise;
+  } catch (e) {
+    cached.promise = null;
+    throw e;
+  }
+
+  return cached.conn;
 }
 
 export default connectDB;

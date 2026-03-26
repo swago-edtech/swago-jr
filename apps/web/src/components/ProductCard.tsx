@@ -5,11 +5,12 @@ import { Product, CartItem, useSharedContext } from "@/context/SharedContext";
 import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
-// ✅ NEW: Import react-icons
+import { useRouter } from "next/navigation";
 import { AiFillHeart, AiOutlineHeart } from "react-icons/ai";
 import { RiShareForwardFill } from "react-icons/ri";
 
 export default function ProductCard({ product }: { product: Product }) {
+  const router = useRouter();
   const { cart, addToCart, addToWishlist, removeFromWishlist, isWishlisted, openCartSidebar, increaseQty, decreaseQty } = useSharedContext();
 
   // Use MongoDB _id or slug for routing
@@ -104,14 +105,7 @@ export default function ProductCard({ product }: { product: Product }) {
 
     console.log('🛒 Adding to cart:', product.name);
     addToCart(product);
-
-    // Auto-open sidebar only on desktop/tablet (screen width > 768px)
-    if (typeof window !== 'undefined' && window.innerWidth > 768) {
-      console.log('✅ Opening cart sidebar (desktop)');
-      openCartSidebar();
-    } else {
-      console.log('📱 Mobile detected, not opening sidebar');
-    }
+    router.push("/cart");
   };
 
   // Handle quantity increase
@@ -177,7 +171,7 @@ export default function ProductCard({ product }: { product: Product }) {
             />
             {/* Mobile Age Badge - Top Right of Image area */}
             <div className="md:hidden absolute top-2 right-2 z-10 bg-[hsl(var(--swago-purple))] text-white text-[9px] font-black px-2 py-1 rounded-full shadow-md uppercase tracking-tight whitespace-nowrap">
-              {ageCategory}
+              Age {ageCategory}
             </div>
 
             {/* Action buttons - Heart at bottom-left */}
@@ -256,7 +250,7 @@ export default function ProductCard({ product }: { product: Product }) {
                   )}
                 </div>
                 <span className="hidden md:inline-block bg-[hsl(var(--swago-purple))] text-white text-[10px] sm:text-[11px] font-extrabold px-3 py-1.5 rounded-full uppercase tracking-tight whitespace-nowrap shadow-sm">
-                  {ageCategory}
+                  Age {ageCategory}
                 </span>
               </div>
 

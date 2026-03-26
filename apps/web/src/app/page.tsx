@@ -1,9 +1,9 @@
 import HeroCarousel from "@/components/HeroCarousel";
-import ChooseYourKit from "@/components/ChooseYourKit";
 import AnimateOnScroll from "@/components/AnimateOnScroll";
 import FeaturedProducts from "@/components/FeaturedProducts";
-import ShopByPrice from "@/components/ShopByPrice";
-import SkillUnlockSlider from "@/components/SkillUnlockSlider";
+import HowToEarnSwagoMoney from "@/components/HowToEarnSwagoMoney";
+import SwagoElementsSection from "@/components/SwagoElementsSection";
+import WhySwagoIsFunSection from "@/components/WhySwagoIsFunSection";
 import SkillBuildingSystem from "@/components/SkillBuildingSystem";
 import HomeBlogSection from "@/components/HomeBlogSection";
 import Link from "next/link";
@@ -22,19 +22,15 @@ export default function Home() {
       </AnimateOnScroll>
 
       <AnimateOnScroll>
-        <ChooseYourKit />
-      </AnimateOnScroll>
-
-      <AnimateOnScroll>
         <FeaturedProducts />
       </AnimateOnScroll>
 
       <AnimateOnScroll>
-        <ShopByPrice />
+        <HowToEarnSwagoMoney />
       </AnimateOnScroll>
 
       <AnimateOnScroll>
-        <SkillUnlockSlider />
+        <WhySwagoIsFunSection />
       </AnimateOnScroll>
 
       <AnimateOnScroll>

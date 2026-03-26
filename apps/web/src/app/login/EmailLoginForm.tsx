@@ -391,7 +391,7 @@ export default function EmailLoginForm() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value.toLowerCase().trim())}
                   placeholder="your.email@example.com"
-                  className="w-full border border-slate-300 rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full border border-slate-300 rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-purple-500 text-slate-900 font-bold"
                 />
               </div>
 
@@ -405,7 +405,7 @@ export default function EmailLoginForm() {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Enter your full name"
-                    className="w-full border border-slate-300 rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    className="w-full border border-slate-300 rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-purple-500 text-slate-900 font-bold"
                   />
                 </div>
               )}
@@ -446,7 +446,7 @@ export default function EmailLoginForm() {
                 onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
                 placeholder="Enter 6-digit OTP"
                 maxLength={6}
-                className="w-full border border-slate-300 rounded-md p-3 text-center text-2xl tracking-widest focus:outline-none focus:ring-2 focus:ring-green-500"
+                className="w-full border border-slate-300 rounded-md p-3 text-center text-2xl tracking-widest focus:outline-none focus:ring-2 focus:ring-green-500 text-slate-900 font-black"
               />
 
               <button

@@ -224,24 +224,13 @@ export default function ProductPageClient({ product }: { product: Product }) {
       addToCart(product, quantity);
     }
 
-    if (typeof window !== 'undefined' && window.innerWidth > 768) {
-      if (!isInCart) {
-        openCartSidebar();
-      } else {
-        router.push("/cart");
-      }
-    } else {
-      router.push("/cart");
-    }
+    router.push("/cart");
   };
 
   const handleAddToCart = () => {
     if (isOutOfStock) return;
     addToCart(product, quantity);
-
-    if (typeof window !== 'undefined' && window.innerWidth > 768) {
-      openCartSidebar();
-    }
+    router.push("/cart");
   };
 
   const handleIncrease = () => {
@@ -525,7 +514,7 @@ export default function ProductPageClient({ product }: { product: Product }) {
                 whileTap={{ scale: 0.99 }}
                 onClick={() => {
                   if (isInCart) {
-                    router.push('/cart');
+                    router.push("/cart");
                   } else {
                     handleBuyNow();
                   }
@@ -650,7 +639,7 @@ export default function ProductPageClient({ product }: { product: Product }) {
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    onClick={() => router.push('/cart')}
+                    onClick={() => router.push("/cart")}
                     className="bg-[hsl(var(--swago-purple))] text-white font-black px-4 sm:px-6 py-2 sm:py-3 rounded-xl text-[10px] sm:text-xs uppercase tracking-wider transition-all duration-300 shadow-md hover:shadow-lg whitespace-nowrap flex items-center justify-center gap-2"
                   >
                     Checkout

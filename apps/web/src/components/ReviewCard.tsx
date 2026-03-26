@@ -62,7 +62,7 @@ export default function ReviewCard({ review, isOwnReview, onDelete }: ReviewCard
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="border border-slate-200 rounded-xl p-6 bg-white hover:shadow-md transition-shadow"
+      className="border border-slate-200 rounded-xl p-4 bg-white hover:shadow-md transition-shadow"
     >
       {/* Header */}
       <div className="flex justify-between items-start mb-3">
