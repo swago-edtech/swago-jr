@@ -110,10 +110,6 @@ export default function SkillBuildingSystem() {
       {/* Bottom Decorative Elements - Smaller versions */}
       <div className="absolute bottom-0 left-0 right-0 h-32 pointer-events-none overflow-hidden hidden md:block">
         <div className="container mx-auto px-4 max-w-6xl h-full relative">
-          {/* Mascot peaking */}
-          <div className="absolute bottom-0 left-1/2 translate-x-[120px] w-36 h-36">
-            <Image src="/images/home/aga_profile.png" alt="" fill className="object-contain object-bottom opacity-15" />
-          </div>
           
           <div className="absolute bottom-8 left-1/2 translate-x-[300px] w-10 h-10 bg-red-400/15 rounded-full" />
           <div className="absolute bottom-3 left-1/2 translate-x-[360px] w-14 h-14 bg-blue-400/15 rounded-full" />
