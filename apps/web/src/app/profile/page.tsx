@@ -176,31 +176,53 @@ export default function ProfilePage() {
 
   if (!user) return null;
 
-  // ONBOARDING VIEW
   if (isOnboarding && kidProfiles.length === 0) {
     return (
-      <div className="min-h-screen bg-[#F0F4F8] py-8 px-6 flex items-center justify-center font-sans">
-        <div className="max-w-xl w-full">
-          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-white p-8 rounded-[3rem] shadow-2xl border-4 border-white relative overflow-hidden">
-            <h2 className="text-3xl font-[1000] text-[#1A1F2C] uppercase italic mb-8 text-center tracking-tighter leading-none">Create Hero</h2>
+      <div className="min-h-screen bg-[#F8FAFC] py-12 px-4 flex items-center justify-center">
+        <div className="max-w-md w-full">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white p-10 rounded-[2.5rem] shadow-[0_40px_100px_-20px_rgba(0,0,0,0.1)] border border-slate-100">
+            <div className="text-center mb-10">
+              <h1 className="text-3xl font-black text-slate-800 uppercase italic tracking-tight mb-2">Create Hero Profile</h1>
+              <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Enter your child's details to begin</p>
+            </div>
+
             <form onSubmit={handleKidSubmit} className="space-y-6">
-              <input type="text" name="city" value={kidForm.city} onChange={handleKidFormChange} placeholder="Enter City" className="w-full bg-[#F8FAFC] border-2 border-[#F1F5F9] rounded-[1.5rem] p-4 font-black outline-none focus:border-indigo-400" required />
-              <input type="text" name="name" value={kidForm.name} onChange={handleKidFormChange} placeholder="Hero Name" className="w-full bg-[#F8FAFC] border-2 border-[#F1F5F9] rounded-[1.5rem] p-4 font-black outline-none focus:border-indigo-400" required />
-              <div className="grid grid-cols-2 gap-4">
-                <input type="date" name="dob" value={kidForm.dob} onChange={handleKidFormChange} className="w-full bg-[#F8FAFC] border-2 border-[#F1F5F9] rounded-[1.5rem] p-4 font-black outline-none" required />
-                <input type="text" value={kidForm.age} readOnly className="bg-slate-100 rounded-[1.5rem] p-4 font-black text-slate-400" />
+              <div>
+                <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 px-1">Child's Name</label>
+                <input type="text" name="name" value={kidForm.name} onChange={handleKidFormChange} placeholder="Enter Hero Name" className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 font-bold text-slate-700 outline-none focus:border-[hsl(var(--swago-purple))] focus:bg-white transition-all shadow-sm" required />
               </div>
+
+              <div>
+                <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 px-1">Current City</label>
+                <input type="text" name="city" value={kidForm.city} onChange={handleKidFormChange} placeholder="Enter City" className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 font-bold text-slate-700 outline-none focus:border-[hsl(var(--swago-purple))] focus:bg-white transition-all shadow-sm" required />
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
-                <button type="button" onClick={() => setKidForm(prev => ({ ...prev, gender: 'boy', avatarColor: '/images/kid_boy1.png' }))} className={`p-6 rounded-[2.5rem] border-4 transition-all flex flex-col items-center gap-3 ${kidForm.gender === 'boy' ? 'border-indigo-500 bg-indigo-50 shadow-xl' : 'border-slate-50 opacity-40 grayscale'}`}>
-                   <div className="relative w-20 h-20 rounded-full border-2 border-white overflow-hidden shadow-md"><Image src="/images/kid_boy1.png" alt="Boy" fill className="object-cover" /></div>
-                   <span className="font-black uppercase tracking-widest text-[9px]">Awesome Boy</span>
-                </button>
-                <button type="button" onClick={() => setKidForm(prev => ({ ...prev, gender: 'girl', avatarColor: '/images/kid_girl1.png' }))} className={`p-6 rounded-[2.5rem] border-4 transition-all flex flex-col items-center gap-3 ${kidForm.gender === 'girl' ? 'border-pink-500 bg-pink-50 shadow-xl' : 'border-slate-50 opacity-40 grayscale'}`}>
-                   <div className="relative w-20 h-20 rounded-full border-2 border-white overflow-hidden shadow-md"><Image src="/images/kid_girl1.png" alt="Girl" fill className="object-cover" /></div>
-                   <span className="font-black uppercase tracking-widest text-[9px]">Amazing Girl</span>
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 px-1">Date of Birth</label>
+                  <input type="date" name="dob" value={kidForm.dob} onChange={handleKidFormChange} className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 font-bold text-slate-700 outline-none focus:border-[hsl(var(--swago-purple))] focus:bg-white transition-all shadow-sm" required />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 px-1">Calculated Age</label>
+                  <input type="text" value={kidForm.age + " Years"} readOnly className="w-full bg-slate-100 border-2 border-slate-100 rounded-2xl p-4 font-bold text-slate-400 outline-none cursor-not-allowed uppercase text-xs" />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 px-1">Gender</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button type="button" onClick={() => setKidForm(prev => ({ ...prev, gender: 'boy', avatarColor: '/images/kid_boy1.png' }))} className={`py-4 rounded-2xl border-2 font-black uppercase tracking-widest text-xs transition-all ${kidForm.gender === 'boy' ? 'border-[hsl(var(--swago-purple))] bg-indigo-50 text-indigo-700 shadow-md' : 'border-slate-50 bg-slate-50 text-slate-400'}`}>Boy</button>
+                  <button type="button" onClick={() => setKidForm(prev => ({ ...prev, gender: 'girl', avatarColor: '/images/kid_girl1.png' }))} className={`py-4 rounded-2xl border-2 font-black uppercase tracking-widest text-xs transition-all ${kidForm.gender === 'girl' ? 'border-pink-500 bg-pink-50 text-pink-700 shadow-md' : 'border-slate-50 bg-slate-50 text-slate-400'}`}>Girl</button>
+                </div>
+              </div>
+
+              <div className="pt-4">
+                <button type="submit" disabled={isCreatingKid} className="w-full bg-[hsl(var(--swago-purple))] text-white py-5 rounded-2xl font-black text-lg uppercase italic shadow-[0_20px_40px_-5px_rgba(124,93,250,0.3)] hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-50">
+                  {isCreatingKid ? "Creating..." : "🚀 Enter Swagoverse"}
                 </button>
               </div>
-              <button type="submit" disabled={isCreatingKid} className="w-full bg-indigo-600 text-white py-5 rounded-[2rem] font-[1000] text-xl uppercase italic shadow-lg">🚀 Enter Swagoverse</button>
+              
+              {kidError && <p className="text-red-500 text-xs font-bold text-center">{kidError}</p>}
             </form>
           </motion.div>
         </div>
