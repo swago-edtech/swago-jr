@@ -22,7 +22,8 @@ import {
   Package,
   Layers,
   Edit2,
-  RotateCcw
+  RotateCcw,
+  Rocket
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReelUploadForm from '@/components/ReelUploadForm';
@@ -136,12 +137,12 @@ export default function ProfilePage() {
       });
     });
 
-    // ✅ FIXED FILTER LOGIC: Support both Product and Skill filtering
+    // ✅ FIXED FILTER LOGIC: Support both Product and Skill filtering (SWAGO)
     if (activeFilter === "All") return allQuests;
     if (activeFilter === "Common") return allQuests.filter(q => q.product === "Common");
     
-    // Check if filtering by Skill
-    const skillsList = ["Growth", "Optimization", "Willpower", "Ambition"];
+    // Check if filtering by Skill (S-W-A-G-O)
+    const skillsList = ["Self-Belief", "Wisdom", "Ambition", "Growth", "Optimization"];
     if (skillsList.includes(activeFilter)) {
       return allQuests.filter(q => q.skill === activeFilter);
     }
@@ -310,7 +311,7 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Tags Section */}
+        {/* Tags Section - SWAGO Skills */}
         <div className="bg-white rounded-[2.5rem] shadow-md border border-white/60 p-6 sm:p-8 mb-8">
            <div className="flex items-center justify-between mb-6">
               <h3 className="text-xs font-[1000] text-slate-300 uppercase tracking-widest italic">Skills Hub</h3>
@@ -323,30 +324,36 @@ export default function ProfilePage() {
                 </button>
               )}
            </div>
-           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+           <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
               <button 
-                onClick={() => setActiveFilter(activeFilter === "Growth" ? "All" : "Growth")}
-                className={`px-5 py-3 rounded-xl flex items-center justify-center gap-2 text-xs font-[1000] shadow-sm uppercase italic transition-all active:scale-95 ${activeFilter === "Growth" ? 'bg-[#4ADE80] text-white shadow-lg ring-4 ring-[#4ADE80]/20 scale-105' : 'bg-slate-50 text-slate-400 hover:bg-[#4ADE80]/10'}`}
+                onClick={() => setActiveFilter(activeFilter === "Self-Belief" ? "All" : "Self-Belief")}
+                className={`px-4 py-3 rounded-xl flex items-center justify-center gap-2 text-[10px] font-[1000] shadow-sm uppercase italic transition-all active:scale-95 ${activeFilter === "Self-Belief" ? 'bg-[#7C5DFA] text-white shadow-lg ring-4 ring-[#7C5DFA]/20 scale-105' : 'bg-slate-50 text-slate-400 hover:bg-[#7C5DFA]/10'}`}
               >
-                 <Star className="w-4 h-4" /> Growth
+                 <Rocket className="w-3.5 h-3.5" /> S
               </button>
               <button 
-                onClick={() => setActiveFilter(activeFilter === "Optimization" ? "All" : "Optimization")}
-                className={`px-5 py-3 rounded-xl flex items-center justify-center gap-2 text-xs font-[1000] shadow-sm uppercase italic transition-all active:scale-95 ${activeFilter === "Optimization" ? 'bg-[#818CF8] text-white shadow-lg ring-4 ring-[#818CF8]/20 scale-105' : 'bg-slate-50 text-slate-400 hover:bg-[#818CF8]/10'}`}
+                onClick={() => setActiveFilter(activeFilter === "Wisdom" ? "All" : "Wisdom")}
+                className={`px-4 py-3 rounded-xl flex items-center justify-center gap-2 text-[10px] font-[1000] shadow-sm uppercase italic transition-all active:scale-95 ${activeFilter === "Wisdom" ? 'bg-[#E91E63] text-white shadow-lg ring-4 ring-[#E91E63]/20 scale-105' : 'bg-slate-50 text-slate-400 hover:bg-[#E91E63]/10'}`}
               >
-                 <Zap className="w-4 h-4" /> Optimization
-              </button>
-              <button 
-                onClick={() => setActiveFilter(activeFilter === "Willpower" ? "All" : "Willpower")}
-                className={`px-5 py-3 rounded-xl flex items-center justify-center gap-2 text-xs font-[1000] shadow-sm uppercase italic transition-all active:scale-95 ${activeFilter === "Willpower" ? 'bg-[#FDBA74] text-white shadow-lg ring-4 ring-[#FDBA74]/20 scale-105' : 'bg-slate-50 text-slate-400 hover:bg-[#FDBA74]/10'}`}
-              >
-                 <Brain className="w-4 h-4" /> Willpower
+                 <Brain className="w-3.5 h-3.5" /> W
               </button>
               <button 
                 onClick={() => setActiveFilter(activeFilter === "Ambition" ? "All" : "Ambition")}
-                className={`px-5 py-3 rounded-xl flex items-center justify-center gap-2 text-xs font-[1000] shadow-sm uppercase italic transition-all active:scale-95 ${activeFilter === "Ambition" ? 'bg-[#FDE047] text-[#854D0E] shadow-lg ring-4 ring-[#FDE047]/20 scale-105' : 'bg-slate-50 text-slate-400 hover:bg-[#FDE047]/10'}`}
+                className={`px-4 py-3 rounded-xl flex items-center justify-center gap-2 text-[10px] font-[1000] shadow-sm uppercase italic transition-all active:scale-95 ${activeFilter === "Ambition" ? 'bg-[#FF5722] text-white shadow-lg ring-4 ring-[#FF5722]/20 scale-105' : 'bg-slate-50 text-slate-400 hover:bg-[#FF5722]/10'}`}
               >
-                 <Target className="w-4 h-4" /> Ambition
+                 <Target className="w-3.5 h-3.5" /> A
+              </button>
+              <button 
+                onClick={() => setActiveFilter(activeFilter === "Growth" ? "All" : "Growth")}
+                className={`px-4 py-3 rounded-xl flex items-center justify-center gap-2 text-[10px] font-[1000] shadow-sm uppercase italic transition-all active:scale-95 ${activeFilter === "Growth" ? 'bg-[#4CAF50] text-white shadow-lg ring-4 ring-[#4CAF50]/20 scale-105' : 'bg-slate-50 text-slate-400 hover:bg-[#4CAF50]/10'}`}
+              >
+                 <Star className="w-3.5 h-3.5" /> G
+              </button>
+              <button 
+                onClick={() => setActiveFilter(activeFilter === "Optimization" ? "All" : "Optimization")}
+                className={`px-4 py-3 rounded-xl flex items-center justify-center gap-2 text-[10px] font-[1000] shadow-sm uppercase italic transition-all active:scale-95 ${activeFilter === "Optimization" ? 'bg-[#3F51B5] text-white shadow-lg ring-4 ring-[#3F51B5]/20 scale-105' : 'bg-slate-50 text-slate-400 hover:bg-[#3F51B5]/10'}`}
+              >
+                 <Zap className="w-3.5 h-3.5" /> O
               </button>
            </div>
         </div>
@@ -382,14 +389,6 @@ export default function ProfilePage() {
                       </div>
 
                       <div className="flex-1 min-w-0 space-y-2">
-                          <div className="flex flex-row items-center gap-1.5 overflow-hidden">
-                              {quest.tags.map((tag, j) => (
-                                  <div key={j} className={`${tag.color} text-white px-2.5 py-1 rounded-md flex items-center gap-1.5 text-[8px] font-black uppercase tracking-widest shadow-sm whitespace-nowrap`}>
-                                      <tag.icon className="w-3 h-3" strokeWidth={4} /> {tag.name}
-                                  </div>
-                              ))}
-                          </div>
-                          
                           <h3 className="text-xl sm:text-2xl font-[1000] text-slate-800 leading-tight tracking-tight uppercase italic truncate">{quest.title}</h3>
                           <p className="text-[11px] font-bold text-slate-400 truncate opacity-90">{quest.description}</p>
                           
