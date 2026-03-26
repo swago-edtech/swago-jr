@@ -5,6 +5,7 @@ import HowToEarnSwagoMoney from "@/components/HowToEarnSwagoMoney";
 import SwagoElementsSection from "@/components/SwagoElementsSection";
 import WhySwagoIsFunSection from "@/components/WhySwagoIsFunSection";
 import SkillUnlockSlider from "@/components/SkillUnlockSlider";
+import SkillBuildingSystem from "@/components/SkillBuildingSystem";
 import HomeBlogSection from "@/components/HomeBlogSection";
 import Link from "next/link";
 
@@ -35,6 +36,10 @@ export default function Home() {
 
       <AnimateOnScroll>
         <SkillUnlockSlider />
+      </AnimateOnScroll>
+
+      <AnimateOnScroll>
+        <SkillBuildingSystem />
       </AnimateOnScroll>
 
       <AnimateOnScroll>
