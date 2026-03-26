@@ -72,14 +72,6 @@ export default function WhySwagoIsFunSection() {
               {/* Custom Card Box - Fully Dashed, Permanent Shadow/Hover Effect */}
               <div className={`relative h-full flex flex-col items-center p-8 md:p-10 pt-16 text-center rounded-[3rem] bg-white transition-all duration-300 shadow-[0_22px_70px_-15px_rgba(0,0,0,0.12)] -translate-y-2 border-2 border-dashed ${feature.borderColor} overflow-hidden`}>
                 
-                {/* 5-Color Solid Top Line */}
-                <div className="absolute top-0 left-0 right-0 h-2 flex">
-                  <div className="flex-1 bg-[hsl(var(--swago-pink))]" />
-                  <div className="flex-1 bg-[hsl(var(--swago-purple))]" />
-                  <div className="flex-1 bg-[hsl(var(--swago-sky-blue))]" />
-                  <div className="flex-1 bg-[hsl(var(--swago-teal))]" />
-                  <div className="flex-1 bg-[hsl(var(--swago-orange))]" />
-                </div>
 
                 {/* Icon Container */}
                 <div className={`w-12 h-12 md:w-16 md:h-16 rounded-full ${feature.bgColor} flex items-center justify-center mb-8 border-2 ${feature.borderColor} shadow-sm relative`}>
