@@ -91,26 +91,26 @@ export default function SkillUnlockSlider() {
         </div>
       </div>
 
-      {/* Slider Area - Full Screen Width Feel */}
-      <div className="w-full">
+      {/* Slider Area - Aligned with Container */}
+      <div className="container mx-auto px-4 max-w-6xl">
         <div className="relative">
           <div className="relative w-full">
-            {/* Main Viewport */}
-            <div className="overflow-visible" ref={emblaRef}>
-              <div className="flex">
+            {/* Main Viewport - Back to overflow-hidden for alignment */}
+            <div className="overflow-hidden" ref={emblaRef}>
+              <div className="flex -ml-4 md:-ml-6">
                 {skills.map((skill, index) => (
                   <div 
                     key={skill.id} 
-                    className="flex-shrink-0 flex-grow-0 w-[85%] md:w-[45%] lg:w-[28%] px-4 min-w-0"
+                    className="flex-shrink-0 flex-grow-0 w-[85%] md:w-[60%] lg:w-[33.33%] pl-4 md:pl-6 min-w-0"
                     style={{
-                      opacity: selectedIndex === index ? 1 : 0.3,
+                      opacity: selectedIndex === index ? 1 : 0.4,
                       transition: 'all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                      transform: selectedIndex === index ? 'scale(1.15)' : 'scale(0.85)',
+                      transform: selectedIndex === index ? 'scale(1.05) translateY(-5px)' : 'scale(0.8) translateY(0)',
                       zIndex: selectedIndex === index ? 50 : 10,
                     }}
                   >
                     {/* Borderless Blended Image */}
-                    <div className="relative aspect-[4/5] rounded-[2.5rem] overflow-hidden group cursor-pointer shadow-[0_50px_100px_-20px_rgba(0,0,0,0.25)]">
+                    <div className="relative aspect-[4/5] rounded-[2.5rem] overflow-hidden group cursor-pointer shadow-[0_40px_80px_-20px_rgba(0,0,0,0.2)] bg-white border border-gray-100/50">
                       <Image 
                         src={skill.image} 
                         alt={skill.title} 
@@ -119,47 +119,44 @@ export default function SkillUnlockSlider() {
                       />
                       
                       {/* Dark Blend Overlay */}
-                      <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/80 via-black/30 to-transparent pointer-events-none" />
+                      <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none" />
 
                       {/* Floating Content Section */}
-                      <div className="absolute inset-0 p-8 md:p-10 flex flex-col justify-end text-left">
-                         <div className="flex items-center gap-3 mb-3">
-                            <div className="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20">
-                              {React.cloneElement(skill.icon as any, { className: 'w-6 h-6 text-white' })}
+                      <div className="absolute inset-0 p-6 md:p-8 flex flex-col justify-end text-left">
+                         <div className="flex items-center gap-3 mb-2.5">
+                            <div className="w-10 h-10 rounded-xl bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20">
+                              {React.cloneElement(skill.icon as any, { className: 'w-5 h-5 text-white' })}
                             </div>
-                            <h3 className="text-4xl md:text-5xl font-black text-white tracking-tighter uppercase italic drop-shadow-lg">{skill.title}</h3>
+                            <h3 className="text-3xl md:text-4xl font-black text-white tracking-tighter uppercase italic drop-shadow-lg">{skill.title}</h3>
                          </div>
                          
-                         <p className="text-white font-bold text-sm md:text-base leading-tight opacity-90 mb-8 max-w-[240px]">
+                         <p className="text-white font-bold text-[13px] md:text-sm leading-tight opacity-90 mb-6 max-w-[220px]">
                             {skill.description}
                          </p>
                          
                          <button 
-                           className="w-full bg-white text-slate-900 font-black py-4 rounded-2xl flex items-center justify-center gap-2 transition-all hover:scale-105 active:scale-95 text-sm md:text-base tracking-widest uppercase shadow-xl"
+                           className="w-full bg-white text-slate-900 font-black py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all hover:scale-105 active:scale-95 text-xs md:text-sm tracking-widest uppercase shadow-xl"
                          >
-                            {skill.buttonText} <ChevronRight className="w-5 h-5 stroke-[4px]" />
+                            {skill.buttonText} <ChevronRight className="w-4 h-4 stroke-[4px]" />
                          </button>
                       </div>
-
-                      {/* Edge Mask - Softening the blend into the background */}
-                      <div className="absolute inset-0 ring-1 ring-inset ring-black/5 rounded-[2.5rem]" />
                     </div>
                   </div>
                 ))}
               </div>
             </div>
    
-            {/* Navigation Arrows */}
-            <div className="hidden md:block">
+            {/* Navigation Arrows - Adjusted for Container */}
+            <div className="hidden lg:block">
               <button
                 onClick={scrollPrev}
-                className="absolute top-1/2 left-8 -translate-y-1/2 w-14 h-14 bg-white/90 backdrop-blur-md rounded-full flex items-center justify-center shadow-2xl text-slate-800 hover:bg-[hsl(var(--swago-purple))] hover:text-white transition-all z-[60]"
+                className="absolute top-1/2 -left-12 -translate-y-1/2 w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-2xl text-slate-800 hover:text-[hsl(var(--swago-purple))] transition-all z-[60]"
               >
                 <ChevronLeft className="w-6 h-6 stroke-[3px]" />
               </button>
               <button
                 onClick={scrollNext}
-                className="absolute top-1/2 right-8 -translate-y-1/2 w-14 h-14 bg-white/90 backdrop-blur-md rounded-full flex items-center justify-center shadow-2xl text-slate-800 hover:bg-[hsl(var(--swago-purple))] hover:text-white transition-all z-[60]"
+                className="absolute top-1/2 -right-12 -translate-y-1/2 w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-2xl text-slate-800 hover:text-[hsl(var(--swago-purple))] transition-all z-[60]"
               >
                 <ChevronRight className="w-6 h-6 stroke-[3px]" />
               </button>
