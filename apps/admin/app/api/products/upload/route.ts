@@ -24,12 +24,16 @@ export async function POST(request: NextRequest) {
     console.log("📁 Original file name:", file.name);
 
     // Validate
-    if (!file.type.startsWith("image/")) {
-      return NextResponse.json({ error: "File must be an image" }, { status: 400 });
+    const isImage = file.type.startsWith("image/");
+    const isVideo = file.type.startsWith("video/");
+
+    if (!isImage && !isVideo) {
+      return NextResponse.json({ error: "File must be an image or video" }, { status: 400 });
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      return NextResponse.json({ error: "Image must be less than 5MB" }, { status: 400 });
+    const maxSize = isVideo ? 50 * 1024 * 1024 : 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      return NextResponse.json({ error: `File must be less than ${maxSize / (1024 * 1024)}MB` }, { status: 400 });
     }
 
     // Generate a safe filename (remove spaces and special chars)
@@ -56,8 +60,9 @@ export async function POST(request: NextRequest) {
       // Don't send folder, public_id, or any other parameters
     };
 
-    const uploadUrl = `https://api.cloudinary.com/v1_1/${process.env.CLOUDINARY_CLOUD_NAME}/image/upload`;
-    
+    const uploadType = isVideo ? "video" : "image";
+    const uploadUrl = `https://api.cloudinary.com/v1_1/${process.env.CLOUDINARY_CLOUD_NAME}/${uploadType}/upload`;
+
     const cloudinaryResponse = await fetch(uploadUrl, {
       method: "POST",
       body: JSON.stringify(uploadData),
@@ -72,7 +77,7 @@ export async function POST(request: NextRequest) {
       const errorData = await cloudinaryResponse.json();
       console.error("❌ Cloudinary error:", JSON.stringify(errorData, null, 2));
       return NextResponse.json(
-        { 
+        {
           error: `Upload failed: ${errorData.error?.message || 'Unknown error'}`,
           details: errorData
         },

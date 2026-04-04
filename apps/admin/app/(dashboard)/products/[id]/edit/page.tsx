@@ -12,6 +12,7 @@ type Product = {
   price: number;
   originalPrice?: number;
   images: string[];
+  videos?: string[];
   ageCategory: string;
   coreElements: string[];
   boxContents: string;
@@ -56,6 +57,7 @@ export default function EditProductPage() {
   });
 
   const [images, setImages] = useState<string[]>([]);
+  const [videos, setVideos] = useState<string[]>([]);
   const [skills, setSkills] = useState<{ title: string; image: string }[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -86,7 +88,8 @@ export default function EditProductPage() {
             rating: (prod.rating || 0).toString(),
             numReviews: (prod.numReviews || 0).toString(),
           });
-          setImages(prod.images);
+          setImages(prod.images || []);
+          setVideos(prod.videos || []);
           setSkills(prod.skills || []);
         } else {
           alert("Failed to load product");
@@ -180,9 +183,58 @@ export default function EditProductPage() {
     }
   };
 
+  // Handle video upload
+  const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith("video/")) {
+      alert("Please upload a video file");
+      return;
+    }
+
+    // Validate file size (max 50MB)
+    if (file.size > 50 * 1024 * 1024) {
+      alert("Video size should be less than 50MB");
+      return;
+    }
+
+    try {
+      setUploadingImage(true);
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch("/api/products/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        setVideos([...videos, data.url]);
+      } else {
+        alert("Failed to upload video: " + data.error);
+      }
+
+    } catch (error) {
+      console.error("Error uploading video:", error);
+      alert("Failed to upload video");
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
   // Remove image
   const removeImage = (index: number) => {
     setImages(images.filter((_, i) => i !== index));
+  };
+
+  // Remove video
+  const removeVideo = (index: number) => {
+    setVideos(videos.filter((_, i) => i !== index));
   };
 
   // ✅ New: Handle skill image upload
@@ -266,6 +318,7 @@ export default function EditProductPage() {
           price: parseFloat(form.price),
           originalPrice: form.originalPrice ? parseFloat(form.originalPrice) : undefined,
           images: images,
+          videos: videos,
           ageCategory: form.ageCategory,
           coreElements: form.coreElements,
           boxContents: form.boxContents,
@@ -523,41 +576,86 @@ export default function EditProductPage() {
               Note: Image upload requires Cloudinary credentials in .env.local
             </p>
           </div>
+
+          <div className="mt-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Upload Videos (Optional, Max 50MB per video)
+            </label>
+
+            {/* Video Grid */}
+            <div className="grid grid-cols-4 gap-4 mb-4">
+              {videos.map((video, index) => (
+                <div key={index} className="relative aspect-square bg-gray-100 rounded-lg overflow-hidden">
+                  <video src={video} className="object-cover w-full h-full" controls />
+                  <button
+                    type="button"
+                    onClick={() => removeVideo(index)}
+                    className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 z-10"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+
+              {/* Upload Button */}
+              {videos.length < 2 && (
+                <label className="aspect-square border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-gray-400">
+                  <input
+                    type="file"
+                    accept="video/*"
+                    onChange={handleVideoUpload}
+                    disabled={uploadingImage}
+                    className="hidden"
+                  />
+                  {uploadingImage ? (
+                    <p className="text-sm text-gray-500">Uploading...</p>
+                  ) : (
+                    <>
+                      <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                      <p className="text-xs text-gray-500 mt-1">Upload Video</p>
+                    </>
+                  )}
+                </label>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Product Skills */}
         <div className="space-y-4">
           <div className="flex items-center justify-between border-b pb-2">
             <h2 className="text-xl font-semibold text-gray-900 font-bold">Product Skills</h2>
-            <button 
-              type="button" 
+            <button
+              type="button"
               onClick={addSkill}
               className="px-4 py-1.5 bg-[#7C5DFA]/10 text-[#7C5DFA] rounded-full text-xs font-black hover:bg-[#7C5DFA]/20 transition-all uppercase tracking-wider"
             >
               + Add Skill
             </button>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {skills.map((skill, index) => (
               <div key={index} className="p-5 border-2 border-slate-100 rounded-[1.5rem] bg-slate-50/50 space-y-4 relative group hover:border-[#7C5DFA]/30 transition-all shadow-sm">
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   onClick={() => removeSkill(index)}
                   className="absolute top-4 right-4 p-1.5 bg-white text-gray-400 hover:text-red-500 rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-opacity border border-slate-100"
                 >
                   <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg>
                 </button>
-                
+
                 <div className="flex gap-5 items-center">
                   <div className="flex-none">
                     <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Skill Icon/Image</label>
                     <label className="lg:w-24 lg:h-24 md:w-20 md:h-20 w-16 h-16 border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:border-[#7C5DFA] overflow-hidden bg-white transition-all shadow-inner">
-                      <input 
-                        type="file" 
-                        accept="image/*" 
-                        onChange={(e) => handleSkillImageUpload(e, index)} 
-                        className="hidden" 
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleSkillImageUpload(e, index)}
+                        className="hidden"
                       />
                       {skill.image ? (
                         <div className="relative w-full h-full">
@@ -574,7 +672,7 @@ export default function EditProductPage() {
                       )}
                     </label>
                   </div>
-                  
+
                   <div className="flex-grow">
                     <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Skill Title</label>
                     <input
@@ -593,8 +691,8 @@ export default function EditProductPage() {
             <div className="text-center p-8 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
               <svg className="w-10 h-10 text-slate-200 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
               <p className="text-slate-400 font-bold text-sm">No skills added yet.</p>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={addSkill}
                 className="mt-4 text-[#7C5DFA] font-black text-xs uppercase tracking-widest hover:underline"
               >

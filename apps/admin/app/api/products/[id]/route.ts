@@ -80,6 +80,7 @@ export async function PUT(
     if (body.price !== undefined) updateFields.price = body.price;
     if (body.originalPrice !== undefined) updateFields.originalPrice = body.originalPrice;
     if (body.images !== undefined) updateFields.images = body.images;
+    if (body.videos !== undefined) updateFields.videos = body.videos;
     if (body.ageCategory !== undefined) updateFields.ageCategory = body.ageCategory;
     if (body.coreElements !== undefined) updateFields.coreElements = body.coreElements;
     if (body.boxContents !== undefined) updateFields.boxContents = body.boxContents;

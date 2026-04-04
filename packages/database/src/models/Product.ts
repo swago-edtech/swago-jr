@@ -31,6 +31,11 @@ const ProductSchema = new mongoose.Schema(
       required: true
     }],
 
+    videos: [{
+      type: String,
+      default: []
+    }],
+
     ageCategory: {
       type: String,
       enum: {

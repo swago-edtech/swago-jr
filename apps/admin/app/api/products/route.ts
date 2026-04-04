@@ -133,6 +133,7 @@ export async function POST(request: NextRequest) {
       price: body.price,
       originalPrice: body.originalPrice,
       images: body.images,
+      videos: body.videos || [],
       ageCategory: body.ageCategory,
       coreElements: body.coreElements,
       boxContents: body.boxContents,

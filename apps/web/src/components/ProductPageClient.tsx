@@ -18,14 +18,14 @@ const BulletPoint = () => (
 function AccordionItem({ title, content, isOpen, onToggle }: { title: string; content: React.ReactNode; isOpen: boolean; onToggle: () => void; }) {
   return (
     <div className="mb-4">
-      <button 
-        onClick={onToggle} 
+      <button
+        onClick={onToggle}
         className="group w-full flex justify-between items-center px-6 py-4 text-left transition-all rounded-xl bg-slate-100 hover:bg-slate-200/70 shadow-sm"
       >
         <span className={`text-lg font-bold transition-colors duration-300 ${isOpen ? 'text-[hsl(var(--swago-purple))]' : 'text-slate-900 group-hover:text-[hsl(var(--swago-purple))]'}`}>
           {title}
         </span>
-        <motion.span 
+        <motion.span
           animate={{ rotate: isOpen ? 45 : 0 }}
           className="text-[hsl(var(--swago-purple))]"
         >
@@ -36,11 +36,11 @@ function AccordionItem({ title, content, isOpen, onToggle }: { title: string; co
       </button>
       <AnimatePresence>
         {isOpen && (
-          <motion.div 
-            initial={{ height: 0, opacity: 0 }} 
-            animate={{ height: "auto", opacity: 1 }} 
-            exit={{ height: 0, opacity: 0 }} 
-            transition={{ duration: 0.3, ease: "easeInOut" }} 
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
             className="overflow-hidden"
           >
             <div className="px-6 py-6 text-slate-800 font-medium leading-relaxed text-[15px]">{content}</div>
@@ -71,7 +71,8 @@ const slideVariants = {
 
 export default function ProductPageClient({ product }: { product: Product }) {
   const router = useRouter();
-  const [mainImage, setMainImage] = useState(product.images[0]);
+  const allMedia = [...(product.images || []), ...(product.videos || [])];
+  const [mainMedia, setMainMedia] = useState(allMedia[0]);
   const [direction, setDirection] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [openAccordion, setOpenAccordion] = useState<string | null>("description");
@@ -155,23 +156,23 @@ export default function ProductPageClient({ product }: { product: Product }) {
 
   const handleNextImage = () => {
     setDirection(1);
-    const currentIndex = product.images.indexOf(mainImage!);
-    const nextIndex = (currentIndex + 1) % product.images.length;
-    setMainImage(product.images[nextIndex]);
+    const currentIndex = allMedia.indexOf(mainMedia!);
+    const nextIndex = (currentIndex + 1) % allMedia.length;
+    setMainMedia(allMedia[nextIndex]);
   };
 
   const handlePrevImage = () => {
     setDirection(-1);
-    const currentIndex = product.images.indexOf(mainImage!);
-    const prevIndex = (currentIndex - 1 + product.images.length) % product.images.length;
-    setMainImage(product.images[prevIndex]);
+    const currentIndex = allMedia.indexOf(mainMedia!);
+    const prevIndex = (currentIndex - 1 + allMedia.length) % allMedia.length;
+    setMainMedia(allMedia[prevIndex]);
   };
 
-  const handleThumbnailClick = (img: string) => {
-    const currentIndex = product.images.indexOf(mainImage!);
-    const newIndex = product.images.indexOf(img);
+  const handleThumbnailClick = (media: string) => {
+    const currentIndex = allMedia.indexOf(mainMedia!);
+    const newIndex = allMedia.indexOf(media);
     setDirection(newIndex > currentIndex ? 1 : -1);
-    setMainImage(img);
+    setMainMedia(media);
   };
 
   const handleWishlistClick = () => {
@@ -219,7 +220,7 @@ export default function ProductPageClient({ product }: { product: Product }) {
 
   const handleBuyNow = () => {
     if (isOutOfStock) return;
-    
+
     if (!isInCart) {
       addToCart(product, quantity);
     }
@@ -305,7 +306,7 @@ export default function ProductPageClient({ product }: { product: Product }) {
 
               <AnimatePresence initial={false} custom={direction}>
                 <motion.div
-                  key={mainImage}
+                  key={mainMedia}
                   custom={direction}
                   variants={slideVariants}
                   initial="enter"
@@ -315,13 +316,25 @@ export default function ProductPageClient({ product }: { product: Product }) {
                     x: { type: "spring", stiffness: 300, damping: 30 },
                     opacity: { duration: 0.2 },
                   }}
-                  className="absolute inset-0 w-full h-full"
+                  className="absolute inset-0 w-full h-full bg-black/5 flex items-center justify-center"
                 >
-                  <Image src={mainImage!} alt={product.name} fill className="object-cover object-bottom" />
+                  {product.videos?.includes(mainMedia!) ? (
+                    <video
+                      src={mainMedia!}
+                      controls
+                      autoPlay
+                      muted
+                      loop
+                      playsInline
+                      className="w-full h-full object-contain"
+                    />
+                  ) : (
+                    <Image src={mainMedia!} alt={product.name} fill className="object-cover object-bottom" />
+                  )}
                 </motion.div>
               </AnimatePresence>
 
-              {product.images.length > 1 && (
+              {allMedia.length > 1 && (
                 <>
                   <button
                     onClick={handlePrevImage}
@@ -345,16 +358,15 @@ export default function ProductPageClient({ product }: { product: Product }) {
                   </button>
 
                   <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10 bg-black/10 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20">
-                    {product.images.map((img, index) => (
+                    {allMedia.map((media, index) => (
                       <button
                         key={index}
-                        onClick={() => handleThumbnailClick(img)}
-                        className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
-                          mainImage === img 
-                            ? "bg-white w-4" 
+                        onClick={() => handleThumbnailClick(media)}
+                        className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${mainMedia === media
+                            ? "bg-white w-4"
                             : "bg-white/50 hover:bg-white/80"
-                        }`}
-                        aria-label={`Go to image ${index + 1}`}
+                          }`}
+                        aria-label={`Go to media ${index + 1}`}
                       />
                     ))}
                   </div>
@@ -363,17 +375,28 @@ export default function ProductPageClient({ product }: { product: Product }) {
             </div>
 
             <div className="flex overflow-x-auto gap-2 mt-3 pb-2 scrollbar-none snap-x md:grid md:grid-cols-5 lg:grid-cols-6 md:gap-3 md:mt-4 md:pb-0">
-              {product.images.map((img, index) => (
+              {allMedia.map((media, index) => (
                 <button
                   key={index}
                   type="button"
-                  onClick={() => handleThumbnailClick(img)}
-                  title={`View image ${index + 1}`}
-                  aria-label={`View image ${index + 1}`}
-                  className={`relative flex-shrink-0 w-12 h-12 sm:w-14 sm:h-14 md:w-full md:h-14 lg:h-16 bg-slate-100 rounded-md overflow-hidden border-2 transition-colors snap-start ${mainImage === img ? "border-[hsl(var(--swago-purple))]" : "border-transparent"
+                  onClick={() => handleThumbnailClick(media)}
+                  title={`View media ${index + 1}`}
+                  aria-label={`View media ${index + 1}`}
+                  className={`relative flex-shrink-0 w-12 h-12 sm:w-14 sm:h-14 md:w-full md:h-14 lg:h-16 bg-slate-100 rounded-md overflow-hidden border-2 transition-colors snap-start ${mainMedia === media ? "border-[hsl(var(--swago-purple))]" : "border-transparent"
                     }`}
                 >
-                  <Image src={img} alt={`${product.name} thumbnail ${index + 1}`} fill className="object-cover object-bottom" />
+                  {product.videos?.includes(media) ? (
+                    <div className="w-full h-full relative">
+                      <video src={media} className="object-cover w-full h-full opacity-70" />
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="bg-black/50 rounded-full p-1 border border-white/30 backdrop-blur-sm shadow-sm scale-75">
+                          <svg className="w-4 h-4 text-white pl-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <Image src={media} alt={`${product.name} thumbnail ${index + 1}`} fill className="object-cover object-bottom" />
+                  )}
                 </button>
               ))}
             </div>
@@ -534,12 +557,12 @@ export default function ProductPageClient({ product }: { product: Product }) {
                 (benefits && item.key === "benefits" && benefits.trim() !== "") ||
                   (boxContents && item.key === "box_contents" && boxContents.trim() !== "") ||
                   item.key === "description" ? (
-                  <AccordionItem 
-                    key={item.key} 
-                    title={item.title} 
-                    content={item.content} 
-                    isOpen={openAccordion === item.key} 
-                    onToggle={() => setOpenAccordion(openAccordion === item.key ? null : item.key)} 
+                  <AccordionItem
+                    key={item.key}
+                    title={item.title}
+                    content={item.content}
+                    isOpen={openAccordion === item.key}
+                    onToggle={() => setOpenAccordion(openAccordion === item.key ? null : item.key)}
                   />
                 ) : null
               )}
@@ -570,9 +593,9 @@ export default function ProductPageClient({ product }: { product: Product }) {
           <ReviewList productId={productIdForReviews} currentUserId={user?.phone} />
         </div>
 
-        <RelatedProducts 
-          currentProductId={productIdForReviews} 
-          ageCategory={ageCategory} 
+        <RelatedProducts
+          currentProductId={productIdForReviews}
+          ageCategory={ageCategory}
         />
       </div>
 
@@ -612,8 +635,8 @@ export default function ProductPageClient({ product }: { product: Product }) {
                     onClick={handleAddToCart}
                     disabled={isOutOfStock}
                     className={`font-black px-4 sm:px-6 py-2 sm:py-2.5 rounded-xl text-[10px] sm:text-xs uppercase tracking-wider transition-all duration-300 whitespace-nowrap ${isOutOfStock
-                        ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                        : 'bg-[hsl(var(--swago-purple))] text-white shadow-sm hover:shadow-md'
+                      ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                      : 'bg-[hsl(var(--swago-purple))] text-white shadow-sm hover:shadow-md'
                       }`}
                   >
                     <span className="relative z-10">{isOutOfStock ? 'Out' : 'Add to Cart'}</span>
@@ -625,7 +648,7 @@ export default function ProductPageClient({ product }: { product: Product }) {
                     <button onClick={handleIncrease} className="p-2 text-[hsl(var(--swago-purple))] font-bold">+</button>
                   </div>
                 )}
-                
+
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}

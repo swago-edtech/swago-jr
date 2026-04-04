@@ -112,32 +112,40 @@ export default function ReviewList({ productId, currentUserId }: ReviewListProps
     <div className="space-y-6">
       {/* Reviews List & Stats in a single card */}
       <div className="bg-white p-4 md:p-6 rounded-[2rem] border border-slate-100 shadow-sm">
-        <div className="mb-6">
-          <h3 className="text-xl md:text-2xl font-black text-slate-900 uppercase tracking-tight mb-1">
-            How do you like our product?
-          </h3>
-          <p className="text-slate-400 font-medium text-sm">Read what other parents are saying</p>
-        </div>
+        {reviews.length > 0 && (
+          <>
+            <div className="mb-6">
+              <h3 className="text-xl md:text-2xl font-black text-slate-900 uppercase tracking-tight mb-1">
+                How do you like our product?
+              </h3>
+              <p className="text-slate-400 font-medium text-sm">Read what other parents are saying</p>
+            </div>
 
-        {/* Stats Section moved inside or simplified */}
-        {stats && (
-          <div className="mb-8 pb-8 border-b border-slate-50">
-            <ReviewStats stats={stats} />
-          </div>
+            {/* Stats Section moved inside or simplified */}
+            {stats && stats.totalReviews > 0 && (
+              <div className="mb-8 pb-8 border-b border-slate-50">
+                <ReviewStats stats={stats} />
+              </div>
+            )}
+          </>
         )}
 
-        {/* Sort & Filter */}
         {reviews.length > 0 && (
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-lg font-bold text-slate-900 border-l-4 border-[hsl(var(--swago-purple))] pl-3">
-              All Reviews ({reviews.length})
-            </h3>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 pt-6 border-t border-slate-100 mt-2">
             <div className="flex items-center gap-3">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider hidden sm:inline">Sort by:</span>
+              <div className="bg-slate-900 w-1.5 h-6 sm:h-8 rounded-full" />
+              <h3 className="text-lg sm:text-xl font-black text-slate-900 uppercase tracking-tight">
+                All Reviews <span className="text-slate-400">({reviews.length})</span>
+              </h3>
+            </div>
+
+            <div className="flex items-center gap-3 w-full sm:w-auto bg-slate-50 p-1.5 rounded-2xl border border-slate-100">
+              <span className="text-xs font-black text-slate-400 uppercase tracking-widest pl-3 hidden sm:block">Sort :</span>
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as SortOption)}
-                className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-[hsl(var(--swago-purple))] transition-all cursor-pointer shadow-sm"
+                className="w-full sm:w-auto px-4 py-2 bg-white border border-slate-100 rounded-xl text-xs font-black text-slate-800 uppercase tracking-widest outline-none focus:ring-2 focus:ring-[hsl(var(--swago-purple))]/20 focus:border-[hsl(var(--swago-purple))] transition-all cursor-pointer shadow-sm appearance-none"
+                style={{ backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.75rem center', backgroundSize: '12px' }}
               >
                 <option value="recent">Most Recent</option>
                 <option value="rating-high">Highest Rating</option>
@@ -153,15 +161,17 @@ export default function ReviewList({ productId, currentUserId }: ReviewListProps
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="text-center py-12 bg-gradient-to-b from-purple-50/50 to-transparent rounded-3xl border-2 border-dashed border-purple-100"
+              className="text-center py-12 px-6 bg-slate-50 rounded-[2rem] border border-slate-100 shadow-inner"
             >
-              <div className="flex justify-center mb-4">
-                <StarRating rating={0} size="lg" />
+              <div className="flex justify-center mb-5">
+                <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+                  <StarRating rating={0} size="lg" />
+                </div>
               </div>
-              <h4 className="text-lg font-bold text-slate-900 px-4">
-                Be the first parent to review this smart box.
+              <h4 className="text-xl font-black text-slate-900 tracking-tight uppercase mb-3 px-4">
+                Be the first parent to review!
               </h4>
-              <p className="text-slate-500 mt-2 px-6 max-w-md mx-auto text-sm">
+              <p className="text-slate-500 font-bold text-sm max-w-sm mx-auto">
                 Your feedback helps other parents choose the perfect learning experience for their kids.
               </p>
             </motion.div>

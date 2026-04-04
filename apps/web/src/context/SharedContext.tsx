@@ -19,6 +19,7 @@ export type Product = {
   original_price?: number;
   originalPrice?: number;
   images: string[];
+  videos?: string[];
   age_category?: string;
   ageCategory?: string;
   core_elements?: string[];
