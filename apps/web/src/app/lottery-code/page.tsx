@@ -9,7 +9,7 @@ export default async function LotteryPage() {
 
     // Restriction: Only logged in users can access the lottery page
     if (!session) {
-        redirect("/login?callbackUrl=/lottery-code");
+        redirect("/login?redirect=/lottery-code");
     }
 
     return <LotteryClient />;

@@ -3,15 +3,15 @@ import type { NextRequest } from "next/server";
 
 export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
-  
+
   // ✅ Protected routes that require authentication
-  const protectedRoutes = ['/kids', '/orders', '/profile'];
+  const protectedRoutes = ['/kids', '/orders', '/profile', '/lottery-code', '/checkout', '/swago-pass', '/ticket', '/wishlist'];
   const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
-  
+
   // ✅ Check authentication for protected routes
   if (isProtectedRoute) {
     const sessionCookie = request.cookies.get('session');
-    
+
     if (!sessionCookie || !sessionCookie.value) {
       // User not logged in - redirect to login
       const loginUrl = new URL('/login', request.url);
@@ -20,10 +20,10 @@ export function middleware(request: NextRequest) {
       return NextResponse.redirect(loginUrl);
     }
   }
-  
+
   // Clone the request headers
   const requestHeaders = new Headers(request.headers);
-  
+
   // Add pathname to headers so layout can access it
   requestHeaders.set("x-pathname", pathname);
 

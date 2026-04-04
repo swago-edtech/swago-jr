@@ -31,7 +31,7 @@ export default function LoginForm() {
   const { setUser, cart } = useSharedContext();
 
   const searchParams = useSearchParams();
-  const redirectUrl = searchParams.get("redirect");
+  const redirectUrl = searchParams.get("redirect") || searchParams.get("callbackUrl");
 
   // Demo credentials
   const DEMO_PHONE = "9876543210";
@@ -378,9 +378,11 @@ export default function LoginForm() {
               : "✅ Login successful!";
             setMessage(successMsg);
             window.dispatchEvent(new CustomEvent(USER_EVENTS.LOGIN));
-            
-            // Redirect based on profile status
-            const nextUrl = responseData.hasKidProfiles ? (redirectUrl || "/") : "/profile?mode=create";
+
+            const target = redirectUrl || "/";
+            const nextUrl = responseData.hasKidProfiles
+              ? target
+              : `/profile?mode=create&redirect=${encodeURIComponent(target)}`;
             setTimeout(() => router.push(nextUrl), 800);
           } else {
             setMessage(`❌ ${responseData.error || "Verification failed"}`);
@@ -591,7 +593,7 @@ export default function LoginForm() {
                         <span>Your information is secure with us</span>
                       </div>
                       <button
-                        onClick={() => router.push("/login/email")}
+                        onClick={() => router.push(`/login/email${redirectUrl ? `?redirect=${encodeURIComponent(redirectUrl)}` : ''}`)}
                         className="text-xs font-black text-[#7c5dfa] hover:underline underline-offset-4 tracking-tight uppercase"
                       >
                         Prefer email login?

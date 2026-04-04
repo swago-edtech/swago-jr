@@ -27,7 +27,7 @@ export default function EmailLoginForm() {
   const { setUser, cart } = useSharedContext();
 
   const searchParams = useSearchParams();
-  const redirectUrl = searchParams.get("redirect");
+  const redirectUrl = searchParams.get("redirect") || searchParams.get("callbackUrl");
 
   // Email widget configuration
   const EMAIL_WIDGET_ID = process.env.NEXT_PUBLIC_MSG91_EMAIL_WIDGET_ID!;
@@ -420,7 +420,7 @@ export default function EmailLoginForm() {
 
               <div className="text-center pt-4 border-t border-gray-200">
                 <button
-                  onClick={() => router.push("/login")}
+                  onClick={() => router.push(`/login${redirectUrl ? `?redirect=${encodeURIComponent(redirectUrl)}` : ''}`)}
                   className="text-sm text-gray-600 hover:text-[hsl(var(--swago-purple))] transition-colors"
                 >
                   ← Back to Phone Login

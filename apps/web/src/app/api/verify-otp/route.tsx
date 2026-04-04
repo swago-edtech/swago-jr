@@ -1,7 +1,7 @@
 // apps/web/src/app/api/verify-otp/route.tsx
 import { NextResponse } from "next/server";
 import { SignJWT } from "jose";
-import { connectDB, User } from "@swago/database";
+import { connectDB, User, KidProfile } from "@swago/database";
 import { z } from "zod";
 import { formatPhoneForStorage } from "@/lib/msg91";
 
@@ -39,9 +39,9 @@ function normalizeCartItem(item: CartInput): CartItem | null {
   const price = item?.price ?? item?.unitPrice ?? 0;
   const name = item?.name || '';
   const image = item?.image || item?.images?.[0] || '';
-  
+
   if (!id || qty <= 0) return null;
-  
+
   return {
     productId: String(id),
     quantity: Number(qty),
@@ -55,11 +55,11 @@ function normalizeCartItem(item: CartInput): CartItem | null {
 // ✅ UPDATED: Merge carts with normalization (handles qty/quantity mismatch)
 function mergeCartItems(dbCart: CartInput[], localCart: CartInput[]): CartItem[] {
   console.log('📦 Starting cart merge...');
-  
+
   // Normalize both carts first
   const dbItems = dbCart.map(normalizeCartItem).filter(Boolean) as CartItem[];
   const localItems = localCart.map(normalizeCartItem).filter(Boolean) as CartItem[];
-  
+
   console.log('  DB Cart:', JSON.stringify(dbItems.map(i => ({ id: i.productId, qty: i.quantity, price: i.price }))));
   console.log('  Local Cart:', JSON.stringify(localItems.map(i => ({ id: i.productId, qty: i.quantity, price: i.price }))));
 
@@ -107,7 +107,7 @@ function mergeCartItems(dbCart: CartInput[], localCart: CartInput[]): CartItem[]
 
   const result = Array.from(merged.values()).filter(i => i && i.productId && i.quantity > 0);
   console.log('  Final Merged Cart:', JSON.stringify(result.map(i => ({ id: i.productId, qty: i.quantity, price: i.price }))));
-  
+
   return result;
 }
 
@@ -145,7 +145,7 @@ const DEMO_OTP = "123456";
 // Verify access token with MSG91
 async function verifyAccessToken(accessToken: string): Promise<{ success: boolean; error?: string }> {
   const MSG91_AUTH_KEY = process.env.MSG91_AUTH_KEY;
-  
+
   if (!MSG91_AUTH_KEY) {
     return { success: false, error: "MSG91_AUTH_KEY not configured" };
   }
@@ -232,7 +232,7 @@ export async function POST(req: Request) {
 
         if (!user) {
           // ✅ NEW USER: Create with phone + optional email + local cart (with full details)
-          user = await User.create({ 
+          user = await User.create({
             phone: formattedPhone,
             authMethod: 'phone',
             cart: localCartItems,
@@ -251,7 +251,7 @@ export async function POST(req: Request) {
 
         if (!user) {
           // ✅ NEW USER: Create with email + local cart (with full details)
-          user = await User.create({ 
+          user = await User.create({
             email: identifier,
             authMethod: 'email',
             cart: localCartItems,
@@ -269,7 +269,7 @@ export async function POST(req: Request) {
       if (!isNewUser && localCartItems.length > 0) {
         const dbCart = user.cart || [];
         const mergedCart = mergeCartItems(dbCart, localCartItems);
-        
+
         console.log(`🔀 Cart merge complete: DB(${dbCart.length}) + Local(${localCartItems.length}) = Merged(${mergedCart.length})`);
 
         // Update user cart atomically
@@ -293,8 +293,8 @@ export async function POST(req: Request) {
       }
 
       // ✅ Create JWT with appropriate identifier
-      const jwtPayload = authMethod === 'phone' 
-        ? { phone: user.phone } 
+      const jwtPayload = authMethod === 'phone'
+        ? { phone: user.phone }
         : { email: user.email };
 
       const token = await new SignJWT(jwtPayload)
@@ -303,7 +303,6 @@ export async function POST(req: Request) {
         .sign(secret);
 
       // ✅ NEW: Count kid profiles to determine if user should go to onboarding
-      const { KidProfile } = await import("@swago/database");
       const kidProfileCount = await KidProfile.countDocuments({ parentId: user._id });
 
       // ✅ Create response - cart already has full details, no populate needed
@@ -368,7 +367,7 @@ export async function POST(req: Request) {
       let user = await User.findOne({ phone: formattedPhone });
 
       if (!user) {
-        user = await User.create({ 
+        user = await User.create({
           phone: formattedPhone,
           authMethod: 'phone'
         });
