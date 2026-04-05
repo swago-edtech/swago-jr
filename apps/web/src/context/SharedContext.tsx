@@ -89,6 +89,8 @@ type SharedContextType = {
   isCartSidebarOpen: boolean;
   openCartSidebar: () => void;
   closeCartSidebar: () => void;
+  appliedCoupon: any;
+  setAppliedCoupon: (coupon: any) => void;
 };
 
 const SharedContext = createContext<SharedContextType | undefined>(undefined);
@@ -115,6 +117,11 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
   const [wishlist, setWishlist] = useState<(number | string)[]>([]);
   const [selectedKid, setSelectedKidState] = useState<SelectedKid | null>(null);
   const [isCartSidebarOpen, setIsCartSidebarOpen] = useState(false);
+  const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
+
+  useEffect(() => {
+    if (cart.length === 0) setAppliedCoupon(null);
+  }, [cart]);
 
   const cartSyncTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastSyncedCartRef = useRef<string>('');
@@ -532,7 +539,9 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
         clearSelectedKid,
         isCartSidebarOpen,
         openCartSidebar,
-        closeCartSidebar
+        closeCartSidebar,
+        appliedCoupon,
+        setAppliedCoupon
       }}
     >
       {children}

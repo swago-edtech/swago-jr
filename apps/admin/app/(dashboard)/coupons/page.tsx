@@ -18,6 +18,8 @@ type Coupon = {
     usageLimit: number | null;
     usageCount: number;
     createdAt: string;
+    isPublic: boolean;
+    targetGroup: string;
 };
 
 export default function CouponsPage() {
@@ -130,7 +132,11 @@ export default function CouponsPage() {
                                             {coupon.type === "percentage" ? `${coupon.value}% Off` : `₹${coupon.value} Flat Off`}
                                         </div>
                                         <div className="text-xs text-gray-500 mt-0.5">{coupon.description}</div>
-                                        <div className="text-[10px] text-gray-400 mt-1">Min: ₹{coupon.minAmount}</div>
+                                        <div className="flex gap-2 items-center mt-1">
+                                            <span className="text-[10px] text-gray-400">Min: ₹{coupon.minAmount}</span>
+                                            {coupon.isPublic && <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">Public</span>}
+                                            {coupon.targetGroup && coupon.targetGroup !== "all" && <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded capitalize">{(coupon.targetGroup || "").replace('_', ' ')}</span>}
+                                        </div>
                                     </td>
                                     <td className="px-6 py-4">
                                         <div className="text-sm text-gray-900">{coupon.usageCount} used</div>

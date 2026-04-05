@@ -7,7 +7,7 @@ import { z } from "zod";
 
 const reviewSchema = z.object({
   productId: z.string().min(1),
-  orderId: z.string().min(1, "Order ID is required"),
+  orderId: z.string().optional(),
   rating: z.number().min(1).max(5),
   title: z.string().trim().min(3, "Title must be at least 3 characters").max(100),
   comment: z.string().trim().min(10, "Comment must be at least 10 characters").max(1000),
@@ -17,11 +17,13 @@ const reviewSchema = z.object({
 export async function POST(req: Request) {
   try {
     const session = await getLoginSession();
-    if (!session) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    const body = await req.json();
+
+    // Convert empty string orderId to undefined so Zod doesn't complain if it doesn't match ObjectId or whatever, although string() allows it.
+    if (body.orderId === "") {
+      delete body.orderId;
     }
 
-    const body = await req.json();
     const validation = reviewSchema.safeParse(body);
     if (!validation.success) {
       return NextResponse.json({ error: validation.error.format() }, { status: 400 });
@@ -31,33 +33,45 @@ export async function POST(req: Request) {
 
     await connectDB();
 
-    // 🔧 HOTFIX: Force re-compile model if schema changed but server didn't restart
-    // This fixes "Cast to Number failed" error by removing stale model
+    // 🔧 HOTFIX: Force re-compile model if schema changed
     if (mongoose.models.Review) {
       delete mongoose.models.Review;
     }
 
-    const user = await User.findOne({ phone: session.phone });
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
+    let userId = null;
+    let isVerifiedPurchase = false;
 
-    // Verify order exists and belongs to user
-    const order = await Order.findOne({
-      _id: orderId,
-      phone: session.phone,
-    });
-    if (!order) {
-      return NextResponse.json({ error: "Order not found or unauthorized" }, { status: 404 });
-    }
+    // If logged in, get user and verify order
+    if (session) {
+      const user = await User.findOne({ phone: session.phone });
+      if (user) {
+        userId = user._id;
 
-    // Check if user already reviewed this product
-    const existingReview = await Review.findOne({
-      userId: user._id,
-      productId: productId,
-    });
-    if (existingReview) {
-      return NextResponse.json({ error: "You have already reviewed this product" }, { status: 400 });
+        // Check if user already reviewed this product
+        const existingReview = await Review.findOne({
+          userId: user._id,
+          productId: productId,
+        });
+
+        if (existingReview) {
+          return NextResponse.json({ error: "You have already reviewed this product" }, { status: 400 });
+        }
+
+        // Verify order exists and belongs to user if orderId was provided
+        if (orderId) {
+          const order = await Order.findOne({
+            _id: orderId,
+            phone: session.phone,
+          });
+          if (order) {
+            isVerifiedPurchase = true;
+          }
+        }
+      } else {
+        return NextResponse.json({ error: "User not found" }, { status: 404 });
+      }
+    } else {
+      return NextResponse.json({ error: "You must be logged in to leave a review" }, { status: 401 });
     }
 
     // ✅ AI Sentiment Analysis (internal logging only)
@@ -67,30 +81,31 @@ export async function POST(req: Request) {
       label: sentiment.label,
       confidence: sentiment.confidence,
       reasoning: sentiment.reasoning,
-      autoApproved: sentiment.isPositive
+      rating: rating
     });
 
-    // ✅ Auto-approve if positive/neutral, pending if negative
-    const status = sentiment.isPositive ? "approved" : "pending";
+    // ✅ Requirement: Negative reviews (< 3 stars OR negative label) go to admin (pending)
+    const isNegative = rating < 3 || sentiment.label === "NEGATIVE";
+    const status = isNegative ? "pending" : "approved";
 
     // Create review with sentiment metadata
     const review = await Review.create({
       productId,
-      userId: user._id,
-      orderId,
+      userId,
+      ...(orderId ? { orderId } : {}),
       rating,
       title,
       comment,
       images: images || [],
       status,
-      isVerifiedPurchase: true,
+      isVerifiedPurchase,
       // Store AI analysis results (for admin dashboard)
       sentimentLabel: sentiment.label,
       sentimentScore: sentiment.confidence,
       sentimentReasoning: sentiment.reasoning,
     });
 
-    // ✅ ALWAYS return the same message to customer (hide AI logic)
+    // ✅ ALWAYS return a polite generic message to customer
     return NextResponse.json(
       {
         success: true,
@@ -99,7 +114,9 @@ export async function POST(req: Request) {
           productId: review.productId,
           rating: review.rating,
         },
-        message: "Review submitted successfully!", // ← Generic message always
+        message: status === "pending"
+          ? "Thank you for your feedback! It has been submitted for review."
+          : "Review submitted successfully!",
       },
       { status: 201 }
     );

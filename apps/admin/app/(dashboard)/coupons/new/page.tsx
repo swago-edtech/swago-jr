@@ -20,6 +20,8 @@ export default function NewCouponPage() {
         expiryDate: "",
         usageLimit: null as number | null,
         applicableProducts: [] as string[],
+        isPublic: true,
+        targetGroup: "all",
     });
 
     const [products, setProducts] = useState<any[]>([]);
@@ -224,6 +226,35 @@ export default function NewCouponPage() {
                                 )}
                             </div>
                         )}
+                    </div>
+                </div>
+
+                <div className="space-y-4 border-t pt-6">
+                    <label className="text-sm font-bold text-gray-700">Coupon Visibility & Targets</label>
+                    <div className="flex flex-col gap-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
+                        <div className="flex items-center space-x-2">
+                            <input
+                                id="isPublic"
+                                type="checkbox"
+                                checked={formData.isPublic}
+                                onChange={(e) => setFormData({ ...formData, isPublic: e.target.checked })}
+                                className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                            />
+                            <label htmlFor="isPublic" className="text-sm font-medium text-gray-700">Make Public (Visible on Cart Page)</label>
+                        </div>
+
+                        <div className="space-y-2 mt-4">
+                            <label className="text-sm font-medium text-gray-700">Target User Group</label>
+                            <select
+                                value={formData.targetGroup}
+                                onChange={(e) => setFormData({ ...formData, targetGroup: e.target.value })}
+                                className="w-full border border-gray-300 rounded-md px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none text-gray-900"
+                            >
+                                <option value="all">All Users</option>
+                                <option value="new_users">New Users</option>
+                                <option value="no_orders">Users with No Past Orders (First Order)</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
 

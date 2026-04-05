@@ -10,7 +10,7 @@ interface Review {
   title: string;
   comment: string;
   status: 'pending' | 'approved' | 'rejected';
-  sentimentLabel: 'POSITIVE' | 'NEGATIVE' | 'NEUTRAL';
+  sentimentLabel: 'POSITIVE' | 'NEGATIVE' | 'NEUTRAL' | null;
   sentimentScore: number;
   createdAt: string;
   userId: {
@@ -384,12 +384,14 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-function SentimentBadge({ sentiment }: { sentiment: string }) {
+function SentimentBadge({ sentiment }: { sentiment: string | null }) {
   const sentimentConfig: Record<string, { bg: string; text: string }> = {
     POSITIVE: { bg: 'bg-green-100', text: 'text-green-800' },
     NEUTRAL: { bg: 'bg-gray-100', text: 'text-gray-800' },
     NEGATIVE: { bg: 'bg-red-100', text: 'text-red-800' },
   };
+
+  if (!sentiment) return <span className="text-gray-400 text-xs">N/A</span>;
 
   const config = sentimentConfig[sentiment] || sentimentConfig.NEUTRAL;
 

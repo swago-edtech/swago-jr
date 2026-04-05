@@ -53,6 +53,19 @@ const CouponSchema = new mongoose.Schema(
             type: mongoose.Schema.Types.ObjectId,
             ref: "Product",
         }],
+        isPublic: {
+            type: Boolean,
+            default: true,
+        },
+        targetGroup: {
+            type: String,
+            enum: ["all", "new_users", "no_orders", "specific_users"],
+            default: "all",
+        },
+        targetUsers: [{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+        }],
     },
     { timestamps: true }
 );

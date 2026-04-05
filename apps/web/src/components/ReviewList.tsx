@@ -3,8 +3,10 @@
 import { useEffect, useState, useCallback } from "react";
 import ReviewCard from "./ReviewCard";
 import ReviewStats from "./ReviewStats";
+import ReviewForm from "./ReviewForm";
 import { motion } from "framer-motion";
 import StarRating from "./StarRating";
+import { useSharedContext } from "@/context/SharedContext";
 
 interface Review {
   _id: string;
@@ -44,6 +46,8 @@ export default function ReviewList({ productId, currentUserId }: ReviewListProps
   const [stats, setStats] = useState<ReviewStatsType | null>(null);
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState<SortOption>("recent");
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const { user } = useSharedContext();
 
   const fetchReviews = useCallback(async () => {
     try {
@@ -87,6 +91,11 @@ export default function ReviewList({ productId, currentUserId }: ReviewListProps
     }
   };
 
+  const handleReviewSuccess = () => {
+    setShowReviewModal(false);
+    fetchReviews();
+  };
+
   const sortedReviews = [...reviews].sort((a, b) => {
     switch (sortBy) {
       case "rating-high":
@@ -110,15 +119,38 @@ export default function ReviewList({ productId, currentUserId }: ReviewListProps
 
   return (
     <div className="space-y-6">
+
+      {showReviewModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-transparent max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <ReviewForm
+              productId={productId}
+              onSuccess={handleReviewSuccess}
+              onCancel={() => setShowReviewModal(false)}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Reviews List & Stats in a single card */}
       <div className="bg-white p-4 md:p-6 rounded-[2rem] border border-slate-100 shadow-sm">
         {reviews.length > 0 && (
           <>
-            <div className="mb-6">
-              <h3 className="text-xl md:text-2xl font-black text-slate-900 uppercase tracking-tight mb-1">
-                How do you like our product?
-              </h3>
-              <p className="text-slate-400 font-medium text-sm">Read what other parents are saying</p>
+            <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h3 className="text-xl md:text-2xl font-black text-slate-900 uppercase tracking-tight mb-1">
+                  How do you like our product?
+                </h3>
+                <p className="text-slate-400 font-medium text-sm">Read what other parents are saying</p>
+              </div>
+              {user && (
+                <button
+                  onClick={() => setShowReviewModal(true)}
+                  className="bg-[hsl(var(--swago-purple))] text-white px-6 py-3 rounded-xl font-black uppercase tracking-widest text-xs hover:opacity-90 shadow-sm transition-transform active:scale-95"
+                >
+                  Write a Review
+                </button>
+              )}
             </div>
 
             {/* Stats Section moved inside or simplified */}
@@ -171,9 +203,17 @@ export default function ReviewList({ productId, currentUserId }: ReviewListProps
               <h4 className="text-xl font-black text-slate-900 tracking-tight uppercase mb-3 px-4">
                 Be the first parent to review!
               </h4>
-              <p className="text-slate-500 font-bold text-sm max-w-sm mx-auto">
+              <p className="text-slate-500 font-bold text-sm max-w-sm mx-auto mb-6">
                 Your feedback helps other parents choose the perfect learning experience for their kids.
               </p>
+              {user && (
+                <button
+                  onClick={() => setShowReviewModal(true)}
+                  className="bg-[hsl(var(--swago-purple))] text-white px-8 py-4 rounded-xl font-black uppercase tracking-widest text-sm hover:scale-105 shadow-md shadow-purple-100 transition-all active:scale-95 inline-block"
+                >
+                  Drop a Review
+                </button>
+              )}
             </motion.div>
           ) : (
             sortedReviews.map((review) => (

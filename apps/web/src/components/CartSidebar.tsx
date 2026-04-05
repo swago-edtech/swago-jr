@@ -40,7 +40,9 @@ export default function CartSidebar() {
     increaseQty,
     decreaseQty,
     removeFromCart,
-    addToCart
+    addToCart,
+    appliedCoupon,
+    setAppliedCoupon
   } = useSharedContext();
 
   const router = useRouter();
@@ -51,15 +53,34 @@ export default function CartSidebar() {
 
   // Coupon state
   const [couponSheetOpen, setCouponSheetOpen] = useState(false);
-  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number } | null>(null);
+
   const [couponLoading, setCouponLoading] = useState(false);
   const [couponError, setCouponError] = useState('');
 
-  const AVAILABLE_COUPONS = [
-    { code: 'SAVE25', label: '25% Off', description: 'Get 25% off on your order', minOrder: 0, color: 'from-purple-50 to-purple-100', accent: 'hsl(var(--swago-purple))' },
-    { code: 'EXTRA10', label: '10% Off', description: 'Extra 10% off on orders above ₹500', minOrder: 500, color: 'from-purple-50 to-purple-100', accent: 'hsl(var(--swago-purple))' },
-    { code: 'FLAT50', label: 'Flat ₹50', description: 'Flat ₹50 off on prepaid orders', minOrder: 0, color: 'from-purple-50 to-purple-100', accent: 'hsl(var(--swago-purple))' },
-  ];
+  const [availableCoupons, setAvailableCoupons] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchCoupons = async () => {
+      try {
+        const res = await fetch('/api/coupon/public');
+        const data = await res.json();
+        if (data.success) {
+          const formatted = data.coupons.map((c: any) => ({
+            code: c.code,
+            label: c.type === 'percentage' ? `${c.value}% Off` : `Flat ₹${c.value}`,
+            description: c.description,
+            minOrder: c.minAmount || 0,
+            color: 'bg-indigo-50',
+            accent: 'hsl(var(--swago-purple))'
+          }));
+          setAvailableCoupons(formatted);
+        }
+      } catch (e) {
+        console.error('Failed to fetch public coupons', e);
+      }
+    };
+    fetchCoupons();
+  }, []);
 
   const applyCoupon = async (code: string) => {
     if (!code.trim()) return;
@@ -300,7 +321,7 @@ export default function CartSidebar() {
                       </button>
                     </div>
                   ) : (
-                    <button 
+                    <button
                       onClick={() => setCouponSheetOpen(true)}
                       className="w-full bg-white border border-[#E1E5E9] p-4 rounded-xl flex items-center justify-between group shadow-sm hover:border-[hsl(var(--swago-purple))] transition-all"
                     >
@@ -313,10 +334,10 @@ export default function CartSidebar() {
                         <span className="text-sm font-black text-slate-700">View Coupons</span>
                       </div>
                       <div className="flex items-center gap-2">
-                         <span className="text-[9px] font-black text-[hsl(var(--swago-purple))] uppercase tracking-widest">{AVAILABLE_COUPONS.length} OFFERS</span>
-                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-4 h-4 text-slate-400 group-hover:translate-x-1 transition-transform">
-                           <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-                         </svg>
+                        <span className="text-[9px] font-black text-[hsl(var(--swago-purple))] uppercase tracking-widest">{availableCoupons.length} OFFERS</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-4 h-4 text-slate-400 group-hover:translate-x-1 transition-transform">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                        </svg>
                       </div>
                     </button>
                   )}
@@ -386,36 +407,36 @@ export default function CartSidebar() {
 
               {/* Footer */}
               <div className="bg-white border-t border-slate-100 shadow-[0_-10px_30px_rgba(0,0,0,0.03)] p-5 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-black text-slate-700 tracking-tight">Estimated total</span>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-xl font-black text-slate-900 tracking-tight leading-none mb-1">₹{(total - (appliedCoupon?.discount || 0)).toFixed(0)}</p>
-                      {appliedCoupon && <p className="text-[10px] font-black text-[#1EAA5F] uppercase tracking-wide">You saved ₹{(75 + appliedCoupon.discount).toFixed(0)}!</p>}
-                      {!appliedCoupon && <p className="text-[10px] font-black text-[#1EAA5F] uppercase tracking-wide">You saved ₹75!</p>}
-                    </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-black text-slate-700 tracking-tight">Estimated total</span>
                   </div>
-
-                  <button
-                    onClick={handleCheckout}
-                    className="w-full bg-[#61498C] text-white font-black py-4.5 px-6 rounded-2xl text-base shadow-xl shadow-purple-100 hover:bg-[#533d7a] transition-all transform active:scale-[0.98] flex items-center justify-center uppercase tracking-[0.2em]"
-                  >
-                    Checkout
-                  </button>
-
-                  <div className="flex items-center justify-center gap-1.5 opacity-30 mt-2">
-                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Powered by</span>
-                    <span className="text-[10px] font-black text-slate-600 tracking-tighter lowercase">shopflo</span>
+                  <div className="text-right">
+                    <p className="text-xl font-black text-slate-900 tracking-tight leading-none mb-1">₹{(total - (appliedCoupon?.discount || 0)).toFixed(0)}</p>
+                    {appliedCoupon && <p className="text-[10px] font-black text-[#1EAA5F] uppercase tracking-wide">You saved ₹{(75 + appliedCoupon.discount).toFixed(0)}!</p>}
+                    {!appliedCoupon && <p className="text-[10px] font-black text-[#1EAA5F] uppercase tracking-wide">You saved ₹75!</p>}
                   </div>
+                </div>
+
+                <button
+                  onClick={handleCheckout}
+                  className="w-full bg-[#61498C] text-white font-black py-4.5 px-6 rounded-2xl text-base shadow-xl shadow-purple-100 hover:bg-[#533d7a] transition-all transform active:scale-[0.98] flex items-center justify-center uppercase tracking-[0.2em]"
+                >
+                  Checkout
+                </button>
+
+                <div className="flex items-center justify-center gap-1.5 opacity-30 mt-2">
+                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Powered by</span>
+                  <span className="text-[10px] font-black text-slate-600 tracking-tighter lowercase">shopflo</span>
+                </div>
               </div>
             </motion.div>
-            <CouponSheet 
+            <CouponSheet
               isOpen={couponSheetOpen}
               onClose={() => setCouponSheetOpen(false)}
               onApply={applyCoupon}
               total={total}
-              availableCoupons={AVAILABLE_COUPONS}
+              availableCoupons={availableCoupons}
               loading={couponLoading}
               error={couponError}
             />

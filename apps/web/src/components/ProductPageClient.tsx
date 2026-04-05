@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useSharedContext, Product, CartItem } from "@/context/SharedContext";
 import Link from "next/link";
 import Image from "next/image";
@@ -47,6 +47,153 @@ function AccordionItem({ title, content, isOpen, onToggle }: { title: string; co
           </motion.div>
         )}
       </AnimatePresence>
+    </div>
+  );
+}
+
+function VideoPlayer({ src, className, product }: { src: string; className?: string; product: Product }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [isPlaying, setIsPlaying] = useState(true);
+  const [progress, setProgress] = useState(0);
+  const [isMuted, setIsMuted] = useState(true);
+  const [isHovered, setIsHovered] = useState(false);
+
+  const togglePlay = () => {
+    if (videoRef.current) {
+      if (isPlaying) {
+        videoRef.current.pause();
+      } else {
+        videoRef.current.play();
+      }
+      setIsPlaying(!isPlaying);
+    }
+  };
+
+  const handleTimeUpdate = () => {
+    if (videoRef.current) {
+      const p = (videoRef.current.currentTime / videoRef.current.duration) * 100;
+      setProgress(p);
+    }
+  };
+
+  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (videoRef.current) {
+      const time = (parseFloat(e.target.value) / 100) * videoRef.current.duration;
+      videoRef.current.currentTime = time;
+      setProgress(parseFloat(e.target.value));
+    }
+  };
+
+  const toggleMute = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (videoRef.current) {
+      videoRef.current.muted = !isMuted;
+      setIsMuted(!isMuted);
+    }
+  };
+
+  return (
+    <div
+      className={`relative group w-full h-full ${className}`}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <video
+        ref={videoRef}
+        src={src}
+        autoPlay
+        muted
+        loop
+        playsInline
+        onTimeUpdate={handleTimeUpdate}
+        onClick={togglePlay}
+        className="w-full h-full object-contain cursor-pointer bg-slate-900/50"
+      />
+
+      {/* Central Play/Pause Trigger */}
+      <AnimatePresence>
+        {!isPlaying && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 1.2 }}
+            className="absolute inset-0 flex items-center justify-center bg-black/10 pointer-events-none"
+          >
+            <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-xl flex items-center justify-center border border-white/30 shadow-2xl">
+              <svg className="w-8 h-8 text-white ml-1 drop-shadow-md" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Premium Glassmorphic Controls Overlay */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: isHovered || !isPlaying ? 1 : 0, y: isHovered || !isPlaying ? 0 : 10 }}
+        className="absolute bottom-0 left-0 right-0 p-4 md:p-6 bg-gradient-to-t from-black/80 via-black/40 to-transparent"
+      >
+        <div className="flex flex-col gap-3">
+          {/* High-Precision Progress Bar */}
+          <div className="relative group/progress h-1.5 w-full bg-white/20 rounded-full overflow-hidden">
+            <motion.div
+              className="absolute left-0 top-0 bottom-0 bg-[hsl(var(--swago-purple))] z-10"
+              style={{ width: `${progress}%` }}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            />
+            <input
+              type="range"
+              min="0"
+              max="100"
+              step="0.1"
+              value={progress}
+              onChange={handleSeek}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
+            />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-5">
+              <button
+                onClick={togglePlay}
+                className="text-white hover:text-[hsl(var(--swago-purple))] transition-colors p-1"
+                aria-label={isPlaying ? "Pause" : "Play"}
+              >
+                {isPlaying ? (
+                  <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" /></svg>
+                ) : (
+                  <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                )}
+              </button>
+
+              <div className="flex flex-col">
+                <span className="text-white/40 text-[10px] uppercase font-black tracking-widest leading-none mb-1">Preview</span>
+                <span className="text-white font-bold text-xs truncate max-w-[150px]">{product.name}</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4">
+              <button
+                onClick={toggleMute}
+                className="text-white hover:text-[hsl(var(--swago-purple))] transition-colors p-1"
+                aria-label={isMuted ? "Unmute" : "Mute"}
+              >
+                {isMuted ? (
+                  <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.26 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" />
+                    <line x1="1" y1="1" x2="23" y2="23" stroke="currentColor" strokeWidth="2" />
+                  </svg>
+                ) : (
+                  <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.26 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" />
+                  </svg>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      </motion.div>
     </div>
   );
 }
@@ -316,20 +463,14 @@ export default function ProductPageClient({ product }: { product: Product }) {
                     x: { type: "spring", stiffness: 300, damping: 30 },
                     opacity: { duration: 0.2 },
                   }}
-                  className="absolute inset-0 w-full h-full bg-black/5 flex items-center justify-center"
+                  className="absolute inset-0 w-full h-full bg-black/5 flex items-center justify-center font-bold"
                 >
                   {product.videos?.includes(mainMedia!) ? (
-                    <video
-                      src={mainMedia!}
-                      controls
-                      autoPlay
-                      muted
-                      loop
-                      playsInline
-                      className="w-full h-full object-contain"
-                    />
+                    <VideoPlayer src={mainMedia!} product={product} />
                   ) : (
-                    <Image src={mainMedia!} alt={product.name} fill className="object-cover object-bottom" />
+                    <div className="relative w-full h-full">
+                      <Image src={mainMedia!} alt={product.name} fill className="object-cover object-bottom" priority />
+                    </div>
                   )}
                 </motion.div>
               </AnimatePresence>
@@ -363,8 +504,8 @@ export default function ProductPageClient({ product }: { product: Product }) {
                         key={index}
                         onClick={() => handleThumbnailClick(media)}
                         className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${mainMedia === media
-                            ? "bg-white w-4"
-                            : "bg-white/50 hover:bg-white/80"
+                          ? "bg-white w-4"
+                          : "bg-white/50 hover:bg-white/80"
                           }`}
                         aria-label={`Go to media ${index + 1}`}
                       />

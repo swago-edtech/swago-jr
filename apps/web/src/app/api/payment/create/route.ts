@@ -25,6 +25,7 @@ interface ProductDocument {
 interface CartItem {
   _id?: string;
   id?: number;
+  productId?: string | number;
   name: string;
   price: number;
   quantity: number;
@@ -185,16 +186,6 @@ export async function POST(req: Request) {
     const orderId = await generateOrderId();
     console.log('✅ Generated Order ID:', orderId);
 
-    // Prepare order items
-    const orderItems: OrderItem[] = orderDetails.cart.map((item: CartItem) => ({
-      productId: item._id || item.id || 0,
-      name: item.name,
-      price: item.price,
-      quantity: item.quantity,
-      image: item.image || item.images?.[0] || '',
-    }));
-
-    // Recalculate subtotal server-side to ensure accuracy
     // ✅ ZEPRO Reference: Server-side Bonus Item Validation
     const activePromotion = await Promotion.findOne({ isActive: true }).lean() as any;
 
@@ -210,10 +201,19 @@ export async function POST(req: Request) {
       BONUS_THRESHOLDS['special-edition-item'] = 1999;
     }
 
+    // Securely calculate non-bonus subtotal using DB prices
     const nonBonusSubtotal = orderDetails.cart.reduce((sum: number, item: any) => {
+      const productId = item.id?.toString() || item.productId?.toString() || item._id;
+      const reservation = reservations.find(r =>
+        r.product._id.toString() === productId ||
+        r.product.slug === productId
+      );
+      const productPrice = reservation ? (reservation.product as any).price || 0 : item.price;
+
       const slugValue = item.slug || item.productId || item._id;
       if (item.price === 1 && BONUS_THRESHOLDS[slugValue]) return sum;
-      return sum + (item.price * item.quantity);
+
+      return sum + (productPrice * item.quantity);
     }, 0);
 
     for (const item of orderDetails.cart) {
@@ -225,6 +225,31 @@ export async function POST(req: Request) {
         }
       }
     }
+
+    // Prepare order items SECURELY
+    const orderItems: OrderItem[] = orderDetails.cart.map((item: CartItem) => {
+      const productId = item.id?.toString() || item.productId?.toString() || item._id;
+      const reservation = reservations.find(r =>
+        r.product._id.toString() === productId ||
+        r.product.slug === productId
+      );
+
+      const dbProduct = reservation?.product as any;
+      let finalPrice = dbProduct?.price || item.price;
+
+      const slugValue = item.slug || item.productId || item._id;
+      // Allow price of 1 if it passed the bonus threshold check above
+      if (item.price === 1 && BONUS_THRESHOLDS[slugValue] && nonBonusSubtotal >= BONUS_THRESHOLDS[slugValue]) {
+        finalPrice = 1;
+      }
+      return {
+        productId: item._id || item.id || 0,
+        name: dbProduct?.name || item.name,
+        price: finalPrice,
+        quantity: item.quantity,
+        image: item.image || item.images?.[0] || '',
+      };
+    });
 
     const subtotal = orderItems.reduce(
       (sum: number, item: OrderItem) => sum + (item.price * item.quantity),
@@ -239,7 +264,9 @@ export async function POST(req: Request) {
       try {
         const { coupon, discountAmount: validatedDiscount } = await validateCoupon(
           orderDetails.coupon.code,
-          subtotal
+          subtotal,
+          orderDetails.cart,
+          user._id.toString()
         );
         discountAmount = validatedDiscount;
         validatedCoupon = coupon;

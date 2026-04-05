@@ -11,10 +11,10 @@ import { RiInformationLine, RiSearchLine, RiShoppingBag3Line } from "react-icons
 
 // ✅ States List for Dropdown
 const INDIAN_STATES = [
-  "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa", "Gujarat", "Haryana", 
-  "Himachal Pradesh", "Jharkhand", "Karnataka", "Kerala", "Madhya Pradesh", "Maharashtra", "Manipur", 
-  "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", 
-  "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal", "Andaman and Nicobar Islands", "Chandigarh", 
+  "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa", "Gujarat", "Haryana",
+  "Himachal Pradesh", "Jharkhand", "Karnataka", "Kerala", "Madhya Pradesh", "Maharashtra", "Manipur",
+  "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana",
+  "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal", "Andaman and Nicobar Islands", "Chandigarh",
   "Dadra and Nagar Haveli and Daman and Diu", "Delhi", "Jammu and Kashmir", "Ladakh", "Lakshadweep", "Puducherry"
 ];
 
@@ -26,7 +26,7 @@ const DEFAULT_REDEMPTION_TIERS = [
 ];
 
 export default function CheckoutPage() {
-  const { cart, total, user, isLoadingUser, clearCart, addToCart } = useSharedContext();
+  const { cart, total, user, isLoadingUser, clearCart, addToCart, appliedCoupon, setAppliedCoupon } = useSharedContext();
   const router = useRouter();
   const [processing, setProcessing] = useState(false);
   const [email, setEmail] = useState("");
@@ -39,9 +39,7 @@ export default function CheckoutPage() {
   const [state, setState] = useState("Tamil Nadu");
   const [paymentMethod, setPaymentMethod] = useState<'razorpay' | 'cod'>('razorpay');
   const [billingAddressType, setBillingAddressType] = useState<'same' | 'different'>('same');
-  const [couponCode, setCouponCode] = useState("");
-  const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
-  const [discount, setDiscount] = useState<any>(null);
+  const [couponCode, setCouponCode] = useState(appliedCoupon?.code || "");
   const [age, setAge] = useState("");
   const [message, setMessage] = useState("");
   const [errors, setErrors] = useState<string[]>([]);
@@ -70,7 +68,7 @@ export default function CheckoutPage() {
     if (!pincode) newErrors.push("pincode");
     if (!phone) newErrors.push("phone");
     if (!age) newErrors.push("age");
-    
+
     setErrors(newErrors);
     if (newErrors.length > 0) {
       setMessage("Please fill in all the highlighted fields to continue.");
@@ -98,7 +96,7 @@ export default function CheckoutPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          totalAmount: discount ? discount.finalAmount : total,
+          totalAmount: appliedCoupon ? total - appliedCoupon.discount : total,
           orderDetails: {
             name: `${firstName} ${lastName}`,
             email,
@@ -109,7 +107,7 @@ export default function CheckoutPage() {
             pincode,
             cart,
             age,
-            finalAmount: discount ? discount.finalAmount : total
+            finalAmount: appliedCoupon ? total - appliedCoupon.discount : total
           }
         })
       });
@@ -156,7 +154,7 @@ export default function CheckoutPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          totalAmount: discount ? discount.finalAmount : total,
+          totalAmount: appliedCoupon ? total - appliedCoupon.discount : total,
           orderDetails: {
             name: `${firstName} ${lastName}`,
             email,
@@ -167,7 +165,7 @@ export default function CheckoutPage() {
             pincode,
             cart,
             age,
-            finalAmount: discount ? discount.finalAmount : total
+            finalAmount: appliedCoupon ? total - appliedCoupon.discount : total
           }
         })
       });
@@ -192,8 +190,7 @@ export default function CheckoutPage() {
       });
       const data = await res.json();
       if (data.success) {
-        setAppliedCoupon(data.coupon);
-        setDiscount(data.discount);
+        setAppliedCoupon({ code: data.coupon.code, discount: data.discount.amount });
       } else {
         alert(data.error);
       }
@@ -208,7 +205,7 @@ export default function CheckoutPage() {
   // Fetch promotion data
   useEffect(() => {
     fetch("/api/promotion").then(r => r.json()).then(d => {
-       if (d.success) setPromotion(d.promotion);
+      if (d.success) setPromotion(d.promotion);
     });
   }, []);
 
@@ -237,42 +234,42 @@ export default function CheckoutPage() {
   return (
     <div className="min-h-screen bg-white flex flex-col font-sans">
       <Script src="https://checkout.razorpay.com/v1/checkout.js" />
-      
+
 
       {/* Mobile Sticky Order Summary Toggle */}
       <div className="md:hidden border-b bg-[#F7F7F7] px-6 py-4 flex flex-col gap-2">
-         <button 
-            onClick={() => setIsSummaryExpanded(!isSummaryExpanded)}
-            className="flex items-center justify-between group"
-         >
-            <div className="flex items-center gap-2 text-[#61498C] text-sm font-bold">
-               <RiShoppingBag3Line className="text-[#61498C]" />
-               <span>{isSummaryExpanded ? "Hide order summary" : "Show order summary"}</span>
-               <svg className={`w-4 h-4 transition-transform ${isSummaryExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-               </svg>
-            </div>
-            <div className="text-lg font-black text-slate-900">
-               ₹{(discount ? discount.finalAmount : total).toFixed(0)}
-            </div>
-         </button>
-         
-         <AnimatePresence>
-            {isSummaryExpanded && (
-               <motion.div 
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="overflow-hidden pt-4 pb-2"
-               >
-                  <OrderSummary 
-                     cart={cart} total={total} discount={discount} appliedCoupon={appliedCoupon} 
-                     appliedDiscount={discount} couponCode={couponCode} setCouponCode={setCouponCode} applyCoupon={applyCoupon}
-                     promotion={promotion} progressPercent={progressPercent} nextTier={nextTier} addToCart={addToCart}
-                  />
-               </motion.div>
-            )}
-         </AnimatePresence>
+        <button
+          onClick={() => setIsSummaryExpanded(!isSummaryExpanded)}
+          className="flex items-center justify-between group"
+        >
+          <div className="flex items-center gap-2 text-[#61498C] text-sm font-bold">
+            <RiShoppingBag3Line className="text-[#61498C]" />
+            <span>{isSummaryExpanded ? "Hide order summary" : "Show order summary"}</span>
+            <svg className={`w-4 h-4 transition-transform ${isSummaryExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
+          <div className="text-lg font-black text-slate-900">
+            ₹{(appliedCoupon ? total - appliedCoupon.discount : total).toFixed(0)}
+          </div>
+        </button>
+
+        <AnimatePresence>
+          {isSummaryExpanded && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="overflow-hidden pt-4 pb-2"
+            >
+              <OrderSummary
+                cart={cart} total={total} appliedCoupon={appliedCoupon}
+                couponCode={couponCode} setCouponCode={setCouponCode} applyCoupon={applyCoupon}
+                promotion={promotion} progressPercent={progressPercent} nextTier={nextTier} addToCart={addToCart}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       <main className="flex-1 w-full grid grid-cols-1 md:grid-cols-[1fr_400px] lg:grid-cols-[1fr_480px]">
@@ -280,230 +277,230 @@ export default function CheckoutPage() {
         <div className="flex justify-center bg-white">
           <div className="w-full max-w-[630px] p-6 md:p-12 space-y-10">
             {/* Contact Section */}
-          <section>
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-semibold text-slate-800">Contact</h2>
-              {!user && <Link href="/login" className="text-xs text-purple-600 hover:underline">Log in</Link>}
-            </div>
-            <div className="space-y-4">
-              <input 
-                 value={email}
-                 onChange={(e) => { setEmail(e.target.value); if(errors.includes("email")) setErrors(errors.filter(f => f !== "email")); }}
-                 placeholder="Email or mobile phone number" 
-                 className={`w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-purple-500 outline-none text-sm transition-all shadow-sm ${errors.includes("email") ? 'border-red-500 bg-red-50 placeholder-red-300' : 'border-slate-200'}`}
-              />
-              {errors.includes("email") && <p className="text-[10px] text-red-500 font-bold uppercase mt-1 px-1">You have missed filling this box</p>}
-              <label className="flex items-center gap-2 cursor-pointer group">
-                 <input type="checkbox" defaultChecked className="w-4 h-4 rounded-md border-slate-300 text-purple-600 focus:ring-purple-500" />
-                 <span className="text-xs text-slate-600 group-hover:text-slate-900 transition-colors">Email me with news and offers</span>
-              </label>
-            </div>
-          </section>
-
-          {/* Delivery Section */}
-          <section>
-            <h2 className="text-lg font-semibold text-slate-800 mb-4">Delivery</h2>
-            <div className="space-y-3">
-              <select className="w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-purple-500 outline-none text-sm bg-slate-50 shadow-sm appearance-none">
-                <option>India</option>
-              </select>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex flex-col gap-1">
-                  <input 
-                     placeholder="First name" 
-                     value={firstName}
-                     onChange={(e) => { setFirstName(e.target.value); if(errors.includes("firstName")) setErrors(errors.filter(f => f !== "firstName")); }}
-                     className={`w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-purple-500 outline-none text-sm shadow-sm ${errors.includes("firstName") ? 'border-red-500 bg-red-50 placeholder-red-300' : 'border-slate-200'}`} 
-                  />
-                  {errors.includes("firstName") && <p className="text-[10px] text-red-500 font-bold uppercase">Missed this box</p>}
-                </div>
-                <div className="flex flex-col gap-1">
-                  <input 
-                     placeholder="Last name" 
-                     value={lastName}
-                     onChange={(e) => { setLastName(e.target.value); if(errors.includes("lastName")) setErrors(errors.filter(f => f !== "lastName")); }}
-                     className={`w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-purple-500 outline-none text-sm shadow-sm ${errors.includes("lastName") ? 'border-red-500 bg-red-50 placeholder-red-300' : 'border-slate-200'}`} 
-                  />
-                  {errors.includes("lastName") && <p className="text-[10px] text-red-500 font-bold uppercase">Missed this box</p>}
-                </div>
+            <section>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-semibold text-slate-800">Contact</h2>
+                {!user && <Link href="/login" className="text-xs text-purple-600 hover:underline">Log in</Link>}
               </div>
+              <div className="space-y-4">
+                <input
+                  value={email}
+                  onChange={(e) => { setEmail(e.target.value); if (errors.includes("email")) setErrors(errors.filter(f => f !== "email")); }}
+                  placeholder="Email or mobile phone number"
+                  className={`w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-purple-500 outline-none text-sm transition-all shadow-sm ${errors.includes("email") ? 'border-red-500 bg-red-50 placeholder-red-300' : 'border-slate-200'}`}
+                />
+                {errors.includes("email") && <p className="text-[10px] text-red-500 font-bold uppercase mt-1 px-1">You have missed filling this box</p>}
+                <label className="flex items-center gap-2 cursor-pointer group">
+                  <input type="checkbox" defaultChecked className="w-4 h-4 rounded-md border-slate-300 text-purple-600 focus:ring-purple-500" />
+                  <span className="text-xs text-slate-600 group-hover:text-slate-900 transition-colors">Email me with news and offers</span>
+                </label>
+              </div>
+            </section>
 
-              <div className="flex flex-col gap-1">
-                 <select 
+            {/* Delivery Section */}
+            <section>
+              <h2 className="text-lg font-semibold text-slate-800 mb-4">Delivery</h2>
+              <div className="space-y-3">
+                <select className="w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-purple-500 outline-none text-sm bg-slate-50 shadow-sm appearance-none">
+                  <option>India</option>
+                </select>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1">
+                    <input
+                      placeholder="First name"
+                      value={firstName}
+                      onChange={(e) => { setFirstName(e.target.value); if (errors.includes("firstName")) setErrors(errors.filter(f => f !== "firstName")); }}
+                      className={`w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-purple-500 outline-none text-sm shadow-sm ${errors.includes("firstName") ? 'border-red-500 bg-red-50 placeholder-red-300' : 'border-slate-200'}`}
+                    />
+                    {errors.includes("firstName") && <p className="text-[10px] text-red-500 font-bold uppercase">Missed this box</p>}
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <input
+                      placeholder="Last name"
+                      value={lastName}
+                      onChange={(e) => { setLastName(e.target.value); if (errors.includes("lastName")) setErrors(errors.filter(f => f !== "lastName")); }}
+                      className={`w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-purple-500 outline-none text-sm shadow-sm ${errors.includes("lastName") ? 'border-red-500 bg-red-50 placeholder-red-300' : 'border-slate-200'}`}
+                    />
+                    {errors.includes("lastName") && <p className="text-[10px] text-red-500 font-bold uppercase">Missed this box</p>}
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <select
                     value={age}
-                    onChange={(e) => { setAge(e.target.value); if(errors.includes("age")) setErrors(errors.filter(f => f !== "age")); }}
+                    onChange={(e) => { setAge(e.target.value); if (errors.includes("age")) setErrors(errors.filter(f => f !== "age")); }}
                     className={`w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-purple-500 outline-none text-sm bg-white shadow-sm appearance-none ${errors.includes("age") ? 'border-red-500 bg-red-50 text-red-900' : 'border-slate-200'}`}
-                 >
+                  >
                     <option value="" disabled>Child's Age</option>
                     {[...Array(15)].map((_, i) => (
-                       <option key={i} value={i+1}>{i+1} Years</option>
+                      <option key={i} value={i + 1}>{i + 1} Years</option>
                     ))}
-                 </select>
-                 {errors.includes("age") && <p className="text-[10px] text-red-500 font-bold uppercase">You have missed filling the age</p>}
-              </div>
+                  </select>
+                  {errors.includes("age") && <p className="text-[10px] text-red-500 font-bold uppercase">You have missed filling the age</p>}
+                </div>
 
-              <div className="relative flex flex-col gap-1">
-                <input 
-                   placeholder="Address" 
-                   value={address}
-                   onChange={(e) => { setAddress(e.target.value); if(errors.includes("address")) setErrors(errors.filter(f => f !== "address")); }}
-                   className={`w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-purple-500 outline-none text-sm shadow-sm pr-10 ${errors.includes("address") ? 'border-red-500 bg-red-50 placeholder-red-300' : 'border-slate-200'}`} 
-                />
-                <RiSearchLine className="absolute right-4 top-[24px] -translate-y-1/2 text-slate-400" />
-                {errors.includes("address") && <p className="text-[10px] text-red-500 font-bold uppercase">Missed the address box</p>}
-              </div>
+                <div className="relative flex flex-col gap-1">
+                  <input
+                    placeholder="Address"
+                    value={address}
+                    onChange={(e) => { setAddress(e.target.value); if (errors.includes("address")) setErrors(errors.filter(f => f !== "address")); }}
+                    className={`w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-purple-500 outline-none text-sm shadow-sm pr-10 ${errors.includes("address") ? 'border-red-500 bg-red-50 placeholder-red-300' : 'border-slate-200'}`}
+                  />
+                  <RiSearchLine className="absolute right-4 top-[24px] -translate-y-1/2 text-slate-400" />
+                  {errors.includes("address") && <p className="text-[10px] text-red-500 font-bold uppercase">Missed the address box</p>}
+                </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                 <div className="flex flex-col gap-1">
-                   <input 
-                      placeholder="City" 
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="flex flex-col gap-1">
+                    <input
+                      placeholder="City"
                       value={city}
-                      onChange={(e) => { setCity(e.target.value); if(errors.includes("city")) setErrors(errors.filter(f => f !== "city")); }}
-                      className={`w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-purple-500 outline-none text-sm shadow-sm ${errors.includes("city") ? 'border-red-500 bg-red-50 placeholder-red-300' : 'border-slate-200'}`} 
-                   />
-                   {errors.includes("city") && <p className="text-[10px] text-red-500 font-bold uppercase">Missed city</p>}
-                 </div>
-                 <select 
+                      onChange={(e) => { setCity(e.target.value); if (errors.includes("city")) setErrors(errors.filter(f => f !== "city")); }}
+                      className={`w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-purple-500 outline-none text-sm shadow-sm ${errors.includes("city") ? 'border-red-500 bg-red-50 placeholder-red-300' : 'border-slate-200'}`}
+                    />
+                    {errors.includes("city") && <p className="text-[10px] text-red-500 font-bold uppercase">Missed city</p>}
+                  </div>
+                  <select
                     value={state}
                     onChange={(e) => setState(e.target.value)}
                     className="w-full h-12 px-4 border rounded-md border-slate-200 focus:ring-1 focus:ring-purple-500 outline-none text-sm bg-white shadow-sm"
-                 >
+                  >
                     {INDIAN_STATES.map(s => <option key={s} value={s}>{s}</option>)}
-                 </select>
-                 <div className="flex flex-col gap-1">
-                   <input 
-                      placeholder="PIN code" 
+                  </select>
+                  <div className="flex flex-col gap-1">
+                    <input
+                      placeholder="PIN code"
                       value={pincode}
-                      onChange={(e) => { setPincode(e.target.value); if(errors.includes("pincode")) setErrors(errors.filter(f => f !== "pincode")); }}
-                      className={`w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-purple-500 outline-none text-sm shadow-sm ${errors.includes("pincode") ? 'border-red-500 bg-red-50 placeholder-red-300' : 'border-slate-200'}`} 
-                   />
-                   {errors.includes("pincode") && <p className="text-[10px] text-red-500 font-bold uppercase">Missed PIN</p>}
-                 </div>
-              </div>
+                      onChange={(e) => { setPincode(e.target.value); if (errors.includes("pincode")) setErrors(errors.filter(f => f !== "pincode")); }}
+                      className={`w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-purple-500 outline-none text-sm shadow-sm ${errors.includes("pincode") ? 'border-red-500 bg-red-50 placeholder-red-300' : 'border-slate-200'}`}
+                    />
+                    {errors.includes("pincode") && <p className="text-[10px] text-red-500 font-bold uppercase">Missed PIN</p>}
+                  </div>
+                </div>
 
-              <div className="relative flex flex-col gap-1">
-                 <input 
-                    placeholder="Phone" 
+                <div className="relative flex flex-col gap-1">
+                  <input
+                    placeholder="Phone"
                     value={phone}
-                    onChange={(e) => { setPhone(e.target.value); if(errors.includes("phone")) setErrors(errors.filter(f => f !== "phone")); }}
-                    className={`w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-purple-500 outline-none text-sm shadow-sm pr-10 ${errors.includes("phone") ? 'border-red-500 bg-red-50 placeholder-red-300' : 'border-slate-200'}`} 
-                 />
-                 <RiInformationLine className="absolute right-4 top-[24px] -translate-y-1/2 text-slate-400 cursor-help" />
-                 {errors.includes("phone") && <p className="text-[10px] text-red-500 font-bold uppercase">Missed phone box</p>}
-              </div>
+                    onChange={(e) => { setPhone(e.target.value); if (errors.includes("phone")) setErrors(errors.filter(f => f !== "phone")); }}
+                    className={`w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-purple-500 outline-none text-sm shadow-sm pr-10 ${errors.includes("phone") ? 'border-red-500 bg-red-50 placeholder-red-300' : 'border-slate-200'}`}
+                  />
+                  <RiInformationLine className="absolute right-4 top-[24px] -translate-y-1/2 text-slate-400 cursor-help" />
+                  {errors.includes("phone") && <p className="text-[10px] text-red-500 font-bold uppercase">Missed phone box</p>}
+                </div>
 
-              <div className="space-y-2 pt-2">
-                 <label className="flex items-center gap-2 cursor-pointer group">
+                <div className="space-y-2 pt-2">
+                  <label className="flex items-center gap-2 cursor-pointer group">
                     <input type="checkbox" className="w-4 h-4 rounded-md border-slate-300 text-purple-600 focus:ring-purple-500" />
                     <span className="text-xs text-slate-600 group-hover:text-slate-900 transition-colors">Save this information for next time</span>
-                 </label>
-                 <label className="flex items-center gap-2 cursor-pointer group">
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer group">
                     <input type="checkbox" className="w-4 h-4 rounded-md border-slate-300 text-purple-600 focus:ring-purple-500" />
                     <span className="text-xs text-slate-600 group-hover:text-slate-900 transition-colors">Text me with news and offers</span>
-                 </label>
+                  </label>
+                </div>
               </div>
-            </div>
-          </section>
+            </section>
 
-          {/* Shipping Method Section */}
-          <section>
-            <h2 className="text-lg font-semibold text-slate-800 mb-4">Shipping method</h2>
-            <div className="bg-slate-50 border border-slate-200 rounded-lg p-6 flex items-center justify-center">
-              <p className="text-xs text-slate-500">Free shipping on all orders</p>
-            </div>
-          </section>
+            {/* Shipping Method Section */}
+            <section>
+              <h2 className="text-lg font-semibold text-slate-800 mb-4">Shipping method</h2>
+              <div className="bg-slate-50 border border-slate-200 rounded-lg p-6 flex items-center justify-center">
+                <p className="text-xs text-slate-500">Free shipping on all orders</p>
+              </div>
+            </section>
 
-          {/* Payment Section */}
-          <section className="space-y-4">
-            <div>
-              <h2 className="text-lg font-semibold text-slate-800 leading-none">Payment</h2>
-              <p className="text-[10px] text-slate-400 mt-1 uppercase tracking-widest font-bold">All transactions are secure and encrypted.</p>
-            </div>
+            {/* Payment Section */}
+            <section className="space-y-4">
+              <div>
+                <h2 className="text-lg font-semibold text-slate-800 leading-none">Payment</h2>
+                <p className="text-[10px] text-slate-400 mt-1 uppercase tracking-widest font-bold">All transactions are secure and encrypted.</p>
+              </div>
 
-            <div className="border rounded-lg overflow-hidden border-slate-200">
-               {/* Razorpay Option */}
-               <div className={`p-4 flex items-start gap-4 cursor-pointer transition-colors ${paymentMethod === 'razorpay' ? 'bg-purple-50' : 'bg-white hover:bg-slate-50'}`} onClick={() => setPaymentMethod('razorpay')}>
+              <div className="border rounded-lg overflow-hidden border-slate-200">
+                {/* Razorpay Option */}
+                <div className={`p-4 flex items-start gap-4 cursor-pointer transition-colors ${paymentMethod === 'razorpay' ? 'bg-purple-50' : 'bg-white hover:bg-slate-50'}`} onClick={() => setPaymentMethod('razorpay')}>
                   <div className={`w-5 h-5 rounded-full border-2 mt-0.5 flex items-center justify-center transition-all ${paymentMethod === 'razorpay' ? 'border-purple-600' : 'border-slate-300'}`}>
-                     {paymentMethod === 'razorpay' && <div className="w-2.5 h-2.5 bg-purple-600 rounded-full" />}
+                    {paymentMethod === 'razorpay' && <div className="w-2.5 h-2.5 bg-purple-600 rounded-full" />}
                   </div>
                   <div className="flex-1">
-                     <div className="flex justify-between items-center mb-1">
-                        <span className="text-sm font-bold text-slate-900">Online Payment</span>
-                     </div>
-                     <AnimatePresence>
-                       {paymentMethod === 'razorpay' && (
-                         <motion.p 
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: 'auto' }}
-                            exit={{ opacity: 0, height: 0 }}
-                            className="text-[11px] text-slate-500 leading-relaxed mt-2 p-3 bg-white rounded-md border border-slate-100 shadow-sm"
-                         >
-                           You&apos;ll be redirected to secure payment gateway (UPI, Cards, Int&apos;l cards, Wallets) to complete your purchase.
-                         </motion.p>
-                       )}
-                     </AnimatePresence>
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-sm font-bold text-slate-900">Online Payment</span>
+                    </div>
+                    <AnimatePresence>
+                      {paymentMethod === 'razorpay' && (
+                        <motion.p
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="text-[11px] text-slate-500 leading-relaxed mt-2 p-3 bg-white rounded-md border border-slate-100 shadow-sm"
+                        >
+                          You&apos;ll be redirected to secure payment gateway (UPI, Cards, Int&apos;l cards, Wallets) to complete your purchase.
+                        </motion.p>
+                      )}
+                    </AnimatePresence>
                   </div>
-               </div>
+                </div>
 
                 {/* COD Option */}
-               <div className={`p-4 border-t flex items-start gap-4 cursor-pointer transition-colors ${paymentMethod === 'cod' ? 'bg-purple-50' : 'bg-white hover:bg-slate-50'}`} onClick={() => setPaymentMethod('cod')}>
+                <div className={`p-4 border-t flex items-start gap-4 cursor-pointer transition-colors ${paymentMethod === 'cod' ? 'bg-purple-50' : 'bg-white hover:bg-slate-50'}`} onClick={() => setPaymentMethod('cod')}>
                   <div className={`w-5 h-5 rounded-full border-2 mt-0.5 flex items-center justify-center transition-all ${paymentMethod === 'cod' ? 'border-purple-600' : 'border-slate-300'}`}>
-                     {paymentMethod === 'cod' && <div className="w-2.5 h-2.5 bg-purple-600 rounded-full" />}
+                    {paymentMethod === 'cod' && <div className="w-2.5 h-2.5 bg-purple-600 rounded-full" />}
                   </div>
                   <div className="flex-1">
-                     <span className="text-sm font-bold text-slate-900">Cash on Delivery (COD)</span>
+                    <span className="text-sm font-bold text-slate-900">Cash on Delivery (COD)</span>
                   </div>
-               </div>
-            </div>
-          </section>
+                </div>
+              </div>
+            </section>
 
-          {/* Billing Address Section */}
-          <section>
-            <h2 className="text-lg font-semibold text-slate-800 mb-4">Billing address</h2>
-            <div className="border rounded-lg overflow-hidden border-slate-200">
-               <div className={`p-4 flex items-center gap-4 cursor-pointer transition-colors ${billingAddressType === 'same' ? 'bg-purple-50' : 'bg-white hover:bg-slate-50'}`} onClick={() => setBillingAddressType('same')}>
+            {/* Billing Address Section */}
+            <section>
+              <h2 className="text-lg font-semibold text-slate-800 mb-4">Billing address</h2>
+              <div className="border rounded-lg overflow-hidden border-slate-200">
+                <div className={`p-4 flex items-center gap-4 cursor-pointer transition-colors ${billingAddressType === 'same' ? 'bg-purple-50' : 'bg-white hover:bg-slate-50'}`} onClick={() => setBillingAddressType('same')}>
                   <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${billingAddressType === 'same' ? 'border-purple-600' : 'border-slate-300'}`}>
-                     {billingAddressType === 'same' && <div className="w-2.5 h-2.5 bg-purple-600 rounded-full" />}
+                    {billingAddressType === 'same' && <div className="w-2.5 h-2.5 bg-purple-600 rounded-full" />}
                   </div>
                   <span className="text-sm font-bold text-slate-900">Same as shipping address</span>
-               </div>
-               <div className={`p-4 border-t flex items-center gap-4 cursor-pointer transition-colors ${billingAddressType === 'different' ? 'bg-purple-50' : 'bg-white hover:bg-slate-50'}`} onClick={() => setBillingAddressType('different')}>
+                </div>
+                <div className={`p-4 border-t flex items-center gap-4 cursor-pointer transition-colors ${billingAddressType === 'different' ? 'bg-purple-50' : 'bg-white hover:bg-slate-50'}`} onClick={() => setBillingAddressType('different')}>
                   <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${billingAddressType === 'different' ? 'border-purple-600' : 'border-slate-300'}`}>
-                     {billingAddressType === 'different' && <div className="w-2.5 h-2.5 bg-purple-600 rounded-full" />}
+                    {billingAddressType === 'different' && <div className="w-2.5 h-2.5 bg-purple-600 rounded-full" />}
                   </div>
                   <span className="text-sm font-bold text-slate-900">Use a different billing address</span>
-               </div>
-            </div>
-          </section>
+                </div>
+              </div>
+            </section>
 
-          <button 
-             onClick={handlePayNow}
-             disabled={processing}
-             className="w-full h-14 btn-shine bg-[hsl(var(--swago-purple))] hover:brightness-110 text-white font-black rounded-lg text-lg uppercase tracking-widest shadow-xl shadow-purple-100 transition-all transform active:scale-95 disabled:opacity-50"
-          >
-             {processing ? "Processing..." : "Pay now"}
-          </button>
+            <button
+              onClick={handlePayNow}
+              disabled={processing}
+              className="w-full h-14 btn-shine bg-[hsl(var(--swago-purple))] hover:brightness-110 text-white font-black rounded-lg text-lg uppercase tracking-widest shadow-xl shadow-purple-100 transition-all transform active:scale-95 disabled:opacity-50"
+            >
+              {processing ? "Processing..." : "Pay now"}
+            </button>
 
-          {message && <p className="text-center text-sm font-bold text-slate-600">{message}</p>}
+            {message && <p className="text-center text-sm font-bold text-slate-600">{message}</p>}
 
-          <footer className="pt-8 border-t flex flex-wrap gap-x-6 gap-y-2 text-[10px] text-purple-600 uppercase tracking-widest font-black">
-             <Link href="/refund-policy" className="hover:underline">Refund policy</Link>
-             <Link href="/privacy-policy" className="hover:underline">Privacy policy</Link>
-             <Link href="/terms-of-service" className="hover:underline">Terms of service</Link>
-          </footer>
+            <footer className="pt-8 border-t flex flex-wrap gap-x-6 gap-y-2 text-[10px] text-purple-600 uppercase tracking-widest font-black">
+              <Link href="/refund-policy" className="hover:underline">Refund policy</Link>
+              <Link href="/privacy-policy" className="hover:underline">Privacy policy</Link>
+              <Link href="/terms-of-service" className="hover:underline">Terms of service</Link>
+            </footer>
           </div>
         </div>
 
         {/* Right Column: Order Summary (Sidebar) */}
         <aside className="hidden md:block bg-[#FAFAFA] border-l border-slate-200 p-8 md:p-12 sticky top-0 h-screen overflow-y-auto">
-           <div className="max-w-[400px]">
-             <OrderSummary 
-                cart={cart} total={total} discount={discount} appliedCoupon={appliedCoupon} 
-                appliedDiscount={discount} couponCode={couponCode} setCouponCode={setCouponCode} applyCoupon={applyCoupon}
-                promotion={promotion} progressPercent={progressPercent} nextTier={nextTier} addToCart={addToCart}
-             />
-           </div>
+          <div className="max-w-[400px]">
+            <OrderSummary
+              cart={cart} total={total} appliedCoupon={appliedCoupon}
+              couponCode={couponCode} setCouponCode={setCouponCode} applyCoupon={applyCoupon}
+              promotion={promotion} progressPercent={progressPercent} nextTier={nextTier} addToCart={addToCart}
+            />
+          </div>
         </aside>
       </main>
     </div>
@@ -511,61 +508,61 @@ export default function CheckoutPage() {
 }
 
 // ✅ Reusable Order Summary Component for Desktop/Mobile
-function OrderSummary({ 
-   cart, total, discount, appliedCoupon, couponCode, setCouponCode, applyCoupon,
-   promotion, progressPercent, nextTier, addToCart
+function OrderSummary({
+  cart, total, appliedCoupon, couponCode, setCouponCode, applyCoupon,
+  promotion, progressPercent, nextTier, addToCart
 }: any) {
   const isAlreadyAdded = (slug: string) => cart.some((item: any) => (item.slug === slug || item._id === slug) && item.price === 1);
 
   return (
     <>
-       {/* Cart Items */}
-       <div className="space-y-5 mb-8">
-          {cart.map((item: any) => (
-             <div key={item.id || item._id} className="flex items-center gap-4">
-                <div className="relative w-16 h-16 bg-white rounded-lg border flex-shrink-0">
-                   <Image src={item.images?.[0] || "/images/placeholder.png"} alt={item.name} fill className="object-cover rounded-lg" />
-                   <div className="absolute -top-2 -right-2 bg-[#717171] text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold">
-                      {item.quantity}
-                   </div>
-                </div>
-                <div className="flex-1 min-w-0">
-                   <h3 className="text-xs font-bold text-slate-800 leading-snug line-clamp-2">{item.name}</h3>
-                </div>
-                <div className="text-sm font-bold text-slate-900">
-                   ₹{(item.price || 0) * item.quantity}
-                </div>
-             </div>
-          ))}
-       </div>
-
-       {/* Pricing Breakdown */}
-       <div className="space-y-3 text-sm">
-          <div className="flex justify-between text-slate-600">
-             <span>Subtotal</span>
-             <span className="font-bold text-slate-900">₹{total.toFixed(2)}</span>
-          </div>
-          <div className="flex justify-between text-slate-600">
-             <span>Shipping</span>
-             <span className="text-xs font-medium text-emerald-600 font-black tracking-widest">FREE</span>
-          </div>
-          {discount && (
-            <div className="flex justify-between text-emerald-600 font-bold">
-               <span>Discount ({appliedCoupon?.code || 'Applied'})</span>
-               <span>-₹{discount.savedAmount.toFixed(2)}</span>
+      {/* Cart Items */}
+      <div className="space-y-5 mb-8">
+        {cart.map((item: any) => (
+          <div key={item.id || item._id} className="flex items-center gap-4">
+            <div className="relative w-16 h-16 bg-white rounded-lg border flex-shrink-0">
+              <Image src={item.images?.[0] || "/images/placeholder.png"} alt={item.name} fill className="object-cover rounded-lg" />
+              <div className="absolute -top-2 -right-2 bg-[#717171] text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold">
+                {item.quantity}
+              </div>
             </div>
-          )}
-          
-          <div className="pt-4 border-t mt-4 flex justify-between items-baseline">
-             <h3 className="text-lg font-black text-slate-900 uppercase">Total</h3>
-             <div className="flex items-baseline gap-2">
-                <span className="text-[10px] text-slate-500 uppercase font-black">INR</span>
-                <span className="text-2xl font-black text-slate-900">
-                   ₹{(discount ? discount.finalAmount : total).toFixed(2)}
-                </span>
-             </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="text-xs font-bold text-slate-800 leading-snug line-clamp-2">{item.name}</h3>
+            </div>
+            <div className="text-sm font-bold text-slate-900">
+              ₹{(item.price || 0) * item.quantity}
+            </div>
           </div>
-       </div>
+        ))}
+      </div>
+
+      {/* Pricing Breakdown */}
+      <div className="space-y-3 text-sm">
+        <div className="flex justify-between text-slate-600">
+          <span>Subtotal</span>
+          <span className="font-bold text-slate-900">₹{total.toFixed(2)}</span>
+        </div>
+        <div className="flex justify-between text-slate-600">
+          <span>Shipping</span>
+          <span className="text-xs font-medium text-emerald-600 font-black tracking-widest">FREE</span>
+        </div>
+        {appliedCoupon && (
+          <div className="flex justify-between text-emerald-600 font-bold">
+            <span>Discount ({appliedCoupon.code})</span>
+            <span>-₹{appliedCoupon.discount.toFixed(2)}</span>
+          </div>
+        )}
+
+        <div className="pt-4 border-t mt-4 flex justify-between items-baseline">
+          <h3 className="text-lg font-black text-slate-900 uppercase">Total</h3>
+          <div className="flex items-baseline gap-2">
+            <span className="text-[10px] text-slate-500 uppercase font-black">INR</span>
+            <span className="text-2xl font-black text-slate-900">
+              ₹{(appliedCoupon ? total - appliedCoupon.discount : total).toFixed(2)}
+            </span>
+          </div>
+        </div>
+      </div>
     </>
   );
 }

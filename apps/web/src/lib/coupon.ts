@@ -1,8 +1,8 @@
 // apps/web/src/lib/coupon.ts
 
-import { Coupon } from "@swago/database";
+import { Coupon, User } from "@swago/database";
 
-export async function validateCoupon(couponCode: string, orderAmount: number, cartItems: any[] = []) {
+export async function validateCoupon(couponCode: string, orderAmount: number, cartItems: any[] = [], userId?: string) {
     const coupon = await Coupon.findOne({
         code: couponCode.toUpperCase(),
         active: true,
@@ -10,6 +10,25 @@ export async function validateCoupon(couponCode: string, orderAmount: number, ca
 
     if (!coupon) {
         throw new Error("Invalid or inactive coupon code");
+    }
+
+    // Check target group logic
+    if (coupon.targetGroup === "new_users" || coupon.targetGroup === "no_orders") {
+        if (!userId) {
+            throw new Error("You must be logged in to use this coupon.");
+        }
+        const userObj = await User.findById(userId);
+        if (userObj && userObj.orders && userObj.orders.length > 0) {
+            throw new Error("This coupon is only valid for your first order.");
+        }
+    } else if (coupon.targetGroup === "specific_users") {
+        if (!userId) {
+            throw new Error("You must be logged in to use this coupon.");
+        }
+        const isTargeted = coupon.targetUsers && coupon.targetUsers.some((id: any) => id.toString() === userId.toString());
+        if (!isTargeted) {
+            throw new Error("This coupon is not valid for your account.");
+        }
     }
 
     // Check expiry date

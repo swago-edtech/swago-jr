@@ -3,10 +3,11 @@
 import { useState } from "react";
 import StarRating from "./StarRating";
 import { motion, AnimatePresence } from "framer-motion";
+import { useSharedContext } from "@/context/SharedContext";
 
 interface ReviewFormProps {
   productId: string;
-  orderId: string;
+  orderId?: string;
   onSuccess: () => void;
   onCancel?: () => void;
   existingReview?: {
@@ -23,6 +24,7 @@ export default function ReviewForm({
   onCancel,
   existingReview,
 }: ReviewFormProps) {
+  const { user } = useSharedContext();
   const [rating, setRating] = useState(existingReview?.rating || 0);
   const [title, setTitle] = useState(existingReview?.title || "");
   const [comment, setComment] = useState(existingReview?.comment || "");
@@ -49,6 +51,11 @@ export default function ReviewForm({
       return;
     }
 
+    if (!user) {
+      setError("Please log in to submit a review");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -57,7 +64,7 @@ export default function ReviewForm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           productId,
-          orderId,
+          orderId: orderId || "",
           rating,
           title: title.trim(),
           comment: comment.trim(),

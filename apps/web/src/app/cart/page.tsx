@@ -17,21 +17,40 @@ interface StockInfo {
 }
 
 export default function CartPage() {
-  const { cart, total, removeFromCart, increaseQty, decreaseQty } = useSharedContext();
+  const { cart, total, removeFromCart, increaseQty, decreaseQty, appliedCoupon, setAppliedCoupon } = useSharedContext();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [stockInfo, setStockInfo] = useState<StockInfo>({});
 
   const [couponSheetOpen, setCouponSheetOpen] = useState(false);
-  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number } | null>(null);
+
   const [couponLoading, setCouponLoading] = useState(false);
   const [couponError, setCouponError] = useState('');
 
-  const AVAILABLE_COUPONS = [
-    { code: 'SAVE25', label: '25% Off', description: 'Get 25% off on your order', minOrder: 0, color: 'bg-indigo-50', accent: 'hsl(var(--swago-purple))' },
-    { code: 'EXTRA10', label: '10% Off', description: 'Extra 10% off on orders above ₹500', minOrder: 500, color: 'bg-indigo-50', accent: 'hsl(var(--swago-purple))' },
-    { code: 'FLAT50', label: 'Flat ₹50', description: 'Flat ₹50 off on prepaid orders', minOrder: 0, color: 'bg-indigo-50', accent: 'hsl(var(--swago-purple))' },
-  ];
+  const [availableCoupons, setAvailableCoupons] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchCoupons = async () => {
+      try {
+        const res = await fetch('/api/coupon/public');
+        const data = await res.json();
+        if (data.success) {
+          const formatted = data.coupons.map((c: any) => ({
+            code: c.code,
+            label: c.type === 'percentage' ? `${c.value}% Off` : `Flat ₹${c.value}`,
+            description: c.description,
+            minOrder: c.minAmount || 0,
+            color: 'bg-indigo-50',
+            accent: 'hsl(var(--swago-purple))'
+          }));
+          setAvailableCoupons(formatted);
+        }
+      } catch (e) {
+        console.error('Failed to fetch public coupons', e);
+      }
+    };
+    fetchCoupons();
+  }, []);
 
   const applyCoupon = async (code: string) => {
     if (!code.trim()) return;
@@ -298,7 +317,7 @@ export default function CartPage() {
                     <span className="text-sm font-bold text-slate-700 tracking-tight">View Coupons</span>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{AVAILABLE_COUPONS.length} Offers</span>
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{availableCoupons.length} Offers</span>
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-600">
                       <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
                     </svg>
@@ -338,7 +357,7 @@ export default function CartPage() {
                 <div className="flex justify-between items-start pt-1">
                   <span className="text-xs sm:text-sm font-black text-slate-700 uppercase tracking-tight mt-1">Estimated total</span>
                   <div className="text-right">
-                    <span className="text-xl sm:text-2xl font-black text-slate-900 tracking-tighter tabular-nums leading-none block">₹{total.toFixed(0)}</span>
+                    <span className="text-xl sm:text-2xl font-black text-slate-900 tracking-tighter tabular-nums leading-none block">₹{(total - (appliedCoupon?.discount || 0)).toFixed(0)}</span>
                     <span className="text-[9px] sm:text-[10px] font-black text-[#1EAA5F] uppercase tracking-wider mt-1 block">You saved ₹75!</span>
                   </div>
                 </div>
@@ -378,7 +397,7 @@ export default function CartPage() {
           <div className="flex flex-col">
             <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tight mb-1 leading-none">Estimated total</span>
             <div className="flex flex-col items-start gap-1">
-              <span className="text-xl font-black text-slate-900 tracking-tighter tabular-nums leading-none">₹{total.toFixed(0)}</span>
+              <span className="text-xl font-black text-slate-900 tracking-tighter tabular-nums leading-none">₹{(total - (appliedCoupon?.discount || 0)).toFixed(0)}</span>
               <span className="text-[9px] font-black text-[#1EAA5F] uppercase tracking-wider leading-none">You saved ₹75!</span>
             </div>
           </div>
@@ -400,7 +419,7 @@ export default function CartPage() {
         onClose={() => setCouponSheetOpen(false)}
         onApply={applyCoupon}
         total={total}
-        availableCoupons={AVAILABLE_COUPONS}
+        availableCoupons={availableCoupons}
         loading={couponLoading}
         error={couponError}
       />

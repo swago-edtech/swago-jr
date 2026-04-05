@@ -16,7 +16,7 @@ const ReviewSchema = new mongoose.Schema(
     orderId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Order",
-      required: true // Ensures verified purchase
+      // Optional: Users can review without an order
     },
 
     // Review content
@@ -60,7 +60,7 @@ const ReviewSchema = new mongoose.Schema(
     // Verification badge
     isVerifiedPurchase: {
       type: Boolean,
-      default: true // Since we check orderId
+      default: false // Set dynamically in API
     },
 
     // ✅ NEW: AI Sentiment Analysis Metadata

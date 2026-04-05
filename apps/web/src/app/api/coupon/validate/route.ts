@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { connectDB } from "@swago/database";
+import { connectDB, User } from "@swago/database";
 import { validateCoupon } from "@/lib/coupon";
+import { getLoginSession } from "@/lib/auth";
 
 export async function POST(req: Request) {
   try {
@@ -15,8 +16,19 @@ export async function POST(req: Request) {
 
     await connectDB();
 
+    const session = await getLoginSession();
+    let userId = undefined;
+    if (session) {
+      const user = session.phone
+        ? await User.findOne({ phone: session.phone })
+        : await User.findOne({ email: session.email });
+      if (user) {
+        userId = user._id.toString();
+      }
+    }
+
     try {
-      const { coupon, discountAmount, finalAmount } = await validateCoupon(couponCode, orderAmount, cartItems);
+      const { coupon, discountAmount, finalAmount } = await validateCoupon(couponCode, orderAmount, cartItems, userId);
 
       return NextResponse.json({
         success: true,
