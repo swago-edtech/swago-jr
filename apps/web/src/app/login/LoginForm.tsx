@@ -380,7 +380,9 @@ export default function LoginForm() {
             window.dispatchEvent(new CustomEvent(USER_EVENTS.LOGIN));
 
             const target = redirectUrl || "/";
-            const nextUrl = responseData.hasKidProfiles
+            const SKIP_KID_CHECK_ROUTES = ['/checkout', '/cart'];
+            const skipKidCheck = SKIP_KID_CHECK_ROUTES.some(route => target.startsWith(route));
+            const nextUrl = (responseData.hasKidProfiles || skipKidCheck)
               ? target
               : `/profile?mode=create&redirect=${encodeURIComponent(target)}`;
             setTimeout(() => router.push(nextUrl), 800);
@@ -624,7 +626,10 @@ export default function LoginForm() {
                   <button
                     onClick={verifyOtp}
                     disabled={loading || code.length < 6}
-                    className="w-full bg-[#c8b6ff] hover:bg-[#b8a2ff] text-white font-black py-5 rounded-2xl text-lg uppercase tracking-widest transition-all hover:scale-[1.01] active:scale-98 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_10px_25px_-5px_rgba(200,182,255,0.4)]"
+                    className={`w-full font-black py-5 rounded-2xl text-lg uppercase tracking-widest transition-all hover:scale-[1.01] active:scale-98 disabled:opacity-50 disabled:cursor-not-allowed ${code.length === 6 && !loading
+                        ? 'bg-[hsl(var(--swago-purple))] shadow-[0_20px_40px_-10px_rgba(124,93,250,0.4)]'
+                        : 'bg-[#c8b6ff] shadow-[0_10px_25px_-5px_rgba(200,182,255,0.4)]'
+                      }`}
                   >
                     {loading ? "Verifying..." : authMode === "signup" ? "Confirm Account" : "Let's Go!"}
                   </button>

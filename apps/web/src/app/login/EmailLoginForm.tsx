@@ -452,7 +452,10 @@ export default function EmailLoginForm() {
               <button
                 onClick={verifyOtp}
                 disabled={loading || code.length < 6}
-                className="w-full btn-shine bg-emerald-500 hover:bg-emerald-600 text-white font-black py-4 rounded-xl text-base uppercase tracking-widest shadow-[0_15px_30px_-5px_rgba(16,185,129,0.3)] disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95"
+                className={`w-full font-black py-4 rounded-xl text-base uppercase tracking-widest transition-all hover:scale-[1.01] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${code.length === 6 && !loading
+                    ? 'bg-[hsl(var(--swago-purple))] shadow-[0_15px_30px_-5px_rgba(124,93,250,0.3)]'
+                    : 'bg-slate-200 text-slate-400'
+                  }`}
               >
                 {loading ? "Verifying..." : authMode === "signup" ? "Create Account" : "Sign In"}
               </button>

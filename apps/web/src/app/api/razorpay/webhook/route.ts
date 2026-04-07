@@ -352,6 +352,7 @@ async function handlePaymentCaptured(payload: RazorpayWebhookPayload) {
         items: orderObject.items, // Pass the array directly
         subtotal: orderObject.subtotal.toFixed(2),
         discount: orderObject.discount.toFixed(2),
+        swagoMoneyRedeemed: (orderObject.swagoMoneyRedeemed || 0).toFixed(2),
         shipping: "0.00",
         totalAmount: orderObject.total.toFixed(2),
         paymentMethod: orderObject.paymentMethod === 'cod' ? "Cash on Delivery" : "Online (Razorpay)",

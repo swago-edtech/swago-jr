@@ -211,16 +211,16 @@ export async function POST(req: Request) {
       const productPrice = reservation ? (reservation.product as any).price || 0 : item.price;
 
       const slugValue = item.slug || item.productId || item._id;
-      if (item.price === 1 && BONUS_THRESHOLDS[slugValue]) return sum;
+      if (item.price === 1 && BONUS_THRESHOLDS[slugValue as string]) return sum;
 
       return sum + (productPrice * item.quantity);
     }, 0);
 
     for (const item of orderDetails.cart) {
       const slugValue = item.slug || item.productId || item._id;
-      if (item.price === 1 && BONUS_THRESHOLDS[slugValue]) {
-        if (nonBonusSubtotal < BONUS_THRESHOLDS[slugValue]) {
-          console.error(`❌ Fraud Detection: Bonus item ${item.name} added without meeting threshold ₹${BONUS_THRESHOLDS[slugValue]}. Current subtotal: ₹${nonBonusSubtotal}`);
+      if (item.price === 1 && BONUS_THRESHOLDS[slugValue as string]) {
+        if (nonBonusSubtotal < BONUS_THRESHOLDS[slugValue as string]) {
+          console.error(`❌ Fraud Detection: Bonus item ${item.name} added without meeting threshold ₹${BONUS_THRESHOLDS[slugValue as string]}. Current subtotal: ₹${nonBonusSubtotal}`);
           return NextResponse.json({ error: "Invalid bonus item threshold" }, { status: 400 });
         }
       }
@@ -239,7 +239,7 @@ export async function POST(req: Request) {
 
       const slugValue = item.slug || item.productId || item._id;
       // Allow price of 1 if it passed the bonus threshold check above
-      if (item.price === 1 && BONUS_THRESHOLDS[slugValue] && nonBonusSubtotal >= BONUS_THRESHOLDS[slugValue]) {
+      if (item.price === 1 && BONUS_THRESHOLDS[slugValue as string] && nonBonusSubtotal >= BONUS_THRESHOLDS[slugValue as string]) {
         finalPrice = 1;
       }
       return {
