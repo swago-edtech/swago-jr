@@ -14,20 +14,17 @@ export default function Step6MissionComplete({ onComplete }: StepProps) {
 
             <div className="flex-1 flex flex-col md:flex-row-reverse w-full h-full bg-white">
                 {/* RIGHT: Media Plane */}
-                <div className="md:w-1/2 flex items-center justify-center p-8 bg-[#2A2135] md:bg-[#1E1726]">
-                    <div className="relative w-full max-w-sm lg:max-w-md aspect-square bg-[#3B2C4A] rounded-[3rem] p-8 flex items-end justify-center shadow-2xl shadow-indigo-900/30 overflow-hidden group">
-                        <div className="absolute inset-0 bg-gradient-to-t from-[#1F1626] to-transparent z-10"></div>
-                        <div className="w-48 h-64 md:w-56 md:h-72 bg-white/10 rounded-t-[2.5rem] border-t border-x border-white/20 flex flex-col items-center justify-start pt-12 backdrop-blur-sm relative z-20 transition-transform duration-500 group-hover:-translate-y-4">
-                            <div className="w-16 h-16 bg-[#0ea5e9] rounded-2xl rotate-12 flex items-center justify-center mb-6 shadow-lg shadow-sky-500/20">
-                                <CheckCircle2 className="w-8 h-8 text-white" />
-                            </div>
-                            <span className="text-white/90 font-bold tracking-widest uppercase pb-4">Work Mascot</span>
+                <div className="md:w-1/2 flex items-center justify-center md:justify-start p-8 md:pl-12 lg:pl-24 bg-indigo-50/50 md:bg-transparent">
+                    <div className="relative w-full max-w-sm lg:max-w-md aspect-square bg-white rounded-[2.5rem] p-8 flex flex-col items-center justify-center shadow-sm border border-indigo-100 overflow-hidden group">
+                        <div className="w-20 h-20 bg-purple-600 rounded-2xl rotate-12 flex items-center justify-center mb-6 shadow-lg shadow-purple-500/30">
+                            <CheckCircle2 className="w-10 h-10 text-white" />
                         </div>
+                        <span className="text-indigo-400 font-bold tracking-widest uppercase text-xs md:text-sm">Final Mascot</span>
                     </div>
                 </div>
 
                 {/* LEFT: Content Plane */}
-                <div className="md:w-1/2 flex flex-col justify-center px-8 pt-8 pb-12 md:py-16 md:pl-16 lg:pl-24 bg-white">
+                <div className="md:w-1/2 flex flex-col justify-center px-8 pt-8 pb-12 md:py-16 md:pr-12 md:pl-24 lg:pl-48 xl:pl-64 bg-white">
                     <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-slate-800 tracking-tight leading-[1.1] mb-6 text-pop">
                         Mission Complete!<br /><span className="text-swago-purple">Ready to create<br />your ID?</span>
                     </h1>

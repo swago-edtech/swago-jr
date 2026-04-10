@@ -12,20 +12,23 @@ export default function Step3SmartBox({ onNext }: StepProps) {
 
             <div className="flex-1 flex flex-col md:flex-row w-full h-full">
                 {/* LEFT: Media Plane */}
-                <div className="md:w-1/2 flex items-center justify-center p-8 bg-slate-50/50 md:bg-transparent">
-                    <div className="w-full max-w-sm xl:max-w-md aspect-square bg-white rounded-[2.5rem] shadow-sm border border-slate-100 flex items-center justify-center relative overflow-hidden group">
-                        <div className="w-64 h-56 bg-slate-800 rounded-3xl flex items-center justify-center shadow-xl relative transform transition duration-500 group-hover:scale-105 border-4 border-slate-700/50">
-                            <span className="text-white font-bold opacity-90 letter-pop tracking-widest uppercase">SWAGO Box</span>
-                            <div className="absolute top-4 right-4 w-3 h-3 bg-white/20 rounded-full"></div>
-                            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-8 h-8 bg-white rounded-full"></div>
+                <div className="md:w-1/2 flex items-center justify-center md:justify-end p-8 md:pr-12 lg:pr-24 bg-slate-50/50 md:bg-transparent">
+                    <div className="w-full max-w-sm xl:max-w-md bg-white rounded-[2.5rem] shadow-sm border border-slate-100 p-6 flex flex-col items-center justify-center relative overflow-hidden group">
+                        <div className="w-full aspect-square relative rounded-3xl overflow-hidden transition-transform duration-500 group-hover:scale-[1.02]">
+                            <img
+                                src="/images/smart-box.jpeg"
+                                alt="Swago Smart Box"
+                                className="w-full h-full object-cover"
+                            />
                         </div>
+                        <span className="mt-4 text-slate-400 font-bold tracking-widest uppercase text-xs md:text-sm">SWAGO Box</span>
                     </div>
                 </div>
 
                 {/* RIGHT: Content Plane */}
-                <div className="md:w-1/2 flex flex-col justify-center px-8 pt-6 pb-12 md:py-16 md:pr-16 lg:pr-24">
+                <div className="md:w-1/2 flex flex-col justify-center px-8 pt-6 pb-12 md:py-16 md:pl-12 md:pr-24 lg:pr-48 xl:pr-64">
                     <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-slate-800 tracking-tight leading-[1.1] mb-6 letter-pop">
-                        Go and grab your<br /><span className="text-slate-600">SWAGO Smart Box.</span>
+                        Go and grab your<br /><span className="text-purple-600">SWAGO Smart Box.</span>
                     </h1>
                     <p className="text-lg md:text-xl text-slate-500 font-medium mb-12 max-w-sm leading-relaxed text-zoom-in">
                         We're ready to start your interactive experience. Make sure your device is powered and nearby.

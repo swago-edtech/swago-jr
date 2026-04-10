@@ -12,13 +12,13 @@ export default function FounderMessage() {
       <div className="w-full relative flex flex-col lg:flex-row items-center min-h-[500px]">
         {/* Left Side - Image (Now restricted footprint with white space) */}
         <div className="w-full lg:w-1/2 flex justify-center p-8 lg:p-12">
-          <div className="relative w-full max-w-md aspect-[4/5] rounded-[2rem] md:rounded-[3rem] overflow-hidden shadow-2xl transition-transform duration-500 hover:scale-[1.02]">
+          <div className="relative w-full max-w-xl md:max-w-2xl aspect-square md:aspect-[4/3] rounded-[2rem] md:rounded-[3rem] overflow-hidden shadow-2xl transition-transform duration-500 hover:scale-[1.02]">
             <Image
               src="/images/SwatiGoyal.jpeg"
               alt="Swati Goyal - Founder of Swago"
               fill
-              className="object-cover"
-              sizes="(max-width: 1024px) 100vw, 500px"
+              className="object-contain bg-slate-100"
+              sizes="(max-width: 1024px) 100vw, 600px"
             />
             {/* Subtle Inner Glow */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
