@@ -70,11 +70,11 @@ export default function WhySwagoIsFunSection() {
               className="flex flex-col group cursor-default w-full max-w-[320px] md:max-w-none mx-auto"
             >
               {/* Custom Card Box - Fully Dashed, Permanent Shadow/Hover Effect */}
-              <div className={`relative h-full flex flex-col items-center p-8 md:p-10 pt-16 text-center rounded-[3rem] bg-white transition-all duration-300 shadow-[0_22px_70px_-15px_rgba(0,0,0,0.12)] -translate-y-2 border-2 border-dashed ${feature.borderColor} overflow-hidden`}>
+              <div className={`relative h-full flex flex-col items-center p-8 md:p-10 pt-16 text-center rounded-[3rem] bg-white transition-all duration-500 shadow-[0_30px_100px_-20px_rgba(0,0,0,0.15)] group-hover:shadow-[0_55px_120px_-20px_rgba(0,0,0,0.25)] -translate-y-2 group-hover:-translate-y-5 border-2 border-dashed ${feature.borderColor} overflow-hidden`}>
 
 
                 {/* Icon Container */}
-                <div className={`w-12 h-12 md:w-16 md:h-16 rounded-full ${feature.bgColor} flex items-center justify-center mb-8 border-2 ${feature.borderColor} shadow-sm relative`}>
+                <div className={`w-12 h-12 md:w-16 md:h-16 rounded-full ${feature.bgColor} flex items-center justify-center mb-8 border-2 ${feature.borderColor} shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] group-hover:shadow-[0_15px_30px_-5px_rgba(0,0,0,0.15)] group-hover:-translate-y-1 transition-all duration-500 relative`}>
                   <div className={`${feature.color} flex items-center justify-center`}>
                     {feature.icon || null}
                   </div>

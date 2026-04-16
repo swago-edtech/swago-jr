@@ -110,7 +110,7 @@ export default function SkillUnlockSlider() {
                     }}
                   >
                     {/* Borderless Blended Image */}
-                    <div className="relative aspect-[4/5] rounded-[2.5rem] overflow-hidden group cursor-pointer shadow-[0_40px_80px_-20px_rgba(0,0,0,0.2)] bg-white border border-gray-100/50">
+                    <div className="relative aspect-[4/5] rounded-[2.5rem] overflow-hidden group cursor-pointer shadow-[0_40px_80px_-20px_rgba(0,0,0,0.2)] bg-[#F8F9FB] border border-gray-100/50">
                       <Image
                         src={skill.image}
                         alt={skill.title}
@@ -119,7 +119,7 @@ export default function SkillUnlockSlider() {
                       />
 
                       {/* Solid White Content Section - High Contrast */}
-                      <div className="absolute inset-x-4 bottom-4 p-6 bg-white rounded-[2rem] z-30 shadow-[0_20px_40px_-10px_rgba(0,0,0,0.15)] flex flex-col items-center text-center">
+                      <div className="absolute inset-x-4 bottom-4 p-6 bg-[#F8F9FB] rounded-[2rem] z-30 flex flex-col items-center text-center">
                         <div className="flex items-center gap-2 mb-1">
                           <h3 className={`text-3xl md:text-4xl font-black ${skill.color}  tracking-[0.2em] italic`}>
                             {skill.title}

@@ -25,7 +25,7 @@ const EmailIcon = () => (
 
 export default function Footer() {
   return (
-    <footer className="bg-slate-50 text-slate-700 pt-16 pb-8 border-t">
+    <footer className="bg-slate-50 text-slate-400 pt-16 pb-8">
       <div className="container mx-auto px-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-10">
 
         {/* Column 1: Brand & Contact */}
@@ -43,44 +43,23 @@ export default function Footer() {
           </div>
         </div>
 
+        {/* Column 2: Company (Split into two sub-columns on larger screens) */}
         {process.env.NEXT_PUBLIC_BLOG_ONLY_MODE !== "true" && (
-          <>
-            {/* Column 2: Shop by Age */}
-            <div>
-              <h3 className="font-bold text-slate-800 uppercase tracking-wider mb-4">Shop by Age</h3>
+          <div className="lg:col-span-3">
+            <h3 className="font-bold text-slate-800 uppercase tracking-wider mb-6">Company</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2">
               <ul className="space-y-2 text-sm">
-                <li><Link href="/products?age=5-7" className="text-slate-600 hover:text-[hsl(var(--swago-purple))] transition-colors hover:underline">5-7 Years</Link></li>
-                <li><Link href="/products?age=8-10" className="text-slate-600 hover:text-[hsl(var(--swago-purple))] transition-colors hover:underline">8-10 Years</Link></li>
+                <li><Link href="/about" className="text-slate-600 hover:text-[hsl(var(--swago-purple))] transition-colors hover:underline">About Us</Link></li>
+                <li><Link href="/contact" className="text-slate-600 hover:text-[hsl(var(--swago-purple))] transition-colors hover:underline">Contact Us</Link></li>
+                <li><Link href="/faq" className="text-slate-600 hover:text-[hsl(var(--swago-purple))] transition-colors hover:underline">FAQ</Link></li>
+                <li><Link href="/terms" className="text-slate-600 hover:text-[hsl(var(--swago-purple))] transition-colors hover:underline">Terms & Conditions</Link></li>
+              </ul>
+              <ul className="space-y-2 text-sm">
+                <li><Link href="/privacy" className="text-slate-600 hover:text-[hsl(var(--swago-purple))] transition-colors hover:underline">Privacy Policy</Link></li>
+                <li><Link href="/shipping" className="text-slate-600 hover:text-[hsl(var(--swago-purple))] transition-colors hover:underline">Shipping & Delivery</Link></li>
+                <li><Link href="/cancellation-policy" className="text-slate-600 hover:text-[hsl(var(--swago-purple))] transition-colors hover:underline">Cancellation Policy</Link></li>
               </ul>
             </div>
-
-            {/* Column 3: Shop by Elements */}
-            <div>
-              <h3 className="font-bold text-slate-800 uppercase tracking-wider mb-4">Shop by Categories</h3>
-              <ul className="space-y-2 text-sm">
-                {swagoElements.map(element => (
-                  <li key={element.id}>
-                    <Link href={`/products?elements=${element.id}`} className="text-slate-600 hover:text-[hsl(var(--swago-purple))] transition-colors hover:underline">{element.name}</Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </>
-        )}
-
-        {/* Column 4: Company */}
-        {process.env.NEXT_PUBLIC_BLOG_ONLY_MODE !== "true" && (
-          <div>
-            <h3 className="font-bold text-slate-800 uppercase tracking-wider mb-4">Company</h3>
-            <ul className="space-y-2 text-sm">
-              <li><Link href="/about" className="text-slate-600 hover:text-[hsl(var(--swago-purple))] transition-colors hover:underline">About Us</Link></li>
-              <li><Link href="/contact" className="text-slate-600 hover:text-[hsl(var(--swago-purple))] transition-colors hover:underline">Contact Us</Link></li>
-              <li><Link href="/faq" className="text-slate-600 hover:text-[hsl(var(--swago-purple))] transition-colors hover:underline">FAQ</Link></li>
-              <li><Link href="/terms" className="text-slate-600 hover:text-[hsl(var(--swago-purple))] transition-colors hover:underline">Terms & Conditions</Link></li>
-              <li><Link href="/privacy" className="text-slate-600 hover:text-[hsl(var(--swago-purple))] transition-colors hover:underline">Privacy Policy</Link></li>
-              <li><Link href="/shipping" className="text-slate-600 hover:text-[hsl(var(--swago-purple))] transition-colors hover:underline">Shipping & Delivery</Link></li>
-              <li><Link href="/cancellation-policy" className="text-slate-600 hover:text-[hsl(var(--swago-purple))] transition-colors hover:underline">Cancellation Policy</Link></li>
-            </ul>
           </div>
         )}
       </div>

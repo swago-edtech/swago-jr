@@ -25,7 +25,7 @@ interface KidProfile {
 }
 
 export default function LotteryClient() {
-  const [step, setStep] = useState(0); 
+  const [step, setStep] = useState(0);
   const [selectedTicket, setSelectedTicket] = useState('');
   const [selectedKid, setSelectedKid] = useState('');
   const [kidProfiles, setKidProfiles] = useState<KidProfile[]>([]);
@@ -100,18 +100,18 @@ export default function LotteryClient() {
 
   return (
     <div className="min-h-screen bg-white text-slate-900 pb-20 overflow-x-hidden">
-      
+
       {/* 1. Hero / Title Section */}
-      <section className="pt-16 pb-10 px-6 text-center max-w-4xl mx-auto">
-        <motion.h1 
+      <section className="pt-6 md:pt-16 pb-10 px-6 text-center max-w-4xl mx-auto">
+        <motion.h1
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-4xl md:text-6xl font-black tracking-tighter mb-4"
+          className="text-3xl md:text-6xl font-black tracking-tighter mb-4"
         >
           Welcome to Swago Lucky Ticket. 🎟
         </motion.h1>
-        
-        <motion.p 
+
+        <motion.p
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
@@ -119,15 +119,15 @@ export default function LotteryClient() {
         >
           Claim your ticket and stand a chance to win surprise gifts
         </motion.p>
-        
-        <motion.div 
+
+        <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.2 }}
-          className="inline-flex items-center gap-3 bg-emerald-50 border border-emerald-100 px-6 py-3 rounded-2xl shadow-sm"
+          className="inline-flex items-center gap-2 md:gap-3 bg-emerald-50 border border-emerald-100 px-4 py-2 md:px-6 md:py-3 rounded-xl md:rounded-2xl shadow-sm"
         >
-          <span className="text-xl">🎁</span>
-          <p className="text-sm font-black text-emerald-700 uppercase tracking-widest">
+          <span className="text-lg md:text-xl">🎁</span>
+          <p className="text-[10px] md:text-sm font-black text-emerald-700 uppercase tracking-widest">
             Winners announced every Friday at 7 PM
           </p>
         </motion.div>
@@ -142,10 +142,10 @@ export default function LotteryClient() {
       </section>
 
       {/* 3. Main Interactive Area */}
-      <section className="px-6 mb-24 max-w-xl mx-auto relative">
+      <section className="px-6 mb-8 md:mb-12 max-w-xl mx-auto relative">
         <AnimatePresence mode="wait">
           {step < 3 ? (
-            <motion.div 
+            <motion.div
               key="claim-module"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -154,42 +154,37 @@ export default function LotteryClient() {
             >
               {/* Step Boxes that appear on top */}
               {step >= 1 && (
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, scale: 0.9, y: 20 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
-                  className="bg-slate-50 border-2 border-slate-100 rounded-[2.5rem] p-8 shadow-inner"
+                  className="bg-slate-50 border-2 border-slate-100 rounded-3xl md:rounded-[2.5rem] p-5 md:p-8 shadow-inner"
                 >
                   <div className="space-y-4">
                     <div>
                       <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Select Ticket</label>
-                      <div className="grid grid-cols-2 gap-2">
+                      <select
+                        value={selectedTicket}
+                        onChange={(e) => setSelectedTicket(e.target.value)}
+                        className="w-full h-10 md:h-12 px-3 md:px-4 rounded-lg md:rounded-xl bg-white border-2 border-slate-100 font-bold text-xs md:text-sm outline-none focus:border-[hsl(var(--swago-purple))] transition-all appearance-none"
+                      >
+                        <option value="" disabled>Choose Ticket...</option>
                         {TICKET_TYPES.map(t => (
-                          <button
-                            key={t.id}
-                            onClick={() => setSelectedTicket(t.id)}
-                            className={`py-3 px-2 rounded-xl font-black text-[10px] uppercase tracking-wider transition-all border-2 ${
-                              selectedTicket === t.id 
-                                ? 'bg-[hsl(var(--swago-purple))] border-[hsl(var(--swago-purple))] text-white shadow-md shadow-purple-200' 
-                                : 'bg-white border-slate-100 text-slate-600 hover:bg-slate-50'
-                            }`}
-                          >
-                            {t.label}
-                          </button>
+                          <option key={t.id} value={t.id}>{t.label}</option>
                         ))}
-                      </div>
+                      </select>
                     </div>
 
                     <div>
                       <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Select Kid Profile</label>
-                      <select 
+                      <select
                         value={selectedKid}
                         onChange={(e) => setSelectedKid(e.target.value)}
-                        className="w-full h-12 px-4 rounded-xl bg-white border-2 border-slate-100 font-bold text-sm outline-none focus:border-[hsl(var(--swago-purple))] transition-all appearance-none"
+                        className="w-full h-10 md:h-12 px-3 md:px-4 rounded-lg md:rounded-xl bg-white border-2 border-slate-100 font-bold text-xs md:text-sm outline-none focus:border-[hsl(var(--swago-purple))] transition-all appearance-none"
                       >
-                         <option value="" disabled>Choose Kid...</option>
-                         {kidProfiles.map(kp => (
-                           <option key={kp._id} value={kp._id}>{kp.name}</option>
-                         ))}
+                        <option value="" disabled>Choose Kid...</option>
+                        {kidProfiles.map(kp => (
+                          <option key={kp._id} value={kp._id}>{kp.name}</option>
+                        ))}
                       </select>
                     </div>
                   </div>
@@ -197,17 +192,17 @@ export default function LotteryClient() {
               )}
 
               {step === 2 && (
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, scale: 0.9, y: 20 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
-                  className="bg-white border-2 border-[hsl(var(--swago-purple))]/20 rounded-[2.5rem] p-8 shadow-xl"
+                  className="bg-white border-2 border-[hsl(var(--swago-purple))]/20 rounded-3xl md:rounded-[2.5rem] p-5 md:p-8 shadow-xl"
                 >
                   <label className="block text-xs font-black text-[hsl(var(--swago-purple))] uppercase tracking-[0.2em] mb-6 text-center">Enter your ticket code</label>
-                  
+
                   {error && (
-                    <motion.p 
-                      initial={{ opacity: 0 }} 
-                      animate={{ opacity: 1 }} 
+                    <motion.p
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
                       className="text-[10px] font-black text-rose-500 bg-rose-50 p-2 rounded-lg text-center mb-4 uppercase tracking-widest"
                     >
                       ⚠️ {error}
@@ -221,7 +216,7 @@ export default function LotteryClient() {
                         ref={el => { inputRefs.current[i] = el; }}
                         value={c}
                         onChange={(e) => handleCodeChange(i, e.target.value)}
-                        className="w-10 h-14 md:w-16 md:h-20 text-center text-2xl font-black bg-slate-50 border-2 border-slate-200 rounded-xl focus:border-[hsl(var(--swago-purple))] focus:bg-white transition-all outline-none"
+                        className="w-9 h-12 md:w-16 md:h-20 text-center text-xl md:text-3xl font-black bg-slate-50 border-2 border-slate-200 rounded-lg md:rounded-xl focus:border-[hsl(var(--swago-purple))] focus:bg-white transition-all outline-none"
                         maxLength={1}
                       />
                     ))}
@@ -233,7 +228,7 @@ export default function LotteryClient() {
               <button
                 onClick={step === 2 ? claimTicket : handleNext}
                 disabled={loading || (step === 1 && (!selectedTicket || !selectedKid)) || (step === 2 && ticketCode.some(c => !c))}
-                className="w-full btn-shine bg-[hsl(var(--swago-purple))] text-white font-black py-5 rounded-[1.5rem] text-lg uppercase tracking-[0.2em] shadow-xl shadow-purple-100 active:scale-95 transition-all disabled:opacity-50 disabled:grayscale"
+                className="w-full btn-shine bg-[hsl(var(--swago-purple))] text-white font-black py-4 md:py-5 rounded-2xl md:rounded-[1.5rem] text-sm md:text-lg uppercase tracking-[0.2em] shadow-xl shadow-purple-100 active:scale-95 transition-all disabled:opacity-50 disabled:grayscale"
               >
                 {loading ? "Claiming..." : step === 0 ? "Claim your ticket" : step === 1 ? "Enter your code" : "Claim"}
               </button>
@@ -245,18 +240,18 @@ export default function LotteryClient() {
       </section>
 
       {/* 4. Gifts Section */}
-      <section className="bg-slate-50 py-24 px-6">
+      <section className="bg-slate-50 py-8 md:py-24 px-6">
         <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-5xl font-black tracking-tight mb-4">What you can get as surprise gifts</h2>
-            <p className="text-slate-500 font-medium">Every week, new exciting rewards are added to the pool!</p>
+          <div className="text-center mb-12 md:mb-16">
+            <h2 className="text-2xl md:text-5xl font-black tracking-tight mb-4">What you can get as surprise gifts</h2>
+            <p className="text-slate-500 font-medium text-sm md:text-base">Every week, new exciting rewards are added to the pool!</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {SURPRISE_GIFTS.map((gift, i) => (
-              <motion.div 
+              <motion.div
                 key={i}
                 whileHover={{ y: -10 }}
-                className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm"
+                className="bg-white p-6 md:p-8 rounded-3xl md:rounded-[2rem] border border-slate-100 shadow-sm"
               >
                 <div className="text-4xl mb-6">{gift.icon}</div>
                 <h3 className="text-xl font-black mb-2">{gift.title}</h3>
@@ -268,25 +263,25 @@ export default function LotteryClient() {
       </section>
 
       {/* 5. Past Winners Section */}
-      <section className="py-24 px-6 max-w-4xl mx-auto">
-        <div className="flex items-center justify-between mb-12">
-          <h2 className="text-3xl font-black tracking-tight">Past Winners</h2>
+      <section className="py-8 md:py-24 px-6 max-w-4xl mx-auto">
+        <div className="flex items-center justify-between mb-8 md:mb-12">
+          <h2 className="text-2xl md:text-3xl font-black tracking-tight">Past Winners</h2>
           <div className="h-px flex-1 bg-slate-100 mx-8 hidden md:block"></div>
           <span className="text-xs font-black text-slate-400 uppercase tracking-widest hidden md:block">Our Hall of Fame</span>
         </div>
-        
+
         <div className="space-y-4">
           {winners.length === 0 ? (
             <div className="py-12 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-100 text-center">
-               <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Winners announced this Friday!</p>
+              <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Winners announced this Friday!</p>
             </div>
           ) : winners.map((winner, i) => (
-            <motion.div 
+            <motion.div
               key={i}
               initial={{ opacity: 0, x: -20 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
-              className="flex items-center justify-between p-6 bg-white border border-slate-100 rounded-2xl hover:shadow-md transition-all group"
+              className="flex items-center justify-between p-4 md:p-6 bg-white border border-slate-100 rounded-2xl hover:shadow-md transition-all group"
             >
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center font-black text-[hsl(var(--swago-purple))] group-hover:bg-[hsl(var(--swago-purple))] group-hover:text-white transition-colors">
@@ -314,32 +309,32 @@ export default function LotteryClient() {
 
 function SuccessMessage({ onReset }: { onReset: () => void }) {
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, scale: 0.8 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="bg-white border-2 border-emerald-100 rounded-[3rem] p-10 text-center shadow-2xl shadow-emerald-100 relative overflow-hidden"
+      className="bg-white border-2 border-emerald-100 rounded-[2rem] md:rounded-[3rem] p-6 md:p-10 text-center shadow-2xl shadow-emerald-100 relative overflow-hidden"
     >
       {/* Decorative Confetti */}
       {[...Array(12)].map((_, i) => (
         <motion.div
-           key={i}
-           initial={{ y: -20, opacity: 0 }}
-           animate={{ 
-             y: [0, -100, 0], 
-             x: [0, (i % 2 === 0 ? 50 : -50), 0],
-             opacity: [0, 1, 0],
-             scale: [0, 1, 0.5]
-           }}
-           transition={{ 
-             duration: 2 + Math.random() * 2, 
-             repeat: Infinity,
-             delay: Math.random() * 2
-           }}
-           className="absolute text-xl pointer-events-none"
-           style={{ 
-             left: `${Math.random() * 100}%`,
-             top: `${Math.random() * 100}%`
-           }}
+          key={i}
+          initial={{ y: -20, opacity: 0 }}
+          animate={{
+            y: [0, -100, 0],
+            x: [0, (i % 2 === 0 ? 50 : -50), 0],
+            opacity: [0, 1, 0],
+            scale: [0, 1, 0.5]
+          }}
+          transition={{
+            duration: 2 + Math.random() * 2,
+            repeat: Infinity,
+            delay: Math.random() * 2
+          }}
+          className="absolute text-xl pointer-events-none"
+          style={{
+            left: `${Math.random() * 100}%`,
+            top: `${Math.random() * 100}%`
+          }}
         >
           {['✨', '⭐', '🎉', '🎊'][i % 4]}
         </motion.div>
@@ -351,7 +346,7 @@ function SuccessMessage({ onReset }: { onReset: () => void }) {
         <p className="text-slate-500 font-medium leading-relaxed mb-8">
           Your ticket entry is done; come back on Friday at 7 pm to see who won the surprise gift.
         </p>
-        <button 
+        <button
           onClick={onReset}
           className="text-xs font-black text-[hsl(var(--swago-purple))] uppercase tracking-widest hover:underline"
         >

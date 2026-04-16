@@ -9,13 +9,12 @@ import Step2Mascot from "./components/Step2Mascot";
 import Step3SmartBox from "./components/Step3SmartBox";
 import Step4FaceAlign from "./components/Step4FaceAlign";
 import Step5Record from "./components/Step5Record";
-import Step6MissionComplete from "./components/Step6MissionComplete";
 
 export default function YesICanFlow() {
     const [currentStep, setCurrentStep] = useState(1);
     const router = useRouter();
 
-    const nextStep = () => setCurrentStep((prev) => Math.min(prev + 1, 6));
+    const nextStep = () => setCurrentStep((prev) => Math.min(prev + 1, 5));
 
     const renderStep = () => {
         switch (currentStep) {
@@ -23,8 +22,7 @@ export default function YesICanFlow() {
             case 2: return <Step2Mascot onNext={nextStep} />;
             case 3: return <Step3SmartBox onNext={nextStep} />;
             case 4: return <Step4FaceAlign onNext={nextStep} />;
-            case 5: return <Step5Record onComplete={nextStep} />;
-            case 6: return <Step6MissionComplete onComplete={() => router.push("/kids/dashboard")} />;
+            case 5: return <Step5Record onComplete={() => router.push("/kids/dashboard")} />;
             default: return null;
         }
     };
@@ -52,7 +50,7 @@ export default function YesICanFlow() {
 
                 {/* Progress Dots at Bottom */}
                 <div className="flex justify-center items-center gap-2 py-6 bg-white border-t border-slate-100">
-                    {[1, 2, 3, 4, 5, 6].map((step) => (
+                    {[1, 2, 3, 4, 5].map((step) => (
                         <div
                             key={step}
                             className={`rounded-full transition-all duration-500 ease-out ${currentStep === step ? "bg-purple-600 w-8 h-2" : "bg-slate-200 w-2 h-2"
