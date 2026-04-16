@@ -493,9 +493,9 @@ export default function LoginForm() {
               </div>
 
               {/* Login Card Body */}
-              <div className="w-full bg-white shadow-xl md:shadow-[0_40px_100px_-20px_rgba(58,45,94,0.15)] border border-slate-100 border-t-0 md:border-t relative z-20 p-5 md:p-12 md:pt-14 text-left overflow-visible rounded-b-[32px] rounded-t-none md:rounded-[32px]">
+              <div className="w-full bg-white shadow-xl md:shadow-[0_40px_100px_-20px_rgba(58,45,94,0.15)] border border-slate-100 border-t-0 md:border-t relative z-20 px-4 py-2 md:p-12 md:pt-14 text-left overflow-visible rounded-b-[32px] rounded-t-none md:rounded-[32px]">
                 {/* Title Section */}
-                <div className="mb-8 text-center md:text-left pt-2 md:pt-0">
+                <div className="mb-8 text-center md:text-left -mt-5 md:mt-0">
                   <h1 className="text-2xl md:text-[2rem] font-black text-slate-900 mb-1.5 tracking-tight">
                     Start Your SWAGO Journey
                   </h1>
@@ -510,7 +510,7 @@ export default function LoginForm() {
                     <div className="flex bg-slate-50/80 rounded-2xl p-1.5 border border-slate-100">
                       <button
                         onClick={() => setAuthMode("signup")}
-                        className={`flex-1 py-3 px-3 rounded-xl font-black text-xs uppercase tracking-wider transition-all duration-300 ${authMode === "signup"
+                        className={`flex-1 py-2 md:py-3 px-2 md:px-3 rounded-xl font-black text-xs md:text-sm tracking-wide transition-all duration-300 ${authMode === "signup"
                           ? "bg-[hsl(var(--swago-purple))] text-white shadow-[0_8px_20px_rgba(58,45,94,0.2)]"
                           : "bg-slate-100 text-slate-400 hover:text-slate-600"
                           }`}
@@ -519,7 +519,7 @@ export default function LoginForm() {
                       </button>
                       <button
                         onClick={() => setAuthMode("signin")}
-                        className={`flex-1 py-3 px-3 rounded-xl font-black text-xs uppercase tracking-wider transition-all duration-300 ${authMode === "signin"
+                        className={`flex-1 py-2 md:py-3 px-2 md:px-3 rounded-xl font-black text-xs md:text-sm tracking-wide transition-all duration-300 ${authMode === "signin"
                           ? "bg-[hsl(var(--swago-purple))] text-white shadow-[0_8px_20px_rgba(58,45,94,0.2)]"
                           : "bg-slate-100 text-slate-400 hover:text-slate-600"
                           }`}
@@ -531,12 +531,12 @@ export default function LoginForm() {
                     {/* Form Fields */}
                     <div className="space-y-6">
                       <div>
-                        <label className="block text-[13px] font-black text-slate-700/80 mb-2 ml-1 uppercase tracking-wider">
+                        <label className="block text-[13px] font-black text-slate-700/80 mb-2 ml-1 tracking-wider">
                           Phone Number <span className="text-rose-400">*</span>
                         </label>
-                        <div className="flex gap-3">
-                          <div className="w-20">
-                            <div className="w-full bg-slate-50/50 border border-slate-100 rounded-2xl p-4 text-slate-900 font-black text-center text-base">
+                        <div className="flex gap-2 md:gap-3">
+                          <div className="w-16 md:w-20">
+                            <div className="w-full bg-slate-50/50 border border-slate-100 rounded-xl md:rounded-2xl p-3 md:p-4 text-slate-900 font-black text-center text-sm md:text-base">
                               +91
                             </div>
                           </div>
@@ -549,7 +549,7 @@ export default function LoginForm() {
                             }}
                             placeholder="Enter 10-digit number"
                             maxLength={10}
-                            className="flex-1 bg-white border border-slate-100 rounded-2xl p-4 text-base focus:outline-none focus:ring-4 focus:ring-purple-50 focus:border-[hsl(var(--swago-purple))] transition-all placeholder:text-slate-300 text-slate-900 font-bold shadow-sm"
+                            className="flex-1 bg-white border border-slate-100 rounded-xl md:rounded-2xl p-3 md:p-4 text-sm md:text-base focus:outline-none focus:ring-4 focus:ring-purple-50 focus:border-[hsl(var(--swago-purple))] transition-all placeholder:text-slate-300 text-slate-900 font-bold shadow-sm"
                           />
                         </div>
                       </div>
@@ -564,7 +564,7 @@ export default function LoginForm() {
                             className="space-y-6 overflow-hidden"
                           >
                             <div>
-                              <label className="block text-[13px] font-black text-slate-700/80 mb-2 ml-1 uppercase tracking-wider">
+                              <label className="block text-[13px] font-black text-slate-700/80 mb-2 ml-1 tracking-wider">
                                 Full Name <span className="text-rose-400">*</span>
                               </label>
                               <input
@@ -572,12 +572,12 @@ export default function LoginForm() {
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
                                 placeholder="Enter your full name"
-                                className="w-full bg-white border border-slate-100 rounded-2xl p-4 text-base focus:outline-none focus:ring-4 focus:ring-purple-50 focus:border-[hsl(var(--swago-purple))] transition-all placeholder:text-slate-300 text-slate-900 font-bold shadow-sm"
+                                className="w-full bg-white border border-slate-100 rounded-xl md:rounded-2xl p-3 md:p-4 text-sm md:text-base focus:outline-none focus:ring-4 focus:ring-purple-50 focus:border-[hsl(var(--swago-purple))] transition-all placeholder:text-slate-300 text-slate-900 font-bold shadow-sm"
                               />
                             </div>
 
                             <div>
-                              <label className="block text-[13px] font-black text-slate-700/80 mb-2 ml-1 uppercase tracking-wider">
+                              <label className="block text-[13px] font-black text-slate-700/80 mb-2 ml-1 tracking-wider">
                                 Email Address <span className="text-rose-400">*</span>
                               </label>
                               <input
@@ -585,7 +585,7 @@ export default function LoginForm() {
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 placeholder="your.email@example.com"
-                                className="w-full bg-white border border-slate-100 rounded-2xl p-4 text-base focus:outline-none focus:ring-4 focus:ring-purple-50 focus:border-[hsl(var(--swago-purple))] transition-all placeholder:text-slate-300 text-slate-900 font-bold shadow-sm"
+                                className="w-full bg-white border border-slate-100 rounded-xl md:rounded-2xl p-3 md:p-4 text-sm md:text-base focus:outline-none focus:ring-4 focus:ring-purple-50 focus:border-[hsl(var(--swago-purple))] transition-all placeholder:text-slate-300 text-slate-900 font-bold shadow-sm"
                               />
                             </div>
                           </motion.div>
@@ -595,19 +595,19 @@ export default function LoginForm() {
                       <button
                         onClick={sendOtp}
                         disabled={loading || !phone || phone.length !== 10}
-                        className="w-full btn-shine bg-[hsl(var(--swago-purple))] hover:brightness-110 text-white font-black py-5 rounded-2xl text-lg uppercase tracking-[.25em] transition-all hover:scale-[1.01] active:scale-98 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_20px_40px_-10px_rgba(124,93,250,0.4)] md:mt-4"
+                        className="w-full btn-shine bg-[hsl(var(--swago-purple))] hover:brightness-110 text-white font-black py-3 md:py-5 rounded-lg md:rounded-2xl text-[13px] md:text-lg tracking-wide md:tracking-[.25em] transition-all hover:scale-[1.01] active:scale-98 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_20px_40px_-10px_rgba(124,93,250,0.4)] md:mt-4"
                       >
                         {loading ? "Please wait..." : "Send OTP"}
                       </button>
 
                       <div className="flex flex-col items-center pt-6 space-y-4">
-                        <div className="flex items-center gap-2 text-slate-400 font-bold text-xs uppercase tracking-widest opacity-80">
+                        <div className="flex items-center gap-2 text-slate-400 font-bold text-[11px] md:text-xs tracking-wide md:tracking-widest opacity-80">
                           <HiLockClosed className="w-4 h-4" />
                           <span>Your information is secure with us</span>
                         </div>
                         <button
                           onClick={() => router.push(`/login/email${redirectUrl ? `?redirect=${encodeURIComponent(redirectUrl)}` : ''}`)}
-                          className="text-xs font-black text-[#7c5dfa] hover:underline underline-offset-4 tracking-tight uppercase"
+                          className="text-sm font-black text-[#7c5dfa] hover:underline underline-offset-4 tracking-tight"
                         >
                           Prefer email login?
                         </button>
@@ -618,9 +618,9 @@ export default function LoginForm() {
 
                 {step === "otp" && (
                   <div className="space-y-8 py-4">
-                    <div className="text-center space-y-2">
-                      <p className="text-slate-400 font-bold uppercase text-xs tracking-widest">OTP sent to:</p>
-                      <p className="text-3xl font-black text-slate-800 tracking-tight">+91 {phone}</p>
+                    <div className="text-center space-y-1 md:space-y-2">
+                      <p className="text-slate-400 font-bold text-xs md:text-sm tracking-wide md:tracking-widest">OTP sent to:</p>
+                      <p className="text-lg md:text-3xl font-black text-slate-800 tracking-tight">+91 {phone}</p>
                     </div>
 
                     <div className="relative group">
@@ -630,14 +630,14 @@ export default function LoginForm() {
                         onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
                         placeholder="......"
                         maxLength={6}
-                        className="w-full bg-slate-50/50 border border-slate-100 rounded-[2rem] p-6 text-center text-4xl font-black tracking-[0.4em] focus:outline-none focus:ring-4 focus:ring-purple-50 focus:border-[hsl(var(--swago-purple))] transition-all placeholder:text-slate-200 text-slate-900"
+                        className="w-full bg-slate-50/50 border border-slate-100 rounded-xl md:rounded-[2rem] p-3 md:p-6 text-center text-xl md:text-4xl font-black tracking-widest md:tracking-[0.4em] focus:outline-none focus:ring-4 focus:ring-purple-50 focus:border-[hsl(var(--swago-purple))] transition-all placeholder:text-slate-200 text-slate-900"
                       />
                     </div>
 
                     <button
                       onClick={verifyOtp}
                       disabled={loading || code.length < 6}
-                      className={`w-full font-black py-5 rounded-2xl text-lg uppercase tracking-widest transition-all hover:scale-[1.01] active:scale-98 disabled:opacity-50 disabled:cursor-not-allowed ${code.length === 6 && !loading
+                      className={`w-full font-black py-3 md:py-5 rounded-lg md:rounded-2xl text-[13px] md:text-lg tracking-wide md:tracking-widest transition-all hover:scale-[1.01] active:scale-98 disabled:opacity-50 disabled:cursor-not-allowed ${code.length === 6 && !loading
                         ? 'bg-[hsl(var(--swago-purple))] shadow-[0_20px_40px_-10px_rgba(124,93,250,0.4)]'
                         : 'bg-[#c8b6ff] shadow-[0_10px_25px_-5px_rgba(200,182,255,0.4)]'
                         }`}
@@ -652,7 +652,7 @@ export default function LoginForm() {
                           setCode("");
                           setMessage("");
                         }}
-                        className="text-xs font-black text-slate-400 hover:text-slate-600 uppercase tracking-widest border-b-2 border-slate-100 pb-1"
+                        className="text-sm font-black text-slate-400 hover:text-slate-600 tracking-wide md:tracking-widest border-b-2 border-slate-100 pb-1"
                       >
                         Back to edit number
                       </button>

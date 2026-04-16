@@ -46,8 +46,8 @@ export default function FeaturedProducts() {
     return (
       <section className="py-10 md:py-14 bg-white overflow-hidden">
         <div className="container mx-auto px-4 text-center">
-          <h2 className="text-4xl md:text-5xl font-black mb-3 uppercase tracking-tight text-slate-900">
-            NEW <span className="text-[hsl(var(--swago-purple))]">ARRIVALS</span>
+          <h2 className="text-4xl md:text-5xl font-black mb-3 tracking-tight text-slate-900">
+            New <span className="text-[hsl(var(--swago-purple))]">Arrivals</span>
           </h2>
           <p className="text-slate-500 font-medium mb-12">Loading latest offerings...</p>
         </div>
@@ -58,8 +58,8 @@ export default function FeaturedProducts() {
   return (
     <section className="py-8 md:py-12 bg-white overflow-hidden">
       <div className="container mx-auto px-4 text-center">
-        <h2 className="text-4xl md:text-5xl font-black mb-3 uppercase tracking-tight text-slate-900">
-          NEW <span className="text-[hsl(var(--swago-purple))]">ARRIVALS</span>
+        <h2 className="text-4xl md:text-5xl font-black mb-3 tracking-tight text-slate-900">
+          New <span className="text-[hsl(var(--swago-purple))]">Arrivals</span>
         </h2>
         <p className="text-slate-500 font-medium mb-10 text-lg">
           Our latest offerings
@@ -94,7 +94,7 @@ export default function FeaturedProducts() {
         <div className="mt-4">
           <Link
             href="/products"
-            className="inline-block bg-[hsl(var(--swago-purple))] transition-all duration-300 hover:bg-slate-900 text-white font-black uppercase tracking-widest text-xs px-10 py-4 rounded-2xl shadow-xl shadow-purple-100"
+            className="inline-block bg-[hsl(var(--swago-purple))] transition-all duration-300 hover:bg-slate-900 text-white font-black  tracking-widest text-xs px-10 py-4 rounded-2xl shadow-xl shadow-purple-100"
           >
             View All Products
           </Link>

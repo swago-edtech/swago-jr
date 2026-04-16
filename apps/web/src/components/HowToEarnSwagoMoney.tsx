@@ -77,7 +77,7 @@ export default function HowToEarnSwagoMoney() {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-4xl md:text-5xl font-black text-slate-900 mb-4 uppercase tracking-tight"
+            className="text-4xl md:text-5xl font-black text-slate-900 mb-4 tracking-tight"
           >
             How to earn <span className="text-[hsl(var(--swago-purple))]">Swago Dollars</span>
           </motion.h2>

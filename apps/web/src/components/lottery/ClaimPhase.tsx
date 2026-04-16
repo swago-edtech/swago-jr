@@ -329,10 +329,10 @@ export default function ClaimPhase({
           {loading ? (
             <span className="flex items-center justify-center gap-3">
               <div className="animate-spin w-5 h-5 border-3 border-white border-t-transparent rounded-full"></div>
-              REDEEMING CODE...
+              Redeeming Code...
             </span>
           ) : (
-            'CLAIM MY TICKET 🎟️'
+            'Claim My Ticket 🎟️'
           )}
         </motion.button>
       </div>

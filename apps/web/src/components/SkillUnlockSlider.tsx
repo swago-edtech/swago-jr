@@ -85,7 +85,7 @@ export default function SkillUnlockSlider() {
       {/* Centered Header */}
       <div className="container mx-auto px-4 max-w-7xl mb-12 md:mb-16">
         <div className="text-center">
-          <h2 className="text-4xl md:text-6xl font-black text-slate-800 tracking-tighter uppercase italic leading-none">
+          <h2 className="text-4xl md:text-6xl font-black text-slate-800 tracking-tighter italic leading-none">
             What Your Child <span className="text-[hsl(var(--swago-purple))]">Unlocks</span>
           </h2>
         </div>
@@ -121,12 +121,12 @@ export default function SkillUnlockSlider() {
                       {/* Solid White Content Section - High Contrast */}
                       <div className="absolute inset-x-4 bottom-4 p-6 bg-white rounded-[2rem] z-30 shadow-[0_20px_40px_-10px_rgba(0,0,0,0.15)] flex flex-col items-center text-center">
                         <div className="flex items-center gap-2 mb-1">
-                          <h3 className={`text-3xl md:text-4xl font-black ${skill.color}  tracking-[0.2em] uppercase italic`}>
+                          <h3 className={`text-3xl md:text-4xl font-black ${skill.color}  tracking-[0.2em] italic`}>
                             {skill.title}
                           </h3>
                         </div>
 
-                        <p className="text-slate-500 font-bold text-[11px] md:text-xs leading-none uppercase tracking-widest opacity-80">
+                        <p className="text-slate-500 font-bold text-[11px] md:text-xs leading-none tracking-widest opacity-80">
                           {skill.description}
                         </p>
                       </div>

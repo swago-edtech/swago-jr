@@ -8,10 +8,10 @@ interface CartProgressProps {
   giftThreshold?: number;
 }
 
-export default function CartProgress({ 
-  total, 
-  shippingThreshold = 500, 
-  giftThreshold = 1000 
+export default function CartProgress({
+  total,
+  shippingThreshold = 500,
+  giftThreshold = 1000
 }: CartProgressProps) {
   const progressPercent = Math.min((total / giftThreshold) * 100, 100);
 
@@ -19,11 +19,11 @@ export default function CartProgress({
     <div className="bg-white rounded-[1.5rem] px-4 pt-3 pb-4 border border-slate-100 shadow-sm mb-4">
       {/* 🚀 Header Message */}
       <p className={`text-[11px] font-[1000] text-center mb-4 uppercase tracking-[0.15em] ${total >= shippingThreshold ? 'text-[#1EAA5F]' : 'text-[#61498C]'}`}>
-        {total >= giftThreshold 
-          ? "🎉 All rewards added to your order!" 
-          : total >= shippingThreshold 
-            ? "🚚 Free Shipping unlocked!" 
-            : "Free Gift on PRE-PAID orders"}
+        {total >= giftThreshold
+          ? "🎉 All rewards added to your order!"
+          : total >= shippingThreshold
+            ? "🚚 Free Shipping unlocked!"
+            : "Free Gift on Prepaid Orders"}
       </p>
 
       {/* 📊 Progress Bar Container */}
@@ -32,9 +32,9 @@ export default function CartProgress({
         <div className="relative h-10 mb-2">
           {/* Background Rail */}
           <div className="absolute top-1/2 left-0 right-0 h-[4px] bg-slate-100 -translate-y-1/2 rounded-full" />
-          
+
           {/* Active Progress Rail */}
-          <div 
+          <div
             className="absolute top-1/2 left-0 h-[4px] bg-[#61498C] -translate-y-1/2 rounded-full transition-all duration-1000 ease-out"
             style={{ width: `${progressPercent}%` }}
           />
@@ -43,7 +43,7 @@ export default function CartProgress({
           <div className="absolute top-1/2 left-0 -translate-y-1/2 w-3 h-3 rounded-full bg-[#61498C] border-2 border-white shadow-sm z-10" />
 
           {/* 🚚 Milestone 1: Free Shipping (₹500) */}
-          <div 
+          <div
             className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 z-20"
             style={{ left: `${(shippingThreshold / giftThreshold) * 100}%` }}
           >

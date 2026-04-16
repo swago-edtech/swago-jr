@@ -71,7 +71,7 @@ function Quiz({ data }: { data: any }) {
                     <Logo />
                 </div>
                 <div className="inline-block px-4 py-1.5 bg-yellow-400 text-slate-800 rounded-lg text-[10px] font-black uppercase tracking-[0.3em] mb-4">
-                    KIDS PERSONALITY QUIZ
+                    Kids Personality Quiz
                 </div>
                 <h3 className="text-3xl md:text-5xl font-black text-slate-900 leading-tight tracking-tight">{data.title}</h3>
                 <p className="text-xl text-slate-500 font-medium">Take this 2-minute quiz to understand your child's brain type—and learn how to build their focus, confidence, and emotional strength.</p>
@@ -179,7 +179,7 @@ function Quiz({ data }: { data: any }) {
 
                         <div className="space-y-4">
                             <h4 className="text-[#5e43aa] text-[10px] font-black uppercase tracking-[0.2em] opacity-80 pl-1">
-                                KEY CHARACTERISTICS:
+                                Key Characteristics:
                             </h4>
                             <ul className="space-y-3 pl-1">
                                 {result.bullets.map((b, i) => (
@@ -262,7 +262,7 @@ export default function SingleBlogPage() {
     if (loading) return <div className="min-h-screen py-20 text-center text-slate-500">Retrieving article...</div>;
     if (!blog) return (
         <div className="min-h-screen py-20 text-center">
-            <h1 className="text-4xl font-black text-slate-900">ARTICLE NOT FOUND</h1>
+            <h1 className="text-4xl font-black text-slate-900">Article Not Found</h1>
             <Link href="/blog" className="text-[hsl(var(--swago-purple))] font-black mt-4 inline-block underline">Return to Blog</Link>
         </div>
     );

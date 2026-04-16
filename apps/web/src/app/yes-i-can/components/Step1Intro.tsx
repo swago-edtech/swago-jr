@@ -29,7 +29,7 @@ export default function Step1Intro({ onNext }: StepProps) {
                     </p>
 
                     <button onClick={onNext} className="w-full md:w-fit px-10 py-5 lg:py-6 bg-purple-600 hover:bg-purple-700 text-white text-[15px] lg:text-[17px] font-black uppercase tracking-widest rounded-full transition-transform shadow-xl shadow-purple-600/30 btn-shine btn-text-pop">
-                        <span>YES, I'M READY TO EXPLORE</span>
+                        <span>Yes, I'm Ready To Explore</span>
                     </button>
                 </div>
             </div>

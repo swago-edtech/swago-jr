@@ -35,7 +35,7 @@ export default function Step3SmartBox({ onNext }: StepProps) {
                     </p>
 
                     <button onClick={onNext} className="w-full md:w-fit px-12 py-5 lg:py-6 bg-purple-600 hover:bg-purple-700 text-white text-[15px] lg:text-[16px] font-black uppercase tracking-widest rounded-full transition-all shadow-xl shadow-purple-600/30 btn-shine btn-text-pop">
-                        <span>YES, I GOT IT</span>
+                        <span>Yes, I Got It</span>
                     </button>
                 </div>
             </div>

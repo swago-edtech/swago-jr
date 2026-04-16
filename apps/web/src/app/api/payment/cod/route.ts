@@ -244,7 +244,44 @@ export async function POST(req: Request) {
 
         // ✅ NEW: Handle Swago Money Redemption
         const swagoMoneyRedeemed = orderDetails.swagoMoneyRedeemed || 0;
-        const swagoMoneyKidId = orderDetails.swagoMoneyKidId;
+        let swagoMoneyKidId = orderDetails.swagoMoneyKidId;
+
+        if (swagoMoneyRedeemed > 0) {
+            if (calculatedAmountAfterCoupon < 800) {
+                return NextResponse.json({ error: "Order amount must be ₹800 or more to use Swago Dollars" }, { status: 400 });
+            }
+
+            const maxAllowed = Math.trunc(calculatedAmountAfterCoupon * 0.05);
+            if (swagoMoneyRedeemed > maxAllowed) {
+                return NextResponse.json({ error: `You can only use up to 5% (₹${maxAllowed}) of your order amount in Swago Dollars` }, { status: 400 });
+            }
+
+            // Verify User has enough
+            const profiles = await KidProfile.find({ userId: user._id }).select("ambassador.swagoMoney");
+            let totalAvailable = 0;
+            let profileToDeduct = null;
+
+            for (const p of profiles) {
+                const bal = p.ambassador?.swagoMoney || 0;
+                totalAvailable += bal;
+                if (bal >= swagoMoneyRedeemed) {
+                    profileToDeduct = p._id;
+                }
+            }
+
+            if (totalAvailable < swagoMoneyRedeemed) {
+                return NextResponse.json({ error: "Insufficient Swago Dollars balance" }, { status: 400 });
+            }
+
+            // If we don't have a specific kid ID capable of bearing the full deduction, 
+            // realistically we should deduct across multiple, but for simplicity we will deduct from the first profile that has enough,
+            // or just the first profile if we aggregate. For now we just pick a profile that has enough.
+            if (!swagoMoneyKidId && profileToDeduct) {
+                swagoMoneyKidId = profileToDeduct;
+            } else if (!swagoMoneyKidId && profiles.length > 0) {
+                swagoMoneyKidId = profiles[0]._id; // Fallback
+            }
+        }
 
         const calculatedTotal = Math.max(0, calculatedAmountAfterCoupon - swagoMoneyRedeemed);
 

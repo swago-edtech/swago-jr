@@ -176,7 +176,7 @@ async function verifyAccessToken(accessToken: string): Promise<{ success: boolea
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     console.error("❌ MSG91 token verification error:", errorMessage);
-    return { success: false, error: errorMessage };
+    return { success: false, error: "We couldn't verify your OTP. Please try again." };
   }
 }
 
@@ -410,9 +410,8 @@ export async function POST(req: Request) {
     }
   } catch (err: unknown) {
     console.error("❌ OTP verification error:", err);
-    const message = err instanceof Error ? err.message : "An unknown error occurred";
     return NextResponse.json(
-      { success: false, error: message },
+      { success: false, error: "Something went wrong while verifying your account. Please try again later." },
       { status: 500 }
     );
   }

@@ -17,10 +17,11 @@ interface StockInfo {
 }
 
 export default function CartPage() {
-  const { cart, total, removeFromCart, increaseQty, decreaseQty, appliedCoupon, setAppliedCoupon } = useSharedContext();
+  const { cart, total, removeFromCart, increaseQty, decreaseQty, appliedCoupon, setAppliedCoupon, appliedSwagoMoney, setAppliedSwagoMoney } = useSharedContext();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [stockInfo, setStockInfo] = useState<StockInfo>({});
+  const [walletBalance, setWalletBalance] = useState(0);
 
   const [couponSheetOpen, setCouponSheetOpen] = useState(false);
 
@@ -50,6 +51,19 @@ export default function CartPage() {
       }
     };
     fetchCoupons();
+
+    const fetchWallet = async () => {
+      try {
+        const res = await fetch('/api/wallet/balance');
+        const data = await res.json();
+        if (data.success) {
+          setWalletBalance(data.totalSwagoMoney || 0);
+        }
+      } catch (e) {
+        console.error('Failed to fetch wallet balance', e);
+      }
+    };
+    fetchWallet();
   }, []);
 
   const applyCoupon = async (code: string) => {
@@ -104,6 +118,19 @@ export default function CartPage() {
     return (item.productId?.toString() || item._id?.toString() || item.id?.toString() || '');
   };
 
+  const savings = appliedCoupon?.discount || 0;
+  const amountAfterCoupon = total - savings;
+  const canUseSwagoDollars = amountAfterCoupon >= 800;
+  const maxSwagoDollarsAllowed = Math.trunc(amountAfterCoupon * 0.05);
+  const applicableSwagoDollars = Math.min(walletBalance, maxSwagoDollarsAllowed);
+
+  // Reset if conditions fail
+  useEffect(() => {
+    if (appliedSwagoMoney > 0 && (!canUseSwagoDollars || appliedSwagoMoney > applicableSwagoDollars)) {
+      setAppliedSwagoMoney(0);
+    }
+  }, [amountAfterCoupon, canUseSwagoDollars, applicableSwagoDollars, appliedSwagoMoney, setAppliedSwagoMoney]);
+
   if (cart.length === 0) {
     return (
       <div className="min-h-[70vh] flex flex-col items-center justify-center p-6 text-center">
@@ -129,7 +156,7 @@ export default function CartPage() {
   const progressPercent = Math.min((total / giftThreshold) * 100, 100);
 
   return (
-    <div className="bg-[#FBFCFD] min-h-screen pb-28">
+    <div className="bg-[#FBFCFD] min-h-screen pb-20">
       <div className="bg-white border-b border-slate-100 sticky top-0 z-30 px-4 py-3 sm:py-4 shadow-sm">
         <div className="container mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -138,7 +165,7 @@ export default function CartPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
               </svg>
             </Link>
-            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tighter uppercase">My Cart</h1>
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tighter">My Cart</h1>
           </div>
           <div className="hidden sm:flex items-center gap-2">
             <span className="text-xs sm:text-sm font-bold text-slate-400 uppercase tracking-widest">Secure Checkout</span>
@@ -153,12 +180,12 @@ export default function CartPage() {
         <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 items-start">
           <div className="w-full lg:w-2/3 flex flex-col gap-4 sm:gap-6">
             <div className="bg-white rounded-2xl px-4 sm:px-5 py-5 border border-slate-100 shadow-sm">
-              <p className={`text-[10px] sm:text-xs font-black text-center mb-4 uppercase tracking-widest ${total >= shippingThreshold ? 'text-[#1EAA5F]' : 'text-slate-600'}`}>
+              <p className={`text-[10px] sm:text-xs font-black text-center mb-4 tracking-widest ${total >= shippingThreshold ? 'text-[#1EAA5F]' : 'text-slate-600'}`}>
                 {total >= giftThreshold
                   ? "🎉 All rewards added to your order!"
                   : total >= shippingThreshold
                     ? "🚚 Free Shipping unlocked!"
-                    : "Free Gift on PRE-PAID orders"}
+                    : "Free Gift on Prepaid Orders"}
               </p>
 
               <div className="relative mx-3 sm:mx-4 mt-2 mb-6">
@@ -196,29 +223,15 @@ export default function CartPage() {
                     style={{ left: `${(shippingThreshold / giftThreshold) * 100}%` }}
                   >
                     <span className={`block text-[9px] sm:text-[10px] font-black leading-none ${total >= shippingThreshold ? 'text-slate-800' : 'text-slate-400'}`}>₹{shippingThreshold}</span>
-                    <span className={`block text-[8px] font-bold uppercase tracking-tight whitespace-nowrap mt-0.5 ${total >= shippingThreshold ? 'text-slate-500' : 'text-slate-400'}`}>Free Shipping</span>
+                    <span className={`block text-[8px] font-bold tracking-tight whitespace-nowrap mt-0.5 ${total >= shippingThreshold ? 'text-slate-500' : 'text-slate-400'}`}>Free Shipping</span>
                   </div>
                   <div className="absolute right-0 translate-x-[20%] sm:translate-x-0 text-right sm:text-center">
                     <span className={`block text-[9px] sm:text-[10px] font-black leading-none ${total >= giftThreshold ? 'text-slate-800' : 'text-slate-400'}`}>₹{giftThreshold}</span>
-                    <span className={`block text-[8px] font-bold uppercase tracking-tight whitespace-nowrap mt-0.5 ${total >= giftThreshold ? 'text-slate-500' : 'text-slate-400'}`}>+ Gift</span>
+                    <span className={`block text-[8px] font-bold tracking-tight whitespace-nowrap mt-0.5 ${total >= giftThreshold ? 'text-slate-500' : 'text-slate-400'}`}>+ Gift</span>
                   </div>
                 </div>
               </div>
 
-              <div className="mt-2 text-center">
-                {total >= giftThreshold ? (
-                  <div className="bg-emerald-50 text-[#1E8B4F] py-2 px-3 sm:px-4 rounded-xl border border-emerald-100 inline-flex items-center justify-center gap-1.5 sm:gap-2 w-full sm:w-auto">
-                    <span className="text-sm sm:text-base">🎉</span>
-                    <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest m-0">Surprise Toy Added!</p>
-                  </div>
-                ) : (
-                  <div className="bg-slate-50 py-1.5 px-3 rounded-xl border border-slate-100 inline-flex items-center justify-center gap-1 w-full sm:w-auto">
-                    <p className="text-[9px] sm:text-[10px] md:text-xs font-bold text-slate-600 m-0 leading-none">
-                      Add <span className="text-slate-900 font-black px-0.5">₹{(giftThreshold - total).toFixed(0)}</span> more for your <span className="text-slate-900 font-black">FREE TOY! 🎁</span>
-                    </p>
-                  </div>
-                )}
-              </div>
             </div>
 
             <div className="flex flex-col gap-3 sm:gap-4">
@@ -234,14 +247,14 @@ export default function CartPage() {
                   <div key={productId} className="bg-white rounded-2xl border border-slate-100 p-3 sm:p-4 shadow-sm flex flex-row gap-3 sm:gap-4 overflow-hidden items-stretch">
                     <div className="relative w-20 h-20 sm:w-28 sm:h-28 rounded-xl bg-slate-50 flex-shrink-0 border border-slate-100 overflow-hidden">
                       <Image src={imageUrl} alt={item.name} fill className="object-cover" />
-                      {isOutOfStock && <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white text-[9px] font-black uppercase tracking-wider backdrop-blur-sm">Out of Stock</div>}
+                      {isOutOfStock && <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white text-[9px] font-black tracking-wider backdrop-blur-sm">Out of Stock</div>}
                     </div>
 
                     <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
                       <div className="flex flex-col sm:flex-row justify-between items-start gap-1 sm:gap-3">
                         <div className="flex-1 min-w-0 w-full sm:w-auto pr-0 sm:pr-2">
                           <h3 className="text-sm sm:text-base font-bold text-slate-800 leading-snug mb-1 line-clamp-2 sm:truncate">{item.name}</h3>
-                          <span className="text-[8px] sm:text-[9px] font-black text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full uppercase tracking-widest inline-block truncate max-w-full">
+                          <span className="text-[8px] sm:text-[9px] font-black text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full tracking-widest inline-block truncate max-w-full">
                             Mystery reward inside
                           </span>
                         </div>
@@ -270,7 +283,7 @@ export default function CartPage() {
                         </div>
 
                         <div className="flex flex-col items-end whitespace-nowrap">
-                          <span className="hidden sm:block text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Subtotal</span>
+                          <span className="hidden sm:block text-[9px] font-bold text-slate-400 tracking-widest mb-0.5">Subtotal</span>
                           <span className="text-sm sm:text-base font-black text-slate-900 tabular-nums">₹{(price * item.quantity).toFixed(0)}</span>
                         </div>
                       </div>
@@ -289,9 +302,9 @@ export default function CartPage() {
                     <path d="M2.25 12a.75.75 0 0 1 .75-.75h1.12a.75.75 0 1 1 0 1.5H3a.75.75 0 0 1-.75-.75Zm6.732-5.464a.75.75 0 0 1 1.06 0l.793.793a.75.75 0 1 1-1.06 1.06l-.793-.793a.75.75 0 0 1 0-1.06Zm1.06 9.868a.75.75 0 0 1 0 1.06l-.793.793a.75.75 0 1 1-1.06-1.06l.793-.793a.75.75 0 0 1 1.06 0ZM15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm3 0a.75.75 0 0 1 .75-.75H21a.75.75 0 1 1 0 1.5h-2.25a.75.75 0 0 1-.75-.75Zm-6.732-5.464a.75.75 0 0 1 0 1.06l-.793.793a.75.75 0 0 1-1.06-1.06l.793-.793a.75.75 0 0 1 1.06 0Zm-1.06 9.868a.75.75 0 0 1-1.06 0l-.793-.793a.75.75 0 1 1 1.06-1.06l.793.793a.75.75 0 0 1 0 1.06ZM12 2.25a.75.75 0 0 1 .75.75V4.12a.75.75 0 0 1-1.5 0V3a.75.75 0 0 1 .75-.75Zm0 17.63a.75.75 0 0 1 .75.75v1.12a.75.75 0 0 1-1.5 0V20.63a.75.75 0 0 1 .75-.75Z" />
                   </svg>
                 </div>
-                <h2 className="text-xs font-black text-slate-800 tracking-wide uppercase flex-1 m-0">Coupons</h2>
+                <h2 className="text-xs font-black text-slate-800 tracking-wide flex-1 m-0">Coupons</h2>
                 {appliedCoupon && (
-                  <span className="text-[10px] font-black text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full uppercase tracking-widest">Applied</span>
+                  <span className="text-[10px] font-black text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full tracking-widest">Applied</span>
                 )}
               </div>
 
@@ -301,7 +314,7 @@ export default function CartPage() {
                     <span className="text-xs font-black text-emerald-800 tracking-wide">{appliedCoupon.code}</span>
                     <p className="text-[10px] text-emerald-600 font-bold m-0 mt-0.5">Saved ₹{appliedCoupon.discount.toFixed(0)}!</p>
                   </div>
-                  <button onClick={removeCoupon} className="text-[10px] font-bold text-rose-600 uppercase tracking-widest border border-rose-200 px-3 py-1.5 rounded-lg hover:bg-rose-100/50 transition-colors bg-white">Remove</button>
+                  <button onClick={removeCoupon} className="text-[10px] font-bold text-rose-600 tracking-widest border border-rose-200 px-3 py-1.5 rounded-lg hover:bg-rose-100/50 transition-colors bg-white">Remove</button>
                 </div>
               ) : (
                 <button
@@ -317,17 +330,65 @@ export default function CartPage() {
                     <span className="text-sm font-bold text-slate-700 tracking-tight">View Coupons</span>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{availableCoupons.length} Offers</span>
+                    <span className="text-[10px] font-bold text-slate-500 tracking-wider">{availableCoupons.length} Offers</span>
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-600">
                       <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
                     </svg>
                   </div>
                 </button>
               )}
+
+              {walletBalance > 0 && (
+                <div className="mt-4 pt-4 border-t border-slate-100">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="bg-purple-50 p-1.5 rounded-lg text-purple-600">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" className="w-4 h-4">
+                        <path fillRule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zM12.75 6a.75.75 0 00-1.5 0v.816a3.836 3.836 0 00-1.72.756c-.712.566-1.112 1.484-1.112 2.428 0 1.369.962 2.406 2.022 2.898 1.201.558 2.397.864 2.397 1.468 0 .584-.528.924-1.15.924-.407 0-.76-.17-1.127-.446a.75.75 0 00-1.15.924c.712.886 1.706 1.417 2.766 1.572V18a.75.75 0 001.5 0v-.816a3.836 3.836 0 001.72-.756c.712-.566 1.112-1.484 1.112-2.428 0-1.369-.962-2.406-2.022-2.898-1.201-.558-2.397-.864-2.397-1.468 0-.584.528-.924 1.15-.924.407 0 .76.17 1.127.446a.75.75 0 001.15-.924c-.712-.886-1.706-1.417-2.766-1.572V6z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <h2 className="text-xs font-black text-slate-800 tracking-wide flex-1 m-0">Swago Dollars</h2>
+                    {appliedSwagoMoney > 0 && (
+                      <span className="text-[10px] font-black text-purple-600 font-bold bg-purple-100 px-2 py-0.5 rounded-full tracking-widest">Applied</span>
+                    )}
+                  </div>
+
+                  <div className="bg-slate-50 border border-slate-100 rounded-xl p-3">
+                    <div className="flex justify-between items-center mb-1">
+                      <div className="text-xs font-bold text-slate-700 flex flex-col">
+                        <span>Balance: {walletBalance} SD</span>
+                      </div>
+
+                      {canUseSwagoDollars && applicableSwagoDollars > 0 ? (
+                        <div className="flex items-center">
+                          <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                              type="checkbox"
+                              className="sr-only peer"
+                              checked={appliedSwagoMoney > 0}
+                              onChange={(e) => setAppliedSwagoMoney(e.target.checked ? applicableSwagoDollars : 0)}
+                            />
+                            <div className="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-500"></div>
+                          </label>
+                        </div>
+                      ) : null}
+                    </div>
+
+                    {!canUseSwagoDollars ? (
+                      <p className="text-[10px] text-slate-500 font-bold mt-1 leading-tight">
+                        Add ₹{(800 - amountAfterCoupon).toFixed(0)} more to unlock max 5% Swago Dollars savings!
+                      </p>
+                    ) : applicableSwagoDollars > 0 ? (
+                      <p className="text-[10px] text-purple-600 font-bold mt-1 leading-tight">
+                        You can use {applicableSwagoDollars} SD (5% of order) for this purchase.
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="bg-white rounded-2xl p-3 sm:p-4 border border-slate-100 shadow-sm overflow-hidden">
-              <h2 className="text-[11px] sm:text-xs font-black text-slate-800 tracking-wide uppercase mb-2 sm:mb-3 flex items-center gap-2">
+              <h2 className="text-[11px] sm:text-xs font-black text-slate-800 tracking-wide mb-2 sm:mb-3 flex items-center gap-2">
                 <span className="text-pink-500">✨</span> Also Love To Buy
               </h2>
               <div className="flex overflow-x-auto gap-3 pb-2 scrollbar-none snap-x snap-mandatory">
@@ -336,29 +397,35 @@ export default function CartPage() {
             </div>
 
             <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-100 shadow-sm space-y-3">
-              <h2 className="text-xs sm:text-sm font-black text-slate-800 tracking-wide uppercase mb-2">Final Summary</h2>
+              <h2 className="text-xs sm:text-sm font-black text-slate-800 tracking-wide mb-2">Final Summary</h2>
 
               <div className="space-y-2.5">
-                <div className="flex justify-between text-slate-500 text-[10px] sm:text-[11px] font-bold uppercase tracking-widest">
+                <div className="flex justify-between text-slate-500 text-[10px] sm:text-[11px] font-bold tracking-widest">
                   <span>Cart Total</span>
                   <span className="text-slate-900 tabular-nums font-black">₹{total.toFixed(0)}</span>
                 </div>
-                <div className="flex justify-between text-slate-500 text-[10px] sm:text-[11px] font-bold uppercase tracking-widest">
+                <div className="flex justify-between text-slate-500 text-[10px] sm:text-[11px] font-bold tracking-widest">
                   <span>Shipping Fee</span>
-                  <span className="text-[#1EAA5F] font-black uppercase">Free</span>
+                  <span className="text-[#1EAA5F] font-black">Free</span>
                 </div>
-                <div className="flex justify-between text-slate-500 text-[10px] sm:text-[11px] font-bold uppercase tracking-widest">
+                <div className="flex justify-between text-slate-500 text-[10px] sm:text-[11px] font-bold tracking-widest">
                   <span>Savings</span>
-                  <span className="text-[#1EAA5F] font-black tabular-nums">-₹75</span>
+                  <span className="text-[#1EAA5F] font-black tabular-nums">-₹{savings.toFixed(0)}</span>
                 </div>
+                {appliedSwagoMoney > 0 && (
+                  <div className="flex justify-between text-slate-500 text-[10px] sm:text-[11px] font-bold tracking-widest">
+                    <span>Swago Dollars</span>
+                    <span className="text-purple-600 font-black tabular-nums">-₹{appliedSwagoMoney}</span>
+                  </div>
+                )}
 
                 <hr className="border-dashed border-slate-200 my-3" />
 
                 <div className="flex justify-between items-start pt-1">
-                  <span className="text-xs sm:text-sm font-black text-slate-700 uppercase tracking-tight mt-1">Estimated total</span>
+                  <span className="text-xs sm:text-sm font-black text-slate-700 tracking-tight mt-1">Estimated total</span>
                   <div className="text-right">
-                    <span className="text-xl sm:text-2xl font-black text-slate-900 tracking-tighter tabular-nums leading-none block">₹{(total - (appliedCoupon?.discount || 0)).toFixed(0)}</span>
-                    <span className="text-[9px] sm:text-[10px] font-black text-[#1EAA5F] uppercase tracking-wider mt-1 block">You saved ₹75!</span>
+                    <span className="text-xl sm:text-2xl font-black text-slate-900 tracking-tighter tabular-nums leading-none block">₹{(amountAfterCoupon - appliedSwagoMoney).toFixed(0)}</span>
+                    <span className="text-[9px] sm:text-[10px] font-black text-[#1EAA5F] tracking-wider mt-1 block">You saved ₹{(savings + appliedSwagoMoney).toFixed(0)}!</span>
                   </div>
                 </div>
               </div>
@@ -366,7 +433,7 @@ export default function CartPage() {
               <button
                 onClick={handleCheckout}
                 disabled={loading}
-                className="w-full bg-[hsl(var(--swago-purple))] text-white font-black py-4 px-6 rounded-xl text-sm hover:opacity-90 transition-opacity transform active:scale-[0.98] uppercase tracking-[0.15em] mt-3 flex items-center justify-between group disabled:opacity-75 disabled:cursor-not-allowed"
+                className="w-full bg-[hsl(var(--swago-purple))] text-white font-black py-4 px-6 rounded-xl text-sm hover:opacity-90 transition-opacity transform active:scale-[0.98] tracking-[0.15em] mt-3 flex items-center justify-between group disabled:opacity-75 disabled:cursor-not-allowed"
               >
                 <span className="ml-1 tracking-widest">Proceed</span>
                 <div className="bg-white/20 p-1.5 rounded-lg group-hover:translate-x-1 transition-transform">
@@ -385,7 +452,7 @@ export default function CartPage() {
               </div>
               <div>
                 <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-none mb-1">Support</p>
-                <p className="text-sm font-black text-slate-800 tracking-tighter">+91 91501 50051</p>
+                <p className="text-sm font-black text-slate-800 tracking-tighter">+91 62838 83397</p>
               </div>
             </div>
           </div>
@@ -395,16 +462,16 @@ export default function CartPage() {
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 p-4 z-40 shadow-[0_-10px_20px_rgba(0,0,0,0.03)]">
         <div className="flex items-center justify-between gap-4 max-w-xl mx-auto">
           <div className="flex flex-col">
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tight mb-1 leading-none">Estimated total</span>
+            <span className="text-[10px] font-bold text-slate-500 tracking-tight mb-1 leading-none">Estimated total</span>
             <div className="flex flex-col items-start gap-1">
-              <span className="text-xl font-black text-slate-900 tracking-tighter tabular-nums leading-none">₹{(total - (appliedCoupon?.discount || 0)).toFixed(0)}</span>
-              <span className="text-[9px] font-black text-[#1EAA5F] uppercase tracking-wider leading-none">You saved ₹75!</span>
+              <span className="text-xl font-black text-slate-900 tracking-tighter tabular-nums leading-none">₹{(amountAfterCoupon - appliedSwagoMoney).toFixed(0)}</span>
+              <span className="text-[9px] font-black text-[#1EAA5F] tracking-wider leading-none">You saved ₹{(savings + appliedSwagoMoney).toFixed(0)}!</span>
             </div>
           </div>
           <button
             onClick={handleCheckout}
             disabled={loading}
-            className="flex-[1.5] bg-[hsl(var(--swago-purple))] text-white font-black h-12 rounded-xl active:scale-[0.98] transition-transform text-xs uppercase tracking-[0.1em] flex items-center justify-center gap-2 disabled:opacity-75"
+            className="flex-[1.5] bg-[hsl(var(--swago-purple))] text-white font-black h-12 rounded-xl active:scale-[0.98] transition-transform text-xs tracking-[0.1em] flex items-center justify-center gap-2 disabled:opacity-75"
           >
             Checkout
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">

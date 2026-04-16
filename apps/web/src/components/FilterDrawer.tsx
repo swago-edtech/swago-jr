@@ -36,8 +36,8 @@ export default function FilterDrawer({ isOpen, onClose, filters, setFilters, tot
           >
             <div className="p-6 pb-2 flex items-center justify-between border-b border-slate-50 relative">
               <h2 className="text-2xl font-black text-slate-800">Refine By</h2>
-              <button 
-                onClick={onClose} 
+              <button
+                onClick={onClose}
                 className="p-2 text-slate-400 hover:text-black transition-colors"
               >
                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -48,8 +48,8 @@ export default function FilterDrawer({ isOpen, onClose, filters, setFilters, tot
 
             <div className="flex-grow overflow-y-auto custom-scrollbar">
               {/* Price Filter Section */}
-              <FilterSection title="PRICE" defaultOpen={true}>
-                <PriceSlider 
+              <FilterSection title="Price" defaultOpen={true}>
+                <PriceSlider
                   min={filters.minPrice ?? 0}
                   max={filters.maxPrice ?? 3000}
                   onChange={(min, max) => setFilters({ ...filters, minPrice: min, maxPrice: max })}
@@ -57,7 +57,7 @@ export default function FilterDrawer({ isOpen, onClose, filters, setFilters, tot
               </FilterSection>
 
               {/* Age Group Filter Section */}
-              <FilterSection title="AGE GROUP" defaultOpen={true}>
+              <FilterSection title="Age Group" defaultOpen={true}>
                 <div className="flex flex-col gap-4 mt-2">
                   {[
                     { label: "2+", count: 1 },
@@ -72,7 +72,7 @@ export default function FilterDrawer({ isOpen, onClose, filters, setFilters, tot
                     return (
                       <label key={age.label} className="flex items-center gap-3 cursor-pointer group">
                         <div className="relative flex items-center justify-center">
-                          <input 
+                          <input
                             type="checkbox"
                             checked={filters.age === age.label}
                             onChange={() => setFilters({ ...filters, age: filters.age === age.label ? '' : age.label })}
@@ -92,7 +92,7 @@ export default function FilterDrawer({ isOpen, onClose, filters, setFilters, tot
               </FilterSection>
 
               {/* Product Type Section */}
-              <FilterSection title="PRODUCT TYPE" defaultOpen={true}>
+              <FilterSection title="Product Type" defaultOpen={true}>
                 <div className="flex flex-col gap-4 mt-2">
                   {[
                     { label: "Activity Kit", id: "Activity", count: 22 },
@@ -101,7 +101,7 @@ export default function FilterDrawer({ isOpen, onClose, filters, setFilters, tot
                   ].map(type => (
                     <label key={type.id} className="flex items-center gap-3 cursor-pointer group">
                       <div className="relative flex items-center justify-center">
-                        <input 
+                        <input
                           type="checkbox"
                           checked={filters.elements.includes(type.id)}
                           onChange={() => {
@@ -129,7 +129,7 @@ export default function FilterDrawer({ isOpen, onClose, filters, setFilters, tot
             <div className="p-6 border-t border-slate-100 flex gap-4 bg-white">
               <button
                 onClick={() => {
-                   setFilters({ ...filters, search: "", age: "", elements: [], minPrice: undefined, maxPrice: undefined });
+                  setFilters({ ...filters, search: "", age: "", elements: [], minPrice: undefined, maxPrice: undefined });
                 }}
                 className="flex-1 py-4 border-2 border-black transition text-black bg-white rounded-lg font-black uppercase tracking-widest text-xs hover:bg-slate-50 active:scale-[0.98]"
               >
@@ -151,7 +151,7 @@ export default function FilterDrawer({ isOpen, onClose, filters, setFilters, tot
 
 function FilterSection({ title, children, defaultOpen = false }: { title: string, children: React.ReactNode, defaultOpen?: boolean }) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
-  
+
   return (
     <div className="border-b border-slate-100 last:border-0">
       <button
@@ -219,21 +219,21 @@ function PriceSlider({ min, max, onChange }: { min: number, max: number, onChang
   return (
     <div className="w-full pt-4">
       {/* Slider Visual */}
-      <div 
+      <div
         ref={trackRef}
         className="relative h-[6px] w-full bg-slate-100 rounded-full cursor-pointer mb-10"
         onMouseDown={(e) => handleInteraction(e.clientX)}
       >
         <div className="absolute inset-0 bg-slate-900/10 rounded-full" />
-        <motion.div 
+        <motion.div
           className="absolute h-full bg-slate-900 rounded-full"
           initial={false}
-          animate={{ 
-            left: `${getPercentage(safeMinIdx)}%`, 
-            width: `${getPercentage(safeMaxIdx) - getPercentage(safeMinIdx)}%` 
+          animate={{
+            left: `${getPercentage(safeMinIdx)}%`,
+            width: `${getPercentage(safeMaxIdx) - getPercentage(safeMinIdx)}%`
           }}
         />
-        
+
         {/* Thumbs */}
         <div className="absolute inset-0 pointer-events-none">
           <motion.div
@@ -260,8 +260,8 @@ function PriceSlider({ min, max, onChange }: { min: number, max: number, onChang
       <div className="flex items-center gap-4">
         <div className="flex-1 flex items-center border border-slate-200 rounded-md px-3 py-2.5 bg-white">
           <span className="text-slate-500 mr-2 text-lg">₹</span>
-          <input 
-            type="text" 
+          <input
+            type="text"
             value={pricePoints[safeMinIdx]}
             readOnly
             className="w-full text-right outline-none text-slate-400 font-medium bg-transparent"
@@ -270,8 +270,8 @@ function PriceSlider({ min, max, onChange }: { min: number, max: number, onChang
         <span className="text-slate-500 font-medium">To</span>
         <div className="flex-1 flex items-center border border-slate-200 rounded-md px-3 py-2.5 bg-white">
           <span className="text-slate-500 mr-2 text-lg">₹</span>
-          <input 
-            type="text" 
+          <input
+            type="text"
             value={pricePoints[safeMaxIdx].toFixed(1)}
             readOnly
             className="w-full text-right outline-none text-slate-400 font-medium bg-transparent"

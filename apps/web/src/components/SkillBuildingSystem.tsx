@@ -8,10 +8,10 @@ export default function SkillBuildingSystem() {
     <section className="py-8 md:py-10 bg-[#FFFBF7] overflow-hidden relative">
       <div className="container mx-auto px-4 max-w-6xl relative z-10">
         <div className="flex flex-col lg:flex-row gap-8 lg:gap-14 items-center">
-          
+
           {/* Left Column: Video Card */}
           <div className="w-full lg:w-[40%]">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
@@ -25,7 +25,7 @@ export default function SkillBuildingSystem() {
                   fill
                   className="object-cover transition-transform duration-700 group-hover:scale-105"
                 />
-                
+
                 {/* Play Button Overlay */}
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="w-20 h-20 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 group-hover:scale-110">
@@ -35,9 +35,9 @@ export default function SkillBuildingSystem() {
 
                 {/* Logo Overlay */}
                 <div className="absolute top-5 left-5">
-                   <div className="bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-xl shadow-sm border border-white/50">
-                      <Image src="/Swago_logo.png" alt="SWAGO" width={75} height={25} className="object-contain" />
-                   </div>
+                  <div className="bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-xl shadow-sm border border-white/50">
+                    <Image src="/Swago_logo.png" alt="SWAGO" width={75} height={25} className="object-contain" />
+                  </div>
                 </div>
 
                 {/* Video Info Overlay (bottom) */}
@@ -60,7 +60,7 @@ export default function SkillBuildingSystem() {
                   </p>
                 </div>
                 <div className="mt-6 text-center">
-                  <p className="text-[hsl(var(--swago-purple))] font-black text-xs md:text-sm tracking-widest uppercase">
+                  <p className="text-[hsl(var(--swago-purple))] font-black text-xs md:text-sm tracking-widest">
                     &mdash; Swati Goyal
                   </p>
                 </div>
@@ -80,25 +80,25 @@ export default function SkillBuildingSystem() {
                 More Than Toys. <br />
                 <span className="text-[hsl(var(--swago-purple))]">A Skill-Building System.</span>
               </h2>
-              
+
               <div className="space-y-4 text-slate-500 font-bold text-base md:text-lg leading-relaxed">
                 <p>
-                  Kids today face challenges we never did growing up &ndash; short attention spans, 
+                  Kids today face challenges we never did growing up &ndash; short attention spans,
                   low confidence, and too much passive screen time.
                 </p>
                 <p>
-                  That&apos;s why we created SWAGO &ndash; to turn playtime into growth time. Each kit 
-                  is designed to build essential life skills through engaging activities, 
+                  That&apos;s why we created SWAGO &ndash; to turn playtime into growth time. Each kit
+                  is designed to build essential life skills through engaging activities,
                   challenges, and missions.
                 </p>
                 <p>
-                  From confidence and focus to creativity and social skills, SWAGO helps kids build real 
+                  From confidence and focus to creativity and social skills, SWAGO helps kids build real
                   abilities that last a lifetime.
                 </p>
               </div>
 
               <div className="mt-10">
-                <button className="bg-[hsl(var(--swago-purple))] hover:bg-purple-600 text-white font-black px-10 py-4 rounded-xl text-sm md:text-base uppercase tracking-widest shadow-[0_15px_30px_-5px_rgba(124,93,250,0.3)] transition-all hover:-translate-y-1 active:scale-95">
+                <button className="bg-[hsl(var(--swago-purple))] hover:bg-purple-600 text-white font-black px-10 py-4 rounded-xl text-sm md:text-base tracking-widest shadow-[0_15px_30px_-5px_rgba(124,93,250,0.3)] transition-all hover:-translate-y-1 active:scale-95">
                   Explore the SWAGO System
                 </button>
               </div>
@@ -110,7 +110,7 @@ export default function SkillBuildingSystem() {
       {/* Bottom Decorative Elements - Smaller versions */}
       <div className="absolute bottom-0 left-0 right-0 h-32 pointer-events-none overflow-hidden hidden md:block">
         <div className="container mx-auto px-4 max-w-6xl h-full relative">
-          
+
           <div className="absolute bottom-8 left-1/2 translate-x-[300px] w-10 h-10 bg-red-400/15 rounded-full" />
           <div className="absolute bottom-3 left-1/2 translate-x-[360px] w-14 h-14 bg-blue-400/15 rounded-full" />
         </div>

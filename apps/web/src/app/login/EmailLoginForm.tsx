@@ -361,7 +361,7 @@ export default function EmailLoginForm() {
             <div className="flex mb-6 bg-gray-100 rounded-lg p-1">
               <button
                 onClick={() => setAuthMode("signup")}
-                className={`flex-1 py-2 px-4 rounded-md font-medium transition-colors ${authMode === "signup"
+                className={`flex-1 py-1.5 md:py-2 px-2 md:px-4 rounded-md font-medium text-sm md:text-base transition-colors ${authMode === "signup"
                   ? "bg-white text-[hsl(var(--swago-purple))] shadow-sm"
                   : "text-gray-600 hover:text-gray-800"
                   }`}
@@ -370,7 +370,7 @@ export default function EmailLoginForm() {
               </button>
               <button
                 onClick={() => setAuthMode("signin")}
-                className={`flex-1 py-2 px-4 rounded-md font-medium transition-colors ${authMode === "signin"
+                className={`flex-1 py-1.5 md:py-2 px-2 md:px-4 rounded-md font-medium text-sm md:text-base transition-colors ${authMode === "signin"
                   ? "bg-white text-[hsl(var(--swago-purple))] shadow-sm"
                   : "text-gray-600 hover:text-gray-800"
                   }`}
@@ -391,7 +391,7 @@ export default function EmailLoginForm() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value.toLowerCase().trim())}
                   placeholder="your.email@example.com"
-                  className="w-full border border-slate-300 rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-purple-500 text-slate-900 font-bold"
+                  className="w-full border border-slate-300 rounded-md p-2.5 md:p-3 text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-purple-500 text-slate-900 font-bold"
                 />
               </div>
 
@@ -405,7 +405,7 @@ export default function EmailLoginForm() {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Enter your full name"
-                    className="w-full border border-slate-300 rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-purple-500 text-slate-900 font-bold"
+                    className="w-full border border-slate-300 rounded-md p-2.5 md:p-3 text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-purple-500 text-slate-900 font-bold"
                   />
                 </div>
               )}
@@ -413,7 +413,7 @@ export default function EmailLoginForm() {
               <button
                 onClick={sendOtp}
                 disabled={loading || !email}
-                className="w-full btn-shine bg-[hsl(var(--swago-purple))] hover:brightness-110 text-white font-black py-4 rounded-xl text-base uppercase tracking-widest shadow-[0_15px_30px_-5px_rgba(124,93,250,0.3)] disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95"
+                className="w-full btn-shine bg-[hsl(var(--swago-purple))] hover:brightness-110 text-white font-black py-2.5 md:py-4 rounded-lg md:rounded-xl text-[13px] md:text-base tracking-wide md:tracking-widest shadow-[0_15px_30px_-5px_rgba(124,93,250,0.3)] disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95"
               >
                 {loading ? "Sending..." : "Send OTP"}
               </button>
@@ -431,10 +431,10 @@ export default function EmailLoginForm() {
 
           {step === "otp" && (
             <div className="space-y-4">
-              <div className="text-center text-sm text-gray-600 mb-2">
+              <div className="text-center text-xs md:text-sm text-gray-600 mb-2">
                 OTP sent to: <strong>{email}</strong>
                 {authMode === "signup" && name && (
-                  <div className="mt-1 text-xs text-gray-500">
+                  <div className="mt-1 text-[10px] md:text-xs text-gray-500">
                     Creating account for: {name}
                   </div>
                 )}
@@ -446,15 +446,15 @@ export default function EmailLoginForm() {
                 onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
                 placeholder="Enter 6-digit OTP"
                 maxLength={6}
-                className="w-full border border-slate-300 rounded-md p-3 text-center text-2xl tracking-widest focus:outline-none focus:ring-2 focus:ring-green-500 text-slate-900 font-black"
+                className="w-full border border-slate-300 rounded-lg md:rounded-md p-2.5 md:p-4 text-center text-lg md:text-2xl tracking-[0.1em] md:tracking-widest focus:outline-none focus:ring-2 focus:ring-green-500 text-slate-900 font-black"
               />
 
               <button
                 onClick={verifyOtp}
                 disabled={loading || code.length < 6}
-                className={`w-full font-black py-4 rounded-xl text-base uppercase tracking-widest transition-all hover:scale-[1.01] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${code.length === 6 && !loading
-                    ? 'bg-[hsl(var(--swago-purple))] shadow-[0_15px_30px_-5px_rgba(124,93,250,0.3)]'
-                    : 'bg-slate-200 text-slate-400'
+                className={`w-full font-black py-2.5 md:py-4 rounded-lg md:rounded-xl text-[13px] md:text-base tracking-wide md:tracking-widest transition-all hover:scale-[1.01] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${code.length === 6 && !loading
+                  ? 'bg-[hsl(var(--swago-purple))] shadow-[0_15px_30px_-5px_rgba(124,93,250,0.3)] text-white'
+                  : 'bg-slate-200 text-slate-400'
                   }`}
               >
                 {loading ? "Verifying..." : authMode === "signup" ? "Create Account" : "Sign In"}

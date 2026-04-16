@@ -135,7 +135,7 @@ export default function ReviewForm({
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
-                className="text-xl font-black text-slate-900 tracking-tight mb-2 uppercase"
+                className="text-xl font-black text-slate-900 tracking-tight mb-2"
               >
                 Review Submitted!
               </motion.h3>
@@ -160,7 +160,7 @@ export default function ReviewForm({
         className="bg-white p-6 sm:p-8 rounded-[2rem] shadow-sm border border-slate-100"
       >
         <div className="flex items-center justify-between mb-8 pb-4 border-b border-slate-50">
-          <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tighter uppercase relative z-10">
+          <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tighter relative z-10">
             Write a Review
           </h3>
           {onCancel && (
@@ -177,7 +177,7 @@ export default function ReviewForm({
         </div>
 
         {error && (
-          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="mb-6 p-4 bg-rose-50 border border-rose-100 text-rose-600 rounded-2xl text-xs font-bold uppercase tracking-widest flex items-center gap-3 shadow-inner">
+          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="mb-6 p-4 bg-rose-50 border border-rose-100 text-rose-600 rounded-2xl text-xs font-bold tracking-widest flex items-center gap-3 shadow-inner">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
@@ -187,7 +187,7 @@ export default function ReviewForm({
 
         <div className="space-y-6">
           <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100 shadow-inner">
-            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">
+            <label className="block text-[10px] font-black text-slate-400 tracking-widest mb-3">
               Overall Rating <span className="text-rose-500">*</span>
             </label>
             <div className="flex">
@@ -201,7 +201,7 @@ export default function ReviewForm({
           </div>
 
           <div>
-            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 pl-1">
+            <label className="block text-[10px] font-black text-slate-400 tracking-widest mb-2 pl-1">
               Review Title <span className="text-rose-500">*</span>
             </label>
             <div className="relative">
@@ -220,7 +220,7 @@ export default function ReviewForm({
           </div>
 
           <div>
-            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 pl-1">
+            <label className="block text-[10px] font-black text-slate-400 tracking-widest mb-2 pl-1">
               Your Review <span className="text-rose-500">*</span>
             </label>
             <div className="relative">
@@ -243,7 +243,7 @@ export default function ReviewForm({
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-[hsl(var(--swago-purple))] text-white font-black py-4 px-6 rounded-2xl text-sm hover:opacity-90 transition-opacity transform active:scale-[0.98] uppercase tracking-[0.15em] flex items-center justify-center gap-3 disabled:opacity-75 disabled:cursor-not-allowed shadow-md shadow-purple-100 group"
+            className="w-full bg-[hsl(var(--swago-purple))] text-white font-black py-4 px-6 rounded-2xl text-sm hover:opacity-90 transition-opacity transform active:scale-[0.98] tracking-[0.15em] flex items-center justify-center gap-3 disabled:opacity-75 disabled:cursor-not-allowed shadow-md shadow-purple-100 group"
           >
             {loading ? (
               <>

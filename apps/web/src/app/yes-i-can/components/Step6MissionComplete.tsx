@@ -33,7 +33,7 @@ export default function Step6MissionComplete({ onComplete }: StepProps) {
                     </p>
 
                     <button onClick={onComplete} className="w-full md:w-fit px-12 py-5 lg:py-6 bg-purple-600 hover:bg-purple-700 text-white text-[16px] lg:text-[18px] font-black uppercase tracking-widest rounded-full transition-all shadow-xl shadow-purple-600/30 btn-shine btn-text-pop">
-                        <span>YES, I RECORDED IT</span>
+                        <span>Yes, I Recorded It</span>
                     </button>
                 </div>
             </div>

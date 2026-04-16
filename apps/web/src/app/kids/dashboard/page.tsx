@@ -214,7 +214,7 @@ export default function KidDashboardPage() {
 
         {/* Tags Section */}
         <div className="bg-white rounded-[2.5rem] shadow-md border border-white/60 p-6 sm:p-8 mb-8">
-          <h3 className="text-xs font-[1000] text-slate-300 uppercase tracking-widest italic mb-6">Ambassador Hub</h3>
+          <h3 className="text-xs font-[1000] text-slate-300 tracking-widest italic mb-6">Ambassador Hub</h3>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {TAGS.map((tag, i) => (
               <div key={i} className={`${tag.color} ${tag.textColor} px-5 py-3 rounded-xl flex items-center gap-2 text-xs font-[1000] shadow-sm uppercase italic`}>
