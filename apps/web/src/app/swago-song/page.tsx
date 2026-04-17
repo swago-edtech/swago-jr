@@ -49,7 +49,7 @@ export default function YesICanFlow() {
                 </div>
 
                 {/* Progress Dots at Bottom */}
-                <div className="flex justify-center items-center gap-2 py-6 bg-white border-t border-slate-100">
+                <div className="flex justify-center items-center gap-2 py-2 md:py-6 bg-white border-t border-slate-100">
                     {[1, 2, 3, 4, 5].map((step) => (
                         <div
                             key={step}

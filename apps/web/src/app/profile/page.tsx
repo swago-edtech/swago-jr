@@ -332,7 +332,7 @@ export default function ProfilePage() {
         {/* Header: Parent Info */}
         <div className="flex items-center justify-between mb-8 px-2">
           <div className="flex items-center gap-5 flex-1 w-full xl:max-w-xl">
-            <div className="w-16 h-16 sm:w-20 sm:h-20 shrink-0 rounded-full border-4 border-white shadow-xl overflow-hidden bg-slate-100 relative">
+            <div className="w-14 h-14 sm:w-20 sm:h-20 shrink-0 rounded-full border-4 border-white shadow-xl overflow-hidden bg-slate-100 relative">
               <Image
                 src={kidProfiles[0]?.avatarColor && kidProfiles[0].avatarColor !== '/images/swoo.png' ? kidProfiles[0].avatarColor : (kidProfiles[0]?.gender === 'girl' ? '/images/kid_girl1.png' : '/images/kid_boy1.png')}
                 alt="Avatar"
@@ -351,7 +351,17 @@ export default function ProfilePage() {
 
                 return (
                   <div className="pt-2 w-full">
-                    <p className="text-slate-500 font-medium text-sm sm:text-base leading-none">{title}</p>
+                    <div className="flex items-center justify-between">
+                      <p className="text-slate-500 font-medium text-sm sm:text-base leading-none">{title}</p>
+                      <div className="flex items-center gap-3 bg-white/90 backdrop-blur-sm px-2 md:px-5 md:py-3 py-1 rounded-full shadow-lg border border-white block md:hidden">
+                        <div className="w-4.5 h-4.5 sm:w-9 sm:h-9 bg-amber-400 rounded-full flex items-center justify-center shadow-md border-2 border-white">
+                          <span className="md:text-lg text-xs">🪙</span>
+                        </div>
+                        <span className="md:text-xl text-sm font-[1000] text-slate-800 tracking-tighter">
+                          {walletBalance !== null ? walletBalance : (user.swagoMoney || 0)}
+                        </span>
+                      </div>
+                    </div>
                     <div className="mt-4 flex items-center gap-1.5 md:gap-3 w-full">
                       <span className="text-[9px] sm:text-xs font-[1000] text-slate-400 whitespace-nowrap">Lvl {level}</span>
                       <div className="flex-1 h-3 sm:h-4 bg-slate-200 rounded-full overflow-hidden shadow-inner w-full min-w-[200px]">
@@ -370,7 +380,7 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3 bg-white/90 backdrop-blur-sm px-2 md:px-5 md:py-3 py-1 rounded-full shadow-lg border border-white">
+          <div className="flex items-center gap-3 bg-white/90 backdrop-blur-sm px-2 md:px-5 md:py-3 py-1 rounded-full shadow-lg border border-white hidden md:block">
             <div className="w-4.5 h-4.5 sm:w-9 sm:h-9 bg-amber-400 rounded-full flex items-center justify-center shadow-md border-2 border-white">
               <span className="md:text-lg text-xs">🪙</span>
             </div>

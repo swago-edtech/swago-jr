@@ -17,9 +17,26 @@ import {
   Plus,
   Package,
   Layers,
+  Rocket,
   Ticket as TicketIcon
 } from "lucide-react";
 import ReelUploadForm from "@/components/ReelUploadForm";
+
+const UI_THEMES = [
+  { base: 'bg-[#b251a2]', ring: 'ring-[#b251a2]/30', hover: 'hover:bg-[#b251a2]/15 hover:text-[#b251a2]' },
+  { base: 'bg-[#7bc4c3]', ring: 'ring-[#7bc4c3]/30', hover: 'hover:bg-[#7bc4c3]/15 hover:text-[#7bc4c3]' },
+  { base: 'bg-[#568dca]', ring: 'ring-[#568dca]/30', hover: 'hover:bg-[#568dca]/15 hover:text-[#568dca]' },
+  { base: 'bg-[#e0914c]', ring: 'ring-[#e0914c]/30', hover: 'hover:bg-[#e0914c]/15 hover:text-[#e0914c]' },
+  { base: 'bg-[#7464a9]', ring: 'ring-[#7464a9]/30', hover: 'hover:bg-[#7464a9]/15 hover:text-[#7464a9]' },
+];
+
+const getLevelData = (points: number) => {
+  if (points <= 100) return { level: 1, title: 'Swago Saviour', min: 0, max: 100 };
+  if (points <= 200) return { level: 2, title: 'Swago Seeker', min: 100, max: 200 };
+  if (points <= 350) return { level: 3, title: 'Swago Striker', min: 200, max: 350 };
+  if (points < 500) return { level: 4, title: 'Swago Star', min: 350, max: 500 };
+  return { level: 5, title: 'Swago Ambassador', min: 500, max: 500, maxed: true };
+};
 
 type SelectedKidProfile = {
   _id: string;
@@ -41,19 +58,13 @@ type AmbassadorData = {
   };
 };
 
-const TAGS = [
-  { name: "Growth", color: "bg-[#4ADE80]", textColor: "text-white", icon: Star },
-  { name: "Optimization", color: "bg-[#818CF8]", textColor: "text-white", icon: Zap },
-  { name: "Willpower", color: "bg-[#FDBA74]", textColor: "text-white", icon: Brain },
-  { name: "Ambition", color: "bg-[#FDE047]", textColor: "text-slate-700", icon: Target },
-];
 
 export default function KidDashboardPage() {
   const router = useRouter();
   const [profile, setProfile] = useState<SelectedKidProfile | null>(null);
   const [ambassadorData, setAmbassadorData] = useState<AmbassadorData | null>(null);
   const [user, setUser] = useState<{ _id: string, name?: string, email?: string, orders?: any[], swagoMoney?: number } | null>(null);
-  const [purchasedProducts, setPurchasedProducts] = useState<string[]>([]);
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<string>("All");
   const [showFilters, setShowFilters] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -77,23 +88,49 @@ export default function KidDashboardPage() {
       if (res.ok) {
         const data = await res.json();
         setUser(data.user);
+        if (data.user?.swagoMoney !== undefined) {
+          setWalletBalance(data.user.swagoMoney);
+        }
+        fetch('/api/wallet/balance')
+          .then(res => res.json())
+          .then(data => {
+            if (data.success) {
+              setWalletBalance(data.totalSwagoMoney || 0);
+            }
+          })
+          .catch(console.error);
 
         if (data.user?.orders) {
-          const products = new Set<string>();
-          data.user.orders.forEach((order: any) => {
-            if (['Paid', 'Delivered', 'Shipped', 'Completed'].includes(order.status)) {
-              order.items?.forEach((item: any) => {
-                if (item.name) products.add(item.name);
-              });
-            }
-          });
-          setPurchasedProducts(Array.from(products));
+          // Logic handled in useMemo
         }
       }
     } catch (error) {
       console.error("Failed to fetch user info:", error);
     }
   };
+
+  const purchasedProducts = useMemo(() => {
+    if (!user?.orders) return [];
+    const productsMap = new Map<string, { name: string, image: string }>();
+    user.orders.forEach((order: any) => {
+      const status = (order.status || '').toLowerCase().trim();
+      const validStatuses = ['paid', 'delivered', 'shipped', 'completed'];
+
+      if (validStatuses.includes(status)) {
+        order.items?.forEach((item: any) => {
+          if (item.name && !productsMap.has(item.name)) {
+            productsMap.set(item.name, {
+              name: item.name,
+              image: item.image || '/images/placeholder.png'
+            });
+          }
+        });
+      }
+    });
+    return Array.from(productsMap.values());
+  }, [user?.orders]);
+
+  const purchasedBoxes = useMemo(() => purchasedProducts.map(p => p.name), [purchasedProducts]);
 
   const checkUserProfilePresence = async () => {
     try {
@@ -157,7 +194,7 @@ export default function KidDashboardPage() {
     });
 
     // 2. Product-Specific Tickets
-    purchasedProducts.forEach((boxName) => {
+    purchasedBoxes.forEach((boxName) => {
       allQuests.push({
         id: `lottery-${boxName}`,
         title: `${boxName} Lucky Ticket`,
@@ -176,11 +213,19 @@ export default function KidDashboardPage() {
       });
     });
 
-    // ✅ FIXED FILTER LOGIC: Show Common missions + Selected product missions
+    // ✅ FIXED FILTER LOGIC: Support both Product and Skill filtering (SWAGO)
     if (selectedProduct === "All") return allQuests;
     if (selectedProduct === "Common") return allQuests.filter(q => q.product === "Common");
+
+    // Check if filtering by Skill (S-W-A-G-O)
+    const skillsList = ["Smart", "Wisdom", "Ambition", "Growth", "Optimization"];
+    if (skillsList.includes(selectedProduct)) {
+      return allQuests.filter(q => q.skill === selectedProduct);
+    }
+
+    // Default: Filter by Product
     return allQuests.filter((q) => q.product === selectedProduct || q.product === "Common");
-  }, [router, purchasedProducts, selectedProduct]);
+  }, [router, purchasedBoxes, selectedProduct]);
 
   if (loading || !profile) return <div className="min-h-screen bg-white" />;
 
@@ -188,66 +233,129 @@ export default function KidDashboardPage() {
     <div className="min-h-screen bg-[#F0F4F8] pb-10 font-sans">
       <div className="max-w-4xl mx-auto px-4 pt-8">
 
-        {/* Header - Parent Info */}
-        <div className="flex items-center justify-between gap-6 mb-8 px-2">
-          <div className="flex items-center gap-5">
+        {/* Header - Kid Info & Level */}
+        <div className="flex items-center justify-between mb-8 px-2">
+          <div className="flex items-center gap-5 flex-1 w-full xl:max-w-xl">
             <button
               onClick={handleSwitchProfile}
-              className="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-4 border-white shadow-xl overflow-hidden bg-slate-100 relative group transition-transform hover:scale-105"
+              className="w-14 h-14 sm:w-20 sm:h-20 shrink-0 rounded-full border-4 border-white shadow-xl overflow-hidden bg-slate-100 relative group transition-transform hover:scale-105"
             >
-              <Image src={profile.avatarColor || "/images/swoo.png"} alt={profile.name} fill className="object-cover" />
-              <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-white"><RotateCcw className="w-8 h-8" /></div>
-            </button>
-            <div className="space-y-0.5">
-              <h1 className="text-2xl sm:text-3xl font-[1000] text-slate-800 tracking-tighter uppercase italic leading-none">{user?.name}</h1>
-              <p className="text-slate-400 font-bold text-xs sm:text-sm tracking-tight opacity-80">{user?.email}</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3 bg-white/90 backdrop-blur-sm px-5 py-3 rounded-full shadow-lg border border-white">
-            <div className="w-8 h-8 sm:w-9 sm:h-9 bg-amber-400 rounded-full flex items-center justify-center shadow-md border-2 border-white">
-              <Coins className="w-5 h-5 text-amber-900" strokeWidth={3} />
-            </div>
-            <span className="text-xl sm:text-2xl font-[1000] text-slate-800 tracking-tighter">{user?.swagoMoney || 0}</span>
-          </div>
-        </div>
-
-        {/* Tags Section */}
-        <div className="bg-white rounded-[2.5rem] shadow-md border border-white/60 p-6 sm:p-8 mb-8">
-          <h3 className="text-xs font-[1000] text-slate-300 tracking-widest italic mb-6">Ambassador Hub</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {TAGS.map((tag, i) => (
-              <div key={i} className={`${tag.color} ${tag.textColor} px-5 py-3 rounded-xl flex items-center gap-2 text-xs font-[1000] shadow-sm uppercase italic`}>
-                <tag.icon className="w-4 h-4" strokeWidth={3} /> {tag.name}
+              <Image
+                src={profile.avatarColor && profile.avatarColor !== '/images/swoo.png' ? profile.avatarColor : '/images/kid_boy1.png'}
+                alt={profile.name}
+                fill
+                className="object-cover"
+              />
+              <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-white">
+                <RotateCcw className="w-6 h-6 sm:w-8 sm:h-8" />
               </div>
-            ))}
+            </button>
+            <div className="space-y-0.5 flex-1 min-w-0 pr-4 sm:pr-8">
+              <h1 className="text-2xl sm:text-3xl font-[1000] text-slate-800 tracking-tighter uppercase italic leading-none truncate">
+                {profile.name}
+              </h1>
+              {(() => {
+                const currentPoints = walletBalance !== null ? walletBalance : (user?.swagoMoney || 0);
+                const { level, title, min, max, maxed } = getLevelData(currentPoints);
+                const progressPercent = maxed ? 100 : Math.min(100, Math.max(0, ((currentPoints - min) / (max - min)) * 100));
+
+                return (
+                  <div className="pt-2 w-full">
+                    <div className="flex items-center justify-between">
+                      <p className="text-slate-500 font-medium text-sm sm:text-base leading-none">{title}</p>
+                      <div className="flex items-center gap-3 bg-white/90 backdrop-blur-sm px-2 md:px-5 md:py-3 py-1 rounded-full shadow-lg border border-white block md:hidden">
+                        <div className="w-4.5 h-4.5 sm:w-9 sm:h-9 bg-amber-400 rounded-full flex items-center justify-center shadow-md border-2 border-white">
+                          <span className="md:text-lg text-xs">🪙</span>
+                        </div>
+                        <span className="md:text-xl text-sm font-[1000] text-slate-800 tracking-tighter">
+                          {walletBalance !== null ? walletBalance : (user?.swagoMoney || 0)}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="mt-4 flex items-center gap-1.5 md:gap-3 w-full">
+                      <span className="text-[9px] sm:text-xs font-[1000] text-slate-400 whitespace-nowrap">Lvl {level}</span>
+                      <div className="flex-1 h-3 sm:h-4 bg-slate-200 rounded-full overflow-hidden shadow-inner w-full min-w-[200px]">
+                        <div
+                          className="h-full bg-gradient-to-r from-indigo-500 to-indigo-400 transition-all duration-1000 rounded-full relative"
+                          style={{ width: `${progressPercent}%` }}
+                        >
+                          <div className="absolute top-0 right-0 bottom-0 w-4 bg-white/20 rounded-full"></div>
+                        </div>
+                      </div>
+                      <span className="text-[9px] sm:text-xs font-[1000] text-slate-400 whitespace-nowrap">{max}</span>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 bg-white/90 backdrop-blur-sm px-2 md:px-5 md:py-3 py-1 rounded-full shadow-lg border border-white hidden md:block">
+            <div className="w-4.5 h-4.5 sm:w-9 sm:h-9 bg-amber-400 rounded-full flex items-center justify-center shadow-md border-2 border-white">
+              <span className="md:text-lg text-xs">🪙</span>
+            </div>
+            <span className="md:text-xl text-sm font-[1000] text-slate-800 tracking-tighter">
+              {walletBalance !== null ? walletBalance : (user?.swagoMoney || 0)}
+            </span>
           </div>
         </div>
 
-        {/* Quest Log Container */}
-        <div className="bg-white rounded-[3rem] shadow-lg border border-white p-6 sm:p-8 space-y-6">
-          <div className="flex flex-col sm:flex-row gap-4 sm:items-center justify-between pb-2 border-b-2 border-slate-50">
-            <h2 className="text-2xl font-[1000] text-slate-800 tracking-tighter uppercase italic underline decoration-blue-500/10 decoration-4 underline-offset-4">Quest Log</h2>
+        {/* Skills Hub - Previously Ambassador Hub */}
+        <div className="bg-white rounded-[2rem] shadow-md border border-white/60 p-3 sm:p-4 mb-8">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-xs font-[1000] text-slate-800 uppercase tracking-widest italic">Skills Hub</h3>
+            {selectedProduct !== "All" && (
+              <button
+                onClick={() => setSelectedProduct("All")}
+                className="text-[10px] font-black text-indigo-500 uppercase tracking-tighter hover:underline"
+              >
+                Clear Filter ✕
+              </button>
+            )}
+          </div>
+          <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-4">
+            {purchasedProducts.length > 0 ? (
+              purchasedProducts.map((product, idx) => {
+                const theme = UI_THEMES[idx % UI_THEMES.length];
+                const isActive = selectedProduct === product.name;
+                return (
+                  <button
+                    key={idx}
+                    onClick={() => setSelectedProduct(isActive ? "All" : product.name)}
+                    className={`px-1.5 py-1.5 md:px-2 md:py-2 rounded-xl flex items-center justify-center gap-1.5 md:gap-2 text-[10px] md:text-sm font-[1000] shadow-sm uppercase italic transition-all active:scale-95 ${isActive ? `${theme.base} text-white shadow-lg ring-4 ${theme.ring} border border-transparent hover:brightness-95` : `bg-slate-50 text-slate-500 ${theme.hover} border border-slate-100 hover:border-transparent`
+                      }`}
+                  >
+                    <div className="w-6 h-6 md:w-8 md:h-8 relative rounded-md overflow-hidden shrink-0 border border-slate-100/50 shadow-sm">
+                      <Image src={product.image} alt={product.name} fill className="object-cover" />
+                    </div>
+                    <span className="truncate">{product.name}</span>
+                  </button>
+                );
+              })
+            ) : (
+              <div className="col-span-full py-3 md:py-5 text-center text-slate-400 font-bold text-xs italic bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
+                No items in your collection yet.
+              </div>
+            )}
+          </div>
+        </div>
 
+        {/* Tasks Hub - Previously Quest Log */}
+        <div className="bg-white rounded-[2rem] shadow-lg border border-white p-4 sm:p-8 space-y-6">
+          <div className="flex items-center justify-between pb-2 border-b-2 border-slate-50">
+            <h2 className="text-xl md:text-2xl font-[1000] text-slate-800 uppercase italic tracking-tighter leading-none underline decoration-indigo-500/10 decoration-4 underline-offset-4">Tasks Hub</h2>
             <div className="relative">
               <button
                 onClick={() => setShowFilters(!showFilters)}
-                className="flex items-center justify-between gap-3 bg-slate-50 px-5 py-2.5 rounded-xl border border-slate-100 text-slate-400 font-black text-[9px] uppercase tracking-widest shadow-sm hover:bg-slate-100 transition-all"
+                className="bg-slate-50 px-2 md:px-4 py-1 md:py-2 rounded-xl border border-slate-100 text-slate-400 font-black text-[10px] uppercase flex items-center gap-2 shadow-sm"
               >
-                <span className="truncate">{selectedProduct === "All" ? "All Tasks" : selectedProduct}</span>
-                <ChevronDown className={`w-3 h-3 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
+                {selectedProduct} <ChevronDown className={`w-3 h-3 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
               </button>
-
               <AnimatePresence>
                 {showFilters && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 5 }}
-                    className="absolute right-0 top-[calc(100%+8px)] w-44 bg-white rounded-xl shadow-2xl border border-slate-100 z-50 overflow-hidden py-1 px-1"
-                  >
-                    <button onClick={() => { setSelectedProduct("All"); setShowFilters(false); }} className={`w-full text-left px-4 py-2 font-black text-[9px] uppercase hover:bg-slate-50 rounded-xl transition-all ${selectedProduct === "All" ? 'text-blue-600 bg-blue-50' : 'text-slate-400'}`}>All Tasks</button>
-                    <button onClick={() => { setSelectedProduct("Common"); setShowFilters(false); }} className={`w-full text-left px-4 py-2 font-black text-[9px] uppercase hover:bg-slate-50 rounded-xl transition-all ${selectedProduct === "Common" ? 'text-blue-600 bg-blue-50' : 'text-slate-400'}`}>Common</button>
-                    {purchasedProducts.map(name => (
-                      <button key={name} onClick={() => { setSelectedProduct(name); setShowFilters(false); }} className={`w-full text-left px-4 py-2 font-black text-[9px] uppercase hover:bg-slate-50 rounded-xl transition-all ${selectedProduct === name ? 'text-blue-600 bg-blue-50' : 'text-slate-400'}`}>{name}</button>
+                  <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 5 }} className="absolute right-0 top-full mt-2 w-44 bg-white rounded-xl shadow-2xl border border-slate-100 z-50 overflow-hidden py-1">
+                    {["All", "Common", ...purchasedBoxes].map(f => (
+                      <button key={f} onClick={() => { setSelectedProduct(f); setShowFilters(false); }} className={`w-full text-left px-5 py-2 font-black text-[9px] uppercase hover:bg-slate-50 transition-colors ${selectedProduct === f ? 'text-indigo-600 bg-indigo-50' : 'text-slate-400'}`}>{f}</button>
                     ))}
                   </motion.div>
                 )}
@@ -255,43 +363,52 @@ export default function KidDashboardPage() {
             </div>
           </div>
 
-          <div className="space-y-4 pt-1">
-            {quests.map((quest, i) => (
-              <motion.div key={i} initial={{ opacity: 0, scale: 0.98 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} className="bg-white border border-slate-50 p-5 rounded-[2rem] shadow-sm flex items-center gap-6 group hover:shadow-xl hover:border-blue-100 transition-all duration-300">
-                <div className="relative w-24 h-24 sm:w-28 sm:h-28 shrink-0 rounded-2xl overflow-hidden shadow-lg border-2 border-white group-hover:scale-105 transition-transform">
-                  <Image src={quest.image} alt={quest.title} fill className="object-cover" />
-                </div>
+          <div className="space-y-4">
+            {quests.map((quest) => (
+              <motion.div key={quest.id} initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="bg-white border border-slate-100 rounded-[2rem] p-4 sm:p-5 flex flex-col gap-4 group transition-all overflow-hidden relative shadow-md hover:shadow-xl hover:border-indigo-100">
 
-                <div className="flex-1 min-w-0 space-y-1.5">
-                  <div className="flex flex-row items-center gap-1.5 overflow-hidden">
-                    {quest.tags.map((tag, j) => (
-                      <div key={j} className={`${tag.color} text-white px-2.5 py-1 rounded-md flex items-center gap-1.5 text-[8px] font-black uppercase tracking-widest shadow-sm whitespace-nowrap`}>
-                        <tag.icon className="w-3 h-3" strokeWidth={4} /> {tag.name}
+                {/* Badges Row */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  {quest.tags.map((tag: any, idx: number) => {
+                    const Icon = tag.icon;
+                    return (
+                      <div key={idx} className={`${tag.color} text-white px-3 py-1.5 rounded-l-xl rounded-r-lg flex items-center gap-1.5 shadow-sm`}>
+                        {Icon && <Icon className="w-3 h-3" />}
+                        <span className="text-[10px] font-bold truncate max-w-[90px] sm:max-w-none">{tag.name}</span>
                       </div>
-                    ))}
+                    )
+                  })}
+                </div>
+
+                {/* Content Row */}
+                <div className="flex items-start gap-4 sm:gap-5">
+                  <div className="relative w-28 h-28 sm:w-32 sm:h-32 shrink-0 rounded-2xl overflow-hidden shadow-lg border-2 border-white group-hover:scale-105 transition-transform duration-500">
+                    <Image src={quest.image} alt={quest.title} fill className="object-cover" />
                   </div>
-
-                  <h3 className="text-xl sm:text-2xl font-[1000] text-slate-800 tracking-tight leading-tight uppercase italic truncate">{quest.title}</h3>
-                  <p className="text-[11px] font-bold text-slate-400 truncate opacity-80">{quest.description}</p>
-
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg">🪙</span>
-                      <span className="text-sm font-[1000] text-slate-700">+{quest.reward} {quest.currency}</span>
+                  <div className="flex-1 min-w-0 py-1 space-y-1">
+                    <h3 className="text-[15px] sm:text-[17px] font-[1000] text-slate-800 leading-snug">{quest.title}</h3>
+                    <p className="text-[11px] sm:text-xs font-semibold text-slate-500 leading-snug">{quest.description}</p>
+                    <div className="flex items-center gap-2 pt-1">
+                      <div className="flex items-center gap-1">
+                        <span className="text-sm">🪙</span>
+                        <span className="text-[11px] sm:text-xs font-[1000] text-slate-700">+{quest.reward} {quest.currency}</span>
+                      </div>
+                      <span className="text-[10px] font-bold text-slate-400">{quest.frequency}</span>
                     </div>
-                    <span className="text-[9px] font-black text-slate-200 uppercase tracking-widest">{quest.frequency}</span>
-                    <span className="text-[9px] font-black text-slate-300 uppercase italic">Skill: {quest.skill}</span>
                   </div>
                 </div>
 
-                <div className="shrink-0 pr-2">
-                  <button
-                    onClick={quest.action}
-                    className="bg-gradient-to-r from-emerald-400 to-emerald-500 text-white px-8 py-3 rounded-full text-sm font-[1000] shadow-md hover:scale-110 active:scale-95 transition-all uppercase italic"
-                  >
-                    Start
+                {/* Footer Section */}
+                <div className="flex items-center justify-between mt-1">
+                  <p className="text-[11px] sm:text-xs font-bold text-slate-500">
+                    {quest.product !== 'Common' ? 'Box: ' : 'Skill: '}
+                    <span className="font-[1000] text-slate-700">{quest.product !== 'Common' ? quest.product : quest.skill}</span>
+                  </p>
+                  <button onClick={quest.action} className={`px-6 sm:px-8 py-2 sm:py-2.5 rounded-full text-[11px] sm:text-sm font-[1000] active:scale-95 transition-all text-center tracking-wide ${quest.product !== 'Common' ? 'bg-[#EBFAED] text-[#2CB065] hover:bg-[#D5F5D8]' : 'bg-gradient-to-r from-purple-400 to-purple-500 hover:from-purple-500 hover:to-purple-600 text-white'}`}>
+                    {quest.product !== 'Common' ? 'Claim' : 'Start'}
                   </button>
                 </div>
+
               </motion.div>
             ))}
           </div>
