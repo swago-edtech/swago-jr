@@ -120,7 +120,7 @@ export default function CartPage() {
 
   const savings = appliedCoupon?.discount || 0;
   const amountAfterCoupon = total - savings;
-  const canUseSwagoDollars = amountAfterCoupon >= 800;
+  const canUseSwagoDollars = amountAfterCoupon >= 799;
   const maxSwagoDollarsAllowed = Math.trunc(amountAfterCoupon * 0.05);
   const applicableSwagoDollars = Math.min(walletBalance, maxSwagoDollarsAllowed);
 
@@ -375,7 +375,7 @@ export default function CartPage() {
 
                     {!canUseSwagoDollars ? (
                       <p className="text-[10px] text-slate-500 font-bold mt-1 leading-tight">
-                        Add ₹{(800 - amountAfterCoupon).toFixed(0)} more to unlock max 5% Swago Dollars savings!
+                        Add ₹{(799 - amountAfterCoupon).toFixed(0)} more to unlock max 5% Swago Dollars savings!
                       </p>
                     ) : applicableSwagoDollars > 0 ? (
                       <p className="text-[10px] text-purple-600 font-bold mt-1 leading-tight">

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
+import confetti from "canvas-confetti";
 import CountdownTimer from "@/components/lottery/CountdownTimer";
 
 // --- Mock Data / Components ---
@@ -33,6 +34,7 @@ export default function LotteryClient() {
   const [ticketCode, setTicketCode] = useState(['', '', '', '', '', '']);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [earnedMoney, setEarnedMoney] = useState<number>(0);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   useEffect(() => {
@@ -46,7 +48,7 @@ export default function LotteryClient() {
       const data = await res.json();
       if (res.ok && data.profiles) {
         setKidProfiles(data.profiles);
-        if (data.profiles.length === 1) setSelectedKid(data.profiles[0]._id);
+        if (data.profiles.length > 0) setSelectedKid(data.profiles[0]._id);
       }
     } catch (err) { console.error(err); }
   };
@@ -75,6 +77,43 @@ export default function LotteryClient() {
     }
   };
 
+  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    let pastedText = e.clipboardData.getData('text').toUpperCase();
+
+    // Automatically extract 6-digit code if they paste the full "SWAGO-SSR-123456" formatted string
+    if (pastedText.includes('SWAGO-')) {
+      const parts = pastedText.split('-');
+      pastedText = parts[parts.length - 1] || '';
+    }
+
+    const chars = pastedText.replace(/[^A-Z0-9]/g, '').split('');
+    if (chars.length === 0) return;
+
+    const newCodes = [...ticketCode];
+    for (let i = 0; i < 6; i++) {
+      if (chars[i]) {
+        newCodes[i] = chars[i];
+      }
+    }
+    setTicketCode(newCodes);
+
+    // Auto-advance focus
+    const nextEmptyIndex = newCodes.findIndex(c => !c);
+    if (nextEmptyIndex !== -1) {
+      inputRefs.current[nextEmptyIndex]?.focus();
+    } else {
+      inputRefs.current[5]?.focus();
+    }
+  };
+
+  const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    // Navigate backwards on empty backspace
+    if (e.key === 'Backspace' && !ticketCode[index] && index > 0) {
+      inputRefs.current[index - 1]?.focus();
+    }
+  };
+
   const claimTicket = async () => {
     setLoading(true);
     setError(null);
@@ -87,6 +126,7 @@ export default function LotteryClient() {
       });
       const data = await res.json();
       if (res.ok && data.success) {
+        setEarnedMoney(data.ticket?.swagoMoneyEarned || 20);
         setStep(3);
       } else {
         setError(data.error || 'Invalid ticket code');
@@ -134,7 +174,7 @@ export default function LotteryClient() {
       </section>
 
       {/* 2. Timer Section */}
-      <section className="px-6 mb-16 max-w-2xl mx-auto">
+      <section className="px-6 mb-6 md:mb-16 max-w-2xl mx-auto">
         <div className="text-center mb-4">
           <p className="text-xs font-black text-slate-400 uppercase tracking-widest animate-pulse">Timer running</p>
         </div>
@@ -174,19 +214,11 @@ export default function LotteryClient() {
                       </select>
                     </div>
 
-                    <div>
-                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Select Kid Profile</label>
-                      <select
-                        value={selectedKid}
-                        onChange={(e) => setSelectedKid(e.target.value)}
-                        className="w-full h-10 md:h-12 px-3 md:px-4 rounded-lg md:rounded-xl bg-white border-2 border-slate-100 font-bold text-xs md:text-sm outline-none focus:border-[hsl(var(--swago-purple))] transition-all appearance-none"
-                      >
-                        <option value="" disabled>Choose Kid...</option>
-                        {kidProfiles.map(kp => (
-                          <option key={kp._id} value={kp._id}>{kp.name}</option>
-                        ))}
-                      </select>
-                    </div>
+                    {kidProfiles.length === 0 && (
+                      <p className="text-xs text-rose-500 font-bold mt-2">
+                        You need to add a kid profile first to claim a ticket!
+                      </p>
+                    )}
                   </div>
                 </motion.div>
               )}
@@ -216,6 +248,8 @@ export default function LotteryClient() {
                         ref={el => { inputRefs.current[i] = el; }}
                         value={c}
                         onChange={(e) => handleCodeChange(i, e.target.value)}
+                        onPaste={handlePaste}
+                        onKeyDown={(e) => handleKeyDown(i, e)}
                         className="w-9 h-12 md:w-16 md:h-20 text-center text-xl md:text-3xl font-black bg-slate-50 border-2 border-slate-200 rounded-lg md:rounded-xl focus:border-[hsl(var(--swago-purple))] focus:bg-white transition-all outline-none"
                         maxLength={1}
                       />
@@ -234,7 +268,7 @@ export default function LotteryClient() {
               </button>
             </motion.div>
           ) : (
-            <SuccessMessage onReset={() => setStep(0)} />
+            <SuccessMessage onReset={() => setStep(0)} earnedMoney={earnedMoney} />
           )}
         </AnimatePresence>
       </section>
@@ -307,50 +341,68 @@ export default function LotteryClient() {
 
 
 
-function SuccessMessage({ onReset }: { onReset: () => void }) {
+function SuccessMessage({ onReset, earnedMoney }: { onReset: () => void, earnedMoney: number }) {
+  useEffect(() => {
+    const duration = 2.5 * 1000;
+    const animationEnd = Date.now() + duration;
+    const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 50 };
+
+    const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
+
+    const interval: any = setInterval(function () {
+      const timeLeft = animationEnd - Date.now();
+
+      if (timeLeft <= 0) {
+        return clearInterval(interval);
+      }
+
+      const particleCount = 50 * (timeLeft / duration);
+      confetti({
+        ...defaults, particleCount,
+        origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 }
+      });
+      confetti({
+        ...defaults, particleCount,
+        origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 }
+      });
+    }, 250);
+
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.8 }}
       animate={{ opacity: 1, scale: 1 }}
       className="bg-white border-2 border-emerald-100 rounded-[2rem] md:rounded-[3rem] p-6 md:p-10 text-center shadow-2xl shadow-emerald-100 relative overflow-hidden"
     >
-      {/* Decorative Confetti */}
-      {[...Array(12)].map((_, i) => (
-        <motion.div
-          key={i}
-          initial={{ y: -20, opacity: 0 }}
-          animate={{
-            y: [0, -100, 0],
-            x: [0, (i % 2 === 0 ? 50 : -50), 0],
-            opacity: [0, 1, 0],
-            scale: [0, 1, 0.5]
-          }}
-          transition={{
-            duration: 2 + Math.random() * 2,
-            repeat: Infinity,
-            delay: Math.random() * 2
-          }}
-          className="absolute text-xl pointer-events-none"
-          style={{
-            left: `${Math.random() * 100}%`,
-            top: `${Math.random() * 100}%`
-          }}
-        >
-          {['✨', '⭐', '🎉', '🎊'][i % 4]}
-        </motion.div>
-      ))}
-
       <div className="relative z-10">
         <div className="text-6xl mb-6 animate-bounce">✨🎉</div>
-        <h2 className="text-3xl font-black mb-4 tracking-tight">Claimed!</h2>
-        <p className="text-slate-500 font-medium leading-relaxed mb-8">
-          Your ticket entry is done; come back on Friday at 7 pm to see who won the surprise gift.
+        <h2 className="text-3xl font-black mb-2 tracking-tight">Congratulations!</h2>
+
+        <motion.div
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ type: "spring", stiffness: 200, delay: 0.5 }}
+          className="my-6 bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-200 outline-dashed outline-2 outline-amber-400 outline-offset-4 rounded-2xl py-4 px-6 inline-block"
+        >
+          <p className="text-xs font-black text-amber-500 uppercase tracking-widest mb-1">You just earned</p>
+          <div className="flex items-center justify-center gap-2">
+            <span className="text-4xl">💰</span>
+            <span className="text-4xl md:text-5xl font-black text-amber-600">{earnedMoney}</span>
+            <span className="text-xl md:text-2xl font-bold text-amber-600 mt-2">Swago Dollars</span>
+          </div>
+        </motion.div>
+
+        <p className="text-slate-500 font-medium leading-relaxed mb-4">
+          Your ticket has been redeemed! Come back on Friday at 7 PM to see if you win the surprise gift.
         </p>
+
         <button
           onClick={onReset}
-          className="text-xs font-black text-[hsl(var(--swago-purple))] uppercase tracking-widest hover:underline"
+          className="btn-shine bg-[hsl(var(--swago-purple))] text-white font-black py-3 px-8 rounded-xl text-sm uppercase tracking-widest shadow-lg shadow-purple-100 active:scale-95 transition-all mb-4 mt-2"
         >
-          Enter another ticket
+          Claim Another Ticket
         </button>
       </div>
     </motion.div>

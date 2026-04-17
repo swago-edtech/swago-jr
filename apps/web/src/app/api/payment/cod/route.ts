@@ -247,8 +247,8 @@ export async function POST(req: Request) {
         let swagoMoneyKidId = orderDetails.swagoMoneyKidId;
 
         if (swagoMoneyRedeemed > 0) {
-            if (calculatedAmountAfterCoupon < 800) {
-                return NextResponse.json({ error: "Order amount must be ₹800 or more to use Swago Dollars" }, { status: 400 });
+            if (calculatedAmountAfterCoupon < 799) {
+                return NextResponse.json({ error: "Order amount must be ₹799 or more to use Swago Dollars" }, { status: 400 });
             }
 
             const maxAllowed = Math.trunc(calculatedAmountAfterCoupon * 0.05);

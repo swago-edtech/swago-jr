@@ -70,10 +70,10 @@ export default function HowToEarnSwagoMoney() {
 
   return (
     <section className="py-20 bg-[#F9FAFB] overflow-hidden">
-      <div className="container mx-auto px-4 max-w-7xl">
+      <div className="container mx-auto px-4 md:px-6">
         {/* Section Header */}
         <div className="text-center mb-20">
-          <motion.h2 
+          <motion.h2
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -88,7 +88,7 @@ export default function HowToEarnSwagoMoney() {
         <div className="hidden lg:block relative pt-10">
           {/* Horizontal Line */}
           <div className="absolute top-[85px] left-[10%] right-[10%] h-0.5 bg-slate-200 z-0" />
-          
+
           <div className="grid grid-cols-4 gap-4 relative z-10 items-stretch">
             {earnSteps.map((step, idx) => (
               <motion.div
@@ -101,7 +101,7 @@ export default function HowToEarnSwagoMoney() {
               >
                 <div onClick={handleCardClick} className="flex flex-col flex-1 group cursor-pointer">
                   {/* Numbered Circle */}
-                  <div 
+                  <div
                     className="w-20 h-20 rounded-full flex-shrink-0 flex items-center justify-center border-[6px] border-white shadow-xl mb-12 transition-transform group-hover:scale-110 cursor-pointer mx-auto"
                     style={{ backgroundColor: step.color }}
                   >
@@ -112,7 +112,7 @@ export default function HowToEarnSwagoMoney() {
                   <div className="bg-white p-6 md:p-7 rounded-[2rem] shadow-[0_20px_40px_rgba(0,0,0,0.04)] border border-slate-50 relative group hover:shadow-2xl transition-all duration-300 w-full flex-1 flex flex-col cursor-pointer overflow-hidden">
                     {/* Bubble Arrow (Top) */}
                     <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-6 h-6 bg-white rotate-45 z-0" />
-                    
+
                     <div className="relative z-10 flex flex-col h-full">
                       <div className="text-black mb-4 transform group-hover:scale-110 transition-transform">{step.icon}</div>
                       <h3 className="text-lg md:text-xl font-bold text-slate-800 mb-2 leading-tight group-hover:text-[hsl(var(--swago-purple))] transition-colors">
@@ -146,7 +146,7 @@ export default function HowToEarnSwagoMoney() {
         <div className="lg:hidden relative">
           {/* Vertical Line */}
           <div className="absolute left-[39px] top-0 bottom-0 w-0.5 bg-slate-200 z-0" />
-          
+
           <div className="space-y-12 relative z-10">
             {earnSteps.map((step, idx) => (
               <motion.div
@@ -159,7 +159,7 @@ export default function HowToEarnSwagoMoney() {
               >
                 <div onClick={handleCardClick} className="flex gap-6 group cursor-pointer">
                   {/* Numbered Circle */}
-                  <div 
+                  <div
                     className="w-20 h-20 flex-shrink-0 rounded-full flex items-center justify-center border-[4px] border-white shadow-lg relative z-20 transition-transform group-hover:scale-110"
                     style={{ backgroundColor: step.color }}
                   >
@@ -170,7 +170,7 @@ export default function HowToEarnSwagoMoney() {
                   <div className="bg-white p-5 rounded-[1.5rem] shadow-sm border border-slate-100 flex-1 relative mt-1 transition-all group-hover:shadow-md">
                     {/* Bubble Arrow (Left) */}
                     <div className="absolute top-6 -left-2 w-4 h-4 bg-white rotate-45 border-l border-b border-slate-100 z-0" />
-                    
+
                     <div className="relative z-10 flex flex-col h-full">
                       <div className="text-black mb-1 transform group-hover:scale-110 transition-transform scale-75 origin-left">{step.icon}</div>
                       <h3 className="text-base font-black text-slate-800 mb-0.5 leading-tight group-hover:text-[hsl(var(--swago-purple))] transition-colors">

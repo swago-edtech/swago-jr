@@ -181,7 +181,7 @@ export default function ProductGrid() {
                   exit={{ opacity: 0, y: 10 }}
                   className="absolute right-0 mt-2 w-56 bg-white border border-slate-100 rounded-2xl shadow-2xl z-40 overflow-hidden"
                 >
-                  <div className="flex flex-col p-2">
+                  <div className="flex flex-col p-2 ">
                     {[
                       { id: "newest", label: "Newest Arrivals" },
                       { id: "price-low", label: "Price: Low to High" },

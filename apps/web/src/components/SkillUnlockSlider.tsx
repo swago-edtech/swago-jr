@@ -83,7 +83,7 @@ export default function SkillUnlockSlider() {
   return (
     <section className="py-20 md:py-28 bg-[#F8F9FB] overflow-hidden">
       {/* Centered Header */}
-      <div className="container mx-auto px-4 max-w-7xl mb-12 md:mb-16">
+      <div className="container mx-auto px-4 md:px-6 mb-12 md:mb-16">
         <div className="text-center">
           <h2 className="text-4xl md:text-6xl font-black text-slate-800 tracking-tighter italic leading-none">
             What Your Child <span className="text-[hsl(var(--swago-purple))]">Unlocks</span>
@@ -92,7 +92,7 @@ export default function SkillUnlockSlider() {
       </div>
 
       {/* Slider Area - Aligned with Container */}
-      <div className="container mx-auto px-4 max-w-6xl">
+      <div className="container mx-auto px-4 md:px-6">
         <div className="relative">
           <div className="relative w-full">
             {/* Main Viewport - Back to overflow-hidden for alignment */}

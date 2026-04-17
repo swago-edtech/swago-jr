@@ -8,11 +8,11 @@ import AmbassadorCTA from "@/components/AmbassadorCTA";
 import AnimateOnScroll from "@/components/AnimateOnScroll";
 
 const swagoLetters = [
-  { letter: "S", word: "Smart Tech", image: "/images/mascots/S.jpg.jpeg", desc: "Upskilling in AI & future technology", color: "from-purple-400 to-purple-600" },
-  { letter: "W", word: "Willpower", image: "/images/mascots/W.png", desc: "Building resilience and discipline", color: "from-indigo-400 to-indigo-600" },
-  { letter: "A", word: "Ambition", image: "/images/mascots/A.png", desc: "Developing leadership qualities", color: "from-fuchsia-400 to-fuchsia-600" },
-  { letter: "G", word: "Growth", image: "/images/mascots/g(1).png", desc: "Confident communication and expression", color: "from-violet-400 to-violet-600" },
-  { letter: "O", word: "Optimization", image: "/images/mascots/O.png", desc: "Optimizing brain power and focus", color: "from-purple-500 to-indigo-500" },
+  { letter: "S", word: "Smart Tech", image: "/images/mascots/S.jpg.jpeg", desc: "Upskilling in AI & future technology", color: "from-[#b251a2] to-[#b251a2]" },
+  { letter: "W", word: "Willpower", image: "/images/mascots/W.png", desc: "Building resilience and discipline", color: "from-[#7bc4c3] to-[#7bc4c3]" },
+  { letter: "A", word: "Ambition", image: "/images/mascots/A.png", desc: "Developing leadership qualities", color: "from-[#568dca] to-[#568dca]" },
+  { letter: "G", word: "Growth", image: "/images/mascots/g(1).png", desc: "Confident communication and expression", color: "from-[#e0914c] to-[#e0914c]" },
+  { letter: "O", word: "Optimization", image: "/images/mascots/O.png", desc: "Optimizing brain power and focus", color: "from-[#7464a9] to-[#7464a9]" },
 ];
 
 export default function AboutPage() {
@@ -25,7 +25,7 @@ export default function AboutPage() {
       </AnimateOnScroll>
 
       {/* 2) Hero Section: SWAGO Acronym (Full width styling) */}
-      <section className="w-full px-4 lg:px-8 py-24 md:py-32 bg-slate-50 border-t border-slate-100">
+      <section className="w-full px-4 lg:px-8 pt-12 md:pt-16 pb-24 md:pb-32 bg-slate-50 border-t border-slate-100">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -98,7 +98,7 @@ export default function AboutPage() {
         </div>
       </AnimateOnScroll>
 
-      
+
     </div>
   );
 }

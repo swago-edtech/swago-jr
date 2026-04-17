@@ -6,80 +6,63 @@ interface StepProps {
 
 export default function Step1Intro({ onNext }: StepProps) {
   return (
-    <div className="flex flex-col w-full relative bg-[#f1f3f6] min-h-screen overflow-x-hidden pb-8 lg:pb-2">
+    <div className="flex flex-col w-full relative bg-[#f1f3f6] min-h-[88dvh] md:min-h-[70dvh] overflow-x-hidden pb-0 lg:pb-2">
       {/* Main Container */}
-      <div className="flex flex-col md:flex-row w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 sm:py-8 lg:py-2 gap-8 md:gap-4 lg:gap-8 items-center justify-between">
+      <div className="flex flex-col md:flex-row w-full lg:min-h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 sm:py-8 lg:py-2 gap-8 md:gap-4 lg:gap-8 items-center justify-between">
         {/* Left Section: Character & Speech Bubble */}
-        <div className="w-full md:w-[65%] lg:w-[65%] flex flex-col items-center justify-center relative pt-0 shrink-0">
-          <div className="relative w-full max-w-[360px] md:max-w-full flex flex-col md:flex-row-reverse md:items-end md:justify-center shrink-0 mx-auto">
-            {/* Speech Bubble (Cloud shape) */}
-            <div className="relative z-10 self-end md:self-start w-[300px] sm:w-[340px] md:w-[400px] lg:w-[440px] aspect-[4/3] flex flex-col items-center justify-center mr-0 ml-auto -mb-6 md:mb-0 md:mt-0 shrink-0 md:-ml-8 lg:-ml-12 md:-mt-8">
-              <svg
-                viewBox="0 0 440 300"
-                className="absolute inset-0 w-full h-full"
-                preserveAspectRatio="xMidYMid meet"
-              >
-                {/* Shadow path */}
+        <div className="w-full md:w-[65%] md:min-h-full flex items-center justify-center shrink-0">
+          <div className="relative w-[340px] h-[440px] sm:w-[400px] sm:h-[500px] md:w-[500px] md:h-[600px] lg:w-[650px] lg:h-[750px] mx-auto">
+
+            <div className="absolute top-0 right-0 w-[280px] sm:w-[320px] md:w-[360px] lg:w-[480px]">
+              <svg viewBox="0 0 440 330" className="w-full h-auto" xmlns="http://www.w3.org/2000/svg">
+
                 <path
                   fill="#efe3da"
                   transform="translate(-8, 8)"
                   d="M140,255 C170,275 240,275 270,255 C300,275 360,265 360,225 C410,245 430,165 380,135 C420,45 290,-5 270,75 C240,25 170,15 140,65 C80,15 20,75 60,145 C10,215 80,285 140,255 Z"
                 />
-                {/* Main cloud path */}
                 <path
-                  fill="#ffffff"
+                  fill="white"
                   stroke="#3d2112"
                   strokeWidth="8"
                   strokeLinejoin="round"
                   d="M140,255 C170,275 240,275 270,255 C300,275 360,265 360,225 C410,245 430,165 380,135 C420,45 290,-5 270,75 C240,25 170,15 140,65 C80,15 20,75 60,145 C10,215 80,285 140,255 Z"
                 />
+
+                <circle cx="98" cy="282" r="12" fill="#efe3da" transform="translate(-3, 3)" />
+                <circle cx="98" cy="282" r="12" fill="white" stroke="#3d2112" strokeWidth="3" />
+
+                <circle cx="74" cy="306" r="8" fill="#efe3da" transform="translate(-3, 3)" />
+                <circle cx="74" cy="306" r="8" fill="white" stroke="#3d2112" strokeWidth="2.5" />
+
               </svg>
-              <div className="relative z-10 w-[78%] text-center mt-2 px-1">
-                <p className="text-[#131d2e] font-black text-[15.5px] sm:text-[17.5px] lg:text-[18px] tracking-tight leading-[1.25]">
-                  Hey smart kid, I am
-                  <br />
-                  Gogo Wondering what
-                  <br />
-                  you need to do here? I've
-                  <br />
-                  got a mission for you ...
-                  <br />
-                  and that can earn you
-                  <br />
-                  20 swago dollars.
-                </p>
-              </div>
-              {/* Thought bubbles tail */}
-              <div className="absolute bottom-1 lg:-bottom-2 left-[20%] sm:left-[25%] md:left-2 md:-bottom-2 lg:-bottom-6 w-6 h-6 z-0">
-                <div className="absolute inset-0 bg-[#efe3da] rounded-full translate-x-[-3px] translate-y-[3px]"></div>
-                <div className="absolute inset-0 bg-white border-[3px] border-[#3d2112] rounded-full"></div>
-              </div>
-              <div className="absolute -bottom-4 lg:-bottom-12 left-[10%] sm:left-[15%] md:-left-4 md:-bottom-[10%] lg:-left-6 lg:-bottom-16 w-4 h-4 z-0">
-                <div className="absolute inset-0 bg-[#efe3da] rounded-full translate-x-[-3px] translate-y-[3px]"></div>
-                <div className="absolute inset-0 bg-white border-[2.5px] border-[#3d2112] rounded-full"></div>
-              </div>
+
+              <p className="absolute inset-0 flex items-center justify-center text-center text-slate-800 font-black text-[14px] sm:text-[15px] md:text-[18px] lg:text-[23px] leading-snug px-10 py-3 sm:px-14 sm:py-4 md:px-16 md:py-5 lg:px-20 lg:py-6 pointer-events-none">
+                Hey smart kid, I am Gogo Wondering what you need to do here? I&apos;ve got a mission for you ... and that can earn you 20 swago dollars.
+              </p>
             </div>
 
-            {/* Mascot */}
-            <div className="relative w-[200px] h-[320px] min-h-[320px] md:w-[320px] md:h-[460px] md:min-h-[460px] lg:w-[360px] lg:h-[500px] shrink-0 z-20 self-start md:self-end ml-2 sm:ml-4 md:ml-0 mt-4 md:mt-0 md:-mb-16 pointer-events-none">
+            <div className="absolute bottom-0 left-0 w-[180px] h-[300px] sm:w-[220px] sm:h-[350px] md:w-[260px] md:h-[420px] lg:w-[340px] lg:h-[540px]">
               <Image
                 src="/images/home/step-one-Photoroom.png"
                 alt="Gogo the Mascot"
                 fill
-                className="object-contain md:object-right"
                 priority
-                sizes="(max-width: 768px) 200px, 360px"
+                className="object-contain object-bottom"
+                sizes="(max-width: 640px) 180px, (max-width: 768px) 220px, (max-width: 1024px) 260px, 340px"
               />
             </div>
+
           </div>
         </div>
+
 
         {/* Right Section: Content */}
         <div className="w-full md:w-[35%] lg:w-[30%] flex flex-col justify-center items-center md:items-start pt-2 pb-2 md:py-0 shrink-0">
           {/* Action Button */}
           <button
             onClick={onNext}
-            className="w-full max-w-sm md:max-w-[280px] lg:max-w-md py-[18px] md:py-5 bg-[#2E006A] hover:bg-[#410091] text-white text-[16px] md:text-[18px] font-bold uppercase tracking-wider rounded-full transition-transform active:scale-[0.98] shadow-lg shadow-purple-900/20"
+            className="w-full max-w-sm md:max-w-[280px] lg:max-w-md py-[18px] md:py-5 bg-purple-600 hover:bg-purple-700 text-white text-[16px] lg:text-[18px] font-bold uppercase tracking-widest rounded-2xl transition-all shadow-xl shadow-purple-600/30 btn-shine btn-text-pop"
           >
             Yes I wanna know the mission
           </button>

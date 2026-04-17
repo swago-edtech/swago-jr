@@ -33,19 +33,19 @@ export default function Step4FaceAlign({ onNext }: StepProps) {
                         />
                     </div>
 
-                    <h1 className="text-[32px] sm:text-4xl md:text-5xl lg:text-6xl font-black text-slate-800 tracking-tight font-normal leading-[1.15] mb-4 md:mb-6 letter-pop max-w-[340px] md:max-w-none mx-auto md:mx-0">
+                    <h1 className="text-4xl md:text-5xl lg:text-[64px] font-black text-slate-800 tracking-tight leading-[1.1] mb-4 md:mb-6 letter-pop max-w-[340px] md:max-w-none mx-auto md:mx-0">
                         Pop your face
                         in the <span className="font-medium">center</span> and groove on{" "}
-                        <span className="text-purple-500 font-medium">“Yes I can”</span>{" "}
+                        <span className="text-purple-600 font-bold">“Yes I can”</span>{" "}
                         song.
                     </h1>
-                    <p className="text-base sm:text-lg text-slate-500 font-medium mb-8 max-w-[300px] md:max-w-sm md:hidden mx-auto">
+                    <p className="text-base md:text-lg lg:text-xl text-slate-500 font-medium mb-8 max-w-[300px] md:max-w-sm md:hidden mx-auto leading-relaxed">
                         Check below video for reference.
                     </p>
 
                     <button
                         onClick={onNext}
-                        className="w-full max-w-[320px] md:w-fit px-10 md:px-12 py-[18px] md:py-5 lg:py-6 bg-purple-600 hover:bg-purple-700 text-white text-[16px] lg:text-[18px] font-bold rounded-2xl transition-all shadow-xl shadow-purple-600/30 mx-auto md:mx-0 btn-shine btn-text-pop"
+                        className="w-full max-w-[320px] md:w-fit px-10 md:px-12 py-[18px] md:py-5 lg:py-6 bg-purple-600 hover:bg-purple-700 text-white text-[16px] lg:text-[18px] font-bold uppercase tracking-widest rounded-2xl transition-all shadow-xl shadow-purple-600/30 mx-auto md:mx-0 btn-shine btn-text-pop"
                     >
                         <span>Link Your Yes, I can Video</span>
                     </button>

@@ -6,19 +6,19 @@ import Image from "next/image";
 
 export default function FounderMessage() {
   return (
-    <section className="w-full relative overflow-hidden bg-slate-50 pt-16 lg:pt-24">
+    <section className="w-full relative overflow-hidden bg-slate-50">
 
       {/* SECTION 1: Intro (Image Left, Text Right) - Standalone section */}
-      <div className="w-full relative flex flex-col lg:flex-row items-center min-h-[500px]">
-        {/* Left Side - Image (Now restricted footprint with white space) */}
-        <div className="w-full lg:w-1/2 flex justify-center p-8 lg:p-12">
-          <div className="relative w-full max-w-xl md:max-w-2xl aspect-square md:aspect-[4/3] rounded-[2rem] md:rounded-[3rem] overflow-hidden shadow-2xl transition-transform duration-500 hover:scale-[1.02]">
+      <div className="w-full relative flex flex-col lg:flex-row items-stretch min-h-[500px]">
+        {/* Left Side - Image (Now expanded natively to fill container) */}
+        <div className="w-full lg:w-1/2 flex p-0 m-0 lg:pt-0.5">
+          <div className="relative w-full min-h-[400px] lg:min-h-full overflow-hidden">
             <Image
               src="/images/SwatiGoyal.jpeg"
               alt="Swati Goyal - Founder of Swago"
               fill
-              className="object-contain bg-slate-100"
-              sizes="(max-width: 1024px) 100vw, 600px"
+              className="object-cover"
+              sizes="(max-width: 1024px) 100vw, 50vw"
             />
             {/* Subtle Inner Glow */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
@@ -60,10 +60,10 @@ export default function FounderMessage() {
 
       {/* --- GROUPED SECTIONS --- */}
       {/* <div className="w-full bg-white mt-8 py-20 lg:py-32 relative"> */}
-        {/* Subtle background divider element */}
-        {/* <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-purple-200 to-transparent opacity-60" /> */}
+      {/* Subtle background divider element */}
+      {/* <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-purple-200 to-transparent opacity-60" /> */}
 
-        {/* <div className="text-center mb-16 lg:mb-24 px-4">
+      {/* <div className="text-center mb-16 lg:mb-24 px-4">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -74,12 +74,12 @@ export default function FounderMessage() {
             <h2 className="text-4xl md:text-5xl lg:text-6xl font-black text-slate-800 tracking-tight">The Swago Foundation</h2>
             <div className="w-24 h-1.5 bg-gradient-to-r from-purple-500 to-indigo-500 mx-auto mt-8 rounded-full" />
           </motion.div> */}
-        {/* </div> */}
+      {/* </div> */}
 
-        {/* SECTION 2: Text Left, Image Right */}
-        {/* <div className="w-full relative flex flex-col-reverse lg:flex-row items-center mb-24 lg:mb-32"> */}
-          {/* Left Side - Content */}
-          {/* <motion.div
+      {/* SECTION 2: Text Left, Image Right */}
+      {/* <div className="w-full relative flex flex-col-reverse lg:flex-row items-center mb-24 lg:mb-32"> */}
+      {/* Left Side - Content */}
+      {/* <motion.div
             initial={{ opacity: 0, x: -50 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true, margin: "-100px" }}
@@ -101,8 +101,8 @@ export default function FounderMessage() {
             </div>
           </motion.div> */}
 
-          {/* Right Side - Image */}
-          {/* <div className="w-full lg:w-1/2 flex justify-center p-8 lg:p-12">
+      {/* Right Side - Image */}
+      {/* <div className="w-full lg:w-1/2 flex justify-center p-8 lg:p-12">
             <div className="relative w-full max-w-lg aspect-[5/4] rounded-[2rem] md:rounded-[3rem] overflow-hidden shadow-2xl transition-transform duration-500 hover:-translate-y-2">
               <Image
                 src="/images/SWAGO_Slide_1.jpg"
@@ -113,12 +113,12 @@ export default function FounderMessage() {
               />
             </div>
           </div> */}
-        {/* </div> */}
+      {/* </div> */}
 
-        {/* SECTION 3: Image Left, Text Right */}
-        {/* <div className="w-full relative flex flex-col lg:flex-row items-center"> */}
-          {/* Left Side - Image */}
-          {/* <div className="w-full lg:w-1/2 flex justify-center p-8 lg:p-12">
+      {/* SECTION 3: Image Left, Text Right */}
+      {/* <div className="w-full relative flex flex-col lg:flex-row items-center"> */}
+      {/* Left Side - Image */}
+      {/* <div className="w-full lg:w-1/2 flex justify-center p-8 lg:p-12">
             <div className="relative w-full max-w-lg aspect-[5/4] rounded-[2rem] md:rounded-[3rem] overflow-hidden shadow-2xl transition-transform duration-500 hover:-translate-y-2 filter contrast-105">
               <Image
                 src="/images/hero-banner.jpg"
@@ -130,8 +130,8 @@ export default function FounderMessage() {
             </div>
           </div> */}
 
-          {/* Right Side - Content */}
-          {/* <motion.div
+      {/* Right Side - Content */}
+      {/* <motion.div
             initial={{ opacity: 0, x: 50 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true, margin: "-100px" }}
@@ -153,8 +153,8 @@ export default function FounderMessage() {
                 That&apos;s not just our tagline. <strong className="text-slate-900 border-b-2 border-purple-400">It&apos;s our promise.</strong>
               </p> */}
 
-              {/* Signature */}
-              {/* <div className="pt-12 mt-4">
+      {/* Signature */}
+      {/* <div className="pt-12 mt-4">
                 <div className="flex items-center gap-4">
                   <div className="w-16 h-[3px] bg-gradient-to-r from-purple-400 to-indigo-400 rounded-full" />
                   <p className="italic text-slate-500 text-lg">
@@ -168,7 +168,7 @@ export default function FounderMessage() {
               </div>
             </div>
           </motion.div> */}
-        {/* </div> */}
+      {/* </div> */}
 
       {/* </div> */}
 

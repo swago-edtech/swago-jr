@@ -45,7 +45,7 @@ export default function FeaturedProducts() {
   if (loading) {
     return (
       <section className="py-10 md:py-14 bg-white overflow-hidden">
-        <div className="container mx-auto px-4 text-center">
+        <div className="container mx-auto px-4 md:px-6 text-center">
           <h2 className="text-4xl md:text-5xl font-black mb-3 tracking-tight text-slate-900">
             New <span className="text-[hsl(var(--swago-purple))]">Arrivals</span>
           </h2>
@@ -57,7 +57,7 @@ export default function FeaturedProducts() {
 
   return (
     <section className="py-8 md:py-12 bg-white overflow-hidden">
-      <div className="container mx-auto px-4 text-center">
+      <div className="container mx-auto px-4 md:px-6 text-center">
         <h2 className="text-4xl md:text-5xl font-black mb-3 tracking-tight text-slate-900">
           New <span className="text-[hsl(var(--swago-purple))]">Arrivals</span>
         </h2>
@@ -68,10 +68,7 @@ export default function FeaturedProducts() {
         {/* Horizontal Scroll Area */}
         <div className="relative mb-8">
           {/* 📱 Mobile: 82% card width + snap-start for a perfect ~15% peek at the next card */}
-          <div className="flex overflow-x-auto gap-5 pb-8 snap-x snap-mandatory no-scrollbar scroll-smooth">
-            {/* Left Spacer to align first card with padding-left */}
-            <div className="flex-none w-6" />
-
+          <div className="flex overflow-x-auto gap-5 pb-8 snap-x snap-mandatory no-scrollbar scroll-smooth -mx-4 px-4 md:-mx-6 md:px-6 lg:mx-0 lg:px-0">
             {featured.map((product) => (
               <div
                 key={getProductKey(product)}
@@ -81,8 +78,8 @@ export default function FeaturedProducts() {
               </div>
             ))}
 
-            {/* Right Spacer for scroll end breathing room */}
-            <div className="flex-none w-6" />
+            {/* Right Spacer for scroll end breathing room - hidden on desktop where no scroll is needed */}
+            <div className="flex-none w-1 xl:hidden" />
           </div>
 
           {/* Subtle fade indicators for scroll */}
