@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'Shipping & Delivery Policy | Swago ',
-  description: 'Learn about our shipping options, delivery times, and policies for Swago educational kits',
+  description: 'Learn about our shipping options, delivery times, and policies for Swago educational smart box',
 };
 
 export default function ShippingPage() {
@@ -20,11 +20,11 @@ export default function ShippingPage() {
 
       <div className="container mx-auto px-4 py-16 max-w-4xl">
         <div className="space-y-8">
-          
+
           {/* Introduction */}
           <div>
             <p className="text-lg text-slate-600 leading-relaxed">
-              We&#39;re committed to getting your Swago learning kits to you safely and promptly. 
+              We&#39;re committed to getting your Swago learning smart box to you safely and promptly.
               Here&#39;s everything you need to know about our shipping and delivery process.
             </p>
           </div>
@@ -105,7 +105,7 @@ export default function ShippingPage() {
             </h2>
             <div className="bg-white p-4 rounded-lg mb-4">
               <p className="text-red-800 font-bold text-lg mb-2">All Sales Are Final</p>
-              <p className="text-red-700">We do not accept returns, exchanges, or cancellations for any of our learning kits to maintain hygiene standards and educational integrity.</p>
+              <p className="text-red-700">We do not accept returns, exchanges, or cancellations for any of our learning smart box to maintain hygiene standards and educational integrity.</p>
             </div>
             <div className="space-y-3 text-red-700">
               <p><strong>Why No Returns?</strong></p>
@@ -186,10 +186,10 @@ export default function ShippingPage() {
               <p><strong>Hours:</strong> Mon - Fri, 9 AM - 6 PM IST</p>
             </div>
             <p className="text-slate-500 text-sm mt-4">
-              <strong>Last Updated:</strong> {new Date().toLocaleDateString('en-IN', { 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
+              <strong>Last Updated:</strong> {new Date().toLocaleDateString('en-IN', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
               })}
             </p>
           </div>

@@ -125,6 +125,6 @@ export default function JourneyStepsSection() {
           </div>
         </motion.div>
       </div>
-    </section>
+    </section >
   );
 }

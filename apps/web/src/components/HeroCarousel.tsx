@@ -20,8 +20,8 @@ type Banner = {
 };
 
 const defaultSlides = [
-  { _id: 'default-1', imageUrl: "/images/SWAGO_Slide_1.jpg", link: "/products", title: "Swago Learning Kits", device: 'both' as const },
-  { _id: 'default-2', imageUrl: "/images/SWAGO_Slide_2.jpg", link: "/products", title: "Swago Learning Kits", device: 'both' as const },
+  { _id: 'default-1', imageUrl: "/images/SWAGO_Slide_1.jpg", link: "/products", title: "Swago Learning Smart Box", device: 'both' as const },
+  { _id: 'default-2', imageUrl: "/images/SWAGO_Slide_2.jpg", link: "/products", title: "Swago Learning Smart Box", device: 'both' as const },
 ];
 
 export default function HeroCarousel() {

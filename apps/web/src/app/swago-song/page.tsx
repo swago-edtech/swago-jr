@@ -28,7 +28,7 @@ export default function YesICanFlow() {
     };
 
     return (
-        <div className="min-h-[100dvh] w-full bg-slate-50 flex flex-col overflow-hidden relative">
+        <div className="min-h-[95dvh] w-full bg-slate-50 flex flex-col overflow-hidden relative">
             {/* Container: Full screen everywhere */}
             <div className="w-full h-full flex flex-col flex-1 relative transition-all duration-300">
 

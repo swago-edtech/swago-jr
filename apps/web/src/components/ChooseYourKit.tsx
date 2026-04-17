@@ -26,7 +26,7 @@ export default function ChooseYourKit() {
         </h2>
 
         <p className="text-slate-500 font-medium mb-10 text-lg">
-          Learning kits for 5-10 years
+          Learning smart box for 5-10 years
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-16 sm:gap-12 max-w-4xl mx-auto">

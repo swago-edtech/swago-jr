@@ -150,17 +150,17 @@ export default function ProfilePage() {
 
     // 1. Common Mission
     allQuests.push({
-      title: 'Focus Freeze Reel',
-      description: 'Create a "Yes I Can" pose with your box',
+      title: '"Yes I Can" Dance',
+      description: `Groove on “Yes I Can” song with your smart box`,
       tags: [
-        { name: 'Optimization', color: 'bg-[#818CF8]', icon: Zap },
+        { name: 'Growth', color: 'bg-[#818CF8]', icon: Zap },
         { name: 'Spotlight', color: 'bg-[#4ADE80]', icon: Star }
       ],
       image: '/images/test/quest_ice_clock.png',
       reward: 25,
       currency: "Coins",
       frequency: 'Once/per season',
-      skill: 'Optimization',
+      skill: 'Growth',
       id: 'reel-task',
       product: 'Common'
     });
@@ -168,8 +168,8 @@ export default function ProfilePage() {
     // 2. Product-Specific Tickets
     purchasedBoxes.forEach((boxName) => {
       allQuests.push({
-        title: `${boxName} Lucky Ticket`,
-        description: `Treasure draw entry for your ${boxName}.`,
+        title: `Claim your Lucky Ticket`,
+        description: `Claim your lucky ticket from smart box and earn 20 Swago dollars`,
         tags: [
           { name: 'Ticket', color: 'bg-[#FDE047]', icon: TicketIcon },
           { name: boxName, color: 'bg-[#A7F3D0]', icon: Package }
@@ -178,7 +178,7 @@ export default function ProfilePage() {
         reward: 20,
         currency: "SD",
         frequency: 'Once/per box',
-        skill: 'Luck',
+        skill: 'Growth',
         id: `lottery-${boxName}`,
         product: boxName
       });

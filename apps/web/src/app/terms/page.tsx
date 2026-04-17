@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'Terms & Conditions | Swago ',
-  description: 'Terms and conditions for using Swago services and purchasing our educational kits',
+  description: 'Terms and conditions for using Swago services and purchasing our educational smart box',
 };
 
 export default function TermsPage() {
@@ -20,12 +20,12 @@ export default function TermsPage() {
 
       <div className="container mx-auto px-4 py-16 max-w-4xl">
         <div className="prose prose-lg max-w-none">
-          
+
           {/* Introduction */}
           <div className="mb-12">
             <p className="text-lg text-slate-600 leading-relaxed">
-              Welcome to Swago! These Terms and Conditions (&quot;Terms&quot;) govern your use of our website, 
-              services, and the purchase of our educational learning kits. By accessing our website or 
+              Welcome to Swago! These Terms and Conditions (&quot;Terms&quot;) govern your use of our website,
+              services, and the purchase of our educational learning smart box. By accessing our website or
               purchasing our products, you agree to be bound by these Terms.
             </p>
           </div>
@@ -49,13 +49,13 @@ export default function TermsPage() {
 
           {/* Terms Content */}
           <div className="space-y-12">
-            
+
             {/* 1. Acceptance of Terms */}
             <section id="acceptance">
               <h2 className="text-3xl font-bold text-slate-800 mb-6">1. Acceptance of Terms</h2>
               <div className="space-y-4 text-slate-600">
                 <p>
-                  By accessing and using the Swago website (www.swagojr.com) and purchasing our products, 
+                  By accessing and using the Swago website (www.swagojr.com) and purchasing our products,
                   you acknowledge that you have read, understood, and agree to be bound by these Terms and Conditions.
                 </p>
                 <p>
@@ -74,11 +74,11 @@ export default function TermsPage() {
                 <h3 className="text-xl font-semibold text-slate-800">Product Descriptions</h3>
                 <ul className="list-disc pl-6 space-y-2">
                   <li>We strive to provide accurate product descriptions, images, and specifications</li>
-                  <li>All learning kits are designed for specific age groups as indicated on product pages</li>
+                  <li>All learning smart box are designed for specific age groups as indicated on product pages</li>
                   <li>Colors and appearance may vary slightly from images due to monitor settings</li>
                   <li>We reserve the right to modify product specifications without prior notice</li>
                 </ul>
-                
+
                 <h3 className="text-xl font-semibold text-slate-800 mt-6">Product Availability</h3>
                 <ul className="list-disc pl-6 space-y-2">
                   <li>All products are subject to availability</li>
@@ -99,7 +99,7 @@ export default function TermsPage() {
                   <li>Order confirmation will be sent via email after successful payment</li>
                   <li>Orders cannot be cancelled once payment is processed</li>
                 </ul>
-                
+
                 <h3 className="text-xl font-semibold text-slate-800 mt-6">Payment Terms</h3>
                 <ul className="list-disc pl-6 space-y-2">
                   <li>Payment is required in full at the time of order placement</li>
@@ -107,7 +107,7 @@ export default function TermsPage() {
                   <li>All prices are in Indian Rupees (INR) and include applicable taxes</li>
                   <li>Payment processing is handled by secure third-party providers</li>
                 </ul>
-                
+
                 <h3 className="text-xl font-semibold text-slate-800 mt-6">Pricing</h3>
                 <ul className="list-disc pl-6 space-y-2">
                   <li>All prices are subject to change without prior notice</li>
@@ -128,14 +128,14 @@ export default function TermsPage() {
                   <li>Delivery times may vary based on location and external factors</li>
                   <li>We are not responsible for delays caused by courier services or natural disasters</li>
                 </ul>
-                
+
                 <h3 className="text-xl font-semibold text-slate-800 mt-6">Shipping Charges</h3>
                 <ul className="list-disc pl-6 space-y-2">
                   <li>Shipping charges are calculated based on delivery location and order value</li>
                   <li>Free shipping may be available for orders above certain value thresholds</li>
                   <li>All shipping costs will be displayed before order confirmation</li>
                 </ul>
-                
+
                 <h3 className="text-xl font-semibold text-slate-800 mt-6">Delivery Requirements</h3>
                 <ul className="list-disc pl-6 space-y-2">
                   <li>Accurate delivery address must be provided at the time of ordering</li>
@@ -151,8 +151,8 @@ export default function TermsPage() {
               <div className="bg-red-50 border border-red-200 rounded-lg p-6 mb-6">
                 <h3 className="text-xl font-semibold text-red-800 mb-3">No Returns Policy</h3>
                 <p className="text-red-700">
-                  <strong>All sales are final.</strong> We do not accept returns, exchanges, or cancellations 
-                  for any of our learning kits to maintain hygiene standards and educational integrity.
+                  <strong>All sales are final.</strong> We do not accept returns, exchanges, or cancellations
+                  for any of our learning smart box to maintain hygiene standards and educational integrity.
                 </p>
               </div>
               <div className="space-y-4 text-slate-600">
@@ -162,7 +162,7 @@ export default function TermsPage() {
                   <li>Provide photos of the damaged items and packaging</li>
                   <li>We will investigate and provide appropriate resolution for shipping damage</li>
                 </ul>
-                
+
                 <h3 className="text-xl font-semibold text-slate-800 mt-6">Wrong Item Delivered</h3>
                 <ul className="list-disc pl-6 space-y-2">
                   <li>If you receive an incorrect item, notify us within 48 hours</li>
@@ -177,17 +177,17 @@ export default function TermsPage() {
               <h2 className="text-3xl font-bold text-slate-800 mb-6">6. Intellectual Property Rights</h2>
               <div className="space-y-4 text-slate-600">
                 <p>
-                  All content on the Swago website, including but not limited to text, graphics, 
-                  logos, images, product designs, and educational materials, are the property of Swago 
+                  All content on the Swago website, including but not limited to text, graphics,
+                  logos, images, product designs, and educational materials, are the property of Swago
                   and are protected by intellectual property laws.
                 </p>
                 <h3 className="text-xl font-semibold text-slate-800">Permitted Use</h3>
                 <ul className="list-disc pl-6 space-y-2">
                   <li>You may use our website for personal, non-commercial purposes only</li>
                   <li>You may not reproduce, distribute, or create derivative works from our content</li>
-                  <li>Educational materials in purchased kits are for personal learning use only</li>
+                  <li>Educational materials in purchased smart box are for personal learning use only</li>
                 </ul>
-                
+
                 <h3 className="text-xl font-semibold text-slate-800 mt-6">Prohibited Activities</h3>
                 <ul className="list-disc pl-6 space-y-2">
                   <li>Reproducing or reselling our educational materials</li>
@@ -203,7 +203,7 @@ export default function TermsPage() {
               <h2 className="text-3xl font-bold text-slate-800 mb-6">7. Privacy & Data Protection</h2>
               <div className="space-y-4 text-slate-600">
                 <p>
-                  Your privacy is important to us. Please review our Privacy Policy to understand 
+                  Your privacy is important to us. Please review our Privacy Policy to understand
                   how we collect, use, and protect your personal information.
                 </p>
                 <h3 className="text-xl font-semibold text-slate-800">Data Collection</h3>
@@ -212,7 +212,7 @@ export default function TermsPage() {
                   <li>We use secure payment processors and do not store credit card information</li>
                   <li>We may use cookies to improve your browsing experience</li>
                 </ul>
-                
+
                 <h3 className="text-xl font-semibold text-slate-800 mt-6">Data Usage</h3>
                 <ul className="list-disc pl-6 space-y-2">
                   <li>Your data is used solely for order processing and customer communication</li>
@@ -228,11 +228,11 @@ export default function TermsPage() {
               <div className="space-y-4 text-slate-600">
                 <h3 className="text-xl font-semibold text-slate-800">Service Disclaimer</h3>
                 <p>
-                  Our services and products are provided &quot;as is&quot; without any warranties, express or implied. 
-                  We strive to provide accurate information but do not guarantee the completeness or accuracy 
+                  Our services and products are provided &quot;as is&quot; without any warranties, express or implied.
+                  We strive to provide accurate information but do not guarantee the completeness or accuracy
                   of all content on our website.
                 </p>
-                
+
                 <h3 className="text-xl font-semibold text-slate-800 mt-6">Liability Limitations</h3>
                 <ul className="list-disc pl-6 space-y-2">
                   <li>Our liability is limited to the cost of the purchased product</li>
@@ -240,10 +240,10 @@ export default function TermsPage() {
                   <li>We are not responsible for educational outcomes or learning results</li>
                   <li>Use of our products is at your own risk and discretion</li>
                 </ul>
-                
+
                 <h3 className="text-xl font-semibold text-slate-800 mt-6">Safety Notice</h3>
                 <p className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                  <strong>Important:</strong> Adult supervision is recommended for children using our learning kits. 
+                  <strong>Important:</strong> Adult supervision is recommended for children using our learning smart box.
                   While our products meet safety standards, proper supervision ensures safe and effective learning.
                 </p>
               </div>
@@ -254,8 +254,8 @@ export default function TermsPage() {
               <h2 className="text-3xl font-bold text-slate-800 mb-6">9. Changes to Terms</h2>
               <div className="space-y-4 text-slate-600">
                 <p>
-                  We reserve the right to modify these Terms and Conditions at any time. Changes will be 
-                  effective immediately upon posting on our website. Your continued use of our services 
+                  We reserve the right to modify these Terms and Conditions at any time. Changes will be
+                  effective immediately upon posting on our website. Your continued use of our services
                   after changes are posted constitutes acceptance of the revised terms.
                 </p>
                 <p>
@@ -279,20 +279,20 @@ export default function TermsPage() {
                     <strong>Phone:</strong> +91 6283883397
                   </div>
                 </div>
-                 <div className="mt-4">
+                <div className="mt-4">
                   <strong>Address:</strong> Swago , India
                 </div>
               </div>
             </section>
           </div>
-          
+
           {/* Footer */}
           <div className="mt-16 p-6 bg-slate-100 rounded-xl text-center">
             <p className="text-slate-600">
-              <strong>Last updated:</strong> {new Date().toLocaleDateString('en-IN', { 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
+              <strong>Last updated:</strong> {new Date().toLocaleDateString('en-IN', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
               })}
             </p>
             <p className="text-slate-500 mt-2 text-sm">

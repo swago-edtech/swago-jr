@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import Image from "next/image";
 import React from "react";
 import FounderMessage from "@/components/FounderMessage";
+import AboutSwagoSection from "@/components/AboutSwagoSection";
 import AmbassadorCTA from "@/components/AmbassadorCTA";
 import AnimateOnScroll from "@/components/AnimateOnScroll";
 
@@ -24,14 +25,19 @@ export default function AboutPage() {
         <FounderMessage />
       </AnimateOnScroll>
 
+      {/* 1.5) What is SWAGO Section */}
+      <AnimateOnScroll>
+        <AboutSwagoSection />
+      </AnimateOnScroll>
+
       {/* 2) Hero Section: SWAGO Acronym (Full width styling) */}
-      <section className="w-full px-4 lg:px-8 pt-12 md:pt-16 pb-24 md:pb-32 bg-slate-50 border-t border-slate-100">
+      <section className="w-full px-4 lg:px-8 pt-12 md:pt-16 pb-6 md:pb-10 bg-slate-50 border-t border-slate-100">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.8, ease: "easeOut" }}
-          className="text-center mb-16 md:mb-24 w-full"
+          className="text-center mb-8 md:mb-14 w-full"
         >
           <div className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-purple-100/50 border border-purple-200 mb-8 backdrop-blur-sm">
             <span className="w-2.5 h-2.5 rounded-full bg-purple-600 animate-pulse"></span>
@@ -39,7 +45,7 @@ export default function AboutPage() {
           </div>
 
           <h1 className="text-6xl md:text-8xl lg:text-9xl font-black text-slate-900 tracking-tighter leading-none mb-8">
-            We are <span className="text-transparent bg-clip-text bg-gradient-to-br from-purple-600 to-indigo-700">SWAGO</span>
+            We are <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#b251a2] to-[#7464a9]">SWAGO</span>
           </h1>
 
           <p className="max-w-4xl mx-auto text-xl md:text-2xl text-slate-600 leading-relaxed font-medium">
@@ -93,7 +99,7 @@ export default function AboutPage() {
 
       {/* Ambassador Call to Action */}
       <AnimateOnScroll>
-        <div className="w-full bg-white pt-24 pb-12 px-4">
+        <div className="w-full bg-white pt-4 pb-4 px-4">
           <AmbassadorCTA />
         </div>
       </AnimateOnScroll>

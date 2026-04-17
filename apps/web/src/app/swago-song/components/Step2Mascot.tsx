@@ -9,8 +9,8 @@ export default function Step2Mascot({ onNext }: StepProps) {
             <div className="flex-1 flex flex-col md:flex-row-reverse w-full h-full">
                 {/* RIGHT/TOP: Media Plane */}
                 <div className="md:w-1/2 flex items-center justify-center md:justify-start p-2 md:pl-12 lg:pl-24 bg-sky-50/50 md:bg-transparent">
-                    <div className="flex space-x-3 md:space-x-5 justify-center items-end h-full w-full">
-                        <img src="/images/home/five-mascots.png" alt="Mascot" className="w-full h-full rounded-lg object-cover" width={500} height={500} />
+                    <div className="flex justify-center items-center h-full w-full">
+                        <img src="/images/home/five-mascots.png" alt="Mascot" className="w-[85%] sm:w-[70%] md:w-full h-auto max-h-[40vh] md:max-h-[500px] rounded-lg object-contain" />
                     </div>
                 </div>
 

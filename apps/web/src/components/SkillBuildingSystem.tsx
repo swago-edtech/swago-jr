@@ -20,7 +20,7 @@ export default function SkillBuildingSystem() {
               {/* Video/Image Container */}
               <div className="relative aspect-[1.1/1] w-full overflow-hidden group cursor-pointer">
                 <Image
-                  src="/images/SwatiGoyal.jpeg"
+                  src="/images/home/founder.jpeg"
                   alt="Swati Goyal - Founder"
                   fill
                   className="object-cover transition-transform duration-700 group-hover:scale-105"

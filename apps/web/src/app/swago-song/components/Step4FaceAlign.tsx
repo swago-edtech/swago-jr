@@ -24,10 +24,10 @@ export default function Step4FaceAlign({ onNext }: StepProps) {
                 </div>
 
                 {/* LEFT: Content Plane */}
-                <div className="md:w-1/2 flex flex-col items-center md:items-start text-center md:text-left justify-start md:justify-center px-6 sm:px-8 pt-0 pb-4 md:py-0 md:pr-8 md:pl-8 lg:pl-10 xl:pl-12">
-                    <div className="w-32 h-[142px] sm:w-36 sm:h-[162px] md:w-40 md:h-[182px] lg:w-48 lg:h-[220px] rounded-[50%] overflow-hidden border-[4px] border-[#fde8e8] shadow-lg shadow-slate-200/50 mb-6 bg-slate-100 shrink-0 mx-auto md:mb-6">
+                <div className="md:w-1/2 flex flex-col items-center md:items-start text-center md:text-left justify-start md:justify-center px-6 sm:px-8 pt-2 pb-4 md:py-0 md:pr-8 md:pl-8 lg:pl-10 xl:pl-12">
+                    <div className="w-32 h-[142px] sm:w-36 sm:h-[162px] md:w-40 md:h-[182px] lg:w-48 lg:h-[220px] rounded-[50%] overflow-hidden border-[4px] border-[#fde8e8] shadow-lg shadow-slate-200/50 mb-6 bg-slate-100 shrink-0 mx-auto md:mb-6 relative">
                         <img
-                            src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&h=500&fit=crop&q=80"
+                            src="/images/home/step-5-smart-box.png"
                             alt="Face alignment guide tutorial"
                             className="w-full h-full object-cover object-center"
                         />

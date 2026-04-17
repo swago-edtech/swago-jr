@@ -38,7 +38,7 @@ function authenticate() {
     JSON.stringify({ phone: DEMO_PHONE, otp: DEMO_OTP }),
     { headers: { 'Content-Type': 'application/json' } }
   );
-  
+
   if (authRes.status === 200 && authRes.cookies.session) {
     sessionCookie = authRes.cookies.session[0].value;
     return true;
@@ -77,7 +77,7 @@ export default function () {
     pageLoadTime.add(Date.now() - startTime);
     check(res, {
       'Products page loads': (r) => r.status === 200,
-      'Contains product grid': (r) => r.body.includes('ProductGrid') || r.body.includes('Kits by Age'),
+      'Contains product grid': (r) => r.body.includes('ProductGrid') || r.body.includes('Smart Box by Age'),
     });
     sleep(2);
 
@@ -108,7 +108,7 @@ export default function () {
         }
       },
     });
-    
+
     if (!wishlistCheck) {
       wishlistErrors.add(1);
     }
@@ -120,12 +120,12 @@ export default function () {
     res = http.post(
       `${BASE_URL}/api/wishlist`,
       JSON.stringify({ productId: productToAdd }),
-      { 
+      {
         headers: { 'Content-Type': 'application/json' },
-        jar 
+        jar
       }
     );
-    
+
     const addCheck = check(res, {
       'Add to wishlist successful': (r) => r.status === 200,
       'Returns updated wishlist': (r) => {
@@ -150,21 +150,21 @@ export default function () {
       res = http.del(
         `${BASE_URL}/api/wishlist`,
         JSON.stringify({ productId: productToAdd }),
-        { 
+        {
           headers: { 'Content-Type': 'application/json' },
-          jar 
+          jar
         }
       );
-      
+
       const removeCheck = check(res, {
         'Remove from wishlist successful': (r) => r.status === 200,
         'Item removed from list': (r) => {
           if (r.status !== 200) return false;
           try {
             const body = JSON.parse(r.body);
-            return body.success === true && 
-                   Array.isArray(body.wishlist) && 
-                   !body.wishlist.includes(productToAdd);
+            return body.success === true &&
+              Array.isArray(body.wishlist) &&
+              !body.wishlist.includes(productToAdd);
           } catch {
             return false;
           }
@@ -185,7 +185,7 @@ export default function () {
     let res = http.get(`${BASE_URL}/cart`, { jar });
     check(res, {
       'Cart page accessible': (r) => r.status === 200,
-      'Shows empty cart or items': (r) => 
+      'Shows empty cart or items': (r) =>
         r.body.includes('Your Cart') || r.body.includes('Your cart is empty'),
     });
     sleep(1);
@@ -208,7 +208,7 @@ export default function () {
   group('Product Categories', function () {
     const ageCategories = ['5-7', '8-10'];
     const randomCategory = ageCategories[Math.floor(Math.random() * ageCategories.length)];
-    
+
     // Since there's no API for filtering, just visit products page
     // In real app, this might be /products?age=5-7
     const res = http.get(`${BASE_URL}/products`, { jar });
@@ -224,15 +224,15 @@ export function teardown() {
   if (sessionCookie) {
     const jar = http.cookieJar();
     jar.set(BASE_URL, 'session', sessionCookie);
-    
+
     // Clean up: Remove all items from wishlist
     PRODUCT_IDS.forEach(productId => {
       http.del(
         `${BASE_URL}/api/wishlist`,
         JSON.stringify({ productId }),
-        { 
+        {
           headers: { 'Content-Type': 'application/json' },
-          jar 
+          jar
         }
       );
     });

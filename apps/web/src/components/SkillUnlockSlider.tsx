@@ -81,11 +81,11 @@ export default function SkillUnlockSlider() {
   }, [emblaApi, onSelect]);
 
   return (
-    <section className="py-20 md:py-28 bg-[#F8F9FB] overflow-hidden">
+    <section className="py-20 md:py-28 bg-white overflow-hidden">
       {/* Centered Header */}
       <div className="container mx-auto px-4 md:px-6 mb-12 md:mb-16">
         <div className="text-center">
-          <h2 className="text-4xl md:text-6xl font-black text-slate-800 tracking-tighter italic leading-none">
+          <h2 className="text-3xl md:text-5xl font-black text-slate-800 leading-none">
             What Your Child <span className="text-[hsl(var(--swago-purple))]">Unlocks</span>
           </h2>
         </div>
@@ -110,7 +110,7 @@ export default function SkillUnlockSlider() {
                     }}
                   >
                     {/* Borderless Blended Image */}
-                    <div className="relative aspect-[4/5] rounded-[2.5rem] overflow-hidden group cursor-pointer shadow-[0_40px_80px_-20px_rgba(0,0,0,0.2)] bg-[#F8F9FB] border border-gray-100/50">
+                    <div className="relative aspect-[4/5] rounded-[2.5rem] overflow-hidden group cursor-pointer">
                       <Image
                         src={skill.image}
                         alt={skill.title}
@@ -119,7 +119,7 @@ export default function SkillUnlockSlider() {
                       />
 
                       {/* Solid White Content Section - High Contrast */}
-                      <div className="absolute inset-x-4 bottom-4 p-6 bg-[#F8F9FB] rounded-[2rem] z-30 flex flex-col items-center text-center">
+                      {/* <div className="absolute inset-x-4 bottom-4 p-6 bg-[#F8F9FB] rounded-[2rem] z-30 flex flex-col items-center text-center">
                         <div className="flex items-center gap-2 mb-1">
                           <h3 className={`text-3xl md:text-4xl font-black ${skill.color}  tracking-[0.2em] italic`}>
                             {skill.title}
@@ -129,7 +129,7 @@ export default function SkillUnlockSlider() {
                         <p className="text-slate-500 font-bold text-[11px] md:text-xs leading-none tracking-widest opacity-80">
                           {skill.description}
                         </p>
-                      </div>
+                      </div> */}
                     </div>
                   </div>
                 ))}

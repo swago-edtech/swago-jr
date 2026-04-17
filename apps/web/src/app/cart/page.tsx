@@ -160,7 +160,7 @@ export default function CartPage() {
       <div className="bg-white border-b border-slate-100 sticky top-0 z-30 px-4 py-3 sm:py-4 shadow-sm">
         <div className="container mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Link href="/products" className="p-2 hover:bg-slate-50 rounded-full transition-colors flex items-center justify-center">
+            <Link href="/products" className="md:p-2 hover:bg-slate-50 rounded-full transition-colors flex items-center justify-center">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5 text-slate-800">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
               </svg>
@@ -389,7 +389,7 @@ export default function CartPage() {
 
             <div className="bg-white rounded-2xl p-3 sm:p-4 border border-slate-100 shadow-sm overflow-hidden">
               <h2 className="text-[11px] sm:text-xs font-black text-slate-800 tracking-wide mb-2 sm:mb-3 flex items-center gap-2">
-                <span className="text-pink-500">✨</span> Also Love To Buy
+                <span className="text-pink-500">✨</span> Other parents are loving these products too
               </h2>
               <div className="flex overflow-x-auto gap-3 pb-2 scrollbar-none snap-x snap-mandatory">
                 <RelatedProductsCompact currentProductId="cart" />

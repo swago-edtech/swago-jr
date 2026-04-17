@@ -26,16 +26,16 @@ const TAGS = [
 
 const QUESTS = [
     {
-        title: 'Focus Freeze Reel',
-        description: 'Create a "Yes I Can" freeze pose with your Seek Rush box',
+        title: '"Yes I Can" Dance',
+        description: `Groove on “Yes I Can” song with your smart box`,
         tags: [
-            { name: 'Optimization', color: 'bg-[#818CF8]', icon: Zap },
+            { name: 'Growth', color: 'bg-[#818CF8]', icon: Zap },
             { name: 'Spotlight', color: 'bg-[#34D399]', icon: Target },
         ],
         image: '/images/test/quest_ice_clock.png',
         reward: 50,
         frequency: 'Once per season',
-        skill: 'Optimization'
+        skill: 'Growth'
     },
     {
         title: 'Confidence Mirror Challenge',

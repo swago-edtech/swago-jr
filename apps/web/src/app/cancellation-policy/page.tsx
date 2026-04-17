@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'Cancellation Policy | Swago ',
-  description: 'Learn about our cancellation policy for Swago  educational kits',
+  description: 'Learn about our cancellation policy for Swago  educational smart box',
 };
 
 export default function CancellationPolicyPage() {
@@ -20,11 +20,11 @@ export default function CancellationPolicyPage() {
 
       <div className="container mx-auto px-4 py-16 max-w-4xl">
         <div className="space-y-8">
-          
+
           {/* Introduction */}
           <div>
             <p className="text-lg text-slate-600 leading-relaxed">
-              At Swago , we begin processing your order immediately to ensure fast delivery of our premium educational kits. 
+              At Swago , we begin processing your order immediately to ensure fast delivery of our premium educational smart box.
               This policy explains our cancellation terms and the reasons behind our approach.
             </p>
           </div>
@@ -49,7 +49,7 @@ export default function CancellationPolicyPage() {
           <div className="bg-blue-50 border border-blue-200 rounded-xl p-8">
             <h2 className="text-2xl font-bold text-blue-800 mb-6">Why We Don&apos;t Accept Cancellations</h2>
             <div className="space-y-6">
-              
+
               <div className="flex items-start space-x-4">
                 <div className="bg-blue-600 text-white rounded-full p-2 flex-shrink-0">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -104,7 +104,7 @@ export default function CancellationPolicyPage() {
           <div className="bg-green-50 border border-green-200 rounded-xl p-8">
             <h2 className="text-2xl font-bold text-green-800 mb-6">What We Offer Instead</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              
+
               <div className="bg-white p-6 rounded-lg border border-green-200">
                 <div className="flex items-center mb-4">
                   <svg className="w-6 h-6 text-green-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -188,10 +188,10 @@ export default function CancellationPolicyPage() {
           {/* Footer */}
           <div className="text-center p-6 bg-slate-100 rounded-xl">
             <p className="text-slate-600">
-              <strong>Last Updated:</strong> {new Date().toLocaleDateString('en-IN', { 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
+              <strong>Last Updated:</strong> {new Date().toLocaleDateString('en-IN', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
               })}
             </p>
             <p className="text-slate-500 mt-2 text-sm">

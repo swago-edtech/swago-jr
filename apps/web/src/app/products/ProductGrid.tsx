@@ -158,13 +158,13 @@ export default function ProductGrid() {
       {/* Filter and Sort Section */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-2">
         <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tight text-slate-900">
-          All Kits
+          All Smart Box
         </h2>
 
         <div className="flex items-center gap-3 self-end md:self-auto">
           {/* Desktop Sort Dropdown */}
           <div className="hidden md:block relative">
-             <button
+            <button
               onClick={() => setIsSortOpen(!isSortOpen)}
               className="flex items-center gap-2 text-[11px] font-bold tracking-wider text-[hsl(var(--swago-purple))] uppercase group"
             >
@@ -213,7 +213,7 @@ export default function ProductGrid() {
         </div>
       </div>
 
-      <FilterDrawer 
+      <FilterDrawer
         isOpen={isFilterOpen}
         onClose={() => setIsFilterOpen(false)}
         filters={filters}
@@ -230,7 +230,7 @@ export default function ProductGrid() {
             <>
               <div className="flex items-center justify-between mb-4 px-1">
                 <p className="text-[10px] md:text-sm text-slate-400 font-bold uppercase tracking-wider">
-                  Showing {sortedAndFilteredProducts.length} kits
+                  Showing {sortedAndFilteredProducts.length} smart box
                 </p>
               </div>
 
@@ -242,7 +242,7 @@ export default function ProductGrid() {
                 </div>
               ) : (
                 <div className="text-center py-24 bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200">
-                  <h3 className="text-xl font-black uppercase tracking-tight text-slate-400">No Kits Found</h3>
+                  <h3 className="text-xl font-black uppercase tracking-tight text-slate-400">No Smart Box Found</h3>
                   <button onClick={() => setFilters(initialFilters)} className="mt-4 text-xs font-bold text-[hsl(var(--swago-purple))] uppercase tracking-widest border-b-2 border-purple-200 hover:border-purple-600 transition-all">Clear All Filters</button>
                 </div>
               )}

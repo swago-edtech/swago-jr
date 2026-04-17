@@ -43,7 +43,7 @@ export default function FilterSidebar({ filters, onFilterChange }: FilterSidebar
     <aside className="w-full md:w-64 lg:w-72 bg-white p-6 rounded-xl shadow-sm border space-y-6">
       {/* Search Input */}
       <div>
-        <label htmlFor="search" className="block text-sm font-bold text-gray-700">Search Kits</label>
+        <label htmlFor="search" className="block text-sm font-bold text-gray-700">Search Smart Box</label>
         <input
           type="text"
           id="search"

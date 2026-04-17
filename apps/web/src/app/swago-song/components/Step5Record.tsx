@@ -11,12 +11,12 @@ export default function Step5Record({ onComplete }: StepProps) {
                 {/* LEFT: Media Plane */}
                 <div className="md:w-1/2 flex items-center justify-center md:justify-start p-4 sm:p-6 md:px-8 pt-0 pb-6 md:py-0 md:pl-12 lg:pl-24 bg-transparent shrink-0">
                     <div className="flex justify-center items-center h-full w-full max-w-sm sm:max-w-md md:max-w-full mx-auto md:mx-0">
-                        <img src="/images/home/step-5-smart-box.png" alt="Mascot" className="w-full h-auto rounded-lg object-contain md:object-cover max-h-[40vh] md:max-h-none" />
+                        <img src="/images/home/step-one-Photoroom.png" alt="Mascot Gogo" className="w-full h-auto rounded-lg object-contain md:object-cover max-h-[40vh] md:max-h-none" />
                     </div>
                 </div>
 
                 {/* RIGHT: Content Plane */}
-                <div className="md:w-1/2 flex flex-col items-center md:items-start text-center md:text-left justify-start md:justify-center px-6 sm:px-8 pt-0 pb-4 md:py-0 md:pl-12 md:pr-24 lg:pr-48 xl:pr-64">
+                <div className="md:w-1/2 flex flex-col items-center md:items-start text-center md:text-left justify-start md:justify-center px-6 sm:px-8 pt-0 pb-4 md:py-0 md:pl-12 md:pr-6 lg:pr-10 xl:pr-12">
                     <h1 className="text-4xl md:text-5xl lg:text-[64px] font-black text-slate-800 tracking-tight leading-[1.1] mb-4 md:mb-6 text-pop max-w-[340px] md:max-w-none mx-auto md:mx-0">
                         Now record your<br className="hidden md:block" /> best <span className="text-purple-600 font-bold">'Yes, I Can'</span><br className="hidden md:block" /> moves.
                     </h1>

@@ -2,69 +2,73 @@
 
 import React from "react";
 import Link from "next/link";
+import { motion } from "framer-motion";
 
 export default function AmbassadorCTA() {
   return (
-    <section className="py-5 px-4">
-      <div className="max-w-7xl mx-auto">
-        {/* Main CTA Card */}
-        <div className="relative rounded-2xl overflow-hidden shadow-xl border-2 border-slate-200 bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50">
-          <div className="p-6 md:p-10">
-            <p className="text-slate-800 text-base md:text-lg leading-relaxed max-w-5xl mx-auto text-center">
-              At Swago, we help children grow into confident, curious, and capable human beings, 
-              not through pressure, but through play.
-              <br />
-            </p>
-            
+    <section className="bg-white py-0 md:py-4 px-4">
+      <div className="max-w-4xl mx-auto text-center">
+        {/* Headline */}
+        <motion.h2
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+          className="text-4xl md:text-5xl lg:text-6xl font-black text-slate-900 tracking-tight mb-8"
+        >
+          Start Your Child&apos;s Skill Journey Today
+        </motion.h2>
 
-            <p className="text-slate-800 text-base md:text-lg leading-relaxed max-w-5xl mx-auto text-center mt-4">
-              Through our playful Swago Smart Boxes, simple challenges, and everyday moments, 
-              children learn to think, move, try, and express in ways that slowly build smart thinking.
-              <br />
-              <br />
-              Swago isn&apos;t about being perfect , it&apos;s about discovering who you are, one small win at a time, 
-              and growing up with the feeling every child deserves:{" "}
-              <span className="font-bold text-purple-600">&quot;Yes, I can.&quot;</span> 💛
-            </p>
-          </div>
-        </div>
+        {/* Subheadline */}
+        <motion.p
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6, delay: 0.1 }}
+          className="text-lg md:text-xl text-slate-500 font-medium max-w-2xl mx-auto leading-relaxed mb-12"
+        >
+          Give your child screen-free learning that builds real-life skills. Join thousands of happy families.
+        </motion.p>
 
-        {/* Content */}
-        <div className="relative z-10 pt-8 md:pt-12 text-center">
-          {/* Badge */}
-          <div className="inline-block mb-6 px-4 py-1.5 bg-orange-100 rounded-full text-xs font-bold text-orange-600">
-            Limited Spots Available
-          </div>
-
-          {/* Title - Simple Design */}
-          <h2 className="text-2xl md:text-3xl font-bold mb-8 text-slate-800">
-            Join our Swago Kid Brand Ambassador Program
-          </h2>
-
-          {/* CTA Button */}
+        {/* CTA Button */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          whileInView={{ opacity: 1, scale: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+        >
           <Link
-            href="/ambassador"
-            className="inline-block btn-shine bg-[hsl(var(--swago-orange))] text-white font-bold text-base md:text-lg px-8 py-3.5 rounded-full shadow-xl hover:scale-105 transition-all duration-300"
+            href="/products"
+            className="inline-flex items-center gap-2 bg-[#7464a9] hover:bg-[#605291] text-white font-black text-xl md:text-2xl px-12 py-5 rounded-2xl transition-all shadow-xl shadow-purple-900/20 hover:shadow-purple-900/30 active:scale-95 group mb-8"
           >
-            <span className="flex items-center gap-2">
-              Start Your Journey
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={3}
-                stroke="currentColor"
-                className="w-5 h-5"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"
-                />
-              </svg>
-            </span>
+            Get Started Now
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={3}
+              stroke="currentColor"
+              className="w-6 h-6 transform group-hover:translate-x-1 transition-transform"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"
+              />
+            </svg>
           </Link>
-        </div>
+        </motion.div>
+
+        {/* Footer Text */}
+        <motion.p
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+          className="text-sm font-semibold text-slate-400 uppercase tracking-widest"
+        >
+          First box ships within 5-7 business days
+        </motion.p>
       </div>
     </section>
   );

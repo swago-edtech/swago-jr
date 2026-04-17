@@ -4,7 +4,7 @@ interface StepProps {
 
 export default function Step3SmartBox({ onNext }: StepProps) {
     return (
-        <div className="flex-1 flex flex-col w-full h-full relative">
+        <div className="flex-1 flex flex-col items-center justify-center w-full h-full relative">
 
 
             <div className="flex-1 flex flex-col md:flex-row w-full h-full">
@@ -20,7 +20,7 @@ export default function Step3SmartBox({ onNext }: StepProps) {
                 </div>
 
                 {/* RIGHT: Content Plane */}
-                <div className="md:w-1/2 flex flex-col justify-center px-8 pt-6 pb-2 md:py-16 md:pl-12 md:pr-24 lg:pr-48 xl:pr-64">
+                <div className="md:w-1/2 flex flex-col justify-center px-8 pt-6 pb-2 md:py-5 md:pl-12 md:pr-8 lg:pr-10 xl:pr-12">
                     <h1 className="text-4xl md:text-5xl lg:text-[64px] font-black text-slate-800 tracking-tight leading-[1.1] mb-8 md:mb-6 letter-pop">
                         Go get your <br /><span className="text-purple-600">SWAGO Smart Box.</span>
                     </h1>

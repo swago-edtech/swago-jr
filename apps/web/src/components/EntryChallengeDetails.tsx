@@ -34,7 +34,7 @@ export default function EntryChallengeDetails() {
   };
 
   return (
-    <section className="py-16 px-4 bg-[hsl(var(--swago-purple))]/5">
+    <section className="py-8 md:py-12 px-4 bg-[hsl(var(--swago-purple))]/5">
       <div className="max-w-6xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -101,7 +101,7 @@ export default function EntryChallengeDetails() {
                 <span>❎ No judgement</span>
               </div>
               <p className="text-lg text-slate-700 mt-4">
-                Shy, silly, slow, playful or imperfect  <br/> <strong className="text-[hsl(var(--swago-orange))]">all are welcome</strong>.
+                Shy, silly, slow, playful or imperfect  <br /> <strong className="text-[hsl(var(--swago-orange))]">all are welcome</strong>.
               </p>
               <p className="text-xl font-bold text-transparent bg-clip-text bg-[hsl(var(--swago-purple))] mt-4">
                 Because at Swago, we celebrate effort, not perfection.

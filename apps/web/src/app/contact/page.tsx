@@ -80,7 +80,7 @@ export default function ContactPage() {
               onClick={() => setSuccess(false)}
               className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
             />
-            
+
             {/* Modal */}
             <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -149,21 +149,21 @@ export default function ContactPage() {
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-4xl md:text-5xl font-bold mb-4">Contact Us</h1>
           <p className="text-xl opacity-90 max-w-2xl mx-auto">
-            Have questions about our learning kits? We&#39;re here to help your child&#39;s learning journey!
+            Have questions about our learning smart box? We&#39;re here to help your child&#39;s learning journey!
           </p>
         </div>
       </div>
 
       <div className="container mx-auto px-4 py-16">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          
+
           {/* Contact Information */}
           <div className="space-y-8">
             <div>
               <h2 className="text-3xl font-bold text-slate-800 mb-6">Get in Touch</h2>
               <p className="text-slate-600 text-lg mb-8">
-                We&#39;d love to hear from you! Whether you have questions about our products, 
-                need help with an order, or want to learn more about how Swago can 
+                We&#39;d love to hear from you! Whether you have questions about our products,
+                need help with an order, or want to learn more about how Swago can
                 benefit your child&#39;s learning.
               </p>
             </div>
@@ -228,7 +228,7 @@ export default function ContactPage() {
                   <label htmlFor="firstName" className="block text-sm font-medium text-slate-700 mb-2">
                     First Name <span className="text-red-500">*</span>
                   </label>
-                  <input 
+                  <input
                     id="firstName"
                     name="firstName"
                     type="text"
@@ -244,7 +244,7 @@ export default function ContactPage() {
                   <label htmlFor="lastName" className="block text-sm font-medium text-slate-700 mb-2">
                     Last Name <span className="text-red-500">*</span>
                   </label>
-                  <input 
+                  <input
                     id="lastName"
                     name="lastName"
                     type="text"
@@ -262,7 +262,7 @@ export default function ContactPage() {
                 <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-2">
                   Email <span className="text-red-500">*</span>
                 </label>
-                <input 
+                <input
                   id="email"
                   name="email"
                   type="email"
@@ -279,7 +279,7 @@ export default function ContactPage() {
                 <label htmlFor="phone" className="block text-sm font-medium text-slate-700 mb-2">
                   Phone <span className="text-red-500">*</span>
                 </label>
-                <input 
+                <input
                   id="phone"
                   name="phone"
                   type="tel"
@@ -296,7 +296,7 @@ export default function ContactPage() {
                 <label htmlFor="subject" className="block text-sm font-medium text-slate-700 mb-2">
                   Subject <span className="text-red-500">*</span>
                 </label>
-                <select 
+                <select
                   id="subject"
                   name="subject"
                   required
@@ -319,7 +319,7 @@ export default function ContactPage() {
                 <label htmlFor="message" className="block text-sm font-medium text-slate-700 mb-2">
                   Message <span className="text-red-500">*</span>
                 </label>
-                <textarea 
+                <textarea
                   id="message"
                   name="message"
                   rows={5}
@@ -333,7 +333,7 @@ export default function ContactPage() {
                 ></textarea>
               </div>
 
-              <button 
+              <button
                 type="submit"
                 disabled={loading}
                 className="w-full bg-[hsl(var(--swago-purple))] text-white font-bold py-3 px-6 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
@@ -349,8 +349,8 @@ export default function ContactPage() {
           <h2 className="text-3xl font-bold text-slate-800 text-center mb-12">Frequently Asked Questions</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-6xl mx-auto">
             <div className="space-y-4">
-              <h3 className="text-xl font-semibold text-slate-800">What age groups are your kits for?</h3>
-              <p className="text-slate-600">Our learning kits are designed for children aged 5-10 years, with specific products tailored for 5-7 years and 8-10 years age groups.</p>
+              <h3 className="text-xl font-semibold text-slate-800">What age groups are your smart box for?</h3>
+              <p className="text-slate-600">Our learning smart box are designed for children aged 5-10 years, with specific products tailored for 5-7 years and 8-10 years age groups.</p>
             </div>
             <div className="space-y-4">
               <h3 className="text-xl font-semibold text-slate-800">How long does shipping take?</h3>
@@ -362,7 +362,7 @@ export default function ContactPage() {
             </div>
             <div className="space-y-4">
               <h3 className="text-xl font-semibold text-slate-800">Are the materials safe for children?</h3>
-              <p className="text-slate-600">Absolutely! All our learning kits use child-safe, non-toxic materials and meet international safety standards.</p>
+              <p className="text-slate-600">Absolutely! All our learning smart box use child-safe, non-toxic materials and meet international safety standards.</p>
             </div>
           </div>
         </div>
