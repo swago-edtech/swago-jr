@@ -38,9 +38,9 @@ export default function Home() {
         <SkillUnlockSlider />
       </AnimateOnScroll>
 
-      <AnimateOnScroll>
+      {/* <AnimateOnScroll>
         <SkillBuildingSystem />
-      </AnimateOnScroll>
+      </AnimateOnScroll> */}
 
       <AnimateOnScroll>
         <HomeBlogSection />
