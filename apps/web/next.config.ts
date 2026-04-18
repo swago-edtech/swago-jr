@@ -2,10 +2,13 @@ import type { NextConfig } from "next";
 import path from "path";
 
 const nextConfig: NextConfig = {
+  // Standalone output for Docker — bundles only the files needed at runtime
+  output: 'standalone',
+
   // Tell Next.js to transpile our shared packages
   transpilePackages: ['@swago/utils', '@swago/database', '@swago/types'],
 
-  // Optional: Fix the workspace root warning
+  // Required for monorepo: trace dependencies from the workspace root
   outputFileTracingRoot: path.join(__dirname, '../..'),
 
   // Server-side packages

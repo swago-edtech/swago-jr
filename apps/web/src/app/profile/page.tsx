@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { useSharedContext, USER_EVENTS } from "@/context/SharedContext";
@@ -36,7 +36,7 @@ const UI_THEMES = [
   { base: 'bg-[#7464a9]', ring: 'ring-[#7464a9]/30', hover: 'hover:bg-[#7464a9]/15 hover:text-[#7464a9]' },
 ];
 
-export default function ProfilePage() {
+function ProfileContent() {
   const { user, setUser, isLoadingUser } = useSharedContext();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -494,7 +494,7 @@ export default function ProfilePage() {
                     {quest.product !== 'Common' ? 'Box: ' : 'Skill: '}
                     <span className="font-[1000] text-slate-700">{quest.product !== 'Common' ? quest.product : quest.skill}</span>
                   </p>
-                  <button onClick={() => { if (quest.id === 'reel-task') setShowReelForm(true); else router.push('/lottery-code'); }} className={`px-6 sm:px-8 py-2 sm:py-2.5 rounded-full text-[11px] sm:text-sm font-[1000] active:scale-95 transition-all text-center tracking-wide ${quest.product !== 'Common' ? "bg-gradient-to-r from-green-400 to-green-500 hover:from-green-500 hover:to-green-600 text-white": 'bg-gradient-to-r from-green-400 to-green-500 hover:from-green-500 hover:to-green-600 text-white'}`}>
+                  <button onClick={() => { if (quest.id === 'reel-task') setShowReelForm(true); else router.push('/lottery-code'); }} className={`px-6 sm:px-8 py-2 sm:py-2.5 rounded-full text-[11px] sm:text-sm font-[1000] active:scale-95 transition-all text-center tracking-wide ${quest.product !== 'Common' ? "bg-gradient-to-r from-green-400 to-green-500 hover:from-green-500 hover:to-green-600 text-white" : 'bg-gradient-to-r from-green-400 to-green-500 hover:from-green-500 hover:to-green-600 text-white'}`}>
                     {quest.product !== 'Common' ? 'Claim' : 'Start'}
                   </button>
                 </div>
@@ -517,5 +517,13 @@ export default function ProfilePage() {
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+export default function ProfilePage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-slate-50" />}>
+      <ProfileContent />
+    </Suspense>
   );
 }
