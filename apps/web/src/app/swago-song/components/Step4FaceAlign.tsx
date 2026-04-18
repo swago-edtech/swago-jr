@@ -1,56 +1,86 @@
-import { Play } from "lucide-react";
+import { Play, ArrowDown } from "lucide-react";
+import { motion } from "framer-motion";
 
 interface StepProps {
-    onNext: () => void;
+  onNext: () => void;
 }
 
 export default function Step4FaceAlign({ onNext }: StepProps) {
-    return (
-        <div className="flex-1 flex flex-col w-full min-h-screen md:min-h-full relative overflow-y-auto md:overflow-hidden pb-0 md:pb-0 pt-0 lg:pt-0">
-            <div className="flex-1 flex flex-col-reverse md:flex-row-reverse w-full h-full max-w-7xl mx-auto gap-4 md:gap-0">
-                {/* RIGHT: Media Plane */}
-                <div className="md:w-1/2 flex flex-col items-center justify-start md:justify-center md:items-start p-4 sm:p-6 md:px-8 pt-0 pb-6 md:py-0 md:pl-12 lg:pl-16 xl:pl-24 bg-transparent shrink-0">
-                    <div className="w-full max-w-sm sm:max-w-md md:max-w-lg aspect-[4/3] lg:aspect-video bg-slate-200 rounded-[2rem] overflow-hidden flex items-center justify-center shadow-inner border-2 border-white relative group cursor-pointer hover:shadow-purple-500/20 transition-all mx-auto md:mx-0">
-                        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 to-transparent z-10 opacity-70 group-hover:opacity-100 transition-opacity" />
-                        <p className="absolute bottom-4 left-6 text-white font-medium opacity-90 z-20 transition-transform group-hover:translate-x-2 duration-300">
-                            Click to play tutorial
-                        </p>
-                        <div className="w-16 h-16 md:w-20 md:h-20 bg-purple-600 rounded-full flex items-center justify-center shadow-xl shadow-purple-600/50 text-white cursor-pointer z-20 text-pop-bounce relative">
-                            <div className="absolute inset-0 flex items-center justify-center pl-1 md:pl-1.5">
-                                <Play className="w-8 h-8 md:w-10 md:h-10" fill="currentColor" />
-                            </div>
-                        </div>
-                    </div>
-                </div>
+  return (
+    /* Removed heavy top padding: pt-4 instead of pt-20 */
+    <div className="flex-1 flex flex-col w-full min-h-screen md:min-h-full relative overflow-x-hidden bg-white px-4 pt-2 md:pt-0">
+      
+      <div className="flex-1 flex flex-col md:flex-row w-full h-full max-w-7xl mx-auto items-center">
+        
+        {/* 1) TOP SECTION: Shrunken Girl Image */}
+        <div className="w-full md:w-1/2 flex flex-col items-center justify-center z-20">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            /* Shrunk image: max-w-[160px] is the sweet spot for mobile visibility */
+            className="relative w-full max-w-[160px] sm:max-w-[200px] md:max-w-[320px]"
+          >
+            <img
+              src="/images/home/step-5-smart-box.png"
+              alt="Swago Mascot"
+              className="w-full h-auto object-contain animate-float"
+            />
+          </motion.div>
 
-                {/* LEFT: Content Plane */}
-                <div className="md:w-1/2 flex flex-col items-center md:items-start text-center md:text-left justify-start md:justify-center px-6 sm:px-8 pt-2 pb-4 md:py-0 md:pr-8 md:pl-8 lg:pl-10 xl:pl-12">
-                    <div className="w-32 h-[142px] sm:w-36 sm:h-[162px] md:w-40 md:h-[182px] lg:w-48 lg:h-[220px] rounded-[50%] overflow-hidden border-[4px] border-[#fde8e8] shadow-lg shadow-slate-200/50 mb-6 bg-slate-100 shrink-0 mx-auto md:mb-6 relative">
-                        <img
-                            src="/images/home/step-5-smart-box.png"
-                            alt="Face alignment guide tutorial"
-                            className="w-full h-full object-cover object-center"
-                        />
-                    </div>
-
-                    <h1 className="text-4xl md:text-5xl lg:text-[64px] font-black text-slate-800 tracking-tight leading-[1.1] mb-4 md:mb-6 letter-pop max-w-[340px] md:max-w-none mx-auto md:mx-0">
-                        Pop your face
-                        in the <span className="font-medium">center</span> and groove on{" "}
-                        <span className="text-purple-600 font-bold">“Yes I can”</span>{" "}
-                        song.
-                    </h1>
-                    <p className="text-base md:text-lg lg:text-xl text-slate-500 font-medium mb-8 max-w-[300px] md:max-w-sm md:hidden mx-auto leading-relaxed">
-                        Check below video for reference.
-                    </p>
-
-                    <button
-                        onClick={onNext}
-                        className="w-full max-w-[320px] md:w-fit px-10 md:px-12 py-[18px] md:py-5 lg:py-6 bg-purple-600 hover:bg-purple-700 text-white text-[16px] lg:text-[18px] font-bold uppercase tracking-widest rounded-2xl transition-all shadow-xl shadow-purple-600/30 mx-auto md:mx-0 btn-shine btn-text-pop"
-                    >
-                        <span>Link Your Yes, I can Video</span>
-                    </button>
-                </div>
-            </div>
+          {/* New Engaged Headline */}
+          <div className="text-center mt-4 px-2">
+            <h1 className="text-3xl md:text-5xl lg:text-7xl font-black text-slate-900 tracking-tighter leading-[1.1]">
+              Ready to <span className="text-[hsl(var(--swago-purple))]">Groove?</span>
+            </h1>
+            <p className="text-slate-500 font-medium mt-2 text-sm md:text-lg">
+              Pop your face in the center and show us your moves on "Yes I Can" song!
+            </p>
+          </div>
         </div>
-    );
+
+        {/* 2) MIDDLE SECTION: Video Reference */}
+        <div className="w-full md:w-1/2 flex flex-col items-center justify-center py-6 md:p-12">
+          
+          {/* Reference Note */}
+          <div className="flex items-center gap-2 mb-4 text-[hsl(var(--swago-purple))] font-bold text-xs uppercase tracking-widest">
+            <span className="bg-purple-50 px-3 py-1 rounded-full">Check video for reference</span>
+            <ArrowDown className="w-4 h-4 animate-bounce" />
+          </div>
+
+          <a 
+            href="https://youtube.com/shorts/MqQhWabS5VI?feature=share" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="w-full"
+          >
+            {/* Shorter aspect ratio for mobile to save vertical space */}
+            <div className="w-full aspect-[16/10] md:aspect-video max-w-[280px] md:max-w-[400px] bg-slate-100 rounded-[2rem] overflow-hidden flex items-center justify-center shadow-xl border-4 border-white relative group cursor-pointer mx-auto">
+              <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent z-10" />
+              
+              <div className="w-12 h-12 bg-[hsl(var(--swago-purple))] rounded-full flex items-center justify-center shadow-lg text-white z-20">
+                <Play className="w-5 h-5 ml-1" fill="currentColor" />
+              </div>
+
+              <p className="absolute bottom-4 text-white font-bold text-[10px] tracking-widest z-20 uppercase">
+                Tap to Watch
+              </p>
+            </div>
+          </a>
+
+          {/* 3) BOTTOM SECTION: Action Button */}
+          <div className="w-full mt-8 px-2">
+            <button
+              onClick={onNext}
+              className="w-full md:w-fit md:px-12 py-5 bg-[hsl(var(--swago-purple))] text-white font-black tracking-widest rounded-2xl shadow-xl shadow-purple-900/20 hover:brightness-110 active:scale-95 transition-all btn-shine"
+            >
+              <span>I Recorded "Yes I Can" Video</span>
+            </button>
+            
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
 }

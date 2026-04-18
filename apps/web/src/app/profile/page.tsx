@@ -153,8 +153,8 @@ export default function ProfilePage() {
       title: '"Yes I Can" Dance',
       description: `Groove on “Yes I Can” song with your smart box`,
       tags: [
-        { name: 'Growth', color: 'bg-[#818CF8]', icon: Zap },
-        { name: 'Spotlight', color: 'bg-[#4ADE80]', icon: Star }
+        { name: 'Growth', color: 'bg-[#8a59ed]', icon: Zap },
+        { name: 'Spotlight', color: 'bg-[#e0914c]', icon: Star }
       ],
       image: '/images/test/quest_ice_clock.png',
       reward: 25,
@@ -171,8 +171,8 @@ export default function ProfilePage() {
         title: `Claim your Lucky Ticket`,
         description: `Claim your lucky ticket from smart box and earn 20 Swago dollars`,
         tags: [
-          { name: 'Ticket', color: 'bg-[#FDE047]', icon: TicketIcon },
-          { name: boxName, color: 'bg-[#A7F3D0]', icon: Package }
+          { name: 'Ticket', color: 'bg-[#e0914c]', icon: TicketIcon },
+          { name: boxName, color: 'bg-[#7bc4c3]', icon: Package }
         ],
         image: '/images/test/quest_treasure.png',
         reward: 20,
@@ -494,7 +494,7 @@ export default function ProfilePage() {
                     {quest.product !== 'Common' ? 'Box: ' : 'Skill: '}
                     <span className="font-[1000] text-slate-700">{quest.product !== 'Common' ? quest.product : quest.skill}</span>
                   </p>
-                  <button onClick={() => { if (quest.id === 'reel-task') setShowReelForm(true); else router.push('/lottery-code'); }} className={`px-6 sm:px-8 py-2 sm:py-2.5 rounded-full text-[11px] sm:text-sm font-[1000] active:scale-95 transition-all text-center tracking-wide ${quest.product !== 'Common' ? 'bg-[#EBFAED] text-[#2CB065] hover:bg-[#D5F5D8]' : 'bg-gradient-to-r from-purple-400 to-purple-500 hover:from-purple-500 hover:to-purple-600 text-white'}`}>
+                  <button onClick={() => { if (quest.id === 'reel-task') setShowReelForm(true); else router.push('/lottery-code'); }} className={`px-6 sm:px-8 py-2 sm:py-2.5 rounded-full text-[11px] sm:text-sm font-[1000] active:scale-95 transition-all text-center tracking-wide ${quest.product !== 'Common' ? "bg-gradient-to-r from-green-400 to-green-500 hover:from-green-500 hover:to-green-600 text-white": 'bg-gradient-to-r from-green-400 to-green-500 hover:from-green-500 hover:to-green-600 text-white'}`}>
                     {quest.product !== 'Common' ? 'Claim' : 'Start'}
                   </button>
                 </div>

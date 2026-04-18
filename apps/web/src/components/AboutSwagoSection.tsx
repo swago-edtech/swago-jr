@@ -3,93 +3,93 @@
 import React from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
+import { ShoppingBag } from "lucide-react";
 import Link from "next/link";
 
-export default function AboutSwagoSection() {
-    return (
-        <section className="w-full relative overflow-hidden bg-white pt-8 md:pt-12">
-            <div className="w-full relative flex flex-col-reverse lg:flex-row items-stretch">
-                {/* Left Side - Content */}
-                <motion.div
-                    initial={{ opacity: 0, x: -50 }}
-                    whileInView={{ opacity: 1, x: 0 }}
-                    viewport={{ once: true, margin: "-100px" }}
-                    transition={{ duration: 0.7 }}
-                    className="w-full lg:w-[60%] flex items-center justify-center p-3 md:p-6 lg:p-8 xl:p-10"
-                >
-                    <div className="max-w-xl text-slate-600 leading-relaxed text-lg lg:text-[19px] space-y-3 md:space-y-4">
-                        <h2 className="text-4xl md:text-5xl lg:text-6xl font-black text-slate-900 tracking-tight mb-2">
-                            What is <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#b251a2] to-[#7464a9]">SWAGO</span>
-                        </h2>
 
-                        <div className="space-y-2">
-                            <p className="text-xl md:text-2xl font-bold text-slate-800 leading-snug">
-                                SWAGO is a <span className="text-[#b251a2]">gamified, screen-free</span> learning system of physical smart boxes that help kids build <span className="text-[#7bc4c3]">real-world skills</span> through play.
-                            </p>
+export default function WhatIsSwago() {
+  return (
+    /* SECTION PADDING: Matched exactly to Founder Note (py-16 to py-24) */
+    <section className="w-full bg-slate-50 py-8 lg:py-12 font-poppins overflow-hidden">
+      <div className="container mx-auto px-6 lg:px-12 max-w-7xl">
+        
+        {/* LAYOUT: flex-col-reverse for Mobile (Image Top), lg:flex-row for Desktop */}
+        <div className="flex flex-col-reverse lg:flex-row items-start gap-12 lg:gap-24">
+          
+          {/* Left Side - Narrative Content */}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+            className="w-full lg:w-[60%] flex flex-col justify-start"
+          >
+            {/* HEADER: Matched size and tracking to Founder section */}
+            <h2 className="text-4xl md:text-5xl text-[hsl(var(--swago-purple))] font-bold tracking-tighter mb-4 leading-tight">
+              SWAGO is...
+            </h2>
 
-                            <p>
-                                Each box is designed as a mission filled with challenges that build <strong className="text-slate-800 font-bold">focus, confidence, and expression.</strong>
-                            </p>
+            {/* BODY TEXT: Using exact 18px size and 1.8 line-height for consistency */}
+            <div className="space-y-4 text-[18px] leading-[1.7] text-slate-600 font-normal tracking-tight">
+              
+              {/* Lead Paragraph: 24px for prominence */}
+              <p className="">
+                a screen-free ecosystem of physical smart boxes designed to bridge the gap between play and real-world mastery.
+              </p>
 
-                            <p className="text-xl font-bold italic text-[#7464a9]">
-                                It moves children from passive consumption to active growth
-                            </p>
+              {/* Standard Paragraph: 18px matched to Founder Note body */}
+              <p>
+                Every box is a mission, a series of curated challenges that transform focus, confidence, and expression into second nature. We move children away from the passivity of screens and into the momentum of active growth.
+              </p>
 
-                            <div className="flex items-center gap-4 py-2">
-                                <div className="flex flex-col items-center">
-                                    <span className="text-slate-400 line-through text-sm uppercase tracking-widest font-bold">From</span>
-                                    <span className="text-2xl md:text-3xl font-black text-slate-300 italic uppercase">I can&apos;t</span>
-                                </div>
-                                <div className="h-12 w-px bg-slate-200 rotate-[20deg]" />
-                                <div className="flex flex-col items-center">
-                                    <span className="text-[#b251a2] text-sm uppercase tracking-widest font-black">To</span>
-                                    <span className="text-3xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[#b251a2] to-[#7464a9] italic uppercase transform -rotate-1">
-                                        Yes, I can
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Buttons Section */}
-                        <div className="pt-6">
-                            <div className="flex flex-col sm:flex-row flex-wrap gap-4">
-                                <Link
-                                    href="/products"
-                                    className="w-full sm:w-[calc(50%-0.5rem)] px-8 py-3.5 md:py-4 bg-swago-purple hover:bg-swago-purple/90 text-white text-center font-bold rounded-2xl transition-all active:scale-95 flex items-center justify-center lg:text-sm xl:text-base shadow-lg shadow-swago-purple/20"
-                                >
-                                    Buy Swago smart boxes
-                                </Link>
-                                <Link
-                                    href="https://chat.whatsapp.com/CwGGxSas1NVIRXOkBqe9XD?mode=gi_t"
-                                    target="_blank"
-                                    className="w-full sm:w-[calc(50%-0.5rem)] px-8 py-3.5 md:py-4 bg-swago-teal hover:bg-swago-teal/90 text-white text-center font-bold rounded-2xl transition-all active:scale-95 flex items-center justify-center lg:text-sm xl:text-base shadow-lg shadow-swago-teal/20"
-                                >
-                                    Join our whatsapp community
-                                </Link>
-                                <Link
-                                    href="/onboarding"
-                                    className="w-full px-8 py-3.5 md:py-4 border-2 border-swago-purple text-swago-purple hover:bg-swago-purple hover:text-white text-center font-bold rounded-2xl transition-all active:scale-95 flex items-center justify-center"
-                                >
-                                    Create your kid&apos;s Swagoverse profile
-                                </Link>
-                            </div>
-                        </div>
-                    </div>
-                </motion.div>
-
-                {/* Right Side - Image */}
-                <div className="w-full lg:w-[40%] flex p-0 m-0">
-                    <div className="relative w-full min-h-[300px] md:min-h-[400px] max-h-[640px] overflow-hidden">
-                        <Image
-                            src="/images/home/what-is-swago-img.jpeg"
-                            alt="Swago Smart Box"
-                            fill
-                            className="object-cover"
-                            sizes="(max-width: 1024px) 100vw, 40vw"
-                        />
-                    </div>
-                </div>
+              {/* Outcome Statement */}
+              <p className="text-slate-900 font-semibold">
+                This is where &quot;I can’t&quot; becomes <span className="text-[hsl(var(--swago-purple))]">&quot;Yes, I can.&quot;</span>
+              </p>
             </div>
-        </section>
-    );
+
+            {/* CTA Button: Integrated into the text flow */}
+            {/* LINKED CTA BUTTON */}
+            <div className="pt-6">
+              <Link href="/products">
+                <button className="group flex items-center gap-3 px-5 py-3 bg-[hsl(var(--swago-purple))] hover:bg-[#5e4f8d] text-white rounded-2xl font-bold transition-all duration-300 shadow-xl shadow-purple-100 hover:-translate-y-1 active:scale-95 cursor-pointer">
+                  <ShoppingBag size={22} className="group-hover:rotate-12 transition-transform" />
+                  Buy Swago Smart Boxes
+                </button>
+              </Link>
+            </div>
+          </motion.div>
+
+          {/* Right Side - Image Frame */}
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.98 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8, delay: 0.2 }}
+            className="w-full lg:w-[40%] flex justify-center lg:justify-end"
+          >
+            {/* ASPECT RATIO FIX: aspect-[4/3] prevents white bars at top/bottom of your image */}
+            <div className="relative w-full max-w-[550px] aspect-[4/3] rounded-[2rem] lg:rounded-[3rem] overflow-hidden 
+                            bg-white transition-all duration-700 ease-out hover:scale-[1.02]
+                            shadow-[0_40px_100px_-20px_rgba(0,0,0,0.1)]">
+              
+              <Image
+                src="/images/home/what-is-swago.jpeg" 
+                alt="Swago Smart Box"
+                fill
+                /* object-cover + center ensures the image fills the 4:3 frame perfectly */
+                className="object-cover object-center transition-transform duration-700"
+                sizes="(max-width: 1024px) 100vw, 40vw"
+                priority
+              />
+
+              {/* Subtle inner-glow ring for premium finish */}
+              <div className="absolute inset-0 ring-1 ring-inset ring-black/5 rounded-[2rem] lg:rounded-[3rem] pointer-events-none" />
+            </div>
+          </motion.div>
+
+        </div>
+      </div>
+    </section>
+  );
 }

@@ -20,54 +20,53 @@ export default function AboutPage() {
   return (
     <div className="w-full min-h-screen bg-white overflow-x-hidden pb-12">
 
-      {/* 1) Founder Message Section (Now at the very top, full width) */}
+      {/* 1) Founder Message Section */}
       <AnimateOnScroll>
         <FounderMessage />
       </AnimateOnScroll>
 
-      {/* 1.5) What is SWAGO Section */}
+      {/* 2) What is SWAGO Section */}
       <AnimateOnScroll>
         <AboutSwagoSection />
       </AnimateOnScroll>
 
-      {/* 2) Hero Section: SWAGO Acronym (Full width styling) */}
-      <section className="w-full px-4 lg:px-8 pt-12 md:pt-16 pb-6 md:pb-10 bg-slate-50 border-t border-slate-100">
+      {/* 3) Core Skills Section - White Background */}
+      <section className="w-full px-4 lg:px-8 pt-8 md:pt-10 pb-12 md:pb-20 bg-white border-t border-slate-50">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.8, ease: "easeOut" }}
-          className="text-center mb-8 md:mb-14 w-full"
+          className="text-center mb-12 md:mb-20 w-full"
         >
-          <div className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-purple-100/50 border border-purple-200 mb-8 backdrop-blur-sm">
-            <span className="w-2.5 h-2.5 rounded-full bg-purple-600 animate-pulse"></span>
-            <span className="text-sm font-bold tracking-widest text-purple-800 uppercase">Discover Our Method</span>
-          </div>
+          <h2 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tighter leading-none mb-6">
+            Swago Core <span className="text-[hsl(var(--swago-purple))]">Skills</span>
+          </h2>
 
-          <h1 className="text-6xl md:text-8xl lg:text-9xl font-black text-slate-900 tracking-tighter leading-none mb-8">
-            We are <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#b251a2] to-[#7464a9]">SWAGO</span>
-          </h1>
-
-          <p className="max-w-4xl mx-auto text-xl md:text-2xl text-slate-600 leading-relaxed font-medium">
-            Every activity at Swago focuses on 5 super skills your kid will love. We believe in preparing children for tomorrow through a unique blend of learning and gamification.
+          <p className="max-w-4xl mx-auto text-[18px] md:text-xl text-slate-600 leading-relaxed font-medium px-4">
+            Every SWAGO Smart Box works on one core Super Skill that cannot be replaced by AI.
           </p>
         </motion.div>
 
-        {/* Mascot Letters Display (Full width row) */}
-        <div className="w-full max-w-[2000px] mx-auto flex flex-col md:flex-row items-center justify-center gap-6 md:gap-4 lg:gap-10 px-4 mb-12">
+        {/* MOBILE: Horizontal Scroll (Snap-to-Center)
+            DESKTOP: Balanced Flex Row
+            CSS: Added 'scrollbar-hide' to remove gray bars
+        */}
+        <div className="w-full max-w-6xl mx-auto flex overflow-x-auto md:overflow-visible snap-x snap-mandatory scrollbar-hide items-start justify-start md:justify-center gap-8 px-6 md:px-4  ">
           {swagoLetters.map((item, index) => (
             <motion.div
               key={item.letter}
-              initial={{ opacity: 0, scale: 0.8, y: 20 }}
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
               whileInView={{ opacity: 1, scale: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: index * 0.15 }}
-              className="group relative w-full md:flex-1 flex flex-col items-center"
+              transition={{ duration: 0.5, delay: index * 0.1 }}
+              className="group relative min-w-[85%] md:min-w-0 md:flex-1 flex flex-col items-center snap-center"
             >
-              {/* Image Container with Glassmorphic Card effect */}
-              <div className="relative aspect-square w-56 md:w-full max-w-[280px] mb-8 rounded-[40px] bg-white p-6 shadow-[0_8px_30px_rgb(0,0,0,0.06)] border border-slate-100 transition-all duration-500 ease-out group-hover:shadow-[0_20px_40px_rgb(99,102,241,0.15)] group-hover:-translate-y-4">
-                {/* Background Glow */}
-                <div className={`absolute inset-0 rounded-[40px] opacity-0 blur-3xl transition-opacity duration-500 bg-gradient-to-br ${item.color} group-hover:opacity-15`} />
+              {/* Card - Premium White with subtle depth */}
+              <div className="relative aspect-square w-full max-w-[240px] md:max-w-[200px] mb-8 rounded-[40px] bg-white p-6 shadow-[0_15px_45px_rgba(0,0,0,0.05)] border border-slate-50 transition-all duration-500 ease-out group-hover:shadow-[0_25px_50px_rgba(116,100,169,0.12)] md:group-hover:-translate-y-3">
+                
+                {/* Interactive Glow */}
+                <div className={`absolute inset-0 rounded-[40px] opacity-0 blur-3xl transition-opacity duration-500 bg-gradient-to-br ${item.color} group-hover:opacity-10`} />
 
                 <div className="relative w-full h-full flex items-center justify-center">
                   <Image
@@ -75,35 +74,36 @@ export default function AboutPage() {
                     alt={`${item.letter} for ${item.word}`}
                     fill
                     className="object-contain drop-shadow-2xl transition-transform duration-500 ease-out group-hover:scale-110"
-                    priority={index < 3}
+                    priority={index === 0}
                   />
                 </div>
 
-                {/* Overlaid bold letter */}
-                <div className="absolute -bottom-6 -right-6 w-16 h-16 rounded-[24px] bg-white shadow-2xl border border-slate-50 flex items-center justify-center z-20">
-                  <span className={`text-4xl font-black bg-clip-text text-transparent bg-gradient-to-br ${item.color}`}>
+                {/* Overlaid Badge */}
+                <div className="absolute -bottom-3 -right-3 w-12 h-12 rounded-[18px] bg-white shadow-2xl border border-slate-50 flex items-center justify-center z-20">
+                  <span className={`text-2xl font-black bg-clip-text text-transparent bg-gradient-to-br ${item.color}`}>
                     {item.letter}
                   </span>
                 </div>
               </div>
 
-              {/* Text Label */}
+              {/* Skill Labels */}
               <div className="text-center px-4">
-                <h3 className="text-2xl font-black text-slate-800 mb-2">{item.word}</h3>
-                <p className="text-base text-slate-500 font-medium leading-relaxed max-w-[250px] mx-auto">{item.desc}</p>
+                <h3 className="text-2xl md:text-xl font-black text-slate-800 mb-2">{item.word}</h3>
+                <p className="text-[15px] text-slate-500 font-medium leading-relaxed max-w-[220px] mx-auto">
+                  {item.desc}
+                </p>
               </div>
             </motion.div>
           ))}
         </div>
       </section>
 
-      {/* Ambassador Call to Action */}
+      {/* 4) Ambassador CTA Section */}
       <AnimateOnScroll>
-        <div className="w-full bg-white pt-4 pb-4 px-4">
+        <div className="w-full bg-white py-2  border-t border-slate-50">
           <AmbassadorCTA />
         </div>
       </AnimateOnScroll>
-
 
     </div>
   );

@@ -192,16 +192,16 @@ export default function CartPage() {
                 <div className="relative h-6 sm:h-8">
                   <div className="absolute top-1/2 left-0 right-0 h-1 bg-slate-100 -translate-y-1/2 rounded-full" />
                   <div
-                    className="absolute top-1/2 left-0 h-1 bg-[#61498C] -translate-y-1/2 rounded-full transition-all duration-700 ease-out"
+                    className="absolute top-1/2 left-0 h-1 bg-[#8a59ed] -translate-y-1/2 rounded-full transition-all duration-700 ease-out"
                     style={{ width: `${progressPercent}%` }}
                   />
-                  <div className="absolute top-1/2 left-0 -translate-y-1/2 w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-[#61498C] z-10" />
+                  <div className="absolute top-1/2 left-0 -translate-y-1/2 w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-[#8a59ed] z-10" />
 
                   <div
                     className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 z-10"
                     style={{ left: `${(shippingThreshold / giftThreshold) * 100}%` }}
                   >
-                    <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center border-2 border-white transition-all duration-500 ${total >= shippingThreshold ? 'bg-[#61498C] text-white' : 'bg-slate-200 text-slate-400'}`}>
+                    <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center border-2 border-white transition-all duration-500 ${total >= shippingThreshold ? 'bg-[#8a59ed] text-white' : 'bg-slate-200 text-slate-400'}`}>
                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-3 h-3 sm:w-4 sm:h-4">
                         <path strokeLinecap="round" strokeLinejoin="round" d={total >= shippingThreshold ? "M4.5 12.75l6 6 9-13.5" : "M4.5 19.5h15"} />
                       </svg>
@@ -209,7 +209,7 @@ export default function CartPage() {
                   </div>
 
                   <div className="absolute top-1/2 right-0 translate-x-1/2 -translate-y-1/2 z-10">
-                    <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center border-2 border-white transition-all duration-500 ${total >= giftThreshold ? 'bg-[#61498C] text-white' : 'bg-slate-200 text-slate-400'}`}>
+                    <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center border-2 border-white transition-all duration-500 ${total >= giftThreshold ? 'bg-[#8a59ed] text-white' : 'bg-slate-200 text-slate-400'}`}>
                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-3 h-3 sm:w-4 sm:h-4">
                         <path strokeLinecap="round" strokeLinejoin="round" d={total >= giftThreshold ? "M4.5 12.75l6 6 9-13.5" : "M12 4.5v15m7.5-7.5h-15"} />
                       </svg>
