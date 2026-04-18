@@ -211,16 +211,16 @@ export async function POST(req: Request) {
       const productPrice = reservation ? (reservation.product as any).price || 0 : item.price;
 
       const slugValue = item.slug || item.productId || item._id;
-      if (item.price === 1 && BONUS_THRESHOLDS[slugValue]) return sum;
+      if (item.price === 1 && BONUS_THRESHOLDS[slugValue as string]) return sum;
 
       return sum + (productPrice * item.quantity);
     }, 0);
 
     for (const item of orderDetails.cart) {
       const slugValue = item.slug || item.productId || item._id;
-      if (item.price === 1 && BONUS_THRESHOLDS[slugValue]) {
-        if (nonBonusSubtotal < BONUS_THRESHOLDS[slugValue]) {
-          console.error(`❌ Fraud Detection: Bonus item ${item.name} added without meeting threshold ₹${BONUS_THRESHOLDS[slugValue]}. Current subtotal: ₹${nonBonusSubtotal}`);
+      if (item.price === 1 && BONUS_THRESHOLDS[slugValue as string]) {
+        if (nonBonusSubtotal < BONUS_THRESHOLDS[slugValue as string]) {
+          console.error(`❌ Fraud Detection: Bonus item ${item.name} added without meeting threshold ₹${BONUS_THRESHOLDS[slugValue as string]}. Current subtotal: ₹${nonBonusSubtotal}`);
           return NextResponse.json({ error: "Invalid bonus item threshold" }, { status: 400 });
         }
       }
@@ -239,7 +239,7 @@ export async function POST(req: Request) {
 
       const slugValue = item.slug || item.productId || item._id;
       // Allow price of 1 if it passed the bonus threshold check above
-      if (item.price === 1 && BONUS_THRESHOLDS[slugValue] && nonBonusSubtotal >= BONUS_THRESHOLDS[slugValue]) {
+      if (item.price === 1 && BONUS_THRESHOLDS[slugValue as string] && nonBonusSubtotal >= BONUS_THRESHOLDS[slugValue as string]) {
         finalPrice = 1;
       }
       return {
@@ -282,7 +282,41 @@ export async function POST(req: Request) {
 
     // ✅ NEW: Handle Swago Money Redemption
     const swagoMoneyRedeemed = orderDetails.swagoMoneyRedeemed || 0;
-    const swagoMoneyKidId = orderDetails.swagoMoneyKidId;
+    let swagoMoneyKidId = orderDetails.swagoMoneyKidId;
+
+    if (swagoMoneyRedeemed > 0) {
+      if (calculatedAmountAfterCoupon < 799) {
+        return NextResponse.json({ error: "Order amount must be ₹799 or more to use Swago Dollars" }, { status: 400 });
+      }
+
+      const maxAllowed = Math.trunc(calculatedAmountAfterCoupon * 0.05);
+      if (swagoMoneyRedeemed > maxAllowed) {
+        return NextResponse.json({ error: `You can only use up to 5% (₹${maxAllowed}) of your order amount in Swago Dollars` }, { status: 400 });
+      }
+
+      // Verify User has enough
+      const profiles = await KidProfile.find({ userId: user._id }).select("ambassador.swagoMoney");
+      let totalAvailable = 0;
+      let profileToDeduct = null;
+
+      for (const p of profiles) {
+        const bal = p.ambassador?.swagoMoney || 0;
+        totalAvailable += bal;
+        if (bal >= swagoMoneyRedeemed) {
+          profileToDeduct = p._id;
+        }
+      }
+
+      if (totalAvailable < swagoMoneyRedeemed) {
+        return NextResponse.json({ error: "Insufficient Swago Dollars balance" }, { status: 400 });
+      }
+
+      if (!swagoMoneyKidId && profileToDeduct) {
+        swagoMoneyKidId = profileToDeduct;
+      } else if (!swagoMoneyKidId && profiles.length > 0) {
+        swagoMoneyKidId = profiles[0]._id; // Fallback
+      }
+    }
 
     const calculatedTotal = Math.max(0, calculatedAmountAfterCoupon - swagoMoneyRedeemed);
 

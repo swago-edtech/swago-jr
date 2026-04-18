@@ -17,8 +17,8 @@ const poppins = Poppins({
 
 
 export const metadata = {
-  title: "Swago - Kids Learning Kits",
-  description: "Fun and interactive learning kits for kids.",
+  title: "Swago - Kids Learning Smart Box",
+  description: "Fun and interactive learning smart box for kids.",
 };
 
 

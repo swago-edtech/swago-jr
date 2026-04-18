@@ -68,7 +68,7 @@ export default function CouponSheet({
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-white rounded-t-[2.5rem]">
               <div>
-                <h3 className="text-base font-black text-slate-900 uppercase tracking-tight">Coupons & Offers</h3>
+                <h3 className="text-base font-black text-slate-900 tracking-tight">Coupons & Offers</h3>
                 <p className="text-[10px] text-slate-400 font-bold mt-0.5">Cart value · ₹{total.toFixed(0)}</p>
               </div>
               <button onClick={onClose} className="w-9 h-9 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors">
@@ -91,13 +91,13 @@ export default function CouponSheet({
                     value={couponInput}
                     onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
                     placeholder="Enter coupon code"
-                    className="flex-1 bg-transparent py-3 text-sm font-bold text-slate-800 placeholder:text-slate-400 outline-none uppercase tracking-widest"
+                    className="flex-1 bg-transparent py-3 text-xs md:text-sm font-bold text-slate-800 placeholder:text-slate-400 outline-none tracking-widest"
                   />
                 </div>
                 <button
                   onClick={handleApplyClick}
                   disabled={!couponInput.trim() || loading}
-                  className="bg-[hsl(var(--swago-purple))] text-white font-black text-xs px-6 rounded-2xl uppercase tracking-wider disabled:opacity-50 transition-all active:scale-95 shadow-lg shadow-purple-100"
+                  className="bg-[hsl(var(--swago-purple))] text-white font-black text-xs px-3 md:px-6 rounded-2xl  tracking-wider disabled:opacity-50 transition-all active:scale-95 shadow-lg shadow-purple-100"
                 >
                   {loading ? '...' : 'Apply'}
                 </button>
@@ -109,7 +109,7 @@ export default function CouponSheet({
 
             {/* Coupons List */}
             <div className="overflow-y-auto flex-1 px-6 py-6 space-y-4 bg-slate-50/50 scrollbar-none">
-              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Available Coupons</p>
+              <p className="text-[9px] font-black text-slate-400 tracking-widest mb-1">Available Coupons</p>
               {availableCoupons.map((coupon) => {
                 const isEligible = total >= coupon.minOrder;
                 return (
@@ -141,10 +141,10 @@ export default function CouponSheet({
                           {isEligible ? (
                             <div className="inline-flex items-center gap-1 px-2 py-1 bg-emerald-50 rounded-lg">
                               <div className="w-1 h-1 rounded-full bg-emerald-500" />
-                              <span className="text-[9px] text-emerald-600 font-black uppercase tracking-tight">Eligible on order</span>
+                              <span className="text-[9px] text-emerald-600 font-black tracking-tight">Eligible on order</span>
                             </div>
                           ) : (
-                            <p className="text-[9px] text-slate-400 font-bold uppercase tracking-tight">
+                            <p className="text-[9px] text-slate-400 font-bold tracking-tight">
                               Add ₹{(coupon.minOrder - total).toFixed(0)} more to unlock
                             </p>
                           )}
@@ -154,7 +154,7 @@ export default function CouponSheet({
                       <button
                         onClick={() => isEligible && onApply(coupon.code)}
                         disabled={!isEligible || loading}
-                        className={`flex-shrink-0 text-[10px] font-black uppercase tracking-widest px-5 py-2.5 rounded-xl transition-all active:scale-95 ${
+                        className={`flex-shrink-0 text-[10px] font-black tracking-widest px-5 py-2.5 rounded-xl transition-all active:scale-95 ${
                           isEligible 
                           ? 'bg-[hsl(var(--swago-purple))] text-white hover:opacity-90 shadow-lg shadow-purple-100' 
                           : 'bg-slate-100 text-slate-400 cursor-not-allowed'

@@ -20,25 +20,25 @@ export default function PrivacyPage() {
 
       <div className="container mx-auto px-4 py-16 max-w-4xl">
         <div className="space-y-8">
-          
+
           {/* Introduction */}
           <div>
             <p className="text-lg text-slate-600 leading-relaxed mb-4">
-              At Swago , we respect your privacy and are committed to protecting your personal information. 
-              This policy explains how we collect, use, and safeguard your data when you use our website and purchase our educational kits.
+              At Swago , we respect your privacy and are committed to protecting your personal information.
+              This policy explains how we collect, use, and safeguard your data when you use our website and purchase our educational smart box.
             </p>
             <p className="text-slate-600">
-              <strong>Last Updated:</strong> {new Date().toLocaleDateString('en-IN', { 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
+              <strong>Last Updated:</strong> {new Date().toLocaleDateString('en-IN', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
               })}
             </p>
           </div>
 
           {/* Main Content */}
           <div className="bg-slate-50 p-8 rounded-xl space-y-6">
-            
+
             <div>
               <h2 className="text-2xl font-bold text-slate-800 mb-4">What Information We Collect</h2>
               <p className="text-slate-600 mb-3">We collect information necessary to provide our services:</p>

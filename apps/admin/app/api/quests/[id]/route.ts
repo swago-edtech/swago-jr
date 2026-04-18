@@ -2,10 +2,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB, Quest } from "@swago/database";
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
         await connectDB();
-        const { id } = params;
+        const { id } = await params;
         await Quest.findByIdAndDelete(id);
         return NextResponse.json({ success: true });
     } catch (error: any) {
@@ -13,10 +13,10 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     }
 }
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
         await connectDB();
-        const { id } = params;
+        const { id } = await params;
         const data = await req.json();
         const quest = await Quest.findByIdAndUpdate(id, data, { new: true });
         return NextResponse.json({ success: true, quest });

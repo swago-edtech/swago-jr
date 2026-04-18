@@ -2,69 +2,74 @@
 
 import React from "react";
 import Link from "next/link";
+import { motion } from "framer-motion";
+import { ShoppingBag, Users, Gift } from "lucide-react";
 
 export default function AmbassadorCTA() {
   return (
-    <section className="py-5 px-4">
-      <div className="max-w-7xl mx-auto">
-        {/* Main CTA Card */}
-        <div className="relative rounded-2xl overflow-hidden shadow-xl border-2 border-slate-200 bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50">
-          <div className="p-6 md:p-10">
-            <p className="text-slate-800 text-base md:text-lg leading-relaxed max-w-5xl mx-auto text-center">
-              At Swago, we help children grow into confident, curious, and capable human beings, 
-              not through pressure, but through play.
-              <br />
-            </p>
-            
+    <section className="w-full bg-slate-50 py-8 md:py-8 px-5">
+      
+      <div className="w-full text-center">
+        {/* Headline */}
+        <motion.h2
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+          className="text-3xl md:text-5xl font-black text-slate-900 tracking-tight mb-6"
+        >
+          Start Your Child&apos;s SWAGO Journey Today
+        </motion.h2>
 
-            <p className="text-slate-800 text-base md:text-lg leading-relaxed max-w-5xl mx-auto text-center mt-4">
-              Through our playful Swago Smart Boxes, simple challenges, and everyday moments, 
-              children learn to think, move, try, and express in ways that slowly build smart thinking.
-              <br />
-              <br />
-              Swago isn&apos;t about being perfect , it&apos;s about discovering who you are, one small win at a time, 
-              and growing up with the feeling every child deserves:{" "}
-              <span className="font-bold text-purple-600">&quot;Yes, I can.&quot;</span> 💛
-            </p>
-          </div>
-        </div>
+        {/* Subheadline */}
+        <motion.p
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6, delay: 0.1 }}
+          className="text-lg md:text-xl text-slate-500 font-medium max-w-2xl mx-auto leading-relaxed mb-12"
+        >
+          Give your child screen-free learning that builds real-life skills. Join thousands of happy families.
+        </motion.p>
 
-        {/* Content */}
-        <div className="relative z-10 pt-8 md:pt-12 text-center">
-          {/* Badge */}
-          <div className="inline-block mb-6 px-4 py-1.5 bg-orange-100 rounded-full text-xs font-bold text-orange-600">
-            Limited Spots Available
-          </div>
-
-          {/* Title - Simple Design */}
-          <h2 className="text-2xl md:text-3xl font-bold mb-8 text-slate-800">
-            Join our Swago Kid Brand Ambassador Program
-          </h2>
-
-          {/* CTA Button */}
+        {/* 3 BUTTON GROUP */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          className="flex flex-col md:flex-row items-center justify-center gap-4 mb-10"
+        >
+          {/* Primary Action: Buy */}
           <Link
-            href="/ambassador"
-            className="inline-block btn-shine bg-[hsl(var(--swago-orange))] text-white font-bold text-base md:text-lg px-8 py-3.5 rounded-full shadow-xl hover:scale-105 transition-all duration-300"
+            href="/products"
+            className="w-full md:w-auto inline-flex items-center justify-center gap-3 bg-[hsl(var(--swago-purple))] hover:bg-[#605291] text-white font-bold text-lg px-5 py-3 rounded-2xl transition-all shadow-xl shadow-purple-900/10 hover:shadow-purple-900/20 active:scale-95 group"
           >
-            <span className="flex items-center gap-2">
-              Start Your Journey
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={3}
-                stroke="currentColor"
-                className="w-5 h-5"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"
-                />
-              </svg>
-            </span>
+            <ShoppingBag className="w-5 h-5" />
+            Buy SWAGO Smart Box
           </Link>
-        </div>
+
+          {/* Secondary Action: Community */}
+          <Link
+            href="https://whatsapp.com/channel/0029VbCEELmATRSt1LCXtP0w"
+            className="w-full md:w-auto inline-flex items-center justify-center gap-3 bg-white border-2 border-slate-100 hover:border-[#7464a9] text-slate-700 hover:text-[#7464a9] font-bold text-lg px-5 py-3 rounded-2xl transition-all active:scale-95"
+          >
+            <Users className="w-5 h-5" />
+            Join Our Whatsapp Community
+          </Link>
+
+        </motion.div>
+
+        {/* Footer Text */}
+        {/* <motion.p
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+          className="text-xs font-bold text-slate-400 uppercase tracking-widest"
+        >
+          First box ships within 5-7 business days
+        </motion.p> */}
       </div>
     </section>
   );

@@ -13,6 +13,8 @@ const nextConfig: NextConfig = {
 
   // ✅ Image configuration for external domains
   images: {
+    unoptimized: process.env.NODE_ENV === 'development',
+    minimumCacheTTL: 0,
     remotePatterns: [
       {
         protocol: 'https',
@@ -20,6 +22,19 @@ const nextConfig: NextConfig = {
         pathname: '/**',
       },
     ],
+  },
+  async headers() {
+    return [
+      {
+        source: '/images/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          },
+        ],
+      },
+    ];
   },
   devIndicators: {
     position: 'bottom-right',

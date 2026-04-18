@@ -9,12 +9,7 @@ function Loading() {
 export default function ProductsPage() {
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="mb-6">
-        <h1 className="text-4xl font-bold">Kits by Age</h1>
-        <p className="text-slate-600 mt-2">
-          Filter kits by age group and the Swago Core elements you want to focus on.
-        </p>
-      </div>
+     
 
       <Suspense fallback={<Loading />}>
         <ProductGrid />

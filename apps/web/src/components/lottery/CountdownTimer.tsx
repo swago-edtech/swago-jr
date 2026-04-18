@@ -58,12 +58,12 @@ export default function CountdownTimer() {
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ delay: 0.1 }}
-      className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm"
+      className="bg-white rounded-3xl md:rounded-[2.5rem] border border-slate-100 p-5 md:p-8 shadow-sm"
     >
       <div className="text-center">
-        <div className="flex items-center justify-center gap-4 md:gap-8">
+        <div className="flex items-center justify-center gap-2 md:gap-8">
           {/* Days */}
-          <div className="flex flex-col items-center min-w-[60px] md:min-w-[80px]">
+          <div className="flex flex-col items-center min-w-[50px] md:min-w-[80px]">
             <div className="bg-[hsl(var(--swago-purple))] text-white rounded-xl px-4 py-3 md:px-6 md:py-4 shadow-md">
               <span className="text-2xl md:text-4xl font-black">
                 {String(timeLeft.days).padStart(2, '0')}
@@ -77,7 +77,7 @@ export default function CountdownTimer() {
           <span className="text-2xl md:text-3xl font-bold text-slate-400">:</span>
 
           {/* Hours */}
-          <div className="flex flex-col items-center min-w-[60px] md:min-w-[80px]">
+          <div className="flex flex-col items-center min-w-[50px] md:min-w-[80px]">
             <div className="bg-[hsl(var(--swago-purple))] text-white rounded-xl px-4 py-3 md:px-6 md:py-4 shadow-md">
               <span className="text-2xl md:text-4xl font-black">
                 {String(timeLeft.hours).padStart(2, '0')}
@@ -91,7 +91,7 @@ export default function CountdownTimer() {
           <span className="text-2xl md:text-3xl font-bold text-slate-400">:</span>
 
           {/* Minutes */}
-          <div className="flex flex-col items-center min-w-[60px] md:min-w-[80px]">
+          <div className="flex flex-col items-center min-w-[50px] md:min-w-[80px]">
             <div className="bg-[hsl(var(--swago-purple))] text-white rounded-xl px-4 py-3 md:px-6 md:py-4 shadow-md">
               <span className="text-2xl md:text-4xl font-black">
                 {String(timeLeft.minutes).padStart(2, '0')}
@@ -105,7 +105,7 @@ export default function CountdownTimer() {
           <span className="text-2xl md:text-3xl font-bold text-slate-400">:</span>
 
           {/* Seconds */}
-          <div className="flex flex-col items-center min-w-[60px] md:min-w-[80px]">
+          <div className="flex flex-col items-center min-w-[50px] md:min-w-[80px]">
             <div className="bg-[hsl(var(--swago-purple))] text-white rounded-xl px-4 py-3 md:px-6 md:py-4 shadow-md">
               <span className="text-2xl md:text-4xl font-black">
                 {String(timeLeft.seconds).padStart(2, '0')}

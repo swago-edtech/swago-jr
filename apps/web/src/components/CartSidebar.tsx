@@ -199,7 +199,7 @@ export default function CartSidebar() {
                       ? "🎉 All rewards added!"
                       : total >= shippingThreshold
                         ? "🚚 Free Shipping unlocked!"
-                        : "Free Gift on PRE-PAID orders"}
+                        : "Free Gift on Prepaid Orders"}
                   </p>
 
                   <div className="relative px-6">

@@ -168,7 +168,7 @@ function VideoPlayer({ src, className, product }: { src: string; className?: str
               </button>
 
               <div className="flex flex-col">
-                <span className="text-white/40 text-[10px] uppercase font-black tracking-widest leading-none mb-1">Preview</span>
+                <span className="text-white/40 text-[10px] font-black tracking-widest leading-none mb-1">Preview</span>
                 <span className="text-white font-bold text-xs truncate max-w-[150px]">{product.name}</span>
               </div>
             </div>
@@ -559,7 +559,7 @@ export default function ProductPageClient({ product }: { product: Product }) {
             </div>
 
             <div className="mt-1 flex items-center gap-2 flex-wrap">
-              <span className="inline-flex items-center bg-[hsl(var(--swago-purple))] text-white text-[10px] md:text-xs font-black px-3 py-1.5 rounded-full shadow-sm uppercase tracking-tight">
+              <span className="inline-flex items-center bg-[hsl(var(--swago-purple))] text-white text-[10px] md:text-xs font-black px-3 py-1.5 rounded-full shadow-sm tracking-tight">
                 Age: {ageCategory}
               </span>
 
@@ -714,13 +714,13 @@ export default function ProductPageClient({ product }: { product: Product }) {
         {/* Skills Section */}
         {product.skills && product.skills.length > 0 && (
           <div className="mt-16 border-t pt-12">
-            <h2 className="text-2xl md:text-3xl font-black text-slate-900 mb-8 uppercase tracking-tight">Skills Unlocked 🚀</h2>
+            <h2 className="text-2xl md:text-3xl font-black text-slate-900 mb-8 tracking-tight">Skills Unlocked 🚀</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
               {product.skills.map((skill: any, index: number) => (
                 <div key={index} className="relative aspect-square rounded-[2rem] overflow-hidden group shadow-lg border border-slate-100">
                   <Image src={skill.image} alt={skill.title} fill className="object-cover transition-transform duration-700 group-hover:scale-110" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent flex flex-col justify-end p-4 md:p-6">
-                    <h4 className="text-white font-black text-xs md:text-xl leading-tight uppercase tracking-widest md:tracking-wider drop-shadow-md">
+                    <h4 className="text-white font-black text-xs md:text-xl leading-tight tracking-widest md:tracking-wider drop-shadow-md">
                       {skill.title}
                     </h4>
                   </div>
@@ -775,7 +775,7 @@ export default function ProductPageClient({ product }: { product: Product }) {
                     whileTap={{ scale: 0.98 }}
                     onClick={handleAddToCart}
                     disabled={isOutOfStock}
-                    className={`font-black px-4 sm:px-6 py-2 sm:py-2.5 rounded-xl text-[10px] sm:text-xs uppercase tracking-wider transition-all duration-300 whitespace-nowrap ${isOutOfStock
+                    className={`font-black px-4 sm:px-6 py-2 sm:py-2.5 rounded-xl text-[10px] sm:text-xs tracking-wider transition-all duration-300 whitespace-nowrap ${isOutOfStock
                       ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
                       : 'bg-[hsl(var(--swago-purple))] text-white shadow-sm hover:shadow-md'
                       }`}
@@ -794,7 +794,7 @@ export default function ProductPageClient({ product }: { product: Product }) {
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={handleBuyNow}
-                  className={`${isInCart ? 'hidden lg:block' : 'block'} bg-[hsl(var(--swago-orange))] text-white font-black px-4 sm:px-6 py-2 sm:py-2.5 rounded-xl text-[10px] sm:text-xs uppercase tracking-wider transition-all duration-300 shadow-sm hover:shadow-md whitespace-nowrap`}
+                  className={`${isInCart ? 'hidden lg:block' : 'block'} bg-[hsl(var(--swago-orange))] text-white font-black px-4 sm:px-6 py-2 sm:py-2.5 rounded-xl text-[10px] sm:text-xs tracking-wider transition-all duration-300 shadow-sm hover:shadow-md whitespace-nowrap`}
                 >
                   Buy Now
                 </motion.button>
@@ -804,7 +804,7 @@ export default function ProductPageClient({ product }: { product: Product }) {
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={() => router.push("/cart")}
-                    className="bg-[hsl(var(--swago-purple))] text-white font-black px-4 sm:px-6 py-2 sm:py-3 rounded-xl text-[10px] sm:text-xs uppercase tracking-wider transition-all duration-300 shadow-md hover:shadow-lg whitespace-nowrap flex items-center justify-center gap-2"
+                    className="bg-[hsl(var(--swago-purple))] text-white font-black px-4 sm:px-6 py-2 sm:py-3 rounded-xl text-[10px] sm:text-xs tracking-wider transition-all duration-300 shadow-md hover:shadow-lg whitespace-nowrap flex items-center justify-center gap-2"
                   >
                     Checkout
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-3.5 h-3.5">

@@ -170,7 +170,7 @@ export default function ProductCard({ product }: { product: Product }) {
               className="object-cover transition-transform duration-300 group-hover:scale-105"
             />
             {/* Mobile Age Badge - Top Right of Image area */}
-            <div className="md:hidden absolute top-2 right-2 z-10 bg-[hsl(var(--swago-purple))] text-white text-[9px] font-black px-2 py-1 rounded-full shadow-md uppercase tracking-tight whitespace-nowrap">
+            <div className="md:hidden absolute top-2 right-2 z-10 bg-[hsl(var(--swago-purple))] text-white text-[9px] font-black px-2 py-1 rounded-full shadow-md tracking-tight whitespace-nowrap">
               Age {ageCategory}
             </div>
 
@@ -202,7 +202,7 @@ export default function ProductCard({ product }: { product: Product }) {
 
             {/* Product Label Badge (Top-Left) */}
             {product.label && (
-              <div className="absolute top-3 left-3 z-10 bg-[hsl(var(--swago-purple))] text-white text-[10px] font-black px-3 py-1 rounded-full shadow-md uppercase tracking-wider">
+              <div className="absolute top-3 left-3 z-10 bg-[hsl(var(--swago-purple))] text-white text-[10px] font-black px-3 py-1 rounded-full shadow-md tracking-wider">
                 {product.label}
               </div>
             )}
@@ -240,7 +240,7 @@ export default function ProductCard({ product }: { product: Product }) {
               <div className="flex items-center justify-between mb-4 gap-2">
                 <div className="flex items-center gap-2">
                   {percentOff > 0 && (
-                    <span className="bg-[#e11d48] text-white text-[10px] font-black px-1.5 py-1 rounded uppercase">
+                    <span className="bg-[#e11d48] text-white text-[10px] font-black px-1.5 py-1 rounded">
                       -{percentOff}%
                     </span>
                   )}
@@ -249,7 +249,7 @@ export default function ProductCard({ product }: { product: Product }) {
                     <span className="text-[10px] sm:text-xs text-slate-400 line-through font-medium">₹{originalPrice}</span>
                   )}
                 </div>
-                <span className="hidden md:inline-block bg-[hsl(var(--swago-purple))] text-white text-[10px] sm:text-[11px] font-extrabold px-3 py-1.5 rounded-full uppercase tracking-tight whitespace-nowrap shadow-sm">
+                <span className="hidden md:inline-block bg-[hsl(var(--swago-purple))] text-white text-[10px] sm:text-[11px] font-extrabold px-3 py-1.5 rounded-full tracking-tight whitespace-nowrap shadow-sm">
                   Age {ageCategory}
                 </span>
               </div>
@@ -260,7 +260,7 @@ export default function ProductCard({ product }: { product: Product }) {
                 <motion.button
                   onClick={handleAddToCart}
                   disabled={isOutOfStock}
-                  className={`w-full font-black py-3 rounded-xl text-xs uppercase tracking-widest transition-all duration-300 ${isOutOfStock
+                  className={`w-full font-black py-3 rounded-xl text-xs tracking-widest transition-all duration-300 ${isOutOfStock
                     ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                     : 'border-2 border-[hsl(var(--swago-purple))] text-[hsl(var(--swago-purple))] bg-white hover:bg-[hsl(var(--swago-purple))] hover:text-white shadow-sm'
                     }`}

@@ -71,7 +71,7 @@ function Quiz({ data }: { data: any }) {
                     <Logo />
                 </div>
                 <div className="inline-block px-4 py-1.5 bg-yellow-400 text-slate-800 rounded-lg text-[10px] font-black uppercase tracking-[0.3em] mb-4">
-                    KIDS PERSONALITY QUIZ
+                    Kids Personality Quiz
                 </div>
                 <h3 className="text-3xl md:text-5xl font-black text-slate-900 leading-tight tracking-tight">{data.title}</h3>
                 <p className="text-xl text-slate-500 font-medium">Take this 2-minute quiz to understand your child's brain type—and learn how to build their focus, confidence, and emotional strength.</p>
@@ -179,7 +179,7 @@ function Quiz({ data }: { data: any }) {
 
                         <div className="space-y-4">
                             <h4 className="text-[#5e43aa] text-[10px] font-black uppercase tracking-[0.2em] opacity-80 pl-1">
-                                KEY CHARACTERISTICS:
+                                Key Characteristics:
                             </h4>
                             <ul className="space-y-3 pl-1">
                                 {result.bullets.map((b, i) => (
@@ -262,7 +262,7 @@ export default function SingleBlogPage() {
     if (loading) return <div className="min-h-screen py-20 text-center text-slate-500">Retrieving article...</div>;
     if (!blog) return (
         <div className="min-h-screen py-20 text-center">
-            <h1 className="text-4xl font-black text-slate-900">ARTICLE NOT FOUND</h1>
+            <h1 className="text-4xl font-black text-slate-900">Article Not Found</h1>
             <Link href="/blog" className="text-[hsl(var(--swago-purple))] font-black mt-4 inline-block underline">Return to Blog</Link>
         </div>
     );
@@ -407,7 +407,7 @@ export default function SingleBlogPage() {
                     {/* <div className="mt-24 p-12 md:p-16 rounded-[3rem] bg-slate-900 relative overflow-hidden text-center text-white">
                         <div className="absolute top-0 right-0 w-64 h-64 bg-[hsl(var(--swago-purple))]/20 rounded-bl-full -mr-20 -mt-20 blur-3xl" />
                         <h2 className="text-3xl md:text-5xl font-black mb-8 relative z-10 uppercase tracking-tight leading-tight">Ready to nurture your child's <span className="text-[hsl(var(--swago-purple))]">Potential?</span></h2>
-                        <p className="text-xl opacity-70 mb-12 max-w-2xl mx-auto leading-relaxed relative z-10 font-medium italic">Explore our specialized growth kits designed to strengthen focus, confidence, and emotional intelligence through play.</p>
+                        <p className="text-xl opacity-70 mb-12 max-w-2xl mx-auto leading-relaxed relative z-10 font-medium italic">Explore our specialized growth smart box designed to strengthen focus, confidence, and emotional intelligence through play.</p>
                         <Link
                             href="/products"
                             className="inline-block bg-[hsl(var(--swago-purple))] text-white px-12 py-6 rounded-2xl font-black uppercase tracking-widest text-sm shadow-2xl shadow-purple-900/20 hover:scale-105 transition-all relative z-10"

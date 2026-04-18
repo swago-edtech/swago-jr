@@ -26,7 +26,7 @@ const DEFAULT_REDEMPTION_TIERS = [
 ];
 
 export default function CheckoutPage() {
-  const { cart, total, user, isLoadingUser, clearCart, addToCart, appliedCoupon, setAppliedCoupon } = useSharedContext();
+  const { cart, total, user, isLoadingUser, clearCart, addToCart, appliedCoupon, setAppliedCoupon, appliedSwagoMoney } = useSharedContext();
   const router = useRouter();
   const [processing, setProcessing] = useState(false);
   const [email, setEmail] = useState("");
@@ -96,7 +96,7 @@ export default function CheckoutPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          totalAmount: appliedCoupon ? total - appliedCoupon.discount : total,
+          totalAmount: (appliedCoupon ? total - appliedCoupon.discount : total) - (appliedSwagoMoney || 0),
           orderDetails: {
             name: `${firstName} ${lastName}`,
             email,
@@ -107,7 +107,8 @@ export default function CheckoutPage() {
             pincode,
             cart,
             age,
-            finalAmount: appliedCoupon ? total - appliedCoupon.discount : total
+            finalAmount: (appliedCoupon ? total - appliedCoupon.discount : total) - (appliedSwagoMoney || 0),
+            swagoMoneyRedeemed: appliedSwagoMoney || 0
           }
         })
       });
@@ -154,7 +155,7 @@ export default function CheckoutPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          totalAmount: appliedCoupon ? total - appliedCoupon.discount : total,
+          totalAmount: (appliedCoupon ? total - appliedCoupon.discount : total) - (appliedSwagoMoney || 0),
           orderDetails: {
             name: `${firstName} ${lastName}`,
             email,
@@ -165,7 +166,8 @@ export default function CheckoutPage() {
             pincode,
             cart,
             age,
-            finalAmount: appliedCoupon ? total - appliedCoupon.discount : total
+            finalAmount: (appliedCoupon ? total - appliedCoupon.discount : total) - (appliedSwagoMoney || 0),
+            swagoMoneyRedeemed: appliedSwagoMoney || 0
           }
         })
       });
@@ -250,7 +252,7 @@ export default function CheckoutPage() {
             </svg>
           </div>
           <div className="text-lg font-black text-slate-900">
-            ₹{(appliedCoupon ? total - appliedCoupon.discount : total).toFixed(0)}
+            ₹{((appliedCoupon ? total - appliedCoupon.discount : total) - (appliedSwagoMoney || 0)).toFixed(0)}
           </div>
         </button>
 
@@ -266,6 +268,7 @@ export default function CheckoutPage() {
                 cart={cart} total={total} appliedCoupon={appliedCoupon}
                 couponCode={couponCode} setCouponCode={setCouponCode} applyCoupon={applyCoupon}
                 promotion={promotion} progressPercent={progressPercent} nextTier={nextTier} addToCart={addToCart}
+                appliedSwagoMoney={appliedSwagoMoney}
               />
             </motion.div>
           )}
@@ -289,7 +292,7 @@ export default function CheckoutPage() {
                   placeholder="Email or mobile phone number"
                   className={`w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-purple-500 outline-none text-sm transition-all shadow-sm ${errors.includes("email") ? 'border-red-500 bg-red-50 placeholder-red-300' : 'border-slate-200'}`}
                 />
-                {errors.includes("email") && <p className="text-[10px] text-red-500 font-bold uppercase mt-1 px-1">You have missed filling this box</p>}
+                {errors.includes("email") && <p className="text-[10px] text-red-500 font-bold mt-1 px-1">Email is needed</p>}
                 <label className="flex items-center gap-2 cursor-pointer group">
                   <input type="checkbox" defaultChecked className="w-4 h-4 rounded-md border-slate-300 text-purple-600 focus:ring-purple-500" />
                   <span className="text-xs text-slate-600 group-hover:text-slate-900 transition-colors">Email me with news and offers</span>
@@ -313,7 +316,7 @@ export default function CheckoutPage() {
                       onChange={(e) => { setFirstName(e.target.value); if (errors.includes("firstName")) setErrors(errors.filter(f => f !== "firstName")); }}
                       className={`w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-purple-500 outline-none text-sm shadow-sm ${errors.includes("firstName") ? 'border-red-500 bg-red-50 placeholder-red-300' : 'border-slate-200'}`}
                     />
-                    {errors.includes("firstName") && <p className="text-[10px] text-red-500 font-bold uppercase">Missed this box</p>}
+                    {errors.includes("firstName") && <p className="text-[10px] text-red-500 font-bold">First name is needed</p>}
                   </div>
                   <div className="flex flex-col gap-1">
                     <input
@@ -322,7 +325,7 @@ export default function CheckoutPage() {
                       onChange={(e) => { setLastName(e.target.value); if (errors.includes("lastName")) setErrors(errors.filter(f => f !== "lastName")); }}
                       className={`w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-purple-500 outline-none text-sm shadow-sm ${errors.includes("lastName") ? 'border-red-500 bg-red-50 placeholder-red-300' : 'border-slate-200'}`}
                     />
-                    {errors.includes("lastName") && <p className="text-[10px] text-red-500 font-bold uppercase">Missed this box</p>}
+                    {errors.includes("lastName") && <p className="text-[10px] text-red-500 font-bold">Last name is needed</p>}
                   </div>
                 </div>
 
@@ -333,11 +336,11 @@ export default function CheckoutPage() {
                     className={`w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-purple-500 outline-none text-sm bg-white shadow-sm appearance-none ${errors.includes("age") ? 'border-red-500 bg-red-50 text-red-900' : 'border-slate-200'}`}
                   >
                     <option value="" disabled>Child's Age</option>
-                    {[...Array(15)].map((_, i) => (
-                      <option key={i} value={i + 1}>{i + 1} Years</option>
+                    {[...Array(9)].map((_, i) => (
+                      <option key={i + 6} value={i + 6}>{i + 6} Years</option>
                     ))}
                   </select>
-                  {errors.includes("age") && <p className="text-[10px] text-red-500 font-bold uppercase">You have missed filling the age</p>}
+                  {errors.includes("age") && <p className="text-[10px] text-red-500 font-bold">Child's age is needed</p>}
                 </div>
 
                 <div className="relative flex flex-col gap-1">
@@ -348,7 +351,7 @@ export default function CheckoutPage() {
                     className={`w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-purple-500 outline-none text-sm shadow-sm pr-10 ${errors.includes("address") ? 'border-red-500 bg-red-50 placeholder-red-300' : 'border-slate-200'}`}
                   />
                   <RiSearchLine className="absolute right-4 top-[24px] -translate-y-1/2 text-slate-400" />
-                  {errors.includes("address") && <p className="text-[10px] text-red-500 font-bold uppercase">Missed the address box</p>}
+                  {errors.includes("address") && <p className="text-[10px] text-red-500 font-bold">Address is needed</p>}
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -359,7 +362,7 @@ export default function CheckoutPage() {
                       onChange={(e) => { setCity(e.target.value); if (errors.includes("city")) setErrors(errors.filter(f => f !== "city")); }}
                       className={`w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-purple-500 outline-none text-sm shadow-sm ${errors.includes("city") ? 'border-red-500 bg-red-50 placeholder-red-300' : 'border-slate-200'}`}
                     />
-                    {errors.includes("city") && <p className="text-[10px] text-red-500 font-bold uppercase">Missed city</p>}
+                    {errors.includes("city") && <p className="text-[10px] text-red-500 font-bold">City is needed</p>}
                   </div>
                   <select
                     value={state}
@@ -375,7 +378,7 @@ export default function CheckoutPage() {
                       onChange={(e) => { setPincode(e.target.value); if (errors.includes("pincode")) setErrors(errors.filter(f => f !== "pincode")); }}
                       className={`w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-purple-500 outline-none text-sm shadow-sm ${errors.includes("pincode") ? 'border-red-500 bg-red-50 placeholder-red-300' : 'border-slate-200'}`}
                     />
-                    {errors.includes("pincode") && <p className="text-[10px] text-red-500 font-bold uppercase">Missed PIN</p>}
+                    {errors.includes("pincode") && <p className="text-[10px] text-red-500 font-bold">PIN code is needed</p>}
                   </div>
                 </div>
 
@@ -387,7 +390,7 @@ export default function CheckoutPage() {
                     className={`w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-purple-500 outline-none text-sm shadow-sm pr-10 ${errors.includes("phone") ? 'border-red-500 bg-red-50 placeholder-red-300' : 'border-slate-200'}`}
                   />
                   <RiInformationLine className="absolute right-4 top-[24px] -translate-y-1/2 text-slate-400 cursor-help" />
-                  {errors.includes("phone") && <p className="text-[10px] text-red-500 font-bold uppercase">Missed phone box</p>}
+                  {errors.includes("phone") && <p className="text-[10px] text-red-500 font-bold">Phone number is needed</p>}
                 </div>
 
                 <div className="space-y-2 pt-2">
@@ -415,7 +418,7 @@ export default function CheckoutPage() {
             <section className="space-y-4">
               <div>
                 <h2 className="text-lg font-semibold text-slate-800 leading-none">Payment</h2>
-                <p className="text-[10px] text-slate-400 mt-1 uppercase tracking-widest font-bold">All transactions are secure and encrypted.</p>
+                <p className="text-[10px] text-slate-400 mt-1 tracking-widest font-bold">All transactions are secure and encrypted.</p>
               </div>
 
               <div className="border rounded-lg overflow-hidden border-slate-200">
@@ -477,14 +480,14 @@ export default function CheckoutPage() {
             <button
               onClick={handlePayNow}
               disabled={processing}
-              className="w-full h-14 btn-shine bg-[hsl(var(--swago-purple))] hover:brightness-110 text-white font-black rounded-lg text-lg uppercase tracking-widest shadow-xl shadow-purple-100 transition-all transform active:scale-95 disabled:opacity-50"
+              className="w-full h-14 btn-shine bg-[hsl(var(--swago-purple))] hover:brightness-110 text-white font-black rounded-lg text-lg tracking-widest shadow-xl shadow-purple-100 transition-all transform active:scale-95 disabled:opacity-50"
             >
               {processing ? "Processing..." : "Pay now"}
             </button>
 
             {message && <p className="text-center text-sm font-bold text-slate-600">{message}</p>}
 
-            <footer className="pt-8 border-t flex flex-wrap gap-x-6 gap-y-2 text-[10px] text-purple-600 uppercase tracking-widest font-black">
+            <footer className="pt-8 border-t flex flex-wrap gap-x-6 gap-y-2 text-[10px] text-purple-600 tracking-widest font-black">
               <Link href="/refund-policy" className="hover:underline">Refund policy</Link>
               <Link href="/privacy-policy" className="hover:underline">Privacy policy</Link>
               <Link href="/terms-of-service" className="hover:underline">Terms of service</Link>
@@ -499,6 +502,7 @@ export default function CheckoutPage() {
               cart={cart} total={total} appliedCoupon={appliedCoupon}
               couponCode={couponCode} setCouponCode={setCouponCode} applyCoupon={applyCoupon}
               promotion={promotion} progressPercent={progressPercent} nextTier={nextTier} addToCart={addToCart}
+              appliedSwagoMoney={appliedSwagoMoney}
             />
           </div>
         </aside>
@@ -510,7 +514,7 @@ export default function CheckoutPage() {
 // ✅ Reusable Order Summary Component for Desktop/Mobile
 function OrderSummary({
   cart, total, appliedCoupon, couponCode, setCouponCode, applyCoupon,
-  promotion, progressPercent, nextTier, addToCart
+  promotion, progressPercent, nextTier, addToCart, appliedSwagoMoney
 }: any) {
   const isAlreadyAdded = (slug: string) => cart.some((item: any) => (item.slug === slug || item._id === slug) && item.price === 1);
 
@@ -553,12 +557,19 @@ function OrderSummary({
           </div>
         )}
 
+        {appliedSwagoMoney > 0 && (
+          <div className="flex justify-between text-purple-600 font-bold">
+            <span>Swago Dollars</span>
+            <span>-₹{appliedSwagoMoney.toFixed(2)}</span>
+          </div>
+        )}
+
         <div className="pt-4 border-t mt-4 flex justify-between items-baseline">
-          <h3 className="text-lg font-black text-slate-900 uppercase">Total</h3>
+          <h3 className="text-lg font-black text-slate-900">Total</h3>
           <div className="flex items-baseline gap-2">
             <span className="text-[10px] text-slate-500 uppercase font-black">INR</span>
             <span className="text-2xl font-black text-slate-900">
-              ₹{(appliedCoupon ? total - appliedCoupon.discount : total).toFixed(2)}
+              ₹{((appliedCoupon ? total - appliedCoupon.discount : total) - (appliedSwagoMoney || 0)).toFixed(2)}
             </span>
           </div>
         </div>

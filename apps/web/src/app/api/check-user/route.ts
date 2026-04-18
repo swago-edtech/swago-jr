@@ -44,7 +44,7 @@ export async function POST(req: Request) {
     }
 
     // ✅ Type-safe check - no more any!
-    const hasProfile = user 
+    const hasProfile = user
       ? Boolean(user.name && (authMethod === 'email' || user.email))
       : false;
 
@@ -56,9 +56,8 @@ export async function POST(req: Request) {
     });
   } catch (err: unknown) {
     console.error("❌ Check user error:", err);
-    const message = err instanceof Error ? err.message : "An unknown error occurred";
     return NextResponse.json(
-      { success: false, error: message },
+      { success: false, error: "Something went wrong checking your account. Please try again later." },
       { status: 500 }
     );
   }

@@ -139,7 +139,7 @@ export default function SuccessModal({ isOpen, onClose, data }: SuccessModalProp
                   href="/lottery-code/my-tickets"
                   className="w-full block text-center bg-[hsl(var(--swago-orange))] text-white font-black py-4 rounded-xl shadow-lg hover:shadow-xl hover:opacity-90 transition-all"
                 >
-                  VIEW MY TICKETS
+                  View My Tickets
                 </a>
               </div>
             </motion.div>

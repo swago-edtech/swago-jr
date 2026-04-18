@@ -46,20 +46,20 @@ const features = [
 export default function WhySwagoIsFunSection() {
   return (
     <section className="py-24 bg-white overflow-hidden">
-      <div className="container mx-auto px-4 max-w-6xl">
+      <div className="container mx-auto px-4 md:px-6">
         <div className="text-center mb-16 md:mb-20">
-          <motion.h2 
+          <motion.h2
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-4xl md:text-5xl font-black text-slate-800 mb-6 uppercase tracking-tight leading-none"
+            className="text-4xl md:text-5xl font-black text-slate-800 mb-6 tracking-tight leading-none"
           >
-            Why Choose <span className="text-[hsl(var(--swago-purple))]">Swago?</span>
+            Why Choose <span className="text-[hsl(var(--swago-purple))]">SWAGO?</span>
           </motion.h2>
           <div className="w-24 h-2 bg-gradient-to-r from-[hsl(var(--swago-purple))] to-[hsl(var(--swago-orange))] mx-auto rounded-full" />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-12 px-4 md:px-0">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-12">
           {features.map((feature, idx) => (
             <motion.div
               key={idx}
@@ -70,20 +70,20 @@ export default function WhySwagoIsFunSection() {
               className="flex flex-col group cursor-default w-full max-w-[320px] md:max-w-none mx-auto"
             >
               {/* Custom Card Box - Fully Dashed, Permanent Shadow/Hover Effect */}
-              <div className={`relative h-full flex flex-col items-center p-8 md:p-10 pt-16 text-center rounded-[3rem] bg-white transition-all duration-300 shadow-[0_22px_70px_-15px_rgba(0,0,0,0.12)] -translate-y-2 border-2 border-dashed ${feature.borderColor} overflow-hidden`}>
-                
+              <div className={`relative h-full flex flex-col items-center p-8 md:p-10 pt-16 text-center rounded-[3rem] bg-white transition-all duration-500 shadow-[0_30px_100px_-20px_rgba(0,0,0,0.15)] group-hover:shadow-[0_55px_120px_-20px_rgba(0,0,0,0.25)] -translate-y-2 group-hover:-translate-y-5 border-2 border-dashed ${feature.borderColor} overflow-hidden`}>
+
 
                 {/* Icon Container */}
-                <div className={`w-12 h-12 md:w-16 md:h-16 rounded-full ${feature.bgColor} flex items-center justify-center mb-8 border-2 ${feature.borderColor} shadow-sm relative`}>
+                <div className={`w-12 h-12 md:w-16 md:h-16 rounded-full ${feature.bgColor} flex items-center justify-center mb-8 border-2 ${feature.borderColor} shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] group-hover:shadow-[0_15px_30px_-5px_rgba(0,0,0,0.15)] group-hover:-translate-y-1 transition-all duration-500 relative`}>
                   <div className={`${feature.color} flex items-center justify-center`}>
                     {feature.icon || null}
                   </div>
                 </div>
-                
-                <h3 className="text-xl md:text-2xl font-black text-slate-800 mb-4 md:mb-6 leading-tight uppercase tracking-tight">
+
+                <h3 className="text-xl md:text-2xl font-black text-slate-800 mb-4 md:mb-6 leading-tight tracking-tight">
                   {feature.title}
                 </h3>
-                
+
                 <p className="text-slate-600 font-bold text-xs md:text-sm leading-relaxed opacity-90 max-w-[240px] mx-auto">
                   {feature.description}
                 </p>

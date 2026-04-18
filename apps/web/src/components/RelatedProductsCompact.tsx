@@ -39,25 +39,25 @@ export default function RelatedProductsCompact({ currentProductId }: RelatedProd
   return (
     <>
       {products.map((product) => (
-        <div 
-          key={product._id || product.id} 
+        <div
+          key={product._id || product.id}
           className="flex-shrink-0 w-28 snap-start group bg-slate-50 rounded-xl p-1.5 border border-slate-100/50"
         >
           <Link href={`/products/${product._id || product.id}`}>
             <div className="relative aspect-square rounded-lg overflow-hidden bg-white mb-1.5 shadow-sm">
-              <Image 
-                src={product.images?.[0] || "/images/placeholder.png"} 
-                alt={product.name} 
-                fill 
+              <Image
+                src={product.images?.[0] || "/images/placeholder.png"}
+                alt={product.name}
+                fill
                 className="object-cover group-hover:scale-110 transition-transform duration-500"
               />
             </div>
           </Link>
           <div className="space-y-0.5">
-            <h4 className="text-[9px] font-black text-slate-900 leading-tight line-clamp-1 truncate uppercase tracking-tighter">{product.name}</h4>
+            <h4 className="text-[9px] font-black text-slate-900 leading-tight line-clamp-1 truncate tracking-tighter">{product.name}</h4>
             <div className="flex items-center justify-between">
               <span className="text-[8px] font-black text-[#61498C]">₹{product.price}</span>
-              <button 
+              <button
                 onClick={(e) => {
                   e.stopPropagation();
                   addToCart(product);

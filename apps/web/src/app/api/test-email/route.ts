@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { sendOrderConfirmationEmail } from '@/lib/msg91-email';
 
 export async function POST(req: Request) {
+  // Force hot reload
   try {
     const body = await req.json();
     const { email, name } = body;

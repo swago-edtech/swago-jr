@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import ReviewForm from "@/components/ReviewForm";
 import { useFormattedDate } from "@/hooks/useFormattedDate";
 import { RazorpayOptions, RazorpaySuccessResponse as RazorpayResponse, RazorpayInstance } from "@swago/types";
+import Image from "next/image";
 
 
 
@@ -15,6 +16,7 @@ type OrderItem = {
   quantity: number;
   price: number;
   productId: number | string;
+  image?: string;
 };
 
 type Order = {
@@ -312,7 +314,7 @@ function StatusBadge({ status, paymentMethod }: { status: string; paymentMethod?
   // ✅ Show COD badge for pending COD orders
   if (isCOD && statusLower === 'pending') {
     return (
-      <span className="text-sm font-semibold bg-amber-100 text-amber-800 px-3 py-1 rounded-full">
+      <span className="text-sm font-semibold bg-purple-100 text-purple-800 px-3 py-1 rounded-full">
         COD
       </span>
     );
@@ -374,14 +376,14 @@ function OrderCard({
 
       {/* ✅ COD Order Status Section */}
       {isCOD && isPendingOrFailed && (
-        <div className="mb-4 p-4 rounded-lg bg-amber-50 border border-amber-200">
+        <div className="mb-4 p-4 rounded-lg bg-purple-50 border border-purple-200">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center">
-              <span className="text-lg font-bold text-amber-700">₹</span>
+            <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+              <span className="text-lg font-bold text-purple-700">₹</span>
             </div>
             <div>
-              <p className="font-medium text-amber-800">Cash on Delivery</p>
-              <p className="text-sm text-amber-600">Pay ₹{(order.total || 0).toFixed(0)} when your order arrives</p>
+              <p className="font-medium text-purple-800">Cash on Delivery</p>
+              <p className="text-sm text-purple-600">Pay ₹{(order.total || 0).toFixed(0)} when your order arrives</p>
             </div>
           </div>
         </div>
@@ -449,12 +451,25 @@ function OrderCard({
       <ul className="space-y-4">
         {order.items?.map((item, idx) => (
           <li key={idx} className="border-l-4 border-purple-200 pl-4">
-            <div className="flex justify-between items-start mb-2">
-              <div className="flex-1">
-                <p className="font-medium text-slate-900">{item.name}</p>
-                <p className="text-sm text-slate-500">Quantity: {item.quantity}</p>
+            <div className="flex items-start mb-3 gap-3 sm:gap-4">
+              {item.image ? (
+                <div className="relative w-14 h-14 sm:w-16 sm:h-16 flex-shrink-0 bg-slate-50 rounded-lg overflow-hidden border border-slate-100">
+                  <Image src={item.image} alt={item.name} fill sizes="64px" className="object-cover" />
+                </div>
+              ) : (
+                <div className="w-14 h-14 sm:w-16 sm:h-16 flex-shrink-0 bg-slate-100 rounded-lg border border-slate-200 flex items-center justify-center">
+                  <svg className="w-6 h-6 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-slate-900 leading-snug line-clamp-2 pr-2 text-sm sm:text-base">{item.name}</p>
+                <div className="flex justify-between items-center mt-1">
+                  <p className="text-xs sm:text-sm text-slate-500 font-medium">Qty: {item.quantity}</p>
+                  <p className="font-bold text-slate-900 text-sm sm:text-base">₹{item.price.toFixed(2)}</p>
+                </div>
               </div>
-              <p className="font-semibold text-slate-900">₹{item.price.toFixed(2)}</p>
             </div>
 
             {/* Action Buttons - Only shown for delivered orders */}

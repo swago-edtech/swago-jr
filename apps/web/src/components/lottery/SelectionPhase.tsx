@@ -144,10 +144,10 @@ export default function SelectionPhase({ onNext }: SelectionPhaseProps) {
         `}
       >
         {!selectedTicket
-          ? 'SELECT A TICKET TYPE'
+          ? 'Select A Ticket Type'
           : !selectedKid
-            ? 'SELECT A KID PROFILE'
-            : 'NEXT: ENTER CODE →'
+            ? 'Select A Kid Profile'
+            : 'Next: Enter Code →'
         }
       </motion.button>
     </motion.div>

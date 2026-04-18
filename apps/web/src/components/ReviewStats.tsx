@@ -35,7 +35,7 @@ export default function ReviewStats({ stats }: ReviewStatsProps) {
                 {averageRating.toFixed(1)}
               </div>
               <StarRating rating={averageRating} size="sm" />
-              <p className="text-[10px] sm:text-xs font-black text-slate-400 uppercase tracking-widest mt-3">
+              <p className="text-[10px] sm:text-xs font-black text-slate-400 tracking-widest mt-3">
                 {totalReviews} {totalReviews === 1 ? "review" : "reviews"}
               </p>
             </div>

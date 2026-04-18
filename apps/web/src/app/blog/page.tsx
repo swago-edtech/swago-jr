@@ -45,7 +45,7 @@ export default function BlogListingPage() {
         <div className="min-h-screen bg-slate-50 py-20">
             <div className="container mx-auto px-4 max-w-6xl">
                 <header className="mb-16 text-center">
-                    <h1 className="text-5xl md:text-7xl font-black text-slate-900 mb-6 tracking-tight uppercase">
+                    <h1 className="text-5xl md:text-7xl font-black text-slate-900 mb-6 tracking-tight">
                         Swago <span className="text-[hsl(var(--swago-purple))]">Insights</span>
                     </h1>
                     <p className="text-xl text-slate-500 max-w-2xl mx-auto font-medium">
@@ -55,7 +55,7 @@ export default function BlogListingPage() {
 
                 {blogs.length === 0 ? (
                     <div className="text-center bg-white p-20 rounded-[2.5rem] shadow-sm border">
-                        <p className="text-slate-400 font-bold uppercase tracking-widest">Coming Soon!</p>
+                        <p className="text-slate-400 font-bold tracking-widest">Coming Soon!</p>
                         <p className="text-slate-500 mt-2">We are currently crafting some amazing articles for you.</p>
                     </div>
                 ) : (
@@ -77,12 +77,12 @@ export default function BlogListingPage() {
                                 )}
                                 <div className="p-8 flex flex-col flex-1">
                                     <div className="flex items-center gap-2 mb-4">
-                                        <span className="text-[10px] font-black uppercase tracking-widest text-[hsl(var(--swago-purple))] bg-purple-50 px-3 py-1 rounded-full">Article</span>
-                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{new Date(blog.createdAt).toLocaleDateString()}</span>
+                                        <span className="text-[10px] font-black tracking-widest text-[hsl(var(--swago-purple))] bg-purple-50 px-3 py-1 rounded-full">Article</span>
+                                        <span className="text-[10px] font-bold text-slate-400 tracking-widest">{new Date(blog.createdAt).toLocaleDateString()}</span>
                                     </div>
                                     <h2 className="text-2xl font-black text-slate-900 mb-4 line-clamp-2 leading-tight group-hover:text-[hsl(var(--swago-purple))] transition-colors">{blog.title}</h2>
                                     <p className="text-slate-500 text-sm line-clamp-3 mb-6 flex-1 italic">{blog.metaDescription}</p>
-                                    <div className="flex items-center gap-2 font-black text-xs text-slate-900 uppercase tracking-widest group-hover:gap-4 transition-all mt-auto">
+                                    <div className="flex items-center gap-2 font-black text-xs text-slate-900 tracking-widest group-hover:gap-4 transition-all mt-auto">
                                         Read Article <HiArrowRight className="text-[hsl(var(--swago-purple))] w-4 h-4" />
                                     </div>
                                 </div>

@@ -76,7 +76,7 @@ export default function HomeBlogSection() {
 
     return (
         <section className="py-8 md:py-12 bg-white overflow-hidden">
-            <div className="container mx-auto px-4 max-w-7xl">
+            <div className="container mx-auto px-4 md:px-6">
                 <div className="text-center mb-10">
                     <h2 className="text-3xl md:text-5xl font-bold text-[#2D2D2D] tracking-tight">
                         Blogs
@@ -94,23 +94,23 @@ export default function HomeBlogSection() {
                                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                                 />
                             </Link>
-                            
+
                             <div className="flex flex-col flex-grow">
                                 <span className="text-xs md:text-sm font-semibold text-gray-400 mb-3">
                                     {new Date(blog.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
                                 </span>
-                                
+
                                 <Link href={`/blog/${blog.slug}`}>
                                     <h3 className="text-lg md:text-xl font-bold text-[#2D2D2D] mb-3 leading-[1.3] transition-colors group-hover:text-[#7C5DFA] line-clamp-2">
                                         {blog.title}
                                     </h3>
                                 </Link>
-                                
+
                                 <p className="text-gray-500 text-sm md:text-base mb-6 line-clamp-3 leading-relaxed">
                                     {blog.metaDescription}
                                 </p>
-                                
-                                <Link 
+
+                                <Link
                                     href={`/blog/${blog.slug}`}
                                     className="mt-auto inline-flex items-center gap-1 text-[#7C5DFA] font-black text-sm md:text-base border-b-2 border-transparent hover:border-[#7C5DFA] pb-0.5 transition-all w-fit"
                                 >
