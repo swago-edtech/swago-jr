@@ -1,6 +1,16 @@
 import type { NextConfig } from "next";
+import path from "path";
 
 const nextConfig: NextConfig = {
+  // Standalone output for Docker — bundles only the files needed at runtime
+  output: 'standalone',
+
+  // Required for monorepo: trace dependencies from the workspace root
+  outputFileTracingRoot: path.join(__dirname, '../..'),
+
+  // Tell Next.js to transpile our shared packages
+  transpilePackages: ['@swago/utils', '@swago/database', '@swago/types'],
+
   turbopack: {},
   images: {
     remotePatterns: [
@@ -11,7 +21,7 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  
+
   // Silence MongoDB optional dependency warnings
   webpack: (config, { isServer }) => {
     if (isServer) {

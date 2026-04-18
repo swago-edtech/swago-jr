@@ -1,0 +1,54 @@
+# ── Version control ────────────────────────────────────────────────────────
+.git
+.gitignore
+
+# ── Dependencies (rebuilt inside container) ────────────────────────────────
+node_modules
+**/node_modules
+
+# ── Build artifacts (rebuilt inside container) ─────────────────────────────
+.next
+**/.next
+out
+**/out
+build
+**/build
+*.tsbuildinfo
+**/*.tsbuildinfo
+
+# ── Environment & secrets ──────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ── IDE & OS ───────────────────────────────────────────────────────────────
+.vscode
+.idea
+.DS_Store
+*.swp
+*.swo
+*~
+
+# ── Testing & tooling ─────────────────────────────────────────────────────
+load-tests
+coverage
+.pnpm-debug.log*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ── Deployment scripts (not needed in image) ──────────────────────────────
+deploy.sh
+amplify.yml
+nginx.conf
+
+# ── Documentation ─────────────────────────────────────────────────────────
+*.md
+!packages/*/README.md
+
+# ── Misc ──────────────────────────────────────────────────────────────────
+.vercel
+.yarn
+.pnp
+.pnp.*
+scripts/
