@@ -32,7 +32,7 @@ const QUESTS = [
             { name: 'Growth', color: 'bg-[#818CF8]', icon: Zap },
             { name: 'Spotlight', color: 'bg-[#34D399]', icon: Target },
         ],
-        image: '/images/test/quest_ice_clock.png',
+        image: '/images/test/yes-i-can-Generated_Image.jpeg',
         reward: 50,
         frequency: 'Once per season',
         skill: 'Growth'

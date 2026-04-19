@@ -188,8 +188,8 @@ export async function POST(request: NextRequest) {
       ambassador: {
         isAmbassador: true,
         status: "profile_created",
-        swagoMoney: 20,
-        totalEarnings: 20,
+        swagoMoney: 0,
+        totalEarnings: 0,
         currentStep: 2,
         badges: [{ name: "Swago Saviour", awardedAt: new Date() }],
         joinedAt: new Date(),

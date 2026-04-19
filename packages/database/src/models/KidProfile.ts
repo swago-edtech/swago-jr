@@ -217,8 +217,8 @@ KidProfileSchema.methods.initializeAmbassador = function () {
   if (!this.ambassador.isAmbassador) {
     this.ambassador.isAmbassador = true;
     this.ambassador.status = "profile_created";
-    this.ambassador.swagoMoney = 20;
-    this.ambassador.totalEarnings = 20;
+    this.ambassador.swagoMoney = 0;
+    this.ambassador.totalEarnings = 0;
     this.ambassador.currentStep = 2;
     this.ambassador.joinedAt = new Date();
     this.ambassador.badges = [{ name: "Swago Saviour", awardedAt: new Date() }];

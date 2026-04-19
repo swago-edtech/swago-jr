@@ -188,7 +188,7 @@ export default function KidDashboardPage() {
         { name: "Growth", color: "bg-[#818CF8]", icon: Zap },
         { name: "Spotlight", color: "bg-[#4ADE80]", icon: Star }
       ],
-      image: "/images/test/quest_ice_clock.png",
+      image: "/images/test/yes-i-can-Generated_Image.jpeg",
       action: () => setShowReelForm(true),
       product: "Common"
     });
