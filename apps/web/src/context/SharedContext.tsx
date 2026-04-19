@@ -93,6 +93,7 @@ type SharedContextType = {
   setAppliedCoupon: (coupon: any) => void;
   appliedSwagoMoney: number;
   setAppliedSwagoMoney: (amount: number) => void;
+  walletBalance: number;
 };
 
 const SharedContext = createContext<SharedContextType | undefined>(undefined);
@@ -121,13 +122,89 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
   const [isCartSidebarOpen, setIsCartSidebarOpen] = useState(false);
   const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
   const [appliedSwagoMoney, setAppliedSwagoMoney] = useState(0);
+  const [walletBalance, setWalletBalance] = useState(0);
+
+  useEffect(() => {
+    if (user) {
+      fetch('/api/wallet/balance')
+        .then(r => r.json())
+        .then(d => {
+          if (d.success) setWalletBalance(d.totalSwagoMoney || 0);
+        })
+        .catch(console.error);
+    } else {
+      setWalletBalance(0);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    setAppliedSwagoMoney((prev) => {
+      if (prev === 0) return 0;
+
+      const currentTotal = cart.reduce((s, it) => s + it.price * it.quantity, 0);
+      const discount = appliedCoupon ? appliedCoupon.discount : 0;
+      const amountAfterCoupon = currentTotal - discount;
+
+      if (amountAfterCoupon < 799) return 0;
+
+      const maxAllowed = Math.trunc(amountAfterCoupon * 0.05);
+      const applicable = Math.min(walletBalance, maxAllowed);
+
+      return prev !== applicable ? applicable : prev;
+    });
+  }, [cart, appliedCoupon, walletBalance]);
+
+  const cartKeyRef = useRef<string>('');
 
   useEffect(() => {
     if (cart.length === 0) {
-      setAppliedCoupon(null);
-      setAppliedSwagoMoney(0);
+      if (appliedCoupon) setAppliedCoupon(null);
+      if (appliedSwagoMoney > 0) setAppliedSwagoMoney(0);
+      cartKeyRef.current = '';
+      return;
     }
-  }, [cart]);
+
+    const cartKey = JSON.stringify(cart.map(c => ({ id: getProductId(c), qty: c.quantity, price: c.price })));
+
+    if (cartKey !== cartKeyRef.current) {
+      cartKeyRef.current = cartKey;
+
+      if (appliedCoupon && appliedCoupon.code) {
+        const orderAmount = cart.reduce((s, it) => s + it.price * it.quantity, 0);
+
+        const revalidate = async () => {
+          try {
+            const res = await fetch('/api/coupon/validate', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                couponCode: appliedCoupon.code,
+                orderAmount,
+                cartItems: cart,
+              }),
+            });
+            const data = await res.json();
+
+            if (data.success && data.coupon && data.discount) {
+              setAppliedCoupon((prev: any) => {
+                if (prev?.code === data.coupon.code && prev?.discount === data.discount.amount) {
+                  return prev;
+                }
+                return { code: data.coupon.code, discount: data.discount.amount, type: data.coupon.type, value: data.coupon.value, maxDiscount: data.coupon.maxDiscount };
+              });
+            } else {
+              setAppliedCoupon(null);
+            }
+          } catch (e) {
+            console.error("Error revalidating coupon on cart update:", e);
+          }
+        };
+
+        const timer = setTimeout(revalidate, 500); // 500ms debounce
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [cart, appliedCoupon, appliedSwagoMoney]);
 
   const cartSyncTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastSyncedCartRef = useRef<string>('');
@@ -549,7 +626,8 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
         appliedCoupon,
         setAppliedCoupon,
         appliedSwagoMoney,
-        setAppliedSwagoMoney
+        setAppliedSwagoMoney,
+        walletBalance
       }}
     >
       {children}

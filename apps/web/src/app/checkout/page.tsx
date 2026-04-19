@@ -227,7 +227,7 @@ export default function CheckoutPage() {
       <div className="min-h-screen flex items-center justify-center p-4">
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-4">Your cart is empty</h1>
-          <Link href="/products" className="text-purple-600 hover:underline">Go back to products</Link>
+          <Link href="/products" className="text-[hsl(var(--swago-purple))] hover:underline">Go back to products</Link>
         </div>
       </div>
     );
@@ -283,18 +283,18 @@ export default function CheckoutPage() {
             <section>
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-semibold text-slate-800">Contact</h2>
-                {!user && <Link href="/login" className="text-xs text-purple-600 hover:underline">Log in</Link>}
+                {!user && <Link href="/login" className="text-xs text-[hsl(var(--swago-purple))] hover:underline">Log in</Link>}
               </div>
               <div className="space-y-4">
                 <input
                   value={email}
                   onChange={(e) => { setEmail(e.target.value); if (errors.includes("email")) setErrors(errors.filter(f => f !== "email")); }}
                   placeholder="Email or mobile phone number"
-                  className={`w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-purple-500 outline-none text-sm transition-all shadow-sm ${errors.includes("email") ? 'border-red-500 bg-red-50 placeholder-red-300' : 'border-slate-200'}`}
+                  className={`w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-[hsl(var(--swago-purple))] outline-none text-sm transition-all shadow-sm ${errors.includes("email") ? 'border-red-500 bg-red-50 placeholder-red-300' : 'border-slate-200'}`}
                 />
                 {errors.includes("email") && <p className="text-[10px] text-red-500 font-bold mt-1 px-1">Email is needed</p>}
                 <label className="flex items-center gap-2 cursor-pointer group">
-                  <input type="checkbox" defaultChecked className="w-4 h-4 rounded-md border-slate-300 text-purple-600 focus:ring-purple-500" />
+                  <input type="checkbox" defaultChecked className="w-4 h-4 rounded-md border-slate-300 text-[hsl(var(--swago-purple))] focus:ring-[hsl(var(--swago-purple))]" />
                   <span className="text-xs text-slate-600 group-hover:text-slate-900 transition-colors">Email me with news and offers</span>
                 </label>
               </div>
@@ -304,7 +304,7 @@ export default function CheckoutPage() {
             <section>
               <h2 className="text-lg font-semibold text-slate-800 mb-4">Delivery</h2>
               <div className="space-y-3">
-                <select className="w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-purple-500 outline-none text-sm bg-slate-50 shadow-sm appearance-none">
+                <select className="w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-[hsl(var(--swago-purple))] outline-none text-sm bg-slate-50 shadow-sm appearance-none">
                   <option>India</option>
                 </select>
 
@@ -314,7 +314,7 @@ export default function CheckoutPage() {
                       placeholder="First name"
                       value={firstName}
                       onChange={(e) => { setFirstName(e.target.value); if (errors.includes("firstName")) setErrors(errors.filter(f => f !== "firstName")); }}
-                      className={`w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-purple-500 outline-none text-sm shadow-sm ${errors.includes("firstName") ? 'border-red-500 bg-red-50 placeholder-red-300' : 'border-slate-200'}`}
+                      className={`w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-[hsl(var(--swago-purple))] outline-none text-sm shadow-sm ${errors.includes("firstName") ? 'border-red-500 bg-red-50 placeholder-red-300' : 'border-slate-200'}`}
                     />
                     {errors.includes("firstName") && <p className="text-[10px] text-red-500 font-bold">First name is needed</p>}
                   </div>
@@ -323,7 +323,7 @@ export default function CheckoutPage() {
                       placeholder="Last name"
                       value={lastName}
                       onChange={(e) => { setLastName(e.target.value); if (errors.includes("lastName")) setErrors(errors.filter(f => f !== "lastName")); }}
-                      className={`w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-purple-500 outline-none text-sm shadow-sm ${errors.includes("lastName") ? 'border-red-500 bg-red-50 placeholder-red-300' : 'border-slate-200'}`}
+                      className={`w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-[hsl(var(--swago-purple))] outline-none text-sm shadow-sm ${errors.includes("lastName") ? 'border-red-500 bg-red-50 placeholder-red-300' : 'border-slate-200'}`}
                     />
                     {errors.includes("lastName") && <p className="text-[10px] text-red-500 font-bold">Last name is needed</p>}
                   </div>
@@ -333,7 +333,7 @@ export default function CheckoutPage() {
                   <select
                     value={age}
                     onChange={(e) => { setAge(e.target.value); if (errors.includes("age")) setErrors(errors.filter(f => f !== "age")); }}
-                    className={`w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-purple-500 outline-none text-sm bg-white shadow-sm appearance-none ${errors.includes("age") ? 'border-red-500 bg-red-50 text-red-900' : 'border-slate-200'}`}
+                    className={`w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-[hsl(var(--swago-purple))] outline-none text-sm bg-white shadow-sm appearance-none ${errors.includes("age") ? 'border-red-500 bg-red-50 text-red-900' : 'border-slate-200'}`}
                   >
                     <option value="" disabled>Child's Age</option>
                     {[...Array(9)].map((_, i) => (
@@ -348,7 +348,7 @@ export default function CheckoutPage() {
                     placeholder="Address"
                     value={address}
                     onChange={(e) => { setAddress(e.target.value); if (errors.includes("address")) setErrors(errors.filter(f => f !== "address")); }}
-                    className={`w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-purple-500 outline-none text-sm shadow-sm pr-10 ${errors.includes("address") ? 'border-red-500 bg-red-50 placeholder-red-300' : 'border-slate-200'}`}
+                    className={`w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-[hsl(var(--swago-purple))] outline-none text-sm shadow-sm pr-10 ${errors.includes("address") ? 'border-red-500 bg-red-50 placeholder-red-300' : 'border-slate-200'}`}
                   />
                   <RiSearchLine className="absolute right-4 top-[24px] -translate-y-1/2 text-slate-400" />
                   {errors.includes("address") && <p className="text-[10px] text-red-500 font-bold">Address is needed</p>}
@@ -360,14 +360,14 @@ export default function CheckoutPage() {
                       placeholder="City"
                       value={city}
                       onChange={(e) => { setCity(e.target.value); if (errors.includes("city")) setErrors(errors.filter(f => f !== "city")); }}
-                      className={`w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-purple-500 outline-none text-sm shadow-sm ${errors.includes("city") ? 'border-red-500 bg-red-50 placeholder-red-300' : 'border-slate-200'}`}
+                      className={`w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-[hsl(var(--swago-purple))] outline-none text-sm shadow-sm ${errors.includes("city") ? 'border-red-500 bg-red-50 placeholder-red-300' : 'border-slate-200'}`}
                     />
                     {errors.includes("city") && <p className="text-[10px] text-red-500 font-bold">City is needed</p>}
                   </div>
                   <select
                     value={state}
                     onChange={(e) => setState(e.target.value)}
-                    className="w-full h-12 px-4 border rounded-md border-slate-200 focus:ring-1 focus:ring-purple-500 outline-none text-sm bg-white shadow-sm"
+                    className="w-full h-12 px-4 border rounded-md border-slate-200 focus:ring-1 focus:ring-[hsl(var(--swago-purple))] outline-none text-sm bg-white shadow-sm"
                   >
                     {INDIAN_STATES.map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
@@ -376,7 +376,7 @@ export default function CheckoutPage() {
                       placeholder="PIN code"
                       value={pincode}
                       onChange={(e) => { setPincode(e.target.value); if (errors.includes("pincode")) setErrors(errors.filter(f => f !== "pincode")); }}
-                      className={`w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-purple-500 outline-none text-sm shadow-sm ${errors.includes("pincode") ? 'border-red-500 bg-red-50 placeholder-red-300' : 'border-slate-200'}`}
+                      className={`w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-[hsl(var(--swago-purple))] outline-none text-sm shadow-sm ${errors.includes("pincode") ? 'border-red-500 bg-red-50 placeholder-red-300' : 'border-slate-200'}`}
                     />
                     {errors.includes("pincode") && <p className="text-[10px] text-red-500 font-bold">PIN code is needed</p>}
                   </div>
@@ -387,7 +387,7 @@ export default function CheckoutPage() {
                     placeholder="Phone"
                     value={phone}
                     onChange={(e) => { setPhone(e.target.value); if (errors.includes("phone")) setErrors(errors.filter(f => f !== "phone")); }}
-                    className={`w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-purple-500 outline-none text-sm shadow-sm pr-10 ${errors.includes("phone") ? 'border-red-500 bg-red-50 placeholder-red-300' : 'border-slate-200'}`}
+                    className={`w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-[hsl(var(--swago-purple))] outline-none text-sm shadow-sm pr-10 ${errors.includes("phone") ? 'border-red-500 bg-red-50 placeholder-red-300' : 'border-slate-200'}`}
                   />
                   <RiInformationLine className="absolute right-4 top-[24px] -translate-y-1/2 text-slate-400 cursor-help" />
                   {errors.includes("phone") && <p className="text-[10px] text-red-500 font-bold">Phone number is needed</p>}
@@ -395,11 +395,11 @@ export default function CheckoutPage() {
 
                 <div className="space-y-2 pt-2">
                   <label className="flex items-center gap-2 cursor-pointer group">
-                    <input type="checkbox" className="w-4 h-4 rounded-md border-slate-300 text-purple-600 focus:ring-purple-500" />
+                    <input type="checkbox" className="w-4 h-4 rounded-md border-slate-300 text-[hsl(var(--swago-purple))] focus:ring-[hsl(var(--swago-purple))]" />
                     <span className="text-xs text-slate-600 group-hover:text-slate-900 transition-colors">Save this information for next time</span>
                   </label>
                   <label className="flex items-center gap-2 cursor-pointer group">
-                    <input type="checkbox" className="w-4 h-4 rounded-md border-slate-300 text-purple-600 focus:ring-purple-500" />
+                    <input type="checkbox" className="w-4 h-4 rounded-md border-slate-300 text-[hsl(var(--swago-purple))] focus:ring-[hsl(var(--swago-purple))]" />
                     <span className="text-xs text-slate-600 group-hover:text-slate-900 transition-colors">Text me with news and offers</span>
                   </label>
                 </div>
@@ -423,9 +423,9 @@ export default function CheckoutPage() {
 
               <div className="border rounded-lg overflow-hidden border-slate-200">
                 {/* Razorpay Option */}
-                <div className={`p-4 flex items-start gap-4 cursor-pointer transition-colors ${paymentMethod === 'razorpay' ? 'bg-purple-50' : 'bg-white hover:bg-slate-50'}`} onClick={() => setPaymentMethod('razorpay')}>
-                  <div className={`w-5 h-5 rounded-full border-2 mt-0.5 flex items-center justify-center transition-all ${paymentMethod === 'razorpay' ? 'border-purple-600' : 'border-slate-300'}`}>
-                    {paymentMethod === 'razorpay' && <div className="w-2.5 h-2.5 bg-purple-600 rounded-full" />}
+                <div className={`p-4 flex items-start gap-4 cursor-pointer transition-colors ${paymentMethod === 'razorpay' ? 'bg-[hsl(var(--swago-purple))/0.1]' : 'bg-white hover:bg-slate-50'}`} onClick={() => setPaymentMethod('razorpay')}>
+                  <div className={`w-5 h-5 rounded-full border-2 mt-0.5 flex items-center justify-center transition-all ${paymentMethod === 'razorpay' ? 'border-[hsl(var(--swago-purple))]' : 'border-slate-300'}`}>
+                    {paymentMethod === 'razorpay' && <div className="w-2.5 h-2.5 bg-[hsl(var(--swago-purple))] rounded-full" />}
                   </div>
                   <div className="flex-1">
                     <div className="flex justify-between items-center mb-1">
@@ -447,9 +447,9 @@ export default function CheckoutPage() {
                 </div>
 
                 {/* COD Option */}
-                <div className={`p-4 border-t flex items-start gap-4 cursor-pointer transition-colors ${paymentMethod === 'cod' ? 'bg-purple-50' : 'bg-white hover:bg-slate-50'}`} onClick={() => setPaymentMethod('cod')}>
-                  <div className={`w-5 h-5 rounded-full border-2 mt-0.5 flex items-center justify-center transition-all ${paymentMethod === 'cod' ? 'border-purple-600' : 'border-slate-300'}`}>
-                    {paymentMethod === 'cod' && <div className="w-2.5 h-2.5 bg-purple-600 rounded-full" />}
+                <div className={`p-4 border-t flex items-start gap-4 cursor-pointer transition-colors ${paymentMethod === 'cod' ? 'bg-[hsl(var(--swago-purple))/0.1]' : 'bg-white hover:bg-slate-50'}`} onClick={() => setPaymentMethod('cod')}>
+                  <div className={`w-5 h-5 rounded-full border-2 mt-0.5 flex items-center justify-center transition-all ${paymentMethod === 'cod' ? 'border-[hsl(var(--swago-purple))]' : 'border-slate-300'}`}>
+                    {paymentMethod === 'cod' && <div className="w-2.5 h-2.5 bg-[hsl(var(--swago-purple))] rounded-full" />}
                   </div>
                   <div className="flex-1">
                     <span className="text-sm font-bold text-slate-900">Cash on Delivery (COD)</span>
@@ -462,15 +462,15 @@ export default function CheckoutPage() {
             <section>
               <h2 className="text-lg font-semibold text-slate-800 mb-4">Billing address</h2>
               <div className="border rounded-lg overflow-hidden border-slate-200">
-                <div className={`p-4 flex items-center gap-4 cursor-pointer transition-colors ${billingAddressType === 'same' ? 'bg-purple-50' : 'bg-white hover:bg-slate-50'}`} onClick={() => setBillingAddressType('same')}>
-                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${billingAddressType === 'same' ? 'border-purple-600' : 'border-slate-300'}`}>
-                    {billingAddressType === 'same' && <div className="w-2.5 h-2.5 bg-purple-600 rounded-full" />}
+                <div className={`p-4 flex items-center gap-4 cursor-pointer transition-colors ${billingAddressType === 'same' ? 'bg-[hsl(var(--swago-purple))/0.1]' : 'bg-white hover:bg-slate-50'}`} onClick={() => setBillingAddressType('same')}>
+                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${billingAddressType === 'same' ? 'border-[hsl(var(--swago-purple))]' : 'border-slate-300'}`}>
+                    {billingAddressType === 'same' && <div className="w-2.5 h-2.5 bg-[hsl(var(--swago-purple))] rounded-full" />}
                   </div>
                   <span className="text-sm font-bold text-slate-900">Same as shipping address</span>
                 </div>
-                <div className={`p-4 border-t flex items-center gap-4 cursor-pointer transition-colors ${billingAddressType === 'different' ? 'bg-purple-50' : 'bg-white hover:bg-slate-50'}`} onClick={() => setBillingAddressType('different')}>
-                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${billingAddressType === 'different' ? 'border-purple-600' : 'border-slate-300'}`}>
-                    {billingAddressType === 'different' && <div className="w-2.5 h-2.5 bg-purple-600 rounded-full" />}
+                <div className={`p-4 border-t flex items-center gap-4 cursor-pointer transition-colors ${billingAddressType === 'different' ? 'bg-[hsl(var(--swago-purple))/0.1]' : 'bg-white hover:bg-slate-50'}`} onClick={() => setBillingAddressType('different')}>
+                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${billingAddressType === 'different' ? 'border-[hsl(var(--swago-purple))]' : 'border-slate-300'}`}>
+                    {billingAddressType === 'different' && <div className="w-2.5 h-2.5 bg-[hsl(var(--swago-purple))] rounded-full" />}
                   </div>
                   <span className="text-sm font-bold text-slate-900">Use a different billing address</span>
                 </div>
@@ -480,14 +480,14 @@ export default function CheckoutPage() {
             <button
               onClick={handlePayNow}
               disabled={processing}
-              className="w-full h-14 btn-shine bg-[hsl(var(--swago-purple))] hover:brightness-110 text-white font-black rounded-lg text-lg tracking-widest shadow-xl shadow-purple-100 transition-all transform active:scale-95 disabled:opacity-50"
+              className="w-full h-14 btn-shine bg-[hsl(var(--swago-purple))] hover:brightness-110 text-white font-black rounded-lg text-lg tracking-widest shadow-xl shadow-[hsl(var(--swago-purple))/0.2] transition-all transform active:scale-95 disabled:opacity-50"
             >
               {processing ? "Processing..." : "Pay now"}
             </button>
 
             {message && <p className="text-center text-sm font-bold text-slate-600">{message}</p>}
 
-            <footer className="pt-8 border-t flex flex-wrap gap-x-6 gap-y-2 text-[10px] text-purple-600 tracking-widest font-black">
+            <footer className="pt-8 border-t flex flex-wrap gap-x-6 gap-y-2 text-[10px] text-[hsl(var(--swago-purple))] tracking-widest font-black">
               <Link href="/refund-policy" className="hover:underline">Refund policy</Link>
               <Link href="/privacy-policy" className="hover:underline">Privacy policy</Link>
               <Link href="/terms-of-service" className="hover:underline">Terms of service</Link>
@@ -558,7 +558,7 @@ function OrderSummary({
         )}
 
         {appliedSwagoMoney > 0 && (
-          <div className="flex justify-between text-purple-600 font-bold">
+          <div className="flex justify-between text-[hsl(var(--swago-purple))] font-bold">
             <span>Swago Dollars</span>
             <span>-₹{appliedSwagoMoney.toFixed(2)}</span>
           </div>

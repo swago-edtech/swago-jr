@@ -17,6 +17,7 @@ const earnSteps = [
     description: "Start your journey and unlock your Swago identity",
     color: "#FBBF24", // Yellow
     lightColor: "#FEF3C7",
+    link: "/profile",
   },
   {
     id: "02",
@@ -29,6 +30,7 @@ const earnSteps = [
     description: "Share your child’s Brain Gym video to earn 20 Swago Dollars and unlock Swago Ambassador eligibility",
     color: "#F97316", // Orange
     lightColor: "#FFEDD5",
+    link: "/swago-song",
   },
   {
     id: "03",
@@ -41,6 +43,7 @@ const earnSteps = [
     description: "Find your ticket inside the box and earn your 10 Swago Dollars",
     color: "#EC4899", // Pink
     lightColor: "#FCE7F3",
+    link: "/lottery-code",
   },
   {
     id: "04",
@@ -53,6 +56,7 @@ const earnSteps = [
     description: "Connect with 2000+ parents and unlock exclusive rewards and missions",
     color: "#A855F7", // Purple
     lightColor: "#F3E8FF",
+    link: "https://www.whatsapp.com/channel/0029VbCEELmATRSt1LCXtP0w",
   },
 ];
 
@@ -60,11 +64,16 @@ export default function HowToEarnSwagoMoney() {
   const { user } = useSharedContext();
   const router = useRouter();
 
-  const handleCardClick = () => {
-    if (user) {
-      router.push("/profile");
+  const handleCardClick = (link: string) => {
+    if (!user) {
+      router.push(`/login?redirect=${encodeURIComponent(link)}`);
+      return;
+    }
+
+    if (link.startsWith("http")) {
+      window.open(link, "_blank");
     } else {
-      router.push("/login?redirect=/profile");
+      router.push(link);
     }
   };
 
@@ -99,7 +108,7 @@ export default function HowToEarnSwagoMoney() {
                 transition={{ delay: idx * 0.15 }}
                 className="flex flex-col"
               >
-                <div onClick={handleCardClick} className="flex flex-col flex-1 group cursor-pointer">
+                <div onClick={() => handleCardClick(step.link)} className="flex flex-col flex-1 group cursor-pointer">
                   {/* Numbered Circle */}
                   <div
                     className="w-20 h-20 rounded-full flex-shrink-0 flex items-center justify-center border-[6px] border-white shadow-xl mb-12 transition-transform group-hover:scale-110 cursor-pointer mx-auto"
@@ -157,7 +166,7 @@ export default function HowToEarnSwagoMoney() {
                 transition={{ delay: idx * 0.1 }}
                 className="flex flex-col"
               >
-                <div onClick={handleCardClick} className="flex gap-6 group cursor-pointer">
+                <div onClick={() => handleCardClick(step.link)} className="flex gap-6 group cursor-pointer">
                   {/* Numbered Circle */}
                   <div
                     className="w-20 h-20 flex-shrink-0 rounded-full flex items-center justify-center border-[4px] border-white shadow-lg relative z-20 transition-transform group-hover:scale-110"

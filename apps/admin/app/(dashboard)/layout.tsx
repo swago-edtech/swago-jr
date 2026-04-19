@@ -3,6 +3,11 @@ import { redirect } from 'next/navigation';
 import AdminSidebar from '@/components/AdminSidebar';
 import AdminHeader from '@/components/AdminHeader';
 
+// Admin dashboard pages always depend on the admin session cookie, so they
+// must be rendered dynamically. This prevents Next.js from attempting static
+// generation (and emitting DYNAMIC_SERVER_USAGE noise) during `next build`.
+export const dynamic = 'force-dynamic';
+
 export default async function DashboardLayout({
   children,
 }: {

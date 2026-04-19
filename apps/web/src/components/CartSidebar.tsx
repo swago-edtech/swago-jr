@@ -42,7 +42,8 @@ export default function CartSidebar() {
     removeFromCart,
     addToCart,
     appliedCoupon,
-    setAppliedCoupon
+    setAppliedCoupon,
+    appliedSwagoMoney
   } = useSharedContext();
 
   const router = useRouter();
@@ -412,9 +413,8 @@ export default function CartSidebar() {
                     <span className="text-sm font-black text-slate-700 tracking-tight">Estimated total</span>
                   </div>
                   <div className="text-right">
-                    <p className="text-xl font-black text-slate-900 tracking-tight leading-none mb-1">₹{(total - (appliedCoupon?.discount || 0)).toFixed(0)}</p>
-                    {appliedCoupon && <p className="text-[10px] font-black text-[#1EAA5F] uppercase tracking-wide">You saved ₹{(75 + appliedCoupon.discount).toFixed(0)}!</p>}
-                    {!appliedCoupon && <p className="text-[10px] font-black text-[#1EAA5F] uppercase tracking-wide">You saved ₹75!</p>}
+                    <p className="text-xl font-black text-slate-900 tracking-tight leading-none mb-1">₹{((appliedCoupon ? total - appliedCoupon.discount : total) - (appliedSwagoMoney || 0)).toFixed(0)}</p>
+                    {((appliedCoupon?.discount || 0) + (appliedSwagoMoney || 0)) > 0 && <p className="text-[10px] font-black text-[#1EAA5F] uppercase tracking-wide">You saved ₹{((appliedCoupon?.discount || 0) + (appliedSwagoMoney || 0)).toFixed(0)}!</p>}
                   </div>
                 </div>
 
