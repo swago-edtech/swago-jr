@@ -64,6 +64,7 @@ const UserSchema = new mongoose.Schema(
         type: String,
         required: true
       },
+      images: [String], // ✅ NEW: Support full images array
       addedAt: { 
         type: Date, 
         default: Date.now 

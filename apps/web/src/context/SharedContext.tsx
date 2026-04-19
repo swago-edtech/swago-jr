@@ -45,6 +45,7 @@ export type CartItem = Product & {
   quantity: number;
   productId?: string | number;
   addedAt?: Date | string;
+  image?: string; // ✅ Legacy fallback from database
 };
 
 export type User = {
@@ -111,6 +112,20 @@ const getProductId = (product: Product | CartItem): string => {
     return product.productId.toString();
   }
   return product._id || product.id?.toString() || '';
+};
+
+// ✅ Helper to ensure cart items have the required images array
+const normalizeCart = (items: any[]): CartItem[] => {
+  return items.map(item => {
+    const images = Array.isArray(item.images) && item.images.length > 0
+      ? item.images
+      : (item.image ? [item.image] : []);
+      
+    return {
+      ...item,
+      images: images.length > 0 ? images : ['/images/placeholder.png']
+    };
+  });
 };
 
 export function SharedProvider({ children }: { children: React.ReactNode }) {
@@ -214,7 +229,7 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) setCart(JSON.parse(raw));
+      if (raw) setCart(normalizeCart(JSON.parse(raw)));
     } catch (e) {
       console.error("Error loading cart:", e);
     }
@@ -258,7 +273,7 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (user && user.cart && user.cart.length > 0) {
       console.log('🔄 Loading merged cart from server:', user.cart.length, 'items');
-      setCart(user.cart);
+      setCart(normalizeCart(user.cart));
       skipNextSyncRef.current = true;
     }
   }, [user?._id]);
@@ -276,6 +291,7 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
         price: item.price,
         name: item.name,
         image: item.images?.[0] || '/images/placeholder.png',
+        images: item.images || ['/images/placeholder.png'],
         addedAt: new Date()
       }));
       lastSyncedCartRef.current = JSON.stringify(dbCart);
@@ -288,6 +304,7 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
       price: item.price,
       name: item.name,
       image: item.images?.[0] || '/images/placeholder.png',
+      images: item.images || ['/images/placeholder.png'],
       addedAt: new Date()
     }));
 
@@ -353,7 +370,7 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
           setWishlist(loggedInUser.wishlist || []);
           if (loggedInUser.cart && loggedInUser.cart.length > 0) {
             console.log('✅ Cart loaded from /api/me:', loggedInUser.cart.length, 'items');
-            setCart(loggedInUser.cart);
+            setCart(normalizeCart(loggedInUser.cart));
             skipNextSyncRef.current = true;
           }
         } else {
