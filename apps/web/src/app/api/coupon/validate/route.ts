@@ -37,6 +37,7 @@ export async function POST(req: Request) {
           description: coupon.description,
           type: coupon.type,
           value: coupon.value,
+          maxDiscount: coupon.maxDiscount || null,
         },
         discount: {
           amount: discountAmount,

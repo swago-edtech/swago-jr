@@ -17,11 +17,10 @@ interface StockInfo {
 }
 
 export default function CartPage() {
-  const { cart, total, removeFromCart, increaseQty, decreaseQty, appliedCoupon, setAppliedCoupon, appliedSwagoMoney, setAppliedSwagoMoney } = useSharedContext();
+  const { cart, total, removeFromCart, increaseQty, decreaseQty, appliedCoupon, setAppliedCoupon, appliedSwagoMoney, setAppliedSwagoMoney, walletBalance } = useSharedContext();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [stockInfo, setStockInfo] = useState<StockInfo>({});
-  const [walletBalance, setWalletBalance] = useState(0);
 
   const [couponSheetOpen, setCouponSheetOpen] = useState(false);
 
@@ -51,19 +50,6 @@ export default function CartPage() {
       }
     };
     fetchCoupons();
-
-    const fetchWallet = async () => {
-      try {
-        const res = await fetch('/api/wallet/balance');
-        const data = await res.json();
-        if (data.success) {
-          setWalletBalance(data.totalSwagoMoney || 0);
-        }
-      } catch (e) {
-        console.error('Failed to fetch wallet balance', e);
-      }
-    };
-    fetchWallet();
   }, []);
 
   const applyCoupon = async (code: string) => {
@@ -78,7 +64,13 @@ export default function CartPage() {
       });
       const data = await res.json();
       if (data.success) {
-        setAppliedCoupon({ code: data.coupon.code, discount: data.discount.amount });
+        setAppliedCoupon({
+          code: data.coupon.code,
+          discount: data.discount.amount,
+          type: data.coupon.type,
+          value: data.coupon.value,
+          maxDiscount: data.coupon.maxDiscount
+        });
         setCouponSheetOpen(false);
       } else {
         setCouponError(data.error || 'Invalid coupon code');
@@ -118,18 +110,24 @@ export default function CartPage() {
     return (item.productId?.toString() || item._id?.toString() || item.id?.toString() || '');
   };
 
-  const savings = appliedCoupon?.discount || 0;
+  let synchronousSavings = appliedCoupon?.discount || 0;
+  if (appliedCoupon?.type === 'percentage') {
+    const applicableAmount = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    synchronousSavings = Math.floor(applicableAmount * (appliedCoupon.value / 100));
+    if (appliedCoupon.maxDiscount && synchronousSavings > appliedCoupon.maxDiscount) {
+      synchronousSavings = appliedCoupon.maxDiscount;
+    }
+  } else if (appliedCoupon?.type === 'fixed') {
+    synchronousSavings = appliedCoupon.value;
+  }
+
+  const savings = synchronousSavings;
   const amountAfterCoupon = total - savings;
   const canUseSwagoDollars = amountAfterCoupon >= 799;
   const maxSwagoDollarsAllowed = Math.trunc(amountAfterCoupon * 0.05);
   const applicableSwagoDollars = Math.min(walletBalance, maxSwagoDollarsAllowed);
 
-  // Reset if conditions fail
-  useEffect(() => {
-    if (appliedSwagoMoney > 0 && (!canUseSwagoDollars || appliedSwagoMoney > applicableSwagoDollars)) {
-      setAppliedSwagoMoney(0);
-    }
-  }, [amountAfterCoupon, canUseSwagoDollars, applicableSwagoDollars, appliedSwagoMoney, setAppliedSwagoMoney]);
+
 
   if (cart.length === 0) {
     return (
@@ -180,7 +178,7 @@ export default function CartPage() {
         <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 items-start">
           <div className="w-full lg:w-2/3 flex flex-col gap-4 sm:gap-6">
             <div className="bg-white rounded-2xl px-4 sm:px-5 py-5 border border-slate-100 shadow-sm">
-              <p className={`text-[10px] sm:text-xs font-black text-center mb-4 tracking-widest ${total >= shippingThreshold ? 'text-[#1EAA5F]' : 'text-slate-600'}`}>
+              <p className={`text-xs sm:text-xs font-black text-center mb-4 tracking-widest ${total >= shippingThreshold ? 'text-[#1EAA5F]' : 'text-slate-600'}`}>
                 {total >= giftThreshold
                   ? "🎉 All rewards added to your order!"
                   : total >= shippingThreshold
@@ -222,11 +220,11 @@ export default function CartPage() {
                     className="absolute -translate-x-1/2 text-center"
                     style={{ left: `${(shippingThreshold / giftThreshold) * 100}%` }}
                   >
-                    <span className={`block text-[9px] sm:text-[10px] font-black leading-none ${total >= shippingThreshold ? 'text-slate-800' : 'text-slate-400'}`}>₹{shippingThreshold}</span>
+                    <span className={`block text-[9px] sm:text-xs font-black leading-none ${total >= shippingThreshold ? 'text-slate-800' : 'text-slate-400'}`}>₹{shippingThreshold}</span>
                     <span className={`block text-[8px] font-bold tracking-tight whitespace-nowrap mt-0.5 ${total >= shippingThreshold ? 'text-slate-500' : 'text-slate-400'}`}>Free Shipping</span>
                   </div>
                   <div className="absolute right-0 translate-x-[20%] sm:translate-x-0 text-right sm:text-center">
-                    <span className={`block text-[9px] sm:text-[10px] font-black leading-none ${total >= giftThreshold ? 'text-slate-800' : 'text-slate-400'}`}>₹{giftThreshold}</span>
+                    <span className={`block text-[9px] sm:text-xs font-black leading-none ${total >= giftThreshold ? 'text-slate-800' : 'text-slate-400'}`}>₹{giftThreshold}</span>
                     <span className={`block text-[8px] font-bold tracking-tight whitespace-nowrap mt-0.5 ${total >= giftThreshold ? 'text-slate-500' : 'text-slate-400'}`}>+ Gift</span>
                   </div>
                 </div>
@@ -260,7 +258,7 @@ export default function CartPage() {
                         </div>
                         <div className="flex flex-row sm:flex-col items-baseline sm:items-end gap-2 sm:gap-0 mt-1 sm:mt-0 w-full sm:w-auto">
                           <span className="text-sm sm:text-lg font-black text-slate-900 tabular-nums leading-none">₹{price}</span>
-                          <span className="text-[10px] text-slate-400 line-through font-bold tabular-nums sm:mt-0.5">₹{originalPrice.toFixed(0)}</span>
+                          <span className="text-xs text-slate-400 line-through font-bold tabular-nums sm:mt-0.5">₹{originalPrice.toFixed(0)}</span>
                         </div>
                       </div>
 
@@ -304,7 +302,7 @@ export default function CartPage() {
                 </div>
                 <h2 className="text-xs font-black text-slate-800 tracking-wide flex-1 m-0">Coupons</h2>
                 {appliedCoupon && (
-                  <span className="text-[10px] font-black text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full tracking-widest">Applied</span>
+                  <span className="text-xs font-black text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full tracking-widest">Applied</span>
                 )}
               </div>
 
@@ -312,9 +310,9 @@ export default function CartPage() {
                 <div className="flex items-center justify-between bg-emerald-50 border border-emerald-100 rounded-xl p-3">
                   <div>
                     <span className="text-xs font-black text-emerald-800 tracking-wide">{appliedCoupon.code}</span>
-                    <p className="text-[10px] text-emerald-600 font-bold m-0 mt-0.5">Saved ₹{appliedCoupon.discount.toFixed(0)}!</p>
+                    <p className="text-xs text-emerald-600 font-bold m-0 mt-0.5">Saved ₹{appliedCoupon.discount.toFixed(0)}!</p>
                   </div>
-                  <button onClick={removeCoupon} className="text-[10px] font-bold text-rose-600 tracking-widest border border-rose-200 px-3 py-1.5 rounded-lg hover:bg-rose-100/50 transition-colors bg-white">Remove</button>
+                  <button onClick={removeCoupon} className="text-xs font-bold text-rose-600 tracking-widest border border-rose-200 px-3 py-1.5 rounded-lg hover:bg-rose-100/50 transition-colors bg-white">Remove</button>
                 </div>
               ) : (
                 <button
@@ -330,7 +328,7 @@ export default function CartPage() {
                     <span className="text-sm font-bold text-slate-700 tracking-tight">View Coupons</span>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] font-bold text-slate-500 tracking-wider">{availableCoupons.length} Offers</span>
+                    <span className="text-xs font-bold text-slate-500 tracking-wider">{availableCoupons.length} Offers</span>
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-600">
                       <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
                     </svg>
@@ -341,14 +339,14 @@ export default function CartPage() {
               {walletBalance > 0 && (
                 <div className="mt-4 pt-4 border-t border-slate-100">
                   <div className="flex items-center gap-2 mb-2">
-                    <div className="bg-purple-50 p-1.5 rounded-lg text-purple-600">
+                    <div className="bg-[hsl(var(--swago-purple))/0.1] p-1.5 rounded-lg text-[hsl(var(--swago-purple))]">
                       <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" className="w-4 h-4">
                         <path fillRule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zM12.75 6a.75.75 0 00-1.5 0v.816a3.836 3.836 0 00-1.72.756c-.712.566-1.112 1.484-1.112 2.428 0 1.369.962 2.406 2.022 2.898 1.201.558 2.397.864 2.397 1.468 0 .584-.528.924-1.15.924-.407 0-.76-.17-1.127-.446a.75.75 0 00-1.15.924c.712.886 1.706 1.417 2.766 1.572V18a.75.75 0 001.5 0v-.816a3.836 3.836 0 001.72-.756c.712-.566 1.112-1.484 1.112-2.428 0-1.369-.962-2.406-2.022-2.898-1.201-.558-2.397-.864-2.397-1.468 0-.584.528-.924 1.15-.924.407 0 .76.17 1.127.446a.75.75 0 001.15-.924c-.712-.886-1.706-1.417-2.766-1.572V6z" clipRule="evenodd" />
                       </svg>
                     </div>
                     <h2 className="text-xs font-black text-slate-800 tracking-wide flex-1 m-0">Swago Dollars</h2>
                     {appliedSwagoMoney > 0 && (
-                      <span className="text-[10px] font-black text-purple-600 font-bold bg-purple-100 px-2 py-0.5 rounded-full tracking-widest">Applied</span>
+                      <span className="text-xs font-black text-[hsl(var(--swago-purple))] font-bold bg-[hsl(var(--swago-purple))/0.1] px-2 py-0.5 rounded-full tracking-widest">Applied</span>
                     )}
                   </div>
 
@@ -367,18 +365,18 @@ export default function CartPage() {
                               checked={appliedSwagoMoney > 0}
                               onChange={(e) => setAppliedSwagoMoney(e.target.checked ? applicableSwagoDollars : 0)}
                             />
-                            <div className="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-500"></div>
+                            <div className="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[hsl(var(--swago-purple))]"></div>
                           </label>
                         </div>
                       ) : null}
                     </div>
 
                     {!canUseSwagoDollars ? (
-                      <p className="text-[10px] text-slate-500 font-bold mt-1 leading-tight">
+                      <p className="text-xs text-slate-500 font-bold mt-1 leading-tight">
                         Add ₹{(799 - amountAfterCoupon).toFixed(0)} more to unlock max 5% Swago Dollars savings!
                       </p>
                     ) : applicableSwagoDollars > 0 ? (
-                      <p className="text-[10px] text-purple-600 font-bold mt-1 leading-tight">
+                      <p className="text-xs text-[hsl(var(--swago-purple))] font-bold mt-1 leading-tight">
                         You can use {applicableSwagoDollars} SD (5% of order) for this purchase.
                       </p>
                     ) : null}
@@ -388,7 +386,7 @@ export default function CartPage() {
             </div>
 
             <div className="bg-white rounded-2xl p-3 sm:p-4 border border-slate-100 shadow-sm overflow-hidden">
-              <h2 className="text-[11px] sm:text-xs font-black text-slate-800 tracking-wide mb-2 sm:mb-3 flex items-center gap-2">
+              <h2 className="text-xs sm:text-xs font-black text-slate-800 tracking-wide mb-2 sm:mb-3 flex items-center gap-2">
                 <span className="text-pink-500">✨</span> Other parents are loving these products too
               </h2>
               <div className="flex overflow-x-auto gap-3 pb-2 scrollbar-none snap-x snap-mandatory">
@@ -400,22 +398,22 @@ export default function CartPage() {
               <h2 className="text-xs sm:text-sm font-black text-slate-800 tracking-wide mb-2">Final Summary</h2>
 
               <div className="space-y-2.5">
-                <div className="flex justify-between text-slate-500 text-[10px] sm:text-[11px] font-bold tracking-widest">
+                <div className="flex justify-between text-slate-500 text-xs sm:text-xs font-bold tracking-widest">
                   <span>Cart Total</span>
                   <span className="text-slate-900 tabular-nums font-black">₹{total.toFixed(0)}</span>
                 </div>
-                <div className="flex justify-between text-slate-500 text-[10px] sm:text-[11px] font-bold tracking-widest">
+                <div className="flex justify-between text-slate-500 text-xs sm:text-xs font-bold tracking-widest">
                   <span>Shipping Fee</span>
                   <span className="text-[#1EAA5F] font-black">Free</span>
                 </div>
-                <div className="flex justify-between text-slate-500 text-[10px] sm:text-[11px] font-bold tracking-widest">
+                <div className="flex justify-between text-slate-500 text-xs sm:text-xs font-bold tracking-widest">
                   <span>Savings</span>
                   <span className="text-[#1EAA5F] font-black tabular-nums">-₹{savings.toFixed(0)}</span>
                 </div>
                 {appliedSwagoMoney > 0 && (
-                  <div className="flex justify-between text-slate-500 text-[10px] sm:text-[11px] font-bold tracking-widest">
+                  <div className="flex justify-between text-slate-500 text-xs sm:text-xs font-bold tracking-widest">
                     <span>Swago Dollars</span>
-                    <span className="text-purple-600 font-black tabular-nums">-₹{appliedSwagoMoney}</span>
+                    <span className="text-[hsl(var(--swago-purple))] font-black tabular-nums">-₹{appliedSwagoMoney}</span>
                   </div>
                 )}
 
@@ -425,7 +423,7 @@ export default function CartPage() {
                   <span className="text-xs sm:text-sm font-black text-slate-700 tracking-tight mt-1">Estimated total</span>
                   <div className="text-right">
                     <span className="text-xl sm:text-2xl font-black text-slate-900 tracking-tighter tabular-nums leading-none block">₹{(amountAfterCoupon - appliedSwagoMoney).toFixed(0)}</span>
-                    <span className="text-[9px] sm:text-[10px] font-black text-[#1EAA5F] tracking-wider mt-1 block">You saved ₹{(savings + appliedSwagoMoney).toFixed(0)}!</span>
+                    <span className="text-[9px] sm:text-xs font-black text-[#1EAA5F] tracking-wider mt-1 block">You saved ₹{(savings + appliedSwagoMoney).toFixed(0)}!</span>
                   </div>
                 </div>
               </div>
@@ -451,7 +449,7 @@ export default function CartPage() {
                 </svg>
               </div>
               <div>
-                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-none mb-1">Support</p>
+                <p className="text-xs font-bold text-slate-500 uppercase tracking-widest leading-none mb-1">Support</p>
                 <p className="text-sm font-black text-slate-800 tracking-tighter">+91 62838 83397</p>
               </div>
             </div>
@@ -462,7 +460,7 @@ export default function CartPage() {
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 p-4 z-40 shadow-[0_-10px_20px_rgba(0,0,0,0.03)]">
         <div className="flex items-center justify-between gap-4 max-w-xl mx-auto">
           <div className="flex flex-col">
-            <span className="text-[10px] font-bold text-slate-500 tracking-tight mb-1 leading-none">Estimated total</span>
+            <span className="text-xs font-bold text-slate-500 tracking-tight mb-1 leading-none">Estimated total</span>
             <div className="flex flex-col items-start gap-1">
               <span className="text-xl font-black text-slate-900 tracking-tighter tabular-nums leading-none">₹{(amountAfterCoupon - appliedSwagoMoney).toFixed(0)}</span>
               <span className="text-[9px] font-black text-[#1EAA5F] tracking-wider leading-none">You saved ₹{(savings + appliedSwagoMoney).toFixed(0)}!</span>

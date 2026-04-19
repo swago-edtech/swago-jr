@@ -71,7 +71,12 @@ export async function getAdminSession(): Promise<AdminSession | null> {
     }
 
     return decoded;
-  } catch (error) {
+  } catch (error: any) {
+    // Re-throw Next.js dynamic rendering signals so the framework can
+    // correctly mark routes as dynamic during `next build`.
+    if (error?.digest === 'DYNAMIC_SERVER_USAGE') {
+      throw error;
+    }
     console.error('Admin session error:', error);
     return null;
   }

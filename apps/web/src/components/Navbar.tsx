@@ -131,13 +131,13 @@ export default function Navbar() {
             {/* Swago Dollars Button */}
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <Link href={user ? "/profile" : "/login?redirect=/profile"} className="relative p-1 sm:p-2 flex items-center gap-1 sm:gap-1.5 group transition-colors bg-purple-50 hover:bg-purple-100 rounded-lg sm:rounded-full md:rounded-lg" aria-label="Swago Dollars">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" className="w-5 h-5 sm:w-6 sm:h-6 text-[hsl(var(--swago-purple))]">
                   <path fillRule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zM12.75 6a.75.75 0 00-1.5 0v.816a3.836 3.836 0 00-1.72.756c-.712.566-1.112 1.484-1.112 2.428 0 1.369.962 2.406 2.022 2.898 1.201.558 2.397.864 2.397 1.468 0 .584-.528.924-1.15.924-.407 0-.76-.17-1.127-.446a.75.75 0 00-1.15.924c.712.886 1.706 1.417 2.766 1.572V18a.75.75 0 001.5 0v-.816a3.836 3.836 0 001.72-.756c.712-.566 1.112-1.484 1.112-2.428 0-1.369-.962-2.406-2.022-2.898-1.201-.558-2.397-.864-2.397-1.468 0-.584.528-.924 1.15-.924.407 0 .76.17 1.127.446a.75.75 0 001.15-.924c-.712-.886-1.706-1.417-2.766-1.572V6z" clipRule="evenodd" />
                 </svg>
                 {walletBalance !== null ? (
-                  <span className="hidden lg:inline text-xs font-black text-purple-700 tracking-wide">{walletBalance} SD</span>
+                  <span className="hidden lg:inline text-xs font-black text-[hsl(var(--swago-purple))] tracking-wide">{walletBalance} SD</span>
                 ) : (
-                  <span className="hidden lg:inline text-xs font-black text-purple-700 tracking-wide">Swago $</span>
+                  <span className="hidden lg:inline text-xs font-black text-[hsl(var(--swago-purple))] tracking-wide">Swago $</span>
                 )}
               </Link>
             </motion.div>
@@ -164,7 +164,7 @@ export default function Navbar() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
                 </svg>
                 {itemCount > 0 && (
-                  <span className="absolute top-0 right-1 sm:right-0 bg-purple-500 text-white rounded-full w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center text-[10px] font-bold">
+                  <span className="absolute top-0 right-1 sm:right-0 bg-[hsl(var(--swago-purple))] text-white rounded-full w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center text-[10px] font-bold">
                     {itemCount}
                   </span>
                 )}

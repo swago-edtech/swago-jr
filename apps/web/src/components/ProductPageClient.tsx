@@ -223,7 +223,6 @@ export default function ProductPageClient({ product }: { product: Product }) {
   const [direction, setDirection] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [openAccordion, setOpenAccordion] = useState<string | null>("description");
-  const [showFullName, setShowFullName] = useState(false);
   const { cart, addToCart, isWishlisted, addToWishlist, removeFromWishlist, user, openCartSidebar, increaseQty, decreaseQty } = useSharedContext();
   const [showStickyBar, setShowStickyBar] = useState(false);
 
@@ -296,10 +295,7 @@ export default function ProductPageClient({ product }: { product: Product }) {
     ? Math.round(((originalPrice - product.price) / originalPrice) * 100)
     : 0;
 
-  // Truncate product name to first 4 words
-  const words = product.name.split(' ');
-  const isLongName = words.length > 4;
-  const displayName = showFullName ? product.name : (isLongName ? words.slice(0, 4).join(' ') + '...' : product.name);
+
 
   const handleNextImage = () => {
     setDirection(1);
@@ -546,15 +542,7 @@ export default function ProductPageClient({ product }: { product: Product }) {
           <div className="md:col-span-5 pt-2 md:pt-0">
             <div className="mb-1">
               <h1 className="text-xl md:text-4xl font-bold text-zoom-in leading-tight">
-                {displayName}
-                {isLongName && (
-                  <button
-                    onClick={() => setShowFullName(!showFullName)}
-                    className="text-[hsl(var(--swago-purple))] text-sm md:text-lg ml-2 hover:underline inline-block"
-                  >
-                    {showFullName ? 'Show less' : 'Read more'}
-                  </button>
-                )}
+                {product.name}
               </h1>
             </div>
 
