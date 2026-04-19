@@ -106,7 +106,7 @@ export default function NewKidProfilePage() {
 
           setCreatedProfile({
             name: data.profile.name,
-            swagoMoney: data.profile.ambassador?.swagoMoney || 20,
+            swagoMoney: data.profile.ambassador?.swagoMoney || 0,
             badges: data.profile.ambassador?.badges || ["Swago Saviour"],
           });
         }
@@ -174,16 +174,12 @@ export default function NewKidProfilePage() {
             </p>
             <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg p-6 mb-6">
               <p className="text-lg font-semibold text-slate-800 mb-2">
-                🎁 {createdProfile.name} received:
+                🎁 {createdProfile.name} is ready:
               </p>
               <div className="flex flex-col gap-2">
-                <div className="flex items-center justify-center gap-2 text-yellow-600 font-bold">
-                  <span className="text-2xl">💰</span>
-                  <span className="text-xl">{createdProfile.swagoMoney} Swago Dollars</span>
-                </div>
                 <div className="flex items-center justify-center gap-2 text-purple-600 font-bold">
                   <span className="text-2xl">🦸</span>
-                  <span className="text-lg">{createdProfile.badges[0]} Badge</span>
+                  <span className="text-lg">{createdProfile.badges[0]} Badge Awarded!</span>
                 </div>
               </div>
             </div>
@@ -391,10 +387,6 @@ export default function NewKidProfilePage() {
               <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg p-4">
                 <p className="text-sm font-medium text-slate-600 mb-2">🎁 Your child will receive:</p>
                 <div className="flex flex-wrap gap-4">
-                  <div className="flex items-center gap-2 text-yellow-600 font-semibold">
-                    <span>💰</span>
-                    <span>20 Swago Dollars</span>
-                  </div>
                   <div className="flex items-center gap-2 text-purple-600 font-semibold">
                     <span>🦸</span>
                     <span>Swago Saviour Badge</span>

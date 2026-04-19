@@ -178,8 +178,8 @@ export async function POST(request: NextRequest) {
       ambassador: {
         isAmbassador: true,
         status: "profile_created",
-        swagoMoney: 20,
-        totalEarnings: 20,
+        swagoMoney: 0,
+        totalEarnings: 0,
         currentStep: 2,
         badges: [
           {
@@ -238,7 +238,7 @@ export async function POST(request: NextRequest) {
         gender: kidProfile.gender,
         avatarColor: kidProfile.avatar,
         ambassador: {
-          swagoMoney: 20,
+          swagoMoney: 0,
           badges: ["Swago Saviour"],
           currentStep: 2,
         },

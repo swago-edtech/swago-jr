@@ -106,7 +106,7 @@ const UserSchema = new mongoose.Schema(
     }],
     swagoMoney: {
       type: Number,
-      default: 500, // Welcome Bonus
+      default: 0, // Initial balance
     },
   },
   { timestamps: true }
