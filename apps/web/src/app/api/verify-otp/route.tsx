@@ -14,6 +14,7 @@ interface CartItem {
   price: number;
   name: string;
   image: string;
+  images?: string[]; // ✅ NEW
   addedAt?: Date;
 }
 
@@ -48,6 +49,7 @@ function normalizeCartItem(item: CartInput): CartItem | null {
     price: Number(price),
     name,
     image,
+    images: item?.images || (image ? [image] : []), // ✅ NEW
     addedAt: item?.addedAt ? new Date(item.addedAt) : new Date()
   };
 }
@@ -86,6 +88,7 @@ function mergeCartItems(dbCart: CartInput[], localCart: CartInput[]): CartItem[]
           price: item.price,
           name: item.name,
           image: item.image,
+          images: item.images, // ✅ NEW
           addedAt: item.addedAt || new Date()
         });
       } else {
@@ -100,6 +103,7 @@ function mergeCartItems(dbCart: CartInput[], localCart: CartInput[]): CartItem[]
         price: item.price,
         name: item.name,
         image: item.image,
+        images: item.images, // ✅ NEW
         addedAt: item.addedAt || new Date()
       });
     }

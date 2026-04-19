@@ -251,7 +251,7 @@ export default function CartPage() {
                     <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
                       <div className="flex flex-col sm:flex-row justify-between items-start gap-1 sm:gap-3">
                         <div className="flex-1 min-w-0 w-full sm:w-auto pr-0 sm:pr-2">
-                          <h3 className="text-sm sm:text-base font-bold text-slate-800 leading-snug mb-1 line-clamp-2 sm:truncate">{item.name}</h3>
+                          <h3 className="text-sm sm:text-base font-bold text-slate-800 leading-snug mb-1">{item.name}</h3>
                           <span className="text-[8px] sm:text-[9px] font-black text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full tracking-widest inline-block truncate max-w-full">
                             Mystery reward inside
                           </span>

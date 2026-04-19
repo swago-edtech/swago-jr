@@ -19,7 +19,6 @@ export default function ProductCard({ product }: { product: Product }) {
 
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isHovering, setIsHovering] = useState(false);
-  const [showFullName, setShowFullName] = useState(false); // ✅ NEW: For name expansion
 
   // Get stock status
   const stock = product.stock;
@@ -122,12 +121,6 @@ export default function ProductCard({ product }: { product: Product }) {
     decreaseQty(productIdentifier);
   };
 
-  // ✅ NEW: Toggle full name
-  const handleReadMoreClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setShowFullName(!showFullName);
-  };
 
   // Support both naming conventions
   const ageCategory = product.ageCategory || product.age_category || '';
@@ -138,10 +131,7 @@ export default function ProductCard({ product }: { product: Product }) {
     ? Math.round(((originalPrice - product.price) / originalPrice) * 100)
     : 0;
 
-  // ✅ NEW: Truncate product name to first 4 words
-  const words = product.name.split(' ');
-  const isLongName = words.length > 4;
-  const displayName = showFullName ? product.name : (isLongName ? words.slice(0, 4).join(' ') + '...' : product.name);
+  const displayName = product.name;
 
   // Build product URL (support both slug and id)
   const productUrl = product.slug
@@ -222,16 +212,8 @@ export default function ProductCard({ product }: { product: Product }) {
           <div className="p-2 sm:p-4 flex flex-col flex-grow">
             <div className="flex-grow text-left">
               {/* Product name with Read more */}
-              <h3 className="text-xs sm:text-base font-semibold text-slate-800 mb-1 sm:mb-2 min-h-[2.5rem] sm:min-h-[3rem] line-clamp-2 md:line-clamp-none">
+              <h3 className="text-xs sm:text-base font-semibold text-slate-800 mb-1 sm:mb-2 min-h-[2.5rem] sm:min-h-[3rem]">
                 {displayName}
-                {isLongName && !showFullName && (
-                  <button
-                    onClick={handleReadMoreClick}
-                    className="hidden sm:inline text-[hsl(var(--swago-purple))] text-xs ml-1 hover:underline underline-offset-4"
-                  >
-                    Read more
-                  </button>
-                )}
               </h3>
             </div>
 

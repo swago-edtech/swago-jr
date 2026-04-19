@@ -8,9 +8,10 @@ import { isValidObjectId } from "mongoose";
 interface CartItem {
   productId: string | number;
   quantity: number;
-  price: number;      // ✅ NEW
-  name: string;       // ✅ NEW
-  image: string;      // ✅ NEW
+  price: number;
+  name: string;
+  image: string;      // Legacy fallback
+  images?: string[];  // ✅ NEW
   addedAt?: Date;
 }
 
@@ -23,11 +24,11 @@ interface ProductDocument {
   name: string;
   images: string[];
 }
-
 async function getFullProductDetails(productId: string | number): Promise<{
   price: number;
   name: string;
   image: string;
+  images: string[];
   stock?: number;
 } | null> {
   const idString = productId.toString();
@@ -45,6 +46,7 @@ async function getFullProductDetails(productId: string | number): Promise<{
         price: product.price,
         name: product.name,
         image: product.images?.[0] || '/images/placeholder.png',
+        images: product.images || ['/images/placeholder.png'],
         stock: product.stock
       };
     }
@@ -178,9 +180,10 @@ export async function POST(req: Request) {
       enrichedCart.push({
         productId: item.productId,
         quantity: item.quantity,
-        price: productDetails.price,      // ✅ Captured at add-to-cart
-        name: productDetails.name,        // ✅ Captured at add-to-cart
-        image: productDetails.image,      // ✅ Captured at add-to-cart
+        price: productDetails.price,
+        name: productDetails.name,
+        image: productDetails.image,
+        images: productDetails.images, // ✅ NEW
         addedAt: item.addedAt || new Date()
       });
     }

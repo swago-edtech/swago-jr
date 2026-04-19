@@ -169,7 +169,7 @@ function VideoPlayer({ src, className, product }: { src: string; className?: str
 
               <div className="flex flex-col">
                 <span className="text-white/40 text-[10px] font-black tracking-widest leading-none mb-1">Preview</span>
-                <span className="text-white font-bold text-xs truncate max-w-[150px]">{product.name}</span>
+                <span className="text-white font-bold text-xs">{product.name}</span>
               </div>
             </div>
 
@@ -225,6 +225,7 @@ export default function ProductPageClient({ product }: { product: Product }) {
   const [openAccordion, setOpenAccordion] = useState<string | null>("description");
   const { cart, addToCart, isWishlisted, addToWishlist, removeFromWishlist, user, openCartSidebar, increaseQty, decreaseQty } = useSharedContext();
   const [showStickyBar, setShowStickyBar] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -310,6 +311,21 @@ export default function ProductPageClient({ product }: { product: Product }) {
     const prevIndex = (currentIndex - 1 + allMedia.length) % allMedia.length;
     setMainMedia(allMedia[prevIndex]);
   };
+
+  // ✅ NEW: Auto-cycle media
+  useEffect(() => {
+    if (allMedia.length <= 1 || isHovered) return;
+
+    // Don't auto-cycle if a video is playing
+    const isVideo = product.videos?.includes(mainMedia!);
+    if (isVideo) return;
+
+    const interval = setInterval(() => {
+      handleNextImage();
+    }, 4000); // Change every 4 seconds
+
+    return () => clearInterval(interval);
+  }, [mainMedia, allMedia, isHovered]);
 
   const handleThumbnailClick = (media: string) => {
     const currentIndex = allMedia.indexOf(mainMedia!);
@@ -460,6 +476,18 @@ export default function ProductPageClient({ product }: { product: Product }) {
                     opacity: { duration: 0.2 },
                   }}
                   className="absolute inset-0 w-full h-full bg-black/5 flex items-center justify-center font-bold"
+                  onMouseEnter={() => setIsHovered(true)}
+                  onMouseLeave={() => setIsHovered(false)}
+                  drag="x"
+                  dragConstraints={{ left: 0, right: 0 }}
+                  onDragEnd={(e, { offset, velocity }) => {
+                    const swipe = offset.x;
+                    if (swipe < -50) {
+                      handleNextImage();
+                    } else if (swipe > 50) {
+                      handlePrevImage();
+                    }
+                  }}
                 >
                   {product.videos?.includes(mainMedia!) ? (
                     <VideoPlayer src={mainMedia!} product={product} />
@@ -744,7 +772,7 @@ export default function ProductPageClient({ product }: { product: Product }) {
                   <Image src={product.images[0]} alt={product.name} fill className="object-cover" />
                 </div>
                 <div className="flex flex-col">
-                  <h4 className="font-bold text-slate-800 truncate max-w-[120px] sm:max-w-[300px] text-sm sm:text-base">
+                  <h4 className="font-bold text-slate-800 text-sm sm:text-base">
                     {product.name}
                   </h4>
                   <div className="flex items-center gap-2">

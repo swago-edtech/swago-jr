@@ -43,7 +43,7 @@ export default function RelatedProductsCompact({ currentProductId }: RelatedProd
           key={product._id || product.id}
           className="flex-shrink-0 w-28 snap-start group bg-slate-50 rounded-xl p-1.5 border border-slate-100/50"
         >
-          <Link href={`/products/${product._id || product.id}`}>
+          <Link href={`/product/${product.slug || product._id || product.id}`}>
             <div className="relative aspect-square rounded-lg overflow-hidden bg-white mb-1.5 shadow-sm">
               <Image
                 src={product.images?.[0] || "/images/placeholder.png"}
@@ -54,7 +54,7 @@ export default function RelatedProductsCompact({ currentProductId }: RelatedProd
             </div>
           </Link>
           <div className="space-y-0.5">
-            <h4 className="text-[9px] font-black text-slate-900 leading-tight line-clamp-1 truncate tracking-tighter">{product.name}</h4>
+            <h4 className="text-[9px] font-black text-slate-900 leading-tight tracking-tighter">{product.name}</h4>
             <div className="flex items-center justify-between">
               <span className="text-[8px] font-black text-[#61498C]">₹{product.price}</span>
               <button
