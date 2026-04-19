@@ -64,6 +64,8 @@ export async function generateMetadata({
   };
 }
 
+import { Suspense } from "react";
+
 export default async function ProductDetailPage({
   params
 }: {
@@ -76,5 +78,9 @@ export default async function ProductDetailPage({
     notFound();
   }
 
-  return <ProductPageClient product={product} />;
+  return (
+    <Suspense fallback={<div className="container mx-auto px-4 py-12 animate-pulse bg-slate-100 h-[600px] rounded-2xl" />}>
+      <ProductPageClient product={product} />
+    </Suspense>
+  );
 }
