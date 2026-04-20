@@ -16,7 +16,7 @@ type FilterSidebarProps = {
 };
 
 // Data for the filters
-const ageGroups = ["All", "5-7", "8-10"];
+const ageGroups = ["All", "6-7", "8-10"];
 const swagoElements = [
   { id: "S", name: "Smart Tech" },
   { id: "W", name: "Willpower" },

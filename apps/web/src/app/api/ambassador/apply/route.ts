@@ -14,7 +14,7 @@ const AmbassadorApplicationSchema = new mongoose.Schema(
     kidAge: {
       type: Number,
       required: true,
-      min: 7,
+      min: 6,
       max: 14,
     },
     city: {
@@ -101,9 +101,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (kidAge < 7 || kidAge > 14) {
+    if (kidAge < 6 || kidAge > 14) {
       return NextResponse.json(
-        { error: "Ambassador program is only for kids aged 7-14" },
+        { error: "Ambassador program is only for kids aged 6-14" },
         { status: 400 }
       );
     }

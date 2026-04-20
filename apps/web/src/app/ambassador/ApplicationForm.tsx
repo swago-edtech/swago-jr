@@ -369,8 +369,8 @@ export default function ApplicationForm() {
       setError("Please enter child's name");
       return;
     }
-    if (!formData.childAge || parseInt(formData.childAge) < 7 || parseInt(formData.childAge) > 14) {
-      setError("Child must be between 7-14 years old");
+    if (!formData.childAge || parseInt(formData.childAge) < 6 || parseInt(formData.childAge) > 14) {
+      setError("Child must be between 6-14 years old");
       return;
     }
     if (!formData.gender) {
@@ -973,7 +973,7 @@ export default function ApplicationForm() {
                             className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[hsl(var(--swago-purple))] focus:border-transparent disabled:bg-slate-100"
                           >
                             <option value="">Select age</option>
-                            {[7, 8, 9, 10, 11, 12, 13, 14].map(age => (
+                            {[6, 7, 8, 9, 10, 11, 12, 13, 14].map(age => (
                               <option key={age} value={age}>{age} years</option>
                             ))}
                           </select>

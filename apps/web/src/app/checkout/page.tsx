@@ -8,6 +8,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { RiInformationLine, RiSearchLine, RiShoppingBag3Line } from "react-icons/ri";
+import CartProgress from "@/components/CartProgress";
 
 // ✅ States List for Dropdown
 const INDIAN_STATES = [
@@ -71,7 +72,14 @@ export default function CheckoutPage() {
 
     setErrors(newErrors);
     if (newErrors.length > 0) {
-      setMessage("Please fill in all the highlighted fields to continue.");
+      const missingFields = [];
+      if (newErrors.includes("email")) missingFields.push("Email");
+      if (newErrors.includes("firstName") || newErrors.includes("lastName")) missingFields.push("Full Name");
+      if (newErrors.includes("address") || newErrors.includes("city") || newErrors.includes("pincode")) missingFields.push("Complete Address");
+      if (newErrors.includes("phone")) missingFields.push("Phone Number");
+      if (newErrors.includes("age")) missingFields.push("Child's Age");
+      
+      setMessage(`Almost there! Please provide: ${missingFields.join(", ")}`);
       return false;
     }
     return true;
@@ -90,13 +98,16 @@ export default function CheckoutPage() {
   const handleOnlinePayment = async () => {
     setProcessing(true);
     setMessage("Processing your order...");
+    const shippingFee = 0; // Online is always free
+    const finalTotal = (appliedCoupon ? total - appliedCoupon.discount : total) - (appliedSwagoMoney || 0) + shippingFee;
+
     try {
       // Create Razorpay Order
       const res = await fetch("/api/payment/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          totalAmount: (appliedCoupon ? total - appliedCoupon.discount : total) - (appliedSwagoMoney || 0),
+          totalAmount: finalTotal,
           orderDetails: {
             name: `${firstName} ${lastName}`,
             email,
@@ -107,7 +118,8 @@ export default function CheckoutPage() {
             pincode,
             cart,
             age,
-            finalAmount: (appliedCoupon ? total - appliedCoupon.discount : total) - (appliedSwagoMoney || 0),
+            coupon: appliedCoupon,
+            finalAmount: finalTotal,
             swagoMoneyRedeemed: appliedSwagoMoney || 0
           }
         })
@@ -150,12 +162,16 @@ export default function CheckoutPage() {
   const handleCOD = async () => {
     setProcessing(true);
     setMessage("Placing COD order...");
+    const shippingThreshold = promotion?.shippingThreshold || 1450;
+    const shippingFee = total >= shippingThreshold ? 0 : 50;
+    const finalTotal = (appliedCoupon ? total - appliedCoupon.discount : total) - (appliedSwagoMoney || 0) + shippingFee;
+
     try {
       const res = await fetch("/api/payment/cod", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          totalAmount: (appliedCoupon ? total - appliedCoupon.discount : total) - (appliedSwagoMoney || 0),
+          totalAmount: finalTotal,
           orderDetails: {
             name: `${firstName} ${lastName}`,
             email,
@@ -166,7 +182,8 @@ export default function CheckoutPage() {
             pincode,
             cart,
             age,
-            finalAmount: (appliedCoupon ? total - appliedCoupon.discount : total) - (appliedSwagoMoney || 0),
+            coupon: appliedCoupon,
+            finalAmount: finalTotal,
             swagoMoneyRedeemed: appliedSwagoMoney || 0
           }
         })
@@ -269,6 +286,7 @@ export default function CheckoutPage() {
                 couponCode={couponCode} setCouponCode={setCouponCode} applyCoupon={applyCoupon}
                 promotion={promotion} progressPercent={progressPercent} nextTier={nextTier} addToCart={addToCart}
                 appliedSwagoMoney={appliedSwagoMoney}
+                paymentMethod={paymentMethod}
               />
             </motion.div>
           )}
@@ -288,7 +306,7 @@ export default function CheckoutPage() {
               <div className="space-y-4">
                 <input
                   value={email}
-                  onChange={(e) => { setEmail(e.target.value); if (errors.includes("email")) setErrors(errors.filter(f => f !== "email")); }}
+                  onChange={(e) => { setEmail(e.target.value); if (errors.includes("email")) { setErrors(errors.filter(f => f !== "email")); setMessage(""); } }}
                   placeholder="Email or mobile phone number"
                   className={`w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-[hsl(var(--swago-purple))] outline-none text-sm transition-all shadow-sm ${errors.includes("email") ? 'border-red-500 bg-red-50 placeholder-red-300' : 'border-slate-200'}`}
                 />
@@ -313,7 +331,7 @@ export default function CheckoutPage() {
                     <input
                       placeholder="First name"
                       value={firstName}
-                      onChange={(e) => { setFirstName(e.target.value); if (errors.includes("firstName")) setErrors(errors.filter(f => f !== "firstName")); }}
+                      onChange={(e) => { setFirstName(e.target.value); if (errors.includes("firstName")) { setErrors(errors.filter(f => f !== "firstName")); setMessage(""); } }}
                       className={`w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-[hsl(var(--swago-purple))] outline-none text-sm shadow-sm ${errors.includes("firstName") ? 'border-red-500 bg-red-50 placeholder-red-300' : 'border-slate-200'}`}
                     />
                     {errors.includes("firstName") && <p className="text-[10px] text-red-500 font-bold">First name is needed</p>}
@@ -322,7 +340,7 @@ export default function CheckoutPage() {
                     <input
                       placeholder="Last name"
                       value={lastName}
-                      onChange={(e) => { setLastName(e.target.value); if (errors.includes("lastName")) setErrors(errors.filter(f => f !== "lastName")); }}
+                      onChange={(e) => { setLastName(e.target.value); if (errors.includes("lastName")) { setErrors(errors.filter(f => f !== "lastName")); setMessage(""); } }}
                       className={`w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-[hsl(var(--swago-purple))] outline-none text-sm shadow-sm ${errors.includes("lastName") ? 'border-red-500 bg-red-50 placeholder-red-300' : 'border-slate-200'}`}
                     />
                     {errors.includes("lastName") && <p className="text-[10px] text-red-500 font-bold">Last name is needed</p>}
@@ -332,7 +350,7 @@ export default function CheckoutPage() {
                 <div className="flex flex-col gap-1">
                   <select
                     value={age}
-                    onChange={(e) => { setAge(e.target.value); if (errors.includes("age")) setErrors(errors.filter(f => f !== "age")); }}
+                    onChange={(e) => { setAge(e.target.value); if (errors.includes("age")) { setErrors(errors.filter(f => f !== "age")); setMessage(""); } }}
                     className={`w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-[hsl(var(--swago-purple))] outline-none text-sm bg-white shadow-sm appearance-none ${errors.includes("age") ? 'border-red-500 bg-red-50 text-red-900' : 'border-slate-200'}`}
                   >
                     <option value="" disabled>Child's Age</option>
@@ -347,7 +365,7 @@ export default function CheckoutPage() {
                   <input
                     placeholder="Address"
                     value={address}
-                    onChange={(e) => { setAddress(e.target.value); if (errors.includes("address")) setErrors(errors.filter(f => f !== "address")); }}
+                    onChange={(e) => { setAddress(e.target.value); if (errors.includes("address")) { setErrors(errors.filter(f => f !== "address")); setMessage(""); } }}
                     className={`w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-[hsl(var(--swago-purple))] outline-none text-sm shadow-sm pr-10 ${errors.includes("address") ? 'border-red-500 bg-red-50 placeholder-red-300' : 'border-slate-200'}`}
                   />
                   <RiSearchLine className="absolute right-4 top-[24px] -translate-y-1/2 text-slate-400" />
@@ -359,7 +377,7 @@ export default function CheckoutPage() {
                     <input
                       placeholder="City"
                       value={city}
-                      onChange={(e) => { setCity(e.target.value); if (errors.includes("city")) setErrors(errors.filter(f => f !== "city")); }}
+                      onChange={(e) => { setCity(e.target.value); if (errors.includes("city")) { setErrors(errors.filter(f => f !== "city")); setMessage(""); } }}
                       className={`w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-[hsl(var(--swago-purple))] outline-none text-sm shadow-sm ${errors.includes("city") ? 'border-red-500 bg-red-50 placeholder-red-300' : 'border-slate-200'}`}
                     />
                     {errors.includes("city") && <p className="text-[10px] text-red-500 font-bold">City is needed</p>}
@@ -375,7 +393,7 @@ export default function CheckoutPage() {
                     <input
                       placeholder="PIN code"
                       value={pincode}
-                      onChange={(e) => { setPincode(e.target.value); if (errors.includes("pincode")) setErrors(errors.filter(f => f !== "pincode")); }}
+                      onChange={(e) => { setPincode(e.target.value); if (errors.includes("pincode")) { setErrors(errors.filter(f => f !== "pincode")); setMessage(""); } }}
                       className={`w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-[hsl(var(--swago-purple))] outline-none text-sm shadow-sm ${errors.includes("pincode") ? 'border-red-500 bg-red-50 placeholder-red-300' : 'border-slate-200'}`}
                     />
                     {errors.includes("pincode") && <p className="text-[10px] text-red-500 font-bold">PIN code is needed</p>}
@@ -386,7 +404,7 @@ export default function CheckoutPage() {
                   <input
                     placeholder="Phone"
                     value={phone}
-                    onChange={(e) => { setPhone(e.target.value); if (errors.includes("phone")) setErrors(errors.filter(f => f !== "phone")); }}
+                    onChange={(e) => { setPhone(e.target.value); if (errors.includes("phone")) { setErrors(errors.filter(f => f !== "phone")); setMessage(""); } }}
                     className={`w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-[hsl(var(--swago-purple))] outline-none text-sm shadow-sm pr-10 ${errors.includes("phone") ? 'border-red-500 bg-red-50 placeholder-red-300' : 'border-slate-200'}`}
                   />
                   <RiInformationLine className="absolute right-4 top-[24px] -translate-y-1/2 text-slate-400 cursor-help" />
@@ -409,8 +427,15 @@ export default function CheckoutPage() {
             {/* Shipping Method Section */}
             <section>
               <h2 className="text-lg font-semibold text-slate-800 mb-4">Shipping method</h2>
-              <div className="bg-slate-50 border border-slate-200 rounded-lg p-6 flex items-center justify-center">
-                <p className="text-xs text-slate-500">Free shipping on all orders</p>
+              <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 flex flex-col gap-2">
+                <div className="flex justify-between items-center">
+                   <p className="text-xs font-bold text-slate-700 uppercase tracking-wider">Online Payment</p>
+                   <p className="text-xs font-black text-emerald-600">ALWAYS FREE</p>
+                </div>
+                <div className="flex justify-between items-center">
+                   <p className="text-xs font-bold text-slate-700 uppercase tracking-wider">Cash on Delivery</p>
+                   <p className="text-xs font-black text-slate-500">FREE ABOVE ₹1450 (ELSE ₹50)</p>
+                </div>
               </div>
             </section>
 
@@ -477,6 +502,16 @@ export default function CheckoutPage() {
               </div>
             </section>
 
+            {message && (
+              <motion.div 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={`text-center p-3 rounded-lg text-xs font-bold mb-4 ${errors.length > 0 ? 'bg-red-50 text-red-600 border border-red-100' : 'bg-slate-50 text-slate-600 border border-slate-100'}`}
+              >
+                {message}
+              </motion.div>
+            )}
+
             <button
               onClick={handlePayNow}
               disabled={processing}
@@ -484,8 +519,6 @@ export default function CheckoutPage() {
             >
               {processing ? "Processing..." : "Pay now"}
             </button>
-
-            {message && <p className="text-center text-sm font-bold text-slate-600">{message}</p>}
 
             <footer className="pt-8 border-t flex flex-wrap gap-x-6 gap-y-2 text-[10px] text-[hsl(var(--swago-purple))] tracking-widest font-black">
               <Link href="/refund-policy" className="hover:underline">Refund policy</Link>
@@ -503,6 +536,7 @@ export default function CheckoutPage() {
               couponCode={couponCode} setCouponCode={setCouponCode} applyCoupon={applyCoupon}
               promotion={promotion} progressPercent={progressPercent} nextTier={nextTier} addToCart={addToCart}
               appliedSwagoMoney={appliedSwagoMoney}
+              paymentMethod={paymentMethod}
             />
           </div>
         </aside>
@@ -514,12 +548,15 @@ export default function CheckoutPage() {
 // ✅ Reusable Order Summary Component for Desktop/Mobile
 function OrderSummary({
   cart, total, appliedCoupon, couponCode, setCouponCode, applyCoupon,
-  promotion, progressPercent, nextTier, addToCart, appliedSwagoMoney
+  promotion, progressPercent, nextTier, addToCart, appliedSwagoMoney, paymentMethod
 }: any) {
   const isAlreadyAdded = (slug: string) => cart.some((item: any) => (item.slug === slug || item._id === slug) && item.price === 1);
 
   return (
     <>
+      <div className="mb-6">
+        <CartProgress total={total} promotionData={promotion} />
+      </div>
       {/* Cart Items */}
       <div className="space-y-5 mb-8">
         {cart.map((item: any) => (
@@ -547,8 +584,12 @@ function OrderSummary({
           <span className="font-bold text-slate-900">₹{total.toFixed(2)}</span>
         </div>
         <div className="flex justify-between text-slate-600">
-          <span>Shipping</span>
-          <span className="text-xs font-medium text-emerald-600 font-black tracking-widest">FREE</span>
+          <span>Shipping {paymentMethod === 'cod' ? '(COD)' : '(Online)'}</span>
+          {paymentMethod === 'razorpay' || total >= (promotion?.shippingThreshold || 1450) ? (
+            <span className="text-xs font-black text-emerald-600 tracking-widest uppercase">FREE</span>
+          ) : (
+            <span className="font-bold text-slate-900">₹50</span>
+          )}
         </div>
         {appliedCoupon && (
           <div className="flex justify-between text-emerald-600 font-bold">
@@ -569,7 +610,7 @@ function OrderSummary({
           <div className="flex items-baseline gap-2">
             <span className="text-[10px] text-slate-500 uppercase font-black">INR</span>
             <span className="text-2xl font-black text-slate-900">
-              ₹{((appliedCoupon ? total - appliedCoupon.discount : total) - (appliedSwagoMoney || 0)).toFixed(2)}
+              ₹{((appliedCoupon ? total - appliedCoupon.discount : total) - (appliedSwagoMoney || 0) + (paymentMethod === 'razorpay' ? 0 : (total >= (promotion?.shippingThreshold || 1450) ? 0 : 50))).toFixed(2)}
             </span>
           </div>
         </div>

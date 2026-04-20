@@ -43,7 +43,7 @@ export default function EditProductPage() {
     description: "",
     price: "",
     originalPrice: "",
-    ageCategory: "5-7",
+    ageCategory: "6-7",
     coreElements: [] as string[],
     boxContents: "",
     benefits: "",
@@ -721,7 +721,7 @@ export default function EditProductPage() {
               className={`w-full border rounded-md px-3 py-2 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.ageCategory ? "border-red-500" : "border-gray-300"
                 }`}
             >
-              <option value="5-7">5-7 years</option>
+              <option value="6-7">6-7 years</option>
               <option value="8-10">8-10 years</option>
               <option value="11-13">11-13 years</option>
             </select>

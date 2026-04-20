@@ -16,7 +16,7 @@ const KidProfileSchema = new mongoose.Schema(
     age: {
       type: Number,
       required: true,
-      min: 3,
+      min: 6,
       max: 18,
     },
     dob: {

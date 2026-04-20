@@ -58,6 +58,7 @@ const OrderSchema = new mongoose.Schema(
     ],
     subtotal: { type: Number, required: true },
     discount: { type: Number, default: 0 },
+    shippingFee: { type: Number, default: 0 },
     total: { type: Number, required: true },
     razorpay_payment_id: {
       type: String,

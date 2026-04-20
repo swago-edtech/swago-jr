@@ -7,6 +7,7 @@ import Image from "next/image";
 import { useState, useEffect } from "react";
 import RelatedProductsCompact from "@/components/RelatedProductsCompact";
 import CouponSheet from "@/components/CouponSheet";
+import CartProgress from "@/components/CartProgress";
 
 interface StockInfo {
   [key: string]: {
@@ -21,6 +22,11 @@ export default function CartPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [stockInfo, setStockInfo] = useState<StockInfo>({});
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const [couponSheetOpen, setCouponSheetOpen] = useState(false);
 
@@ -127,7 +133,7 @@ export default function CartPage() {
   const maxSwagoDollarsAllowed = Math.trunc(amountAfterCoupon * 0.05);
   const applicableSwagoDollars = Math.min(walletBalance, maxSwagoDollarsAllowed);
 
-
+  if (!mounted) return null;
 
   if (cart.length === 0) {
     return (
@@ -149,9 +155,6 @@ export default function CartPage() {
     );
   }
 
-  const shippingThreshold = 500;
-  const giftThreshold = 1000;
-  const progressPercent = Math.min((total / giftThreshold) * 100, 100);
 
   return (
     <div className="bg-[#FBFCFD] min-h-screen pb-20">
@@ -177,60 +180,7 @@ export default function CartPage() {
       <div className="container mx-auto px-4 md:px-6 py-6 lg:py-10 max-w-6xl">
         <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 items-start">
           <div className="w-full lg:w-2/3 flex flex-col gap-4 sm:gap-6">
-            <div className="bg-white rounded-2xl px-4 sm:px-5 py-5 border border-slate-100 shadow-sm">
-              <p className={`text-xs sm:text-xs font-black text-center mb-4 tracking-widest ${total >= shippingThreshold ? 'text-[#1EAA5F]' : 'text-slate-600'}`}>
-                {total >= giftThreshold
-                  ? "🎉 All rewards added to your order!"
-                  : total >= shippingThreshold
-                    ? "🚚 Free Shipping unlocked!"
-                    : "Free Gift on Prepaid Orders"}
-              </p>
-
-              <div className="relative mx-3 sm:mx-4 mt-2 mb-6">
-                <div className="relative h-6 sm:h-8">
-                  <div className="absolute top-1/2 left-0 right-0 h-1 bg-slate-100 -translate-y-1/2 rounded-full" />
-                  <div
-                    className="absolute top-1/2 left-0 h-1 bg-[#8a59ed] -translate-y-1/2 rounded-full transition-all duration-700 ease-out"
-                    style={{ width: `${progressPercent}%` }}
-                  />
-                  <div className="absolute top-1/2 left-0 -translate-y-1/2 w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-[#8a59ed] z-10" />
-
-                  <div
-                    className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 z-10"
-                    style={{ left: `${(shippingThreshold / giftThreshold) * 100}%` }}
-                  >
-                    <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center border-2 border-white transition-all duration-500 ${total >= shippingThreshold ? 'bg-[#8a59ed] text-white' : 'bg-slate-200 text-slate-400'}`}>
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-3 h-3 sm:w-4 sm:h-4">
-                        <path strokeLinecap="round" strokeLinejoin="round" d={total >= shippingThreshold ? "M4.5 12.75l6 6 9-13.5" : "M4.5 19.5h15"} />
-                      </svg>
-                    </div>
-                  </div>
-
-                  <div className="absolute top-1/2 right-0 translate-x-1/2 -translate-y-1/2 z-10">
-                    <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center border-2 border-white transition-all duration-500 ${total >= giftThreshold ? 'bg-[#8a59ed] text-white' : 'bg-slate-200 text-slate-400'}`}>
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-3 h-3 sm:w-4 sm:h-4">
-                        <path strokeLinecap="round" strokeLinejoin="round" d={total >= giftThreshold ? "M4.5 12.75l6 6 9-13.5" : "M12 4.5v15m7.5-7.5h-15"} />
-                      </svg>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="relative h-6 mt-2">
-                  <div
-                    className="absolute -translate-x-1/2 text-center"
-                    style={{ left: `${(shippingThreshold / giftThreshold) * 100}%` }}
-                  >
-                    <span className={`block text-[9px] sm:text-xs font-black leading-none ${total >= shippingThreshold ? 'text-slate-800' : 'text-slate-400'}`}>₹{shippingThreshold}</span>
-                    <span className={`block text-[8px] font-bold tracking-tight whitespace-nowrap mt-0.5 ${total >= shippingThreshold ? 'text-slate-500' : 'text-slate-400'}`}>Free Shipping</span>
-                  </div>
-                  <div className="absolute right-0 translate-x-[20%] sm:translate-x-0 text-right sm:text-center">
-                    <span className={`block text-[9px] sm:text-xs font-black leading-none ${total >= giftThreshold ? 'text-slate-800' : 'text-slate-400'}`}>₹{giftThreshold}</span>
-                    <span className={`block text-[8px] font-bold tracking-tight whitespace-nowrap mt-0.5 ${total >= giftThreshold ? 'text-slate-500' : 'text-slate-400'}`}>+ Gift</span>
-                  </div>
-                </div>
-              </div>
-
-            </div>
+            <CartProgress total={total} />
 
             <div className="flex flex-col gap-3 sm:gap-4">
               {cart.map((item) => {
@@ -402,9 +352,12 @@ export default function CartPage() {
                   <span>Cart Total</span>
                   <span className="text-slate-900 tabular-nums font-black">₹{total.toFixed(0)}</span>
                 </div>
-                <div className="flex justify-between text-slate-500 text-xs sm:text-xs font-bold tracking-widest">
-                  <span>Shipping Fee</span>
-                  <span className="text-[#1EAA5F] font-black">Free</span>
+                <div className="flex flex-col text-right">
+                  <div className="flex justify-between text-slate-500 text-xs sm:text-xs font-bold tracking-widest gap-8">
+                    <span>Shipping Fee</span>
+                    <span className="text-[#1EAA5F] font-black">FREE*</span>
+                  </div>
+                  <span className="text-[10px] text-slate-400 font-bold mt-1 tracking-tight">*On Online Orders</span>
                 </div>
                 <div className="flex justify-between text-slate-500 text-xs sm:text-xs font-bold tracking-widest">
                   <span>Savings</span>

@@ -12,7 +12,7 @@ const registrationSchema = z.object({
   parentPhone: z.string().min(10, "Phone number must be at least 10 digits"),
   city: z.string().min(2, "City is required"),
   childName: z.string().min(2, "Child name is required"),
-  childAge: z.number().min(3).max(18, "Child must be between 3-18 years old"),
+  childAge: z.number().min(6).max(18, "Child must be between 6-18 years old"),
   childDob: z.string().min(1, "Child date of birth is required"),
   gender: z.enum(["boy", "girl", "other"]),
 });

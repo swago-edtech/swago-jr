@@ -60,11 +60,9 @@ export default function FilterDrawer({ isOpen, onClose, filters, setFilters, tot
               <FilterSection title="Age Group" defaultOpen={true}>
                 <div className="flex flex-col gap-4 mt-2">
                   {[
-                    { label: "2+", count: 1 },
-                    { label: "3+", count: 21 },
-                    { label: "4+", count: 5 },
-                    { label: "5+", count: 2 },
-                    { label: "6+", count: 1 }
+                    { label: "6-7", count: totalResults },
+                    { label: "8-10", count: 0 },
+                    { label: "11-13", count: 0 }
                   ].map(age => {
                     const value = age.label.replace('+', '');
                     // For mapping to existing structure: match labels or convert
@@ -83,7 +81,7 @@ export default function FilterDrawer({ isOpen, onClose, filters, setFilters, tot
                           </svg>
                         </div>
                         <span className="text-base text-slate-700 font-medium group-hover:text-black">
-                          {age.label} ({age.count})
+                          {age.label} years
                         </span>
                       </label>
                     );
@@ -118,7 +116,7 @@ export default function FilterDrawer({ isOpen, onClose, filters, setFilters, tot
                         </svg>
                       </div>
                       <span className="text-base text-slate-700 font-medium group-hover:text-black">
-                        {type.label} ({type.count})
+                        {type.label}
                       </span>
                     </label>
                   ))}

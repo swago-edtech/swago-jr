@@ -111,9 +111,9 @@ export async function POST(request: NextRequest) {
     }
 
 
-    if (age < 3 || age > 18) {
+    if (age < 6 || age > 18) {
       return NextResponse.json(
-        { error: "Age must be between 3 and 18" },
+        { error: "Age must be between 6 and 18" },
         { status: 400 }
       );
     }

@@ -166,7 +166,7 @@ export default function ProductsPage() {
         className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
       >
         <option value="all">All Ages</option>
-        <option value="5-7">5-7 years</option>
+        <option value="6-7">6-7 years</option>
         <option value="8-10">8-10 years</option>
         <option value="11-13">11-13 years</option>
       </select>

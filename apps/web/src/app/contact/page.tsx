@@ -350,7 +350,7 @@ export default function ContactPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-6xl mx-auto">
             <div className="space-y-4">
               <h3 className="text-xl font-semibold text-slate-800">What age groups are your smart box for?</h3>
-              <p className="text-slate-600">Our learning smart box are designed for children aged 5-10 years, with specific products tailored for 5-7 years and 8-10 years age groups.</p>
+              <p className="text-slate-600">Our learning smart box are designed for children aged 6-10 years, with specific products tailored for 6-7 years and 8-10 years age groups.</p>
             </div>
             <div className="space-y-4">
               <h3 className="text-xl font-semibold text-slate-800">How long does shipping take?</h3>

@@ -68,7 +68,7 @@ function generateTestCustomer() {
   
   return {
     name: `Test User ${random}`,
-    age: `${Math.floor(Math.random() * 10) + 5}`, // 5-14 years
+    age: `${Math.floor(Math.random() * 9) + 6}`, // 6-14 years
     email: `test.user.${timestamp}@swago-test.com`,
     address: `Test Address ${random}, Street ${Math.floor(Math.random() * 100)}`,
     ...address

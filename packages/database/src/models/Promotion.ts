@@ -25,7 +25,11 @@ const PromotionSchema = new mongoose.Schema(
                 label: { type: String, required: true },
                 slug: { type: String, required: true }
             }
-        ]
+        ],
+        shippingThreshold: {
+            type: Number,
+            default: 1450
+        }
     },
     { timestamps: true }
 );

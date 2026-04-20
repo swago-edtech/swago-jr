@@ -121,8 +121,8 @@ export default function EditKidProfilePage({
     }
 
     const age = parseInt(form.age);
-    if (isNaN(age) || age < 3 || age > 18) {
-      setError("Please enter a valid age between 3 and 18");
+    if (isNaN(age) || age < 6 || age > 18) {
+      setError("Please enter a valid age between 6 and 18");
       return;
     }
 
@@ -257,7 +257,7 @@ export default function EditKidProfilePage({
                   onChange={handleChange}
                   placeholder="Age"
                   className="w-full border border-slate-300 rounded-md p-3"
-                  min="3"
+                  min="6"
                   max="18"
                   required
                 />

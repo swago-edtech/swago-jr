@@ -1,34 +1,74 @@
 "use client";
 
-import React from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+
+interface BonusItem {
+  threshold: number;
+  label: string;
+  slug: string;
+}
 
 interface CartProgressProps {
   total: number;
-  shippingThreshold?: number;
-  giftThreshold?: number;
+  promotionData?: any;
 }
 
 export default function CartProgress({
   total,
-  shippingThreshold = 500,
-  giftThreshold = 1000
+  promotionData: initialPromotionData
 }: CartProgressProps) {
-  const progressPercent = Math.min((total / giftThreshold) * 100, 100);
+  const [promotion, setPromotion] = useState<any>(initialPromotionData);
+
+  useEffect(() => {
+    if (!initialPromotionData) {
+      fetch("/api/promotion")
+        .then(r => r.json())
+        .then(d => {
+          if (d.success) setPromotion(d.promotion);
+        })
+        .catch(console.error);
+    }
+  }, [initialPromotionData]);
+
+  const shippingThreshold = promotion?.shippingThreshold || 1450;
+  
+  // Sort bonus items by threshold to ensure correct progress display
+  const bonusItems = useMemo(() => {
+    if (!promotion?.bonusItems) return [];
+    return [...promotion.bonusItems]
+      .filter((b: any) => b.threshold !== 1499) // Remove 1499 to avoid overlap with 1450
+      .sort((a: any, b: any) => a.threshold - b.threshold);
+  }, [promotion]);
+
+  // Use the highest bonus threshold as the progress bar's max
+  const maxThreshold = useMemo(() => {
+    if (bonusItems.length === 0) return 1000;
+    return bonusItems[bonusItems.length - 1].threshold;
+  }, [bonusItems]);
+
+  const progressPercent = Math.min((total / maxThreshold) * 100, 100);
+
+  // Find the next upcoming reward
+  const nextReward = useMemo(() => {
+    if (total < shippingThreshold) return { type: 'shipping', value: shippingThreshold };
+    const nextBonus = bonusItems.find((b: any) => total < b.threshold);
+    if (nextBonus) return { type: 'gift', value: nextBonus.threshold, label: nextBonus.label };
+    return null;
+  }, [total, shippingThreshold, bonusItems]);
 
   return (
     <div className="bg-white rounded-[1.5rem] px-4 pt-3 pb-4 border border-slate-100 shadow-sm mb-4">
       {/* 🚀 Header Message */}
-      <p className={`text-[11px] font-[1000] text-center mb-4 uppercase tracking-[0.15em] ${total >= shippingThreshold ? 'text-[#8a59ed]' : 'text-[hsl(--swago-purple)]'}`}>
-        {total >= giftThreshold
-          ? "🎉 All rewards added to your order!"
+      <p className={`text-[11px] font-[1000] text-center mb-4 uppercase tracking-[0.15em] ${total >= shippingThreshold ? 'text-[#8a59ed]' : 'text-slate-600'}`}>
+        {total >= maxThreshold
+          ? "🎉 All rewards unlocked!"
           : total >= shippingThreshold
-            ? "🚚 Free Shipping unlocked!"
-            : "Free Gift on Prepaid Orders"}
+            ? "🚚 Free COD Shipping unlocked!"
+            : "Free Shipping on Online Orders"}
       </p>
 
       {/* 📊 Progress Bar Container */}
       <div className="relative px-4">
-        {/* Track Container */}
         <div className="relative h-10 mb-2">
           {/* Background Rail */}
           <div className="absolute top-1/2 left-0 right-0 h-[4px] bg-slate-100 -translate-y-1/2 rounded-full" />
@@ -42,49 +82,59 @@ export default function CartProgress({
           {/* Start Point Dot */}
           <div className="absolute top-1/2 left-0 -translate-y-1/2 w-3 h-3 rounded-full bg-[#8a59ed] border-2 border-white shadow-sm z-10" />
 
-          {/* 🚚 Milestone 1: Free Shipping (₹500) */}
+          {/* 🚚 Milestone 1: Free Shipping */}
           <div
             className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 z-20"
-            style={{ left: `${(shippingThreshold / giftThreshold) * 100}%` }}
+            style={{ left: `${(shippingThreshold / maxThreshold) * 100}%` }}
           >
-            <div className={`w-9 h-9 rounded-2xl flex items-center justify-center border-[3px] border-white shadow-xl transition-all duration-500 scale-100 ${total >= shippingThreshold ? 'bg-[#8a59ed] text-white' : 'bg-slate-50 text-slate-300'}`}>
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4.5 h-4.5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 0 1-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h1.125c.621 0 1.129-.504 1.129-1.127V11.25M7.5 7.5h7.875c.621 0 1.125.504 1.125 1.125v17.25m-17.25-4.5V3.375C3.375 2.754 3.879 2.25 4.5 2.25H9.75" />
+            <div className={`w-8 h-8 rounded-2xl flex items-center justify-center border-[3px] border-white shadow-xl transition-all duration-500 ${total >= shippingThreshold ? 'bg-[#8a59ed] text-white' : 'bg-slate-50 text-slate-300'}`}>
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 0 1-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h1.125c.621 0 1.129-.504 1.129-1.127V11.25M7.5 7.5h7.875c.621 0 1.125.504 1.125 1.125v1.5m-1.5 1.5H8.25m8.25 0V7.5" />
               </svg>
             </div>
-            <div className="absolute top-11 left-1/2 -translate-x-1/2 text-center whitespace-nowrap pt-1">
-              <p className={`text-[9px] font-black leading-none ${total >= shippingThreshold ? 'text-slate-800' : 'text-slate-400'}`}>₹{shippingThreshold}</p>
-              <p className={`text-[7px] font-bold uppercase tracking-tight mt-0.5 ${total >= shippingThreshold ? 'text-slate-500' : 'text-slate-400'}`}>Free Shipping</p>
+            <div className="absolute top-10 left-1/2 -translate-x-1/2 text-center whitespace-nowrap">
+              <p className={`text-[8px] font-black leading-none ${total >= shippingThreshold ? 'text-slate-800' : 'text-slate-400'}`}>₹{shippingThreshold}</p>
             </div>
           </div>
 
-          {/* 🎁 Milestone 2: Free Gift (₹1000) */}
-          <div className="absolute top-1/2 right-0 -translate-y-1/2 z-20">
-            <div className={`w-9 h-9 rounded-2xl flex items-center justify-center border-[3px] border-white shadow-xl transition-all duration-500 scale-100 ${total >= giftThreshold ? 'bg-[#8a59ed] text-white' : 'bg-slate-50 text-slate-300'}`}>
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4.5 h-4.5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M21 11.25v8.25a1.5 1.5 0 0 1-1.5 1.5H4.5a1.5 1.5 0 0 1-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 1 0 9.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1 1 14.625 7.5H12m0 0V21m-8.625-9.75h17.25" />
-              </svg>
-            </div>
-            <div className="absolute top-11 right-0 text-right whitespace-nowrap pt-1">
-              <p className={`text-[9px] font-black leading-none ${total >= giftThreshold ? 'text-slate-800' : 'text-slate-400'}`}>₹{giftThreshold}</p>
-              <p className={`text-[7px] font-bold uppercase tracking-tight mt-0.5 ${total >= giftThreshold ? 'text-slate-500' : 'text-slate-400'}`}>+ Free Gift</p>
-            </div>
-          </div>
+          {/* 🎁 Dynamic Gift Milestones */}
+          {bonusItems.map((item: any, idx: number) => {
+            const isLast = idx === bonusItems.length - 1;
+            const leftPos = (item.threshold / maxThreshold) * 100;
+            const isUnlocked = total >= item.threshold;
+
+            return (
+              <div
+                key={item.slug}
+                className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 z-20"
+                style={{ left: `${leftPos}%` }}
+              >
+                <div className={`w-8 h-8 rounded-2xl flex items-center justify-center border-[3px] border-white shadow-xl transition-all duration-500 ${isUnlocked ? 'bg-[#8a59ed] text-white' : 'bg-slate-50 text-slate-300'}`}>
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 11.25v8.25a1.5 1.5 0 0 1-1.5 1.5H4.5a1.5 1.5 0 0 1-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 1 0 9.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1 1 14.625 7.5H12m0 0V21m-8.625-9.75h17.25" />
+                  </svg>
+                </div>
+                <div className="absolute top-10 left-1/2 -translate-x-1/2 text-center whitespace-nowrap">
+                  <p className={`text-[8px] font-black leading-none ${isUnlocked ? 'text-slate-800' : 'text-slate-400'}`}>₹{item.threshold}</p>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
-      {/* 🏷️ Banner Message */}
-      <div className="mt-12 text-center px-2">
-        {total >= giftThreshold ? (
-          <div className="bg-emerald-50 text-[#1E8B4F] py-2 px-4 rounded-xl border border-emerald-100 flex items-center justify-center gap-2 group cursor-pointer hover:bg-emerald-100 transition-colors">
-            <span className="text-xl group-hover:scale-110 transition-transform">🎉</span>
-            <p className="text-[10px] font-black uppercase tracking-[0.1em] mt-0.5">Surprise Toy Added to Cart!</p>
-          </div>
-        ) : (
+      {/* 🏷️ Dynamic Banner Message */}
+      <div className="mt-10 text-center px-2">
+        {nextReward ? (
           <div className="bg-slate-50 py-2.5 px-5 rounded-[1rem] border border-slate-100 inline-block shadow-inner">
             <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-none">
-              Add <span className="text-[#61498C] font-black text-xs mx-0.5 tabular-nums">₹{(giftThreshold - total).toFixed(0)}</span> more for <span className="text-slate-900 font-black">FREE Toy! 🎁</span>
+              Add <span className="text-[#8a59ed] font-black text-xs mx-0.5 tabular-nums">₹{(nextReward.value - total).toFixed(0)}</span> more for <span className="text-slate-900 font-black">{nextReward.type === 'shipping' ? 'FREE COD Shipping' : `FREE ${nextReward.label}`}! {nextReward.type === 'shipping' ? '🚚' : '🎁'}</span>
             </p>
+          </div>
+        ) : (
+          <div className="bg-emerald-50 text-[#1E8B4F] py-2 px-4 rounded-xl border border-emerald-100 flex items-center justify-center gap-2 group transition-colors">
+            <span className="text-xl group-hover:scale-110 transition-transform">🎉</span>
+            <p className="text-[10px] font-black uppercase tracking-[0.1em] mt-0.5">All possible rewards unlocked!</p>
           </div>
         )}
       </div>

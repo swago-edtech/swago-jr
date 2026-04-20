@@ -188,6 +188,13 @@ export async function PATCH(
     const { id } = await params;
     const updates = await request.json();
 
+    if (updates.age !== undefined && (updates.age < 6 || updates.age > 18)) {
+      return NextResponse.json(
+        { error: "Age must be between 6 and 18" },
+        { status: 400 }
+      );
+    }
+
     // Only allow specific fields to be updated
     const allowedUpdates = ['username', 'age', 'dob', 'grade', 'avatar', 'gender'] as const;
     const filteredUpdates: Partial<ProfileUpdates> = {};
