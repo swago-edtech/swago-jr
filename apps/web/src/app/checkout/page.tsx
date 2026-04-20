@@ -98,8 +98,7 @@ export default function CheckoutPage() {
   const handleOnlinePayment = async () => {
     setProcessing(true);
     setMessage("Processing your order...");
-    const shippingFee = 0; // Online is always free
-    const finalTotal = (appliedCoupon ? total - appliedCoupon.discount : total) - (appliedSwagoMoney || 0) + shippingFee;
+    const finalAmount = finalTotal;
 
     try {
       // Create Razorpay Order
@@ -107,7 +106,7 @@ export default function CheckoutPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          totalAmount: finalTotal,
+          totalAmount: finalAmount,
           orderDetails: {
             name: `${firstName} ${lastName}`,
             email,
@@ -119,7 +118,7 @@ export default function CheckoutPage() {
             cart,
             age,
             coupon: appliedCoupon,
-            finalAmount: finalTotal,
+            finalAmount: finalAmount,
             swagoMoneyRedeemed: appliedSwagoMoney || 0
           }
         })
@@ -162,16 +161,14 @@ export default function CheckoutPage() {
   const handleCOD = async () => {
     setProcessing(true);
     setMessage("Placing COD order...");
-    const shippingThreshold = promotion?.shippingThreshold || 1450;
-    const shippingFee = total >= shippingThreshold ? 0 : 50;
-    const finalTotal = (appliedCoupon ? total - appliedCoupon.discount : total) - (appliedSwagoMoney || 0) + shippingFee;
+    const finalAmount = finalTotal;
 
     try {
       const res = await fetch("/api/payment/cod", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          totalAmount: finalTotal,
+          totalAmount: finalAmount,
           orderDetails: {
             name: `${firstName} ${lastName}`,
             email,
@@ -183,7 +180,7 @@ export default function CheckoutPage() {
             cart,
             age,
             coupon: appliedCoupon,
-            finalAmount: finalTotal,
+            finalAmount: finalAmount,
             swagoMoneyRedeemed: appliedSwagoMoney || 0
           }
         })
@@ -228,6 +225,17 @@ export default function CheckoutPage() {
     });
   }, []);
 
+  const shippingFee = useMemo(() => {
+    if (paymentMethod === 'razorpay') return 0;
+    const threshold = promotion?.shippingThreshold || 1450;
+    return total >= threshold ? 0 : 50;
+  }, [paymentMethod, total, promotion]);
+
+  const finalTotal = useMemo(() => {
+    const discountedTotal = appliedCoupon ? total - appliedCoupon.discount : total;
+    return (discountedTotal - (appliedSwagoMoney || 0)) + shippingFee;
+  }, [total, appliedCoupon, appliedSwagoMoney, shippingFee]);
+
   const progressPercent = useMemo(() => {
     const tiers = promotion?.redemptionTiers || DEFAULT_REDEMPTION_TIERS;
     const nextTier = tiers.find((t: any) => total < t.target) || tiers[tiers.length - 1];
@@ -254,6 +262,12 @@ export default function CheckoutPage() {
     <div className="min-h-screen bg-white flex flex-col font-sans">
       <Script src="https://checkout.razorpay.com/v1/checkout.js" />
 
+      <div className="bg-[#61498C] py-3 text-center">
+        <p className="text-white text-[10px] font-[1000] uppercase tracking-widest leading-tight">
+          Enjoy Free Shipping, on orders over ₹1450
+        </p>
+      </div>
+
 
       {/* Mobile Sticky Order Summary Toggle */}
       <div className="md:hidden border-b bg-[#F7F7F7] px-6 py-4 flex flex-col gap-2">
@@ -269,7 +283,7 @@ export default function CheckoutPage() {
             </svg>
           </div>
           <div className="text-lg font-black text-slate-900">
-            ₹{((appliedCoupon ? total - appliedCoupon.discount : total) - (appliedSwagoMoney || 0)).toFixed(0)}
+            ₹{finalTotal.toFixed(0)}
           </div>
         </button>
 
@@ -287,6 +301,8 @@ export default function CheckoutPage() {
                 promotion={promotion} progressPercent={progressPercent} nextTier={nextTier} addToCart={addToCart}
                 appliedSwagoMoney={appliedSwagoMoney}
                 paymentMethod={paymentMethod}
+                finalTotal={finalTotal}
+                shippingFee={shippingFee}
               />
             </motion.div>
           )}
@@ -537,6 +553,8 @@ export default function CheckoutPage() {
               promotion={promotion} progressPercent={progressPercent} nextTier={nextTier} addToCart={addToCart}
               appliedSwagoMoney={appliedSwagoMoney}
               paymentMethod={paymentMethod}
+              finalTotal={finalTotal}
+              shippingFee={shippingFee}
             />
           </div>
         </aside>
@@ -548,14 +566,14 @@ export default function CheckoutPage() {
 // ✅ Reusable Order Summary Component for Desktop/Mobile
 function OrderSummary({
   cart, total, appliedCoupon, couponCode, setCouponCode, applyCoupon,
-  promotion, progressPercent, nextTier, addToCart, appliedSwagoMoney, paymentMethod
+  promotion, progressPercent, nextTier, addToCart, appliedSwagoMoney, paymentMethod, finalTotal, shippingFee
 }: any) {
   const isAlreadyAdded = (slug: string) => cart.some((item: any) => (item.slug === slug || item._id === slug) && item.price === 1);
 
   return (
     <>
-      <div className="mb-6">
-        <CartProgress total={total} promotionData={promotion} />
+      <div className="mb-4">
+        {/* <CartProgress total={total} promotionData={promotion} /> */}
       </div>
       {/* Cart Items */}
       <div className="space-y-5 mb-8">
@@ -585,10 +603,10 @@ function OrderSummary({
         </div>
         <div className="flex justify-between text-slate-600">
           <span>Shipping {paymentMethod === 'cod' ? '(COD)' : '(Online)'}</span>
-          {paymentMethod === 'razorpay' || total >= (promotion?.shippingThreshold || 1450) ? (
+          {shippingFee === 0 ? (
             <span className="text-xs font-black text-emerald-600 tracking-widest uppercase">FREE</span>
           ) : (
-            <span className="font-bold text-slate-900">₹50</span>
+            <span className="font-bold text-slate-900">₹{shippingFee}</span>
           )}
         </div>
         {appliedCoupon && (
@@ -610,7 +628,7 @@ function OrderSummary({
           <div className="flex items-baseline gap-2">
             <span className="text-[10px] text-slate-500 uppercase font-black">INR</span>
             <span className="text-2xl font-black text-slate-900">
-              ₹{((appliedCoupon ? total - appliedCoupon.discount : total) - (appliedSwagoMoney || 0) + (paymentMethod === 'razorpay' ? 0 : (total >= (promotion?.shippingThreshold || 1450) ? 0 : 50))).toFixed(2)}
+              ₹{finalTotal.toFixed(0)}
             </span>
           </div>
         </div>

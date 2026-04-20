@@ -192,18 +192,14 @@ export default function CartSidebar() {
                 </button>
               </div>
 
-              {/* Promo Banner */}
-              <div className="bg-[#61498C] py-2.5 px-5 text-center">
-                <p className="text-white text-[11px] font-black uppercase tracking-wider">
-                  Enjoy Free Shipping, Free Wrapping & Free Gifts!
-                </p>
-              </div>
-
               {/* Scrollable Content */}
               <div className="flex-1 overflow-y-auto pb-4 scrollbar-none">
                 {/* Rewards Progress Section */}
-                <div className="p-4">
-                  <CartProgress total={total} promotionData={promotion} />
+                {/* <CartProgress total={total} promotionData={promotion} /> */}
+                <div className="bg-[#61498C] py-3 text-center">
+                  <p className="text-white text-[10px] font-[1000] uppercase tracking-widest leading-tight">
+                    Enjoy Free Shipping, on orders over ₹1450
+                    </p>
                 </div>
 
                 {/* Cart Items List */}

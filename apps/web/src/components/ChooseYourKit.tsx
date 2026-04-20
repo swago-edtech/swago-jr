@@ -4,13 +4,13 @@ import Image from "next/image";
 // Hardcoded categories with mascot images
 const categories = [
   {
-    age: '6-7',
+    age: '6+',
     bgColor: 'bg-[hsl(var(--swago-orange))]',
     href: '/products?age=6-7',
     imageSrc: '/images/kid_girl1.png',
   },
   {
-    age: '8-10',
+    age: '8+',
     bgColor: 'bg-[hsl(var(--swago-purple))]',
     href: '/products?age=8-10',
     imageSrc: '/images/kid_boy1.png',
@@ -26,7 +26,7 @@ export default function ChooseYourKit() {
         </h2>
 
         <p className="text-slate-500 font-medium mb-10 text-lg">
-          Learning smart box for 6-10 years
+          Learning smart box for 6-18 years
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-16 sm:gap-12 max-w-4xl mx-auto">

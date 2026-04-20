@@ -60,28 +60,25 @@ export default function FilterDrawer({ isOpen, onClose, filters, setFilters, tot
               <FilterSection title="Age Group" defaultOpen={true}>
                 <div className="flex flex-col gap-4 mt-2">
                   {[
-                    { label: "6-7", count: totalResults },
-                    { label: "8-10", count: 0 },
-                    { label: "11-13", count: 0 }
+                    { label: "6+", value: "6-7", count: totalResults },
+                    { label: "8+", value: "8-10", count: 0 },
+                    { label: "11+", value: "11-13", count: 0 }
                   ].map(age => {
-                    const value = age.label.replace('+', '');
-                    // For mapping to existing structure: match labels or convert
-                    // Assuming age values map to strings like "2", "3", etc.
                     return (
-                      <label key={age.label} className="flex items-center gap-3 cursor-pointer group">
+                      <label key={age.value} className="flex items-center gap-3 cursor-pointer group">
                         <div className="relative flex items-center justify-center">
                           <input
                             type="checkbox"
-                            checked={filters.age === age.label}
-                            onChange={() => setFilters({ ...filters, age: filters.age === age.label ? '' : age.label })}
+                            checked={filters.age === age.value}
+                            onChange={() => setFilters({ ...filters, age: filters.age === age.value ? '' : age.value })}
                             className="w-5 h-5 border-2 border-slate-300 rounded-sm appearance-none checked:bg-black checked:border-black transition-colors cursor-pointer"
                           />
-                          <svg className={`absolute w-3 h-3 text-white pointer-events-none transform transition-transform ${filters.age === age.label ? 'scale-100' : 'scale-0'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
+                          <svg className={`absolute w-3 h-3 text-white pointer-events-none transform transition-transform ${filters.age === age.value ? 'scale-100' : 'scale-0'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                           </svg>
                         </div>
                         <span className="text-base text-slate-700 font-medium group-hover:text-black">
-                          {age.label} years
+                          {age.label}
                         </span>
                       </label>
                     );

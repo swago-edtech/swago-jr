@@ -177,11 +177,15 @@ export default function CartPage() {
         </div>
       </div>
 
+      <div className="bg-[#61498C] py-3 text-center">
+        <p className="text-white text-[10px] font-[1000] uppercase tracking-widest leading-tight">
+          Enjoy Free Shipping, on orders over ₹1450
+        </p>
+      </div>
+
       <div className="container mx-auto px-4 md:px-6 py-6 lg:py-10 max-w-6xl">
         <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 items-start">
           <div className="w-full lg:w-2/3 flex flex-col gap-4 sm:gap-6">
-            <CartProgress total={total} />
-
             <div className="flex flex-col gap-3 sm:gap-4">
               {cart.map((item) => {
                 const imageUrl = item.images?.[0] || '/images/placeholder.png';
@@ -359,10 +363,12 @@ export default function CartPage() {
                   </div>
                   <span className="text-[10px] text-slate-400 font-bold mt-1 tracking-tight">*On Online Orders</span>
                 </div>
-                <div className="flex justify-between text-slate-500 text-xs sm:text-xs font-bold tracking-widest">
-                  <span>Savings</span>
-                  <span className="text-[#1EAA5F] font-black tabular-nums">-₹{savings.toFixed(0)}</span>
-                </div>
+                {savings > 0 && (
+                  <div className="flex justify-between text-slate-500 text-xs sm:text-xs font-bold tracking-widest">
+                    <span>Savings</span>
+                    <span className="text-[#1EAA5F] font-black tabular-nums">-₹{savings.toFixed(0)}</span>
+                  </div>
+                )}
                 {appliedSwagoMoney > 0 && (
                   <div className="flex justify-between text-slate-500 text-xs sm:text-xs font-bold tracking-widest">
                     <span>Swago Dollars</span>
@@ -376,7 +382,7 @@ export default function CartPage() {
                   <span className="text-xs sm:text-sm font-black text-slate-700 tracking-tight mt-1">Estimated total</span>
                   <div className="text-right">
                     <span className="text-xl sm:text-2xl font-black text-slate-900 tracking-tighter tabular-nums leading-none block">₹{(amountAfterCoupon - appliedSwagoMoney).toFixed(0)}</span>
-                    <span className="text-[9px] sm:text-xs font-black text-[#1EAA5F] tracking-wider mt-1 block">You saved ₹{(savings + appliedSwagoMoney).toFixed(0)}!</span>
+                    {(savings + appliedSwagoMoney) > 0 && <span className="text-[9px] sm:text-xs font-black text-[#1EAA5F] tracking-wider mt-1 block">You saved ₹{(savings + appliedSwagoMoney).toFixed(0)}!</span>}
                   </div>
                 </div>
               </div>
@@ -416,7 +422,7 @@ export default function CartPage() {
             <span className="text-xs font-bold text-slate-500 tracking-tight mb-1 leading-none">Estimated total</span>
             <div className="flex flex-col items-start gap-1">
               <span className="text-xl font-black text-slate-900 tracking-tighter tabular-nums leading-none">₹{(amountAfterCoupon - appliedSwagoMoney).toFixed(0)}</span>
-              <span className="text-[9px] font-black text-[#1EAA5F] tracking-wider leading-none">You saved ₹{(savings + appliedSwagoMoney).toFixed(0)}!</span>
+              {(savings + appliedSwagoMoney) > 0 && <span className="text-[9px] font-black text-[#1EAA5F] tracking-wider leading-none">You saved ₹{(savings + appliedSwagoMoney).toFixed(0)}!</span>}
             </div>
           </div>
           <button

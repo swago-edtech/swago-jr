@@ -16,7 +16,11 @@ type FilterSidebarProps = {
 };
 
 // Data for the filters
-const ageGroups = ["All", "6-7", "8-10"];
+const ageGroups = [
+  { label: "All", value: "All" },
+  { label: "6+", value: "6-7" },
+  { label: "8+", value: "8-10" },
+];
 const swagoElements = [
   { id: "S", name: "Smart Tech" },
   { id: "W", name: "Willpower" },
@@ -60,14 +64,14 @@ export default function FilterSidebar({ filters, onFilterChange }: FilterSidebar
         <div className="flex flex-wrap gap-2 mt-2">
           {ageGroups.map(age => (
             <button
-              key={age}
-              onClick={() => handleAgeChange(age)}
-              className={`px-3 py-1 text-sm rounded-full transition-colors ${(filters.age === age || (filters.age === "" && age === "All"))
+              key={age.value}
+              onClick={() => handleAgeChange(age.value)}
+              className={`px-3 py-1 text-sm rounded-full transition-colors ${(filters.age === age.value || (filters.age === "" && age.value === "All"))
                 ? "bg-[hsl(var(--swago-purple))] text-white"
                 : "bg-slate-200 text-slate-700 hover:bg-slate-300"
                 }`}
             >
-              {age}
+              {age.label}
             </button>
           ))}
         </div>
