@@ -160,9 +160,11 @@ export default function ProductCard({ product }: { product: Product }) {
               className="object-cover transition-transform duration-300 group-hover:scale-105"
             />
             {/* Mobile Age Badge - Top Right of Image area */}
-            <div className="md:hidden absolute top-2 right-2 z-10 bg-[hsl(var(--swago-purple))] text-white text-[9px] font-black px-2 py-1 rounded-full shadow-md tracking-tight whitespace-nowrap">
-              Age {ageCategory}
-            </div>
+            {ageCategory && (
+              <div className="md:hidden absolute top-2 right-2 z-10 bg-[hsl(var(--swago-purple))] text-white text-[9px] font-black px-2 py-1 rounded-full shadow-md tracking-tight whitespace-nowrap uppercase">
+                Age {ageCategory.split('-')[0]}+
+              </div>
+            )}
 
             {/* Action buttons - Heart at bottom-left */}
             <div className="absolute bottom-3 left-3 z-10">
@@ -231,9 +233,11 @@ export default function ProductCard({ product }: { product: Product }) {
                     <span className="text-[10px] sm:text-xs text-slate-400 line-through font-medium">₹{originalPrice}</span>
                   )}
                 </div>
-                <span className="hidden md:inline-block bg-[hsl(var(--swago-purple))] text-white text-[10px] sm:text-[11px] font-extrabold px-3 py-1.5 rounded-full tracking-tight whitespace-nowrap shadow-sm">
-                  Age {ageCategory}
-                </span>
+                {ageCategory && (
+                  <span className="hidden md:inline-block bg-[hsl(var(--swago-purple))] text-white text-[10px] sm:text-[11px] font-extrabold px-3 py-1.5 rounded-full tracking-tight whitespace-nowrap shadow-sm uppercase">
+                    Age {ageCategory.split('-')[0]}+
+                  </span>
+                )}
               </div>
 
               {/* Show Add to Cart OR Quantity Controls */}
