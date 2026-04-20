@@ -197,7 +197,6 @@ export async function POST(req: Request) {
         } else {
             // Fallback
             BONUS_THRESHOLDS['mini-swago-game-card'] = 999;
-            BONUS_THRESHOLDS['swago-blind-bag'] = 1499;
             BONUS_THRESHOLDS['special-edition-item'] = 1999;
         }
 
@@ -283,7 +282,9 @@ export async function POST(req: Request) {
             }
         }
 
-        const calculatedTotal = Math.max(0, calculatedAmountAfterCoupon - swagoMoneyRedeemed);
+        const shippingThreshold = activePromotion?.shippingThreshold || 1450;
+        const shippingFee = calculatedAmountAfterCoupon >= shippingThreshold ? 0 : 50;
+        const calculatedTotal = Math.max(0, calculatedAmountAfterCoupon - swagoMoneyRedeemed + shippingFee);
 
         // Create the order with COD payment method
         const newOrder = await Order.create({
@@ -302,6 +303,7 @@ export async function POST(req: Request) {
             items: orderItems,
             subtotal: subtotal,
             discount: discountAmount,
+            shippingFee: shippingFee,
             total: calculatedTotal,
             swagoMoneyRedeemed: swagoMoneyRedeemed,
             swagoMoneyKidId: swagoMoneyKidId,
@@ -350,7 +352,7 @@ export async function POST(req: Request) {
                 subtotal: orderObject.subtotal.toFixed(2),
                 discount: orderObject.discount.toFixed(2),
                 swagoMoneyRedeemed: (orderObject.swagoMoneyRedeemed || 0).toFixed(2),
-                shipping: "0.00",
+                shipping: (orderObject.shippingFee || 0).toFixed(2),
                 totalAmount: orderObject.total.toFixed(2),
                 paymentMethod: "Cash on Delivery",
                 paymentStatus: "Pending",

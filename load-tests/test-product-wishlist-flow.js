@@ -206,11 +206,11 @@ export default function () {
 
   // Test 4: Search/Filter simulation (visiting different categories)
   group('Product Categories', function () {
-    const ageCategories = ['5-7', '8-10'];
-    const randomCategory = ageCategories[Math.floor(Math.random() * ageCategories.length)];
+    const ageCategories = ['6-7', '8-10'];
+    const randomAge = ageCategories[Math.floor(Math.random() * ageCategories.length)];
 
     // Since there's no API for filtering, just visit products page
-    // In real app, this might be /products?age=5-7
+    // In real app, this might be /products?age=6-7
     const res = http.get(`${BASE_URL}/products`, { jar });
     check(res, {
       'Category page loads': (r) => r.status === 200,

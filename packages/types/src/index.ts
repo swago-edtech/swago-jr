@@ -7,7 +7,7 @@ export interface Product {
   originalPrice?: number;
   images: string[];
   videos?: string[];
-  ageCategory: "5-7" | "8-10" | "11-13";
+  ageCategory: "6-7" | "8-10" | "11-13";
   coreElements: Array<"S" | "W" | "A" | "G" | "O">;
   boxContents: string;
   benefits: string;
@@ -29,7 +29,7 @@ export interface CreateProductInput {
   originalPrice?: number;
   images: string[];
   videos?: string[];
-  ageCategory: "5-7" | "8-10" | "11-13";
+  ageCategory: "6-7" | "8-10" | "11-13";
   coreElements: Array<"S" | "W" | "A" | "G" | "O">;
   boxContents: string;
   benefits: string;

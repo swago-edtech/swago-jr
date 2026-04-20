@@ -197,7 +197,6 @@ export async function POST(req: Request) {
     } else {
       // Fallback
       BONUS_THRESHOLDS['mini-swago-game-card'] = 999;
-      BONUS_THRESHOLDS['swago-blind-bag'] = 1499;
       BONUS_THRESHOLDS['special-edition-item'] = 1999;
     }
 
@@ -318,7 +317,9 @@ export async function POST(req: Request) {
       }
     }
 
-    const calculatedTotal = Math.max(0, calculatedAmountAfterCoupon - swagoMoneyRedeemed);
+    // Online payments always have free shipping
+    const shippingFee = 0;
+    const calculatedTotal = Math.max(0, calculatedAmountAfterCoupon - swagoMoneyRedeemed + shippingFee);
 
     // Verify if calculated total matches what frontend sent (optional safety check)
     if (Math.abs(calculatedTotal - totalAmount) > 1) { // 1 rupee tolerance
@@ -343,6 +344,7 @@ export async function POST(req: Request) {
       items: orderItems,
       subtotal: subtotal,
       discount: discountAmount,
+      shippingFee: shippingFee,
       total: calculatedTotal,
       swagoMoneyRedeemed: swagoMoneyRedeemed,
       swagoMoneyKidId: swagoMoneyKidId,

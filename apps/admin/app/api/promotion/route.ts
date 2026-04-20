@@ -28,7 +28,6 @@ export async function GET() {
                 ],
                 bonusItems: [
                     { threshold: 999, label: "Mini Swago Game Card", slug: "mini-swago-game-card" },
-                    { threshold: 1499, label: "Swago Blind Bag", slug: "swago-blind-bag" },
                     { threshold: 1999, label: "Special Edition Item", slug: "special-edition-item" }
                 ]
             });

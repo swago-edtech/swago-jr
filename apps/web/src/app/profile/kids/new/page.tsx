@@ -65,8 +65,8 @@ export default function NewKidProfilePage() {
     }
 
     const age = parseInt(form.age);
-    if (isNaN(age) || age < 3 || age > 18) {
-      setError("Please enter a valid age between 3 and 18");
+    if (isNaN(age) || age < 6 || age > 18) {
+      setError("Please enter a valid age between 6 and 18");
       return;
     }
 
@@ -316,7 +316,7 @@ export default function NewKidProfilePage() {
                       required
                     >
                       <option value="">Select age</option>
-                      {[3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18].map(age => (
+                      {[6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18].map(age => (
                         <option key={age} value={age}>{age} years</option>
                       ))}
                     </select>
