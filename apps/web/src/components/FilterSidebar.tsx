@@ -18,8 +18,8 @@ type FilterSidebarProps = {
 // Data for the filters
 const ageGroups = [
   { label: "All", value: "All" },
-  { label: "6+", value: "6-7" },
-  { label: "8+", value: "8-10" },
+  { label: "6+ yrs", value: "6-7" },
+  { label: "8+ yrs", value: "8-10" },
 ];
 const swagoElements = [
   { id: "S", name: "Smart Tech" },

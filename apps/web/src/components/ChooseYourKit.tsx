@@ -4,13 +4,13 @@ import Image from "next/image";
 // Hardcoded categories with mascot images
 const categories = [
   {
-    age: '6+',
+    age: '6+ yrs',
     bgColor: 'bg-[hsl(var(--swago-orange))]',
     href: '/products?age=6-7',
     imageSrc: '/images/kid_girl1.png',
   },
   {
-    age: '8+',
+    age: '8+ yrs',
     bgColor: 'bg-[hsl(var(--swago-purple))]',
     href: '/products?age=8-10',
     imageSrc: '/images/kid_boy1.png',
@@ -37,8 +37,8 @@ export default function ChooseYourKit() {
               className={`relative block w-full sm:w-1/2 h-44 ${category.bgColor} rounded-2xl rounded-tr-[5rem] text-white text-left shadow-[0_15px_40px_-10px_rgba(0,0,0,0.2)] transition-all duration-500 hover:scale-[1.03] hover:-translate-y-2 hover:shadow-[0_25px_60px_-15px_rgba(0,0,0,0.3)] overflow-visible group`}
             >
               <div className="p-8 h-full flex flex-col justify-center">
-                <p className="text-5xl font-black leading-tight">{category.age}</p>
-                <p className="text-4xl font-bold opacity-90">Years</p>
+                <p className="text-5xl font-black leading-tight uppercase tracking-tighter">{category.age}</p>
+                <p className="text-4xl font-bold opacity-90 uppercase tracking-tighter">Old</p>
               </div>
 
               <div className="absolute -top-10 -right-4 w-44 h-56 sm:w-52 sm:h-64 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-2">

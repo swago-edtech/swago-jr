@@ -1,0 +1,214 @@
+import { connectDB, Order, User, Product, Coupon, KidProfile } from "@swago/database";
+import { sendOrderConfirmationEmail } from "./msg91-email";
+import { invalidateProductCache } from "./productCache";
+import { isValidObjectId } from "mongoose";
+
+interface FinalizeOrderOptions {
+  orderIdOrMongoId: string;
+  razorpayPaymentId: string;
+  source: 'frontend' | 'webhook';
+}
+
+/**
+ * Finalizes an order after a successful payment.
+ * Handles order status, stock, coupons, swago money, and emails.
+ * Safe to call multiple times (idempotent).
+ */
+export async function finalizeOrder({ orderIdOrMongoId, razorpayPaymentId, source }: FinalizeOrderOptions) {
+  await connectDB();
+
+  // 1. Find the order
+  let order = await Order.findOne({ orderId: orderIdOrMongoId });
+  if (!order && isValidObjectId(orderIdOrMongoId)) {
+    order = await Order.findById(orderIdOrMongoId);
+  }
+
+  if (!order) {
+    throw new Error(`Order not found: ${orderIdOrMongoId}`);
+  }
+
+  // 2. Check if already processed
+  if (order.status === 'Paid') {
+    console.log(`✅ Order ${order.orderId} already marked as Paid. Skipping finalization.`);
+    return { success: true, alreadyProcessed: true, orderId: order.orderId };
+  }
+
+  console.log(`🔄 Finalizing order ${order.orderId} from ${source}...`);
+
+  // 3. Update Order Status
+  order.status = 'Paid';
+  order.razorpay_payment_id = razorpayPaymentId;
+  order.paymentAttempts = (order.paymentAttempts || 0) + 1;
+  order.lastPaymentAttempt = new Date();
+  order.createdVia = source;
+  
+  if (source === 'webhook') {
+    order.webhookProcessed = true;
+    order.webhookReceivedAt = new Date();
+  }
+
+  await order.save();
+  console.log(`✅ Order status updated to Paid.`);
+
+  // 4. Coupon Usage
+  if (order.couponCode) {
+    try {
+      await Coupon.updateOne(
+        { code: order.couponCode },
+        { $inc: { usageCount: 1 } }
+      );
+      console.log(`✅ Coupon usage incremented: ${order.couponCode}`);
+    } catch (error) {
+      console.error(`⚠️ Failed to increment coupon usage:`, error);
+    }
+  }
+
+  // 5. Swago Money Deduction
+  if (order.swagoMoneyRedeemed > 0 && order.swagoMoneyKidId) {
+    try {
+      await KidProfile.updateOne(
+        { _id: order.swagoMoneyKidId },
+        { $inc: { "ambassador.swagoMoney": -order.swagoMoneyRedeemed } }
+      );
+      console.log(`💰 Deducted ${order.swagoMoneyRedeemed} SD from KidProfile ${order.swagoMoneyKidId}`);
+    } catch (error) {
+      console.error(`⚠️ Failed to deduct Swago Money:`, error);
+    }
+  }
+
+  // 6. Stock Management
+  console.log(`📦 Processing stock for ${order.items.length} items...`);
+  for (const item of order.items) {
+    try {
+      const productId = item.productId?.toString();
+      if (!productId) continue;
+
+      let product = await Product.findOne({ slug: productId });
+      if (!product && isValidObjectId(productId)) {
+        product = await Product.findById(productId);
+      }
+
+      if (product) {
+        const quantity = item.quantity || 1;
+        
+        // Update stock
+        product.stock = Math.max(0, product.stock - quantity);
+        product.reservedStock = Math.max(0, (product.reservedStock || 0) - quantity);
+        product.totalSold = (product.totalSold || 0) + quantity;
+        
+        await product.save();
+        console.log(`✅ Stock updated for ${product.name}: -${quantity}`);
+
+        // Invalidate cache
+        try {
+          invalidateProductCache(product.slug || '');
+          invalidateProductCache(product._id.toString());
+        } catch (e) {
+          console.error(`⚠️ Cache invalidation failed for ${product.name}`);
+        }
+      }
+    } catch (error) {
+      console.error(`⚠️ Failed to update stock for item ${item.name}:`, error);
+    }
+  }
+
+  // 7. Update User Profile
+  try {
+    const user = await User.findById(order.userId);
+    if (user) {
+      let userUpdated = false;
+      if (!user.phone && order.phone) {
+        user.phone = order.phone;
+        userUpdated = true;
+      }
+      if (!user.email && order.email) {
+        user.email = order.email;
+        userUpdated = true;
+      }
+      if (userUpdated) {
+        await user.save();
+        console.log(`✅ User profile updated with contact info.`);
+      }
+    }
+  } catch (error) {
+    console.error(`⚠️ Failed to update user profile:`, error);
+  }
+
+  // 8. Send Email
+  try {
+    const orderObject = order.toObject();
+    await sendOrderConfirmationEmail({
+      name: orderObject.name,
+      orderNumber: orderObject.orderId || orderObject._id.toString().slice(-6),
+      orderDate: new Date(orderObject.createdAt).toLocaleString('en-IN'),
+      email: orderObject.email,
+      items: orderObject.items,
+      subtotal: orderObject.subtotal.toFixed(2),
+      discount: orderObject.discount.toFixed(2),
+      swagoMoneyRedeemed: (orderObject.swagoMoneyRedeemed || 0).toFixed(2),
+      shipping: (orderObject.shippingFee || 0).toFixed(2),
+      totalAmount: orderObject.total.toFixed(2),
+      paymentMethod: "Online (Razorpay)",
+      paymentStatus: "Successful",
+      address: orderObject.address,
+      city: orderObject.city,
+      state: orderObject.state,
+      pincode: orderObject.pincode,
+    });
+    console.log(`📧 Confirmation email sent.`);
+  } catch (error) {
+    console.error(`⚠️ Failed to send confirmation email:`, error);
+  }
+
+  return { success: true, orderId: order.orderId };
+}
+
+/**
+ * Handles failed payments by marking order as Failed and releasing reserved stock.
+ */
+export async function handleFailedOrder(orderIdOrMongoId: string) {
+  await connectDB();
+
+  let order = await Order.findOne({ orderId: orderIdOrMongoId });
+  if (!order && isValidObjectId(orderIdOrMongoId)) {
+    order = await Order.findById(orderIdOrMongoId);
+  }
+
+  if (!order) return;
+
+  if (order.status === 'Pending') {
+    order.status = 'Failed';
+    order.paymentAttempts = (order.paymentAttempts || 0) + 1;
+    order.lastPaymentAttempt = new Date();
+    await order.save();
+    console.log(`❌ Order ${order.orderId} marked as Failed.`);
+
+    // Release reserved stock
+    console.log(`🔓 Releasing reserved stock for ${order.items.length} items...`);
+    for (const item of order.items) {
+      try {
+        const productId = item.productId?.toString();
+        if (!productId) continue;
+
+        let product = await Product.findOne({ slug: productId });
+        if (!product && isValidObjectId(productId)) {
+          product = await Product.findById(productId);
+        }
+
+        if (product) {
+          const quantity = item.quantity || 1;
+          product.reservedStock = Math.max(0, (product.reservedStock || 0) - quantity);
+          await product.save();
+          console.log(`✅ Reserved stock released for ${product.name}: ${quantity}`);
+          
+          try {
+            invalidateProductCache(product.slug || '');
+            invalidateProductCache(product._id.toString());
+          } catch (e) {}
+        }
+      } catch (error) {
+        console.error(`⚠️ Failed to release reserved stock:`, error);
+      }
+    }
+  }
+}

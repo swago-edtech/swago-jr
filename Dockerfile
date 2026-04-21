@@ -103,7 +103,7 @@ ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
 # Copy public assets (images, fonts, etc.)
-COPY --from=builder-web /app/apps/web/public ./public
+COPY --from=builder-web /app/apps/web/public ./apps/web/public
 
 # Create .next directory owned by nextjs user (for runtime cache)
 RUN mkdir -p .next && chown nextjs:nodejs .next
@@ -145,7 +145,7 @@ ENV PORT=3001
 ENV HOSTNAME="0.0.0.0"
 
 # Copy public assets
-COPY --from=builder-admin /app/apps/admin/public ./public
+COPY --from=builder-admin /app/apps/admin/public ./apps/admin/public
 
 # Create .next directory owned by nextjs user
 RUN mkdir -p .next && chown nextjs:nodejs .next

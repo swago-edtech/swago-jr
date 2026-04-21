@@ -262,9 +262,9 @@ export default function CheckoutPage() {
     <div className="min-h-screen bg-white flex flex-col font-sans">
       <Script src="https://checkout.razorpay.com/v1/checkout.js" />
 
-      <div className="bg-[#61498C] py-3 text-center">
-        <p className="text-white text-[10px] font-[1000] uppercase tracking-widest leading-tight">
-          Enjoy Free Shipping, on orders over ₹1450
+      <div className="bg-[hsl(var(--swago-purple))] py-3 text-center">
+        <p className="text-white text-[10px] font-[1000] tracking-widest leading-tight">
+          Enjoy Free Shipping, on orders above ₹1450
         </p>
       </div>
 

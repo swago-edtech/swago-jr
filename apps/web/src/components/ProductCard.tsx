@@ -161,8 +161,8 @@ export default function ProductCard({ product }: { product: Product }) {
             />
             {/* Mobile Age Badge - Top Right of Image area */}
             {ageCategory && (
-              <div className="md:hidden absolute top-2 right-2 z-10 bg-[hsl(var(--swago-purple))] text-white text-[9px] font-black px-2 py-1 rounded-full shadow-md tracking-tight whitespace-nowrap uppercase">
-                Age {ageCategory.split('-')[0]}+
+              <div className="md:hidden absolute top-2 right-2 z-10 bg-[hsl(var(--swago-purple))] text-white text-[9px] font-black px-2 py-1 rounded-full shadow-md tracking-tight whitespace-nowrap  ">
+                Age: {ageCategory.split('-')[0]}+ yrs
               </div>
             )}
 
@@ -234,8 +234,8 @@ export default function ProductCard({ product }: { product: Product }) {
                   )}
                 </div>
                 {ageCategory && (
-                  <span className="hidden md:inline-block bg-[hsl(var(--swago-purple))] text-white text-[10px] sm:text-[11px] font-extrabold px-3 py-1.5 rounded-full tracking-tight whitespace-nowrap shadow-sm uppercase">
-                    Age {ageCategory.split('-')[0]}+
+                  <span className="hidden md:inline-block bg-[hsl(var(--swago-purple))] text-white text-[10px] sm:text-[11px] font-extrabold px-3 py-1.5 rounded-full tracking-tight whitespace-nowrap shadow-sm">
+                    Age: {ageCategory.split('-')[0]}+ yrs
                   </span>
                 )}
               </div>

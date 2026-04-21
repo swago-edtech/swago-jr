@@ -60,9 +60,9 @@ export default function FilterDrawer({ isOpen, onClose, filters, setFilters, tot
               <FilterSection title="Age Group" defaultOpen={true}>
                 <div className="flex flex-col gap-4 mt-2">
                   {[
-                    { label: "6+", value: "6-7", count: totalResults },
-                    { label: "8+", value: "8-10", count: 0 },
-                    { label: "11+", value: "11-13", count: 0 }
+                    { label: "6+ yrs", value: "6-7", count: totalResults },
+                    { label: "8+ yrs", value: "8-10", count: 0 },
+                    { label: "11+ yrs", value: "11-13", count: 0 }
                   ].map(age => {
                     return (
                       <label key={age.value} className="flex items-center gap-3 cursor-pointer group">
