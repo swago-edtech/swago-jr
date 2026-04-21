@@ -177,9 +177,9 @@ export default function CartPage() {
         </div>
       </div>
 
-      <div className="bg-[#61498C] py-3 text-center">
-        <p className="text-white text-[10px] font-[1000] uppercase tracking-widest leading-tight">
-          Enjoy Free Shipping, on orders over ₹1450
+      <div className="bg-[hsl(var(--swago-purple))] py-3 text-center">
+        <p className="text-white text-[10px] font-[1000] tracking-widest leading-tight">
+          Enjoy Free Shipping, on orders above ₹1450
         </p>
       </div>
 

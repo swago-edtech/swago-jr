@@ -576,8 +576,8 @@ export default function ProductPageClient({ product }: { product: Product }) {
 
             <div className="mt-1 flex items-center gap-2 flex-wrap">
               {ageCategory && (
-                <span className="inline-flex items-center bg-[hsl(var(--swago-purple))] text-white text-[10px] md:text-xs font-black px-3 py-1.5 rounded-full shadow-sm tracking-tight uppercase">
-                  Age: {ageCategory.split('-')[0]}+
+                <span className="inline-flex items-center bg-[hsl(var(--swago-purple))] text-white text-[10px] md:text-xs font-black px-3 py-1.5 rounded-full shadow-sm tracking-tight ">
+                  Age: {ageCategory.split('-')[0]}+ yrs
                 </span>
               )}
 
