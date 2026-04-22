@@ -1,6 +1,6 @@
 "use client";
 
-import { useSharedContext, type CartItem, type Product } from "@/context/SharedContext";
+import { useSharedContext, type CartItem, type Product, type CartPriceChange } from "@/context/SharedContext";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -18,14 +18,21 @@ interface StockInfo {
 }
 
 export default function CartPage() {
-  const { cart, total, removeFromCart, increaseQty, decreaseQty, appliedCoupon, setAppliedCoupon, appliedSwagoMoney, setAppliedSwagoMoney, walletBalance } = useSharedContext();
+  const { cart, total, removeFromCart, increaseQty, decreaseQty, appliedCoupon, setAppliedCoupon, appliedSwagoMoney, setAppliedSwagoMoney, walletBalance, refreshCartPrices, isRefreshingCart } = useSharedContext();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [stockInfo, setStockInfo] = useState<StockInfo>({});
   const [mounted, setMounted] = useState(false);
+  const [priceChanges, setPriceChanges] = useState<CartPriceChange[]>([]);
 
   useEffect(() => {
     setMounted(true);
+    // Refresh cart prices from backend on mount
+    refreshCartPrices().then(changes => {
+      if (changes.length > 0) {
+        setPriceChanges(changes);
+      }
+    });
   }, []);
 
   const [couponSheetOpen, setCouponSheetOpen] = useState(false);
@@ -184,6 +191,39 @@ export default function CartPage() {
       </div>
 
       <div className="container mx-auto px-4 md:px-6 py-6 lg:py-10 max-w-6xl">
+        {/* Price Change Banner */}
+        {priceChanges.length > 0 && (
+          <div className="mb-4 bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
+            <div className="bg-amber-100 p-2 rounded-xl flex-shrink-0 mt-0.5">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 text-amber-600">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+              </svg>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-amber-800 mb-1">Prices have been updated</p>
+              <p className="text-xs text-amber-700 leading-relaxed">
+                {priceChanges.filter(c => c.field === 'price').length > 0
+                  ? `${priceChanges.filter(c => c.field === 'price').map(c => c.productName).join(', ')} — prices updated to reflect the latest pricing.`
+                  : 'Some items in your cart have been updated.'}
+              </p>
+            </div>
+            <button
+              onClick={() => setPriceChanges([])}
+              className="p-1 hover:bg-amber-100 rounded-lg transition-colors flex-shrink-0"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4 text-amber-500">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        )}
+
+        {isRefreshingCart && (
+          <div className="mb-4 flex items-center gap-2 justify-center text-xs text-slate-400 font-bold tracking-widest">
+            <div className="w-3 h-3 border-2 border-slate-300 border-t-transparent rounded-full animate-spin" />
+            Verifying prices...
+          </div>
+        )}
         <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 items-start">
           <div className="w-full lg:w-2/3 flex flex-col gap-4 sm:gap-6">
             <div className="flex flex-col gap-3 sm:gap-4">

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { useSharedContext, type CartItem, type Product } from "@/context/SharedContext";
+import { useSharedContext, type CartItem, type Product, type CartPriceChange } from "@/context/SharedContext";
 import { useRouter } from "next/navigation";
 import Script from "next/script";
 import Image from "next/image";
@@ -27,7 +27,7 @@ const DEFAULT_REDEMPTION_TIERS = [
 ];
 
 export default function CheckoutPage() {
-  const { cart, total, user, isLoadingUser, clearCart, addToCart, appliedCoupon, setAppliedCoupon, appliedSwagoMoney } = useSharedContext();
+  const { cart, total, user, isLoadingUser, clearCart, addToCart, appliedCoupon, setAppliedCoupon, appliedSwagoMoney, refreshCartPrices, isRefreshingCart } = useSharedContext();
   const router = useRouter();
   const [processing, setProcessing] = useState(false);
   const [email, setEmail] = useState("");
@@ -44,6 +44,7 @@ export default function CheckoutPage() {
   const [age, setAge] = useState("");
   const [message, setMessage] = useState("");
   const [errors, setErrors] = useState<string[]>([]);
+  const [priceChangeModal, setPriceChangeModal] = useState<CartPriceChange[] | null>(null);
 
   // Redirect if not logged in
   useEffect(() => {
@@ -58,6 +59,11 @@ export default function CheckoutPage() {
       setLastName(nameParts.slice(1).join(" ") || "");
     }
   }, [user, isLoadingUser, router]);
+
+  // Refresh cart prices on checkout page mount
+  useEffect(() => {
+    refreshCartPrices();
+  }, []);
 
   const validateForm = () => {
     const newErrors: string[] = [];
@@ -87,6 +93,37 @@ export default function CheckoutPage() {
 
   const handlePayNow = async () => {
     if (!validateForm()) return;
+
+    // ✅ CRITICAL: Re-validate cart prices right before payment
+    // Force bypass the debounce for this critical check
+    try {
+      const requestItems = cart.map(item => ({
+        productId: item.productId?.toString() || item._id?.toString() || item.id?.toString() || '',
+        quantity: item.quantity,
+        price: item.price,
+        name: item.name,
+      }));
+
+      const res = await fetch('/api/cart/refresh', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items: requestItems }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.hasChanges && (data.changes?.length > 0 || data.removedItems?.length > 0)) {
+          // Prices changed — block payment and show modal
+          setPriceChangeModal(data.changes || []);
+          // Still apply the updates to the cart silently
+          refreshCartPrices();
+          return;
+        }
+      }
+    } catch (error) {
+      console.error('Pre-payment price check failed:', error);
+      // If the check fails, still allow payment (backend will catch discrepancies)
+    }
 
     if (paymentMethod === 'cod') {
       await handleCOD();
@@ -559,6 +596,67 @@ export default function CheckoutPage() {
           </div>
         </aside>
       </main>
+      {/* Price Change Blocking Modal */}
+      {priceChangeModal && (
+        <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center gap-3">
+              <div className="bg-amber-100 p-2.5 rounded-xl">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6 text-amber-600">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-slate-900">Prices Updated</h3>
+                <p className="text-xs text-slate-500 font-medium">Please review before proceeding</p>
+              </div>
+            </div>
+
+            <div className="bg-slate-50 rounded-xl p-4 space-y-2 max-h-48 overflow-y-auto">
+              {priceChangeModal.filter(c => c.field === 'price').map((change, i) => (
+                <div key={i} className="flex items-center justify-between text-sm">
+                  <span className="font-bold text-slate-700 truncate flex-1 mr-4">{change.productName}</span>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <span className="text-slate-400 line-through text-xs">₹{change.oldValue}</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3 h-3 text-slate-400">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+                    </svg>
+                    <span className="font-black text-slate-900">₹{change.newValue}</span>
+                  </div>
+                </div>
+              ))}
+              {priceChangeModal.filter(c => c.field === 'stock').map((change, i) => (
+                <div key={`stock-${i}`} className="text-xs text-rose-600 font-bold">
+                  {change.productName}: {Number(change.newValue) === 0 ? 'Out of stock' : `Only ${change.newValue} available`}
+                </div>
+              ))}
+              {priceChangeModal.filter(c => c.field !== 'price' && c.field !== 'stock').map((change, i) => (
+                <div key={`other-${i}`} className="text-xs text-slate-500 font-medium">
+                  {change.productName}: {change.field} updated
+                </div>
+              ))}
+            </div>
+
+            <p className="text-xs text-slate-500 leading-relaxed">
+              Your cart has been updated with the latest pricing. Please review the updated total before placing your order.
+            </p>
+
+            <button
+              onClick={() => setPriceChangeModal(null)}
+              className="w-full bg-[hsl(var(--swago-purple))] text-white font-black py-3.5 rounded-xl text-sm tracking-widest hover:opacity-90 transition-opacity"
+            >
+              I understand, continue
+            </button>
+          </div>
+        </div>
+      )}
+
+      {isRefreshingCart && (
+        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50 bg-white/90 backdrop-blur-sm border border-slate-200 rounded-full px-4 py-2 shadow-lg flex items-center gap-2">
+          <div className="w-3 h-3 border-2 border-[hsl(var(--swago-purple))] border-t-transparent rounded-full animate-spin" />
+          <span className="text-xs font-bold text-slate-600 tracking-wide">Verifying latest prices...</span>
+        </div>
+      )}
     </div>
   );
 }
