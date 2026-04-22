@@ -176,16 +176,6 @@ export async function POST(req: Request) {
         // ========================================
         const orderId = await generateOrderId();
 
-        // Prepare order items
-        const orderItems: OrderItem[] = orderDetails.cart.map((item: CartItem) => ({
-            productId: item._id || item.id || 0,
-            name: item.name,
-            price: item.price,
-            quantity: item.quantity,
-            image: item.image || item.images?.[0] || '',
-        }));
-
-        // Recalculate subtotal server-side
         // ✅ ZEPRO Reference: Server-side Bonus Item Validation
         const activePromotion = await Promotion.findOne({ isActive: true }).lean() as any;
 
@@ -200,10 +190,19 @@ export async function POST(req: Request) {
             BONUS_THRESHOLDS['special-edition-item'] = 1999;
         }
 
+        // ✅ SECURITY FIX: Calculate non-bonus subtotal using DB prices, NOT frontend prices
         const nonBonusSubtotal = orderDetails.cart.reduce((sum: number, item: any) => {
+            const productId = item.id?.toString() || item.productId?.toString() || item._id;
+            const reservation = reservations.find(r =>
+                r.product._id.toString() === productId ||
+                r.product.slug === productId
+            );
+            const productPrice = reservation ? (reservation.product as any).price || 0 : item.price;
+
             const slugValue = item.slug || item.productId || item._id;
-            if (item.price === 1 && BONUS_THRESHOLDS[slugValue]) return sum;
-            return sum + (item.price * item.quantity);
+            if (item.price === 1 && BONUS_THRESHOLDS[slugValue as string]) return sum;
+
+            return sum + (productPrice * item.quantity);
         }, 0);
 
         for (const item of orderDetails.cart) {
@@ -216,6 +215,33 @@ export async function POST(req: Request) {
             }
         }
 
+        // ✅ SECURITY FIX: Build order items using DB-verified prices (not frontend prices)
+        const orderItems: OrderItem[] = orderDetails.cart.map((item: CartItem) => {
+            const productId = item.id?.toString() || (item as any).productId?.toString() || item._id;
+            const reservation = reservations.find(r =>
+                r.product._id.toString() === productId ||
+                r.product.slug === productId
+            );
+
+            const dbProduct = reservation?.product as any;
+            let finalPrice = dbProduct?.price || item.price;
+
+            const slugValue = item.slug || (item as any).productId || item._id;
+            // Allow price of 1 if it passed the bonus threshold check above
+            if (item.price === 1 && BONUS_THRESHOLDS[slugValue as string] && nonBonusSubtotal >= BONUS_THRESHOLDS[slugValue as string]) {
+                finalPrice = 1;
+            }
+
+            return {
+                productId: item._id || item.id || 0,
+                name: dbProduct?.name || item.name,
+                price: finalPrice,
+                quantity: item.quantity,
+                image: item.image || item.images?.[0] || '',
+            };
+        });
+
+        // ✅ Subtotal from DB-verified order items (source of truth)
         const subtotal = orderItems.reduce(
             (sum: number, item: OrderItem) => sum + (item.price * item.quantity),
             0

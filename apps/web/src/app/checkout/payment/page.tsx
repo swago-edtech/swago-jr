@@ -44,7 +44,7 @@ type CheckoutData = {
 };
 
 export default function PaymentMethodPage() {
-    const { cart, clearCart, total } = useSharedContext();
+    const { cart, clearCart, total, refreshCartPrices } = useSharedContext();
     const router = useRouter();
     const [processing, setProcessing] = useState(false);
     const [message, setMessage] = useState("");
@@ -74,6 +74,11 @@ export default function PaymentMethodPage() {
         }
     }, [router]);
 
+    // Refresh cart prices on mount
+    useEffect(() => {
+        refreshCartPrices();
+    }, []);
+
     // Redirect if cart is empty
     useEffect(() => {
         if (cart.length === 0 && !processing) {
@@ -100,6 +105,39 @@ export default function PaymentMethodPage() {
         }
 
         setProcessing(true);
+        setMessage("Verifying prices...");
+
+        // ✅ Pre-payment price validation
+        try {
+            const requestItems = cart.map(item => ({
+                productId: (item as any).productId?.toString() || item._id?.toString() || item.id?.toString() || '',
+                quantity: item.quantity,
+                price: item.price,
+                name: item.name,
+            }));
+
+            const refreshRes = await fetch('/api/cart/refresh', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ items: requestItems }),
+            });
+
+            if (refreshRes.ok) {
+                const refreshData = await refreshRes.json();
+                if (refreshData.hasChanges && (refreshData.changes?.length > 0 || refreshData.removedItems?.length > 0)) {
+                    // Apply updates and redirect back to checkout
+                    await refreshCartPrices();
+                    setMessage("");
+                    setProcessing(false);
+                    alert("Some prices have changed. Please review your updated cart before proceeding.");
+                    router.push("/checkout");
+                    return;
+                }
+            }
+        } catch (error) {
+            console.error('Pre-payment price check failed:', error);
+        }
+
         setMessage("Processing payment...");
 
         try {
@@ -242,6 +280,38 @@ export default function PaymentMethodPage() {
         if (!form || !checkoutData) return;
 
         setProcessing(true);
+        setMessage("Verifying prices...");
+
+        // ✅ Pre-payment price validation for COD
+        try {
+            const requestItems = cart.map(item => ({
+                productId: (item as any).productId?.toString() || item._id?.toString() || item.id?.toString() || '',
+                quantity: item.quantity,
+                price: item.price,
+                name: item.name,
+            }));
+
+            const refreshRes = await fetch('/api/cart/refresh', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ items: requestItems }),
+            });
+
+            if (refreshRes.ok) {
+                const refreshData = await refreshRes.json();
+                if (refreshData.hasChanges && (refreshData.changes?.length > 0 || refreshData.removedItems?.length > 0)) {
+                    await refreshCartPrices();
+                    setMessage("");
+                    setProcessing(false);
+                    alert("Some prices have changed. Please review your updated cart before proceeding.");
+                    router.push("/checkout");
+                    return;
+                }
+            }
+        } catch (error) {
+            console.error('Pre-payment price check failed:', error);
+        }
+
         setMessage("Processing COD order...");
 
         try {

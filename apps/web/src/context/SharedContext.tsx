@@ -68,6 +68,14 @@ export type SelectedKid = {
   avatarColor: string;
 };
 
+export type CartPriceChange = {
+  productId: string;
+  productName: string;
+  field: string;
+  oldValue: string | number;
+  newValue: string | number;
+};
+
 type SharedContextType = {
   cart: CartItem[];
   total: number;
@@ -95,6 +103,9 @@ type SharedContextType = {
   appliedSwagoMoney: number;
   setAppliedSwagoMoney: (amount: number) => void;
   walletBalance: number;
+  refreshCartPrices: () => Promise<CartPriceChange[]>;
+  isRefreshingCart: boolean;
+  lastCartRefreshAt: number | null;
 };
 
 const SharedContext = createContext<SharedContextType | undefined>(undefined);
@@ -138,6 +149,8 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
   const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
   const [appliedSwagoMoney, setAppliedSwagoMoney] = useState(0);
   const [walletBalance, setWalletBalance] = useState(0);
+  const [isRefreshingCart, setIsRefreshingCart] = useState(false);
+  const [lastCartRefreshAt, setLastCartRefreshAt] = useState<number | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -225,11 +238,140 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
   const lastSyncedCartRef = useRef<string>('');
   const skipNextSyncRef = useRef(false);
 
-  // Load cart from localStorage on mount
+  // =============================================
+  // ✅ CART PRICE REFRESH — Syncs cart with DB
+  // =============================================
+  const REFRESH_DEBOUNCE_MS = 30_000; // 30 seconds minimum between refreshes
+  const lastRefreshAttemptRef = useRef<number>(0);
+
+  const refreshCartPrices = useCallback(async (): Promise<CartPriceChange[]> => {
+    // Get the latest cart from state via a ref to avoid stale closures
+    const currentCart = cartRef.current;
+    if (currentCart.length === 0) return [];
+
+    // Debounce: skip if we refreshed recently
+    const now = Date.now();
+    if (now - lastRefreshAttemptRef.current < REFRESH_DEBOUNCE_MS) {
+      console.log('⏭️ Cart refresh skipped (debounced)');
+      return [];
+    }
+    lastRefreshAttemptRef.current = now;
+
+    setIsRefreshingCart(true);
+    try {
+      const requestItems = currentCart.map(item => ({
+        productId: getProductId(item),
+        quantity: item.quantity,
+        price: item.price,
+        name: item.name,
+      }));
+
+      const res = await fetch('/api/cart/refresh', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items: requestItems }),
+      });
+
+      if (!res.ok) {
+        console.error('❌ Cart refresh API failed:', res.status);
+        return [];
+      }
+
+      const data = await res.json();
+
+      if (!data.success) {
+        console.error('❌ Cart refresh failed:', data.error);
+        return [];
+      }
+
+      const changes: CartPriceChange[] = data.changes || [];
+      const removedItems: { productId: string; name: string; reason: string }[] = data.removedItems || [];
+
+      // Apply updated data to cart
+      if (data.hasChanges || data.items?.length > 0) {
+        setCart(prevCart => {
+          let updatedCart = [...prevCart];
+
+          // Remove items that are no longer available
+          if (removedItems.length > 0) {
+            const removedIds = new Set(removedItems.map(r => r.productId));
+            updatedCart = updatedCart.filter(item => !removedIds.has(getProductId(item)));
+          }
+
+          // Update items with fresh data from DB
+          updatedCart = updatedCart.map(item => {
+            const itemId = getProductId(item);
+            const refreshed = data.items.find((r: any) =>
+              r.productId === itemId || r._id === itemId || r.slug === itemId
+            );
+
+            if (!refreshed) return item;
+
+            return {
+              ...item,
+              price: refreshed.price,
+              name: refreshed.name,
+              images: refreshed.images || item.images,
+              stock: refreshed.stock,
+              originalPrice: refreshed.originalPrice || item.originalPrice,
+              // Clamp quantity to available stock
+              quantity: refreshed.availableStock === 0
+                ? 0
+                : Math.min(item.quantity, refreshed.availableStock),
+            };
+          }).filter(item => item.quantity > 0); // Remove out-of-stock items
+
+          return normalizeCart(updatedCart);
+        });
+      }
+
+      setLastCartRefreshAt(Date.now());
+
+      if (changes.length > 0 || removedItems.length > 0) {
+        console.log('🔄 Cart refreshed with changes:', changes.length, 'changes,', removedItems.length, 'removed');
+      } else {
+        console.log('✅ Cart prices verified — no changes');
+      }
+
+      return changes;
+    } catch (error) {
+      console.error('❌ Cart refresh error:', error);
+      return [];
+    } finally {
+      setIsRefreshingCart(false);
+    }
+  }, []);
+
+  // Keep a ref to the current cart for the refresh function (avoids stale closures)
+  const cartRef = useRef<CartItem[]>([]);
+  useEffect(() => {
+    cartRef.current = cart;
+  }, [cart]);
+
+  // Auto-refresh cart prices on window focus
+  useEffect(() => {
+    const handleFocus = () => {
+      if (cartRef.current.length > 0) {
+        refreshCartPrices();
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [refreshCartPrices]);
+
+  // Load cart from localStorage on mount + trigger initial refresh
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) setCart(normalizeCart(JSON.parse(raw)));
+      if (raw) {
+        const loadedCart = normalizeCart(JSON.parse(raw));
+        setCart(loadedCart);
+        // Trigger a price refresh after a short delay to let the cart settle
+        if (loadedCart.length > 0) {
+          setTimeout(() => refreshCartPrices(), 500);
+        }
+      }
     } catch (e) {
       console.error("Error loading cart:", e);
     }
@@ -644,7 +786,10 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
         setAppliedCoupon,
         appliedSwagoMoney,
         setAppliedSwagoMoney,
-        walletBalance
+        walletBalance,
+        refreshCartPrices,
+        isRefreshingCart,
+        lastCartRefreshAt
       }}
     >
       {children}
