@@ -93,7 +93,7 @@ export default function FAQPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
           >
-            Find answers to common questions about Swago 
+            Find answers to common questions about Swago
           </motion.p>
         </div>
       </div>
@@ -131,11 +131,10 @@ export default function FAQPage() {
               <button
                 key={key}
                 onClick={() => setSelectedCategory(key)}
-                className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
-                  selectedCategory === key
+                className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${selectedCategory === key
                     ? "bg-[hsl(var(--swago-purple))] text-white shadow-lg"
                     : "bg-white text-slate-700 hover:bg-slate-100 border border-slate-200"
-                }`}
+                  }`}
               >
                 {label}
               </button>
@@ -182,9 +181,8 @@ export default function FAQPage() {
                 >
                   <div className="flex items-start gap-4 flex-1">
                     <span
-                      className={`px-2 py-1 rounded text-xs font-medium text-white bg-gradient-to-r ${
-                        CATEGORY_COLORS[faq.category] || "from-gray-400 to-gray-500"
-                      }`}
+                      className={`px-2 py-1 rounded text-xs font-medium text-white bg-gradient-to-r ${CATEGORY_COLORS[faq.category] || "from-gray-400 to-gray-500"
+                        }`}
                     >
                       {CATEGORIES[faq.category as keyof typeof CATEGORIES]}
                     </span>
@@ -224,36 +222,36 @@ export default function FAQPage() {
         )}
 
         {/* Contact Section */}
-{/* Contact Section */}
-<motion.div
-  className="mt-12 bg-[hsl(var(--swago-orange))]/10 rounded-lg p-8 text-center border border-purple-100"
-  initial={{ opacity: 0, y: 20 }}
-  animate={{ opacity: 1, y: 0 }}
-  transition={{ duration: 0.5, delay: 0.6 }}
->
-  <h2 className="text-2xl font-bold text-slate-800 mb-2">
-    Still have questions?
-  </h2>
-  <p className="text-slate-600 mb-6">
-    Can&apos;t find the answer you&apos;re looking for? Please get in touch with our team.
-  </p>
-  <div className="flex flex-col sm:flex-row gap-4 justify-center">
-    <a
-      href="mailto:swago.club@gmail.com"
-      className="inline-flex items-center gap-2 bg-[hsl(var(--swago-purple))] text-white px-6 py-3 rounded-lg font-medium hover:shadow-lg transition-shadow"
-    >
-      <EmailIcon />
-      Email Us
-    </a>
-    <a
-      href="tel:+916283883397"
-      className="inline-flex items-center gap-2 bg-white text-[hsl(var(--swago-orange))] px-6 py-3 rounded-lg font-medium border-2 border-[hsl(var(--swago-orange))] hover:bg-purple-50 transition-colors"
-    >
-      <PhoneIcon />
-      Call Us
-    </a>
-  </div>
-</motion.div>
+        {/* Contact Section */}
+        <motion.div
+          className="mt-12 bg-[hsl(var(--swago-orange))]/10 rounded-lg p-8 text-center border border-purple-100"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.6 }}
+        >
+          <h2 className="text-2xl font-bold text-slate-800 mb-2">
+            Still have questions?
+          </h2>
+          <p className="text-slate-600 mb-6">
+            Can&apos;t find the answer you&apos;re looking for? Please get in touch with our team.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <a
+              href="mailto:support@swagojr.com"
+              className="inline-flex items-center gap-2 bg-[hsl(var(--swago-purple))] text-white px-6 py-3 rounded-lg font-medium hover:shadow-lg transition-shadow"
+            >
+              <EmailIcon />
+              Email Us
+            </a>
+            <a
+              href="tel:+916283883397"
+              className="inline-flex items-center gap-2 bg-white text-[hsl(var(--swago-orange))] px-6 py-3 rounded-lg font-medium border-2 border-[hsl(var(--swago-orange))] hover:bg-purple-50 transition-colors"
+            >
+              <PhoneIcon />
+              Call Us
+            </a>
+          </div>
+        </motion.div>
 
       </div>
     </div>

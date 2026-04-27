@@ -125,6 +125,17 @@ export default async function OrderDetailPage({
               <p className="text-sm text-gray-500">Status</p>
               <StatusBadge status={order.status} />
             </div>
+
+            {order.couponCode && (
+              <div className="pt-2">
+                <p className="text-sm text-gray-500 mb-1">Applied Coupon</p>
+                <p className="text-sm font-semibold text-green-700 bg-green-50 inline-flex items-center px-2.5 py-1 rounded-md border border-green-200">
+                  {order.couponCode} 
+                  <span className="ml-1.5 opacity-80 font-medium">({formatPrice(order.discount || 0)})</span>
+                </p>
+              </div>
+            )}
+
             <div className="pt-3 border-t">
               <p className="text-sm text-gray-500">Total Amount</p>
               <p className="text-2xl font-bold text-gray-900">
@@ -202,9 +213,16 @@ export default async function OrderDetailPage({
                 <span className="font-medium text-gray-900">{formatPrice(subtotal)}</span>
               </div>
               {discount > 0 && (
-                <div className="flex justify-between text-sm text-green-600">
-                  <span>Discount:</span>
-                  <span>-{formatPrice(discount)}</span>
+                <div className="flex justify-between text-sm text-green-600 items-center">
+                  <span className="flex items-center gap-1.5">
+                    Discount
+                    {order.couponCode && (
+                      <span className="bg-green-100 text-green-800 px-1.5 py-0.5 rounded text-xs font-semibold uppercase tracking-wider">
+                        {order.couponCode}
+                      </span>
+                    )}
+                  </span>
+                  <span className="font-medium">-{formatPrice(discount)}</span>
                 </div>
               )}
               <div className="flex justify-between text-base font-semibold border-t pt-2">
