@@ -180,8 +180,8 @@ export default function KidDashboardPage() {
       id: "reel",
       title: `"Yes I Can" Dance`,
       description: `Groove on “Yes I Can” song with your smart box`,
-      reward: 25,
-      currency: "Coins",
+      reward: 15,
+      currency: "SD",
       frequency: "Once/per season",
       skill: "Growth",
       tags: [
@@ -193,13 +193,31 @@ export default function KidDashboardPage() {
       product: "Common"
     });
 
+    // 2. Brain Gym Challenge
+    allQuests.push({
+      id: "brain-gym-task",
+      title: "Brain Gym Challenge",
+      description: "Complete the Brain Gym Challenge to build unstoppable focus!",
+      reward: 15,
+      currency: "SD",
+      frequency: "Once",
+      skill: "Growth",
+      tags: [
+        { name: "Focus", color: "bg-[#7464a9]", icon: Brain },
+        { name: "Energy", color: "bg-[#e0914c]", icon: Zap }
+      ],
+      image: "/images/home/step-one-Photoroom.png",
+      action: () => router.push("/brain-gym-task"),
+      product: "Common"
+    });
+
     // 2. Product-Specific Tickets
     purchasedBoxes.forEach((boxName) => {
       allQuests.push({
         id: `lottery-${boxName}`,
         title: `Claim your Lucky Ticket`,
-        description: `Claim your lucky ticket from smart box and earn 20 Swago dollars`,
-        reward: 20,
+        description: `Claim your lucky ticket from smart box and earn 10 Swago dollars`,
+        reward: 10,
         currency: "SD",
         frequency: "Once/per box",
         skill: "Growth",

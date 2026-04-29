@@ -66,7 +66,7 @@ export default function PrivacyPage() {
 
             <div>
               <h2 className="text-2xl font-bold text-slate-800 mb-4">Data Security & Your Rights</h2>
-              <p className="text-slate-600 mb-3">We protect your information with SSL encryption, secure servers, and access controls. You have the right to access, correct, or delete your personal information. Contact us at swago.club@gmail.com to exercise these rights.</p>
+              <p className="text-slate-600 mb-3">We protect your information with SSL encryption, secure servers, and access controls. You have the right to access, correct, or delete your personal information. Contact us at support@swagojr.com to exercise these rights.</p>
               <p className="text-slate-600">We use cookies to improve your experience and remember your preferences. You can manage cookies through your browser settings.</p>
             </div>
 
@@ -82,7 +82,7 @@ export default function PrivacyPage() {
             <h2 className="text-2xl font-bold text-slate-800 mb-4">Questions About Privacy?</h2>
             <p className="text-slate-600 mb-4">We&#39;re here to help with any privacy-related questions or concerns.</p>
             <div className="space-y-2 text-slate-700">
-              <p><strong>Email:</strong> swago.club@gmail.com</p>
+              <p><strong>Email:</strong> support@swagojr.com</p>
               <p><strong>Phone:</strong> +91 6283883397</p>
             </div>
             <p className="text-slate-500 text-sm mt-4">

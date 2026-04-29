@@ -169,7 +169,7 @@ export default function CancellationPolicyPage() {
                   </svg>
                   Email Support
                 </h3>
-                <p className="text-slate-600 text-lg font-medium">swago.club@gmail.com</p>
+                <p className="text-slate-600 text-lg font-medium">support@swagojr.com</p>
                 <p className="text-slate-500 text-sm mt-2">Response within 24 hours</p>
               </div>
               <div className="bg-white p-6 rounded-lg">

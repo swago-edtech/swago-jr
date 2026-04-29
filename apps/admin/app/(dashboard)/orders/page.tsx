@@ -12,7 +12,7 @@ async function getOrders() {
 
   const orders = await Order.find()
     .sort({ createdAt: -1 })
-    .select('orderId name phone email total status items createdAt razorpay_payment_id paymentMethod')
+    .select('orderId name phone email total status items createdAt razorpay_payment_id paymentMethod couponCode discount')
     .lean();
 
   return JSON.parse(JSON.stringify(orders));
@@ -107,6 +107,11 @@ export default async function OrdersPage() {
                       <div className="text-sm font-medium text-gray-900">
                         {order.total ? formatPrice(order.total) : '₹0.00'}
                       </div>
+                      {order.couponCode && (
+                        <div className="text-xs text-green-700 mt-1 font-semibold bg-green-50 inline-block px-1.5 py-0.5 rounded border border-green-200">
+                          {order.couponCode}
+                        </div>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <StatusBadge status={order.status} />

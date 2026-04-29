@@ -27,7 +27,7 @@ const earnSteps = [
       </svg>
     ),
     title: "Complete the “Yes I Can” Mission",
-    description: "Share your child’s Brain Gym video to earn 20 Swago Dollars and unlock Swago Ambassador eligibility",
+    description: "Share your child’s Brain Gym video to earn 15 Swago Dollars and unlock Swago Ambassador eligibility",
     color: "#F97316", // Orange
     lightColor: "#FFEDD5",
     link: "/swago-song",

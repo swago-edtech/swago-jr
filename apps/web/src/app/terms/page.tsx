@@ -273,7 +273,7 @@ export default function TermsPage() {
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-slate-700">
                   <div>
-                    <strong>Email:</strong> swago.club@gmail.com
+                    <strong>Email:</strong> support@swagojr.com
                   </div>
                   <div>
                     <strong>Phone:</strong> +91 6283883397

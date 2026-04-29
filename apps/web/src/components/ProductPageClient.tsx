@@ -227,6 +227,23 @@ export default function ProductPageClient({ product }: { product: Product }) {
   const [showStickyBar, setShowStickyBar] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
 
+  // Zoom States
+  const [isZoomed, setIsZoomed] = useState(false);
+  const [zoomPosition, setZoomPosition] = useState({ x: 50, y: 50 });
+  const [showMobileZoomModal, setShowMobileZoomModal] = useState(false);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (product.videos?.includes(mainMedia!)) return; // No zoom for videos
+    
+    // Only zoom on desktop devices, where pointer is fine
+    if (window.matchMedia("(pointer: coarse)").matches) return;
+
+    const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - left) / width) * 100;
+    const y = ((e.clientY - top) / height) * 100;
+    setZoomPosition({ x, y });
+  };
+
   useEffect(() => {
     const handleScroll = () => {
       // Show sticky bar after scrolling past the main product info (around 600px)
@@ -476,8 +493,22 @@ export default function ProductPageClient({ product }: { product: Product }) {
                     opacity: { duration: 0.2 },
                   }}
                   className="absolute inset-0 w-full h-full bg-black/5 flex items-center justify-center font-bold"
-                  onMouseEnter={() => setIsHovered(true)}
-                  onMouseLeave={() => setIsHovered(false)}
+                  onMouseEnter={() => {
+                    setIsHovered(true);
+                    if (!product.videos?.includes(mainMedia!) && !window.matchMedia("(pointer: coarse)").matches) {
+                      setIsZoomed(true);
+                    }
+                  }}
+                  onMouseLeave={() => {
+                    setIsHovered(false);
+                    setIsZoomed(false);
+                  }}
+                  onMouseMove={handleMouseMove}
+                  onClick={() => {
+                    if (!product.videos?.includes(mainMedia!)) {
+                      setShowMobileZoomModal(true);
+                    }
+                  }}
                   drag="x"
                   dragConstraints={{ left: 0, right: 0 }}
                   onDragEnd={(e, { offset, velocity }) => {
@@ -492,8 +523,21 @@ export default function ProductPageClient({ product }: { product: Product }) {
                   {product.videos?.includes(mainMedia!) ? (
                     <VideoPlayer src={mainMedia!} product={product} />
                   ) : (
-                    <div className="relative w-full h-full">
-                      <Image src={mainMedia!} alt={product.name} fill className="object-cover object-bottom" priority />
+                    <div className={`relative w-full h-full overflow-hidden ${isZoomed ? 'cursor-zoom-in' : 'cursor-pointer'}`}>
+                      <Image 
+                        src={mainMedia!} 
+                        alt={product.name} 
+                        fill 
+                        className="object-cover object-bottom transition-transform duration-100 ease-out" 
+                        style={isZoomed ? {
+                          transform: 'scale(2.5)',
+                          transformOrigin: `${zoomPosition.x}% ${zoomPosition.y}%`
+                        } : {
+                          transform: 'scale(1)',
+                          transformOrigin: '50% 50%'
+                        }}
+                        priority 
+                      />
                     </div>
                   )}
                 </motion.div>
@@ -832,6 +876,87 @@ export default function ProductPageClient({ product }: { product: Product }) {
                 )}
               </div>
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Mobile/Fullscreen Zoom Modal */}
+      <AnimatePresence>
+        {showMobileZoomModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl flex flex-col items-center justify-center touch-none"
+          >
+            {/* Modal Header */}
+            <div className="absolute top-0 left-0 right-0 p-4 md:p-6 flex justify-between items-center z-[101] bg-gradient-to-b from-black/80 to-transparent">
+              <div className="text-white font-bold text-sm md:text-base px-2">
+                {product.name}
+              </div>
+              <button 
+                className="p-2 md:p-3 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors backdrop-blur-md border border-white/20 shadow-lg"
+                onClick={(e) => { e.stopPropagation(); setShowMobileZoomModal(false); }}
+                aria-label="Close Zoom"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5 md:w-6 md:h-6">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Interactive Image Container */}
+            <motion.div 
+               className="relative w-full h-full flex items-center justify-center p-4 md:p-8"
+               drag
+               dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
+               dragElastic={1}
+               onDragEnd={(e, { offset, velocity }) => {
+                 const swipeX = offset.x;
+                 const swipeY = offset.y;
+                 if (Math.abs(swipeX) > Math.abs(swipeY)) {
+                    if (swipeX < -50) handleNextImage();
+                    else if (swipeX > 50) handlePrevImage();
+                 } else {
+                    if (swipeY > 100 || swipeY < -100) setShowMobileZoomModal(false);
+                 }
+               }}
+            >
+               <div className="relative w-full h-full max-w-5xl max-h-[85vh]">
+                 <Image 
+                   src={mainMedia!} 
+                   alt={product.name} 
+                   fill 
+                   className="object-contain" 
+                   quality={100}
+                   unoptimized={true}
+                   draggable={false}
+                 />
+               </div>
+            </motion.div>
+
+            {/* Navigation Indicators */}
+            {allMedia.length > 1 && (
+              <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 z-[101] bg-black/40 backdrop-blur-md px-4 py-2.5 rounded-full border border-white/10 shadow-xl">
+                {allMedia.map((media, index) => {
+                  if (product.videos?.includes(media)) return null;
+                  return (
+                    <button
+                      key={index}
+                      onClick={(e) => {
+                         e.stopPropagation();
+                         handleThumbnailClick(media);
+                      }}
+                      className={`w-2 h-2 rounded-full transition-all duration-300 ${mainMedia === media
+                        ? "bg-[hsl(var(--swago-purple))] w-6"
+                        : "bg-white/40 hover:bg-white/80"
+                        }`}
+                      aria-label={`Go to media ${index + 1}`}
+                    />
+                  );
+                })}
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

@@ -92,30 +92,6 @@ export default function Navbar() {
                 <Link href="/about" className="transition-colors hover:text-black">About Us</Link>
               </motion.div>
 
-              {/* Shop By Categories Dropdown */}
-              <motion.div className="relative" ref={elementDropdownRef} whileHover={{ y: -2 }}>
-                <button onClick={() => setElementDropdownOpen(!isElementDropdownOpen)} className="transition-colors hover:text-black flex items-center gap-1">
-                  Shop by Categories <HiChevronDown className="w-5 h-5" />
-                </button>
-                <AnimatePresence>
-                  {isElementDropdownOpen && (
-                    <motion.div
-                      className="absolute top-full left-0 mt-2 w-48 bg-white rounded-md shadow-lg z-20 border border-slate-200 p-1 border-t-4 border-t-black"
-                      variants={dropdownVariants}
-                      initial="hidden"
-                      animate="visible"
-                      exit="exit"
-                    >
-                      <Link href="/products" onClick={() => setElementDropdownOpen(false)} className="block px-3 py-1.5 text-sm rounded-sm font-semibold hover:bg-slate-100 uppercase tracking-tighter">All Categories</Link>
-                      <Link href="/products?elements=S" onClick={() => setElementDropdownOpen(false)} className="block px-3 py-1.5 text-sm rounded-sm hover:bg-slate-100">S – Smart Tech</Link>
-                      <Link href="/products?elements=W" onClick={() => setElementDropdownOpen(false)} className="block px-3 py-1.5 text-sm rounded-sm hover:bg-slate-100">W – Willpower</Link>
-                      <Link href="/products?elements=A" onClick={() => setElementDropdownOpen(false)} className="block px-3 py-1.5 text-sm rounded-sm hover:bg-slate-100">A – Ambition</Link>
-                      <Link href="/products?elements=G" onClick={() => setElementDropdownOpen(false)} className="block px-3 py-1.5 text-sm rounded-sm hover:bg-slate-100">G – Growth</Link>
-                      <Link href="/products?elements=O" onClick={() => setElementDropdownOpen(false)} className="block px-3 py-1.5 text-sm rounded-sm hover:bg-slate-100">O – Optimization</Link>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </motion.div>
             </>
           )}
         </div>
@@ -264,16 +240,7 @@ export default function Navbar() {
                   <Link href="/about" onClick={() => setMobileMenuOpen(false)} className="block text-xl font-bold text-slate-800">About Us</Link>
                   <hr className="border-slate-100" />
 
-                  <div>
-                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Swago Elements</h3>
-                    <div className="grid grid-cols-1 gap-3 pl-2">
-                      <Link href="/products?elements=S" onClick={() => setMobileMenuOpen(false)} className="text-slate-600 hover:text-black font-medium">Smart Tech</Link>
-                      <Link href="/products?elements=W" onClick={() => setMobileMenuOpen(false)} className="text-slate-600 hover:text-black font-medium">Willpower</Link>
-                      <Link href="/products?elements=A" onClick={() => setMobileMenuOpen(false)} className="text-slate-600 hover:text-black font-medium">Ambition</Link>
-                      <Link href="/products?elements=G" onClick={() => setMobileMenuOpen(false)} className="text-slate-600 hover:text-black font-medium">Growth</Link>
-                      <Link href="/products?elements=O" onClick={() => setMobileMenuOpen(false)} className="text-slate-600 hover:text-black font-medium">Optimization</Link>
-                    </div>
-                  </div>
+
                 </div>
               </div>
             </motion.div>

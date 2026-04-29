@@ -153,7 +153,7 @@ export default function ShippingPage() {
               <p><strong>Address Accuracy:</strong> Please ensure your delivery address is complete and accurate. We cannot be responsible for delays or non-delivery due to incorrect addresses.</p>
               <p><strong>Weather & External Factors:</strong> Delivery times may be affected by weather conditions, natural disasters, strikes, or other circumstances beyond our control.</p>
               <p><strong>Order Changes:</strong> Once an order is placed and payment is processed, the delivery address cannot be changed. Please review carefully before completing your purchase.</p>
-              <p><strong>Damage During Transit:</strong> If your package arrives damaged, please take photos and contact us within 48 hours at swago.club@gmail.com or +91 6283883397. This is the only exception where we can provide assistance.</p>
+              <p><strong>Damage During Transit:</strong> If your package arrives damaged, please take photos and contact us within 48 hours at support@swagojr.com or +91 6283883397. This is the only exception where we can provide assistance.</p>
             </div>
           </div>
 
@@ -181,7 +181,7 @@ export default function ShippingPage() {
             <h2 className="text-2xl font-bold text-slate-800 mb-4">Shipping Questions?</h2>
             <p className="text-slate-600 mb-4">Our customer service team is here to help with any delivery-related inquiries.</p>
             <div className="space-y-2 text-slate-700">
-              <p><strong>Email:</strong> swago.club@gmail.com</p>
+              <p><strong>Email:</strong> support@swagojr.com</p>
               <p><strong>Phone:</strong> +91 6283883397</p>
               <p><strong>Hours:</strong> Mon - Fri, 9 AM - 6 PM IST</p>
             </div>
