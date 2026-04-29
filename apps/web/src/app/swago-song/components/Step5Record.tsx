@@ -40,12 +40,12 @@ export default function Step5Record({ onComplete }: StepProps) {
         <div className="flex items-center justify-center gap-2 mb-4 text-[hsl(var(--swago-purple))] font-bold text-xs uppercase tracking-widest">
           <span className="bg-purple-50 px-4 py-1.5 rounded-full flex items-center gap-2">
             <Trophy className="w-3 h-3" />
-            Mission Reward: 20 Swago Dollars
+            Mission Reward: 15 Swago Dollars
           </span>
         </div>
 
         <p className="text-slate-500 font-medium text-sm md:text-lg mb-5 leading-relaxed px-4">
-          Share your reel link with us so we can verify your mission. Your 20 Swago Dollars will be added to your wallet automatically!
+          Share your reel link with us so we can verify your mission. Your 15 Swago Dollars will be added to your wallet automatically!
         </p>
 
         <div className="w-full px-2">
@@ -53,7 +53,7 @@ export default function Step5Record({ onComplete }: StepProps) {
             onClick={onComplete}
             className="w-full md:w-fit md:px-12 py-5 bg-[hsl(var(--swago-purple))] text-white font-black tracking-widest rounded-2xl shadow-xl shadow-purple-900/20 hover:brightness-110 active:scale-95 transition-all btn-shine flex items-center justify-center gap-3 mx-auto"
           >
-            <span>Claim Your 20 Swago Dollars</span>
+            <span>Claim Your 15 Swago Dollars</span>
             <ArrowRight className="w-5 h-5" />
           </button>
           
