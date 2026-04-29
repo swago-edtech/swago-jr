@@ -38,7 +38,7 @@ export default function Step1Intro({ onNext }: StepProps) {
             </svg>
             
             <div className="absolute inset-0 flex items-center justify-center px-12 pb-14">
-                <p className="text-slate-800 font-black text-[13px] md:text-[18px] leading-tight text-center">
+                <p className="text-slate-800 font-black text-[11px] md:text-[18px] leading-tight text-center">
                   Hey! I&apos;m Op. I help you build unstoppable focus and brain power! <br/>
                   To get started, I&apos;m giving you a Brain Gym Challenge. Complete it to earn <span className="text-[hsl(var(--swago-purple))]">15 Swago Dollars</span> and boost your focus right now.
               </p>
@@ -52,7 +52,7 @@ export default function Step1Intro({ onNext }: StepProps) {
           >
             {/* Reusing existing mascot image for now */}
             <Image
-              src="/images/home/step-one-Photoroom.png"
+              src="/images/home/image_ks4hbvks4hbvks4h.png"
               alt="Op the Mascot"
               width={400}
               height={500}

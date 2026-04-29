@@ -13,7 +13,7 @@ export default function Step2Mission({ onNext }: StepProps) {
         
         {/* 1) TOP SECTION: Shrunken Girl Image & Headline */}
         <div className="w-full md:w-1/2 flex flex-col items-center justify-center z-20">
-          <motion.div
+          {/* <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
@@ -24,7 +24,7 @@ export default function Step2Mission({ onNext }: StepProps) {
               alt="Swago Mascot"
               className="w-full h-auto object-contain animate-float"
             />
-          </motion.div>
+          </motion.div> */}
 
           <div className="text-center mt-4 px-2">
             <h1 className="text-3xl md:text-5xl lg:text-7xl font-black text-slate-900 tracking-tighter leading-[1.1]">

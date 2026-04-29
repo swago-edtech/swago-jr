@@ -173,7 +173,7 @@ function ProfileContent() {
         { name: 'Focus', color: 'bg-[#7464a9]', icon: Brain },
         { name: 'Energy', color: 'bg-[#e0914c]', icon: Zap }
       ],
-      image: '/images/home/step-one-Photoroom.png',
+      image: '/images/home/image_ks4hbvks4hbvks4h.png',
       reward: 15,
       currency: "SD",
       frequency: 'Once',

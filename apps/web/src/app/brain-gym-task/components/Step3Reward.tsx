@@ -54,7 +54,7 @@ export default function Step3Reward({ onComplete }: StepProps) {
                         <div className="w-full space-y-4">
                             <input
                                 type="url"
-                                placeholder="🔗 Paste Reel Link Here..."
+                                placeholder="🔗 share your reel link with us..."
                                 className="w-full px-5 py-4 bg-white border-2 border-slate-200 rounded-2xl focus:outline-none focus:border-[hsl(var(--swago-purple))] focus:ring-4 focus:ring-purple-500/10 transition-all font-medium text-slate-800 placeholder:text-slate-400"
                             />
 
