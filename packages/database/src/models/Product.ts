@@ -38,10 +38,6 @@ const ProductSchema = new mongoose.Schema(
 
     ageCategory: {
       type: String,
-      enum: {
-        values: ["6-7", "8-10", "11-13"],
-        message: "Age category must be 6-7, 8-10, or 11-13"
-      },
       required: [true, "Age category is required"]
     },
 

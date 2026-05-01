@@ -14,10 +14,7 @@ const SURPRISE_GIFTS = [
   { icon: "🎟️", title: "VIP Tickets", desc: "Exclusive access to new launches" }
 ];
 
-const TICKET_TYPES = [
-  { id: 'SSR', label: '💎 Diamond Ticket', product: 'Seek Rush' },
-  { id: 'SDC', label: '🏆 Golden Ticket', product: 'Scarf Dumb Charades' }
-];
+
 
 
 export default function LotteryClient() {
@@ -30,8 +27,11 @@ export default function LotteryClient() {
   const [earnedMoney, setEarnedMoney] = useState<number>(0);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
+  const [ticketTypes, setTicketTypes] = useState<any[]>([]);
+
   useEffect(() => {
     fetchWinners();
+    fetchTicketTypes();
   }, []);
 
   const fetchWinners = async () => {
@@ -39,6 +39,20 @@ export default function LotteryClient() {
       const res = await fetch('/api/lottery/winners');
       const data = await res.json();
       if (res.ok && data.winners) setWinners(data.winners);
+    } catch (err) { console.error(err); }
+  };
+
+  const fetchTicketTypes = async () => {
+    try {
+      const res = await fetch('/api/lottery/ticket-types');
+      const data = await res.json();
+      if (res.ok && data.ticketTypes) {
+        setTicketTypes(data.ticketTypes);
+        // Auto-select first one if only one exists
+        if (data.ticketTypes.length === 1) {
+          setSelectedTicket(data.ticketTypes[0].id);
+        }
+      }
     } catch (err) { console.error(err); }
   };
 
@@ -62,9 +76,16 @@ export default function LotteryClient() {
     e.preventDefault();
     let pastedText = e.clipboardData.getData('text').toUpperCase();
 
-    // Automatically extract 6-digit code if they paste the full "SWAGO-SSR-123456" formatted string
+    // Automatically extract shortForm and 6-digit code if they paste the full "SWAGO-SSR-123456" formatted string
     if (pastedText.includes('SWAGO-')) {
       const parts = pastedText.split('-');
+      if (parts.length >= 2) {
+        const pastedShortForm = parts[1];
+        if (ticketTypes.some(t => t.id === pastedShortForm)) {
+          setSelectedTicket(pastedShortForm);
+          if (step === 1) setStep(2); // Auto-advance to code entry
+        }
+      }
       pastedText = parts[parts.length - 1] || '';
     }
 
@@ -189,7 +210,7 @@ export default function LotteryClient() {
                         className="w-full h-10 md:h-12 px-3 md:px-4 rounded-lg md:rounded-xl bg-white border-2 border-slate-100 font-bold text-xs md:text-sm outline-none focus:border-[hsl(var(--swago-purple))] transition-all appearance-none"
                       >
                         <option value="" disabled>Choose Ticket...</option>
-                        {TICKET_TYPES.map(t => (
+                        {ticketTypes.map(t => (
                           <option key={t.id} value={t.id}>{t.label}</option>
                         ))}
                       </select>

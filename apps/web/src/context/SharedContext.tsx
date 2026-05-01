@@ -59,8 +59,10 @@ export type User = {
   email?: string;
   cart?: CartItem[];
   gender?: string;
+  dob?: string;
   grade?: string;
   swagoMoney?: number;
+  lotteryTickets?: { code: string; redeemedAt: string }[];
   ambassador?: {
     isAmbassador?: boolean;
     profileSetupRewardClaimed?: boolean;

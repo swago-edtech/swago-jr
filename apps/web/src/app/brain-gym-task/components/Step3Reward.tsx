@@ -1,11 +1,56 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowRight, CheckCircle2, Instagram } from "lucide-react";
+import confetti from "canvas-confetti";
 
 interface StepProps {
     onComplete: () => void;
 }
 
 export default function Step3Reward({ onComplete }: StepProps) {
+    const [reelUrl, setReelUrl] = useState("");
+    const [instagramUsername, setInstagramUsername] = useState("");
+    const [error, setError] = useState<string | null>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const handleSubmit = async () => {
+        setError(null);
+
+        if (!instagramUsername.trim()) {
+            setError("Please enter your Instagram username");
+            return;
+        }
+
+        if (instagramUsername.includes('@') || instagramUsername.includes(' ')) {
+            setError("Instagram username should not contain @ or spaces");
+            return;
+        }
+
+        if (!reelUrl.trim()) {
+            setError("Please enter your reel link");
+            return;
+        }
+
+        const isValidInstagram = /instagram\.com\/(reel|p)\//.test(reelUrl);
+        if (!isValidInstagram) {
+            setError("Please provide a valid Instagram reel or post URL");
+            return;
+        }
+
+        setIsSubmitting(true);
+        // Simulate API call or actual submission here
+        await new Promise(resolve => setTimeout(resolve, 800));
+
+        confetti({
+            particleCount: 150,
+            spread: 70,
+            origin: { y: 0.6 }
+        });
+        
+        alert("Congratulations, your brain gym reel has been sent for review and your amount will be added after approval.");
+        onComplete();
+    };
+
     return (
         <div className="flex-1 flex flex-col w-full min-h-screen md:min-h-full relative overflow-x-hidden bg-white px-4 pt-6 md:pt-0">
             <div className="flex-1 flex flex-col md:flex-row w-full h-full max-w-7xl mx-auto items-center">
@@ -36,7 +81,7 @@ export default function Step3Reward({ onComplete }: StepProps) {
                 <div className="w-full md:w-1/2 flex flex-col items-center justify-center py-6 md:p-12">
                     <div className="w-full max-w-md text-left bg-slate-50 p-6 md:p-8 rounded-[2rem] border border-slate-100 shadow-sm">
 
-                        <ul className="space-y-4 mb-8">
+                        <ul className="space-y-4 mb-6">
                             <li className="flex items-start gap-3">
                                 <CheckCircle2 className="w-6 h-6 text-green-500 shrink-0 mt-0.5" />
                                 <span className="text-slate-700 font-medium">Upload your video as a Reel on <span className="font-bold flex inline-flex items-center gap-1"><Instagram className="w-4 h-4" /> Instagram.</span></span>
@@ -51,18 +96,40 @@ export default function Step3Reward({ onComplete }: StepProps) {
                             </li>
                         </ul>
 
+                        {error && (
+                            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm font-medium">
+                                {error}
+                            </div>
+                        )}
+
                         <div className="w-full space-y-4">
+                            <div className="relative">
+                                <span className="absolute left-4 top-[18px] text-slate-500 font-medium text-lg">@</span>
+                                <input
+                                    type="text"
+                                    value={instagramUsername}
+                                    onChange={(e) => setInstagramUsername(e.target.value.replace('@', '').replace(' ', ''))}
+                                    placeholder="your_instagram_username"
+                                    className="w-full px-5 pl-10 py-4 bg-white border-2 border-slate-200 rounded-2xl focus:outline-none focus:border-[hsl(var(--swago-purple))] focus:ring-4 focus:ring-purple-500/10 transition-all font-medium text-slate-800 placeholder:text-slate-400"
+                                    disabled={isSubmitting}
+                                />
+                            </div>
+
                             <input
                                 type="url"
+                                value={reelUrl}
+                                onChange={(e) => setReelUrl(e.target.value)}
                                 placeholder="🔗 share your reel link with us..."
                                 className="w-full px-5 py-4 bg-white border-2 border-slate-200 rounded-2xl focus:outline-none focus:border-[hsl(var(--swago-purple))] focus:ring-4 focus:ring-purple-500/10 transition-all font-medium text-slate-800 placeholder:text-slate-400"
+                                disabled={isSubmitting}
                             />
 
                             <button
-                                onClick={onComplete}
-                                className="w-full py-5 bg-[hsl(var(--swago-purple))] text-white font-black tracking-widest rounded-2xl shadow-xl shadow-purple-900/20 hover:brightness-110 active:scale-95 transition-all btn-shine flex items-center justify-center gap-3"
+                                onClick={handleSubmit}
+                                disabled={isSubmitting}
+                                className="w-full py-5 bg-[hsl(var(--swago-purple))] text-white font-black tracking-widest rounded-2xl shadow-xl shadow-purple-900/20 hover:brightness-110 active:scale-95 transition-all btn-shine flex items-center justify-center gap-3 disabled:opacity-70 disabled:cursor-not-allowed"
                             >
-                                <span>Claim your 15 Swago Dollars!</span>
+                                <span>{isSubmitting ? "Submitting..." : "Claim your 15 Swago Dollars!"}</span>
                                 <ArrowRight className="w-5 h-5" />
                             </button>
                         </div>

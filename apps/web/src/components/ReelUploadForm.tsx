@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import confetti from "canvas-confetti";
 
 type ReelUploadFormProps = {
   onSuccess: () => void;
@@ -53,6 +54,14 @@ export default function ReelUploadForm({ onSuccess }: ReelUploadFormProps) {
       const data = await res.json();
 
       if (res.ok && data.success) {
+        confetti({
+          particleCount: 150,
+          spread: 70,
+          origin: { y: 0.6 }
+        });
+        
+        // Show success popup before closing
+        alert("Congratulations, your reel has been sent for review and your amount will be added after approval.");
         onSuccess();
       } else {
         setError(data.error || "Failed to submit reel");

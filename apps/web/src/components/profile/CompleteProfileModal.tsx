@@ -22,6 +22,7 @@ export default function CompleteProfileModal({ isOpen, onClose, onSuccess }: Com
     age: user?.age || "",
     gender: user?.gender || "",
     grade: user?.grade || "",
+    dob: user?.dob ? new Date(user.dob).toISOString().split('T')[0] : "",
     address: user?.address || "",
   });
 
@@ -37,7 +38,7 @@ export default function CompleteProfileModal({ isOpen, onClose, onSuccess }: Com
     setError(null);
 
     // Basic validation
-    if (!formData.name || !formData.age || !formData.gender || !formData.grade) {
+    if (!formData.name || !formData.age || !formData.gender || !formData.grade || !formData.dob) {
       setError("Please fill in all required fields.");
       setLoading(false);
       return;
@@ -169,6 +170,20 @@ export default function CompleteProfileModal({ isOpen, onClose, onSuccess }: Com
                     <option key={g} value={g}>{g}</option>
                   ))}
                 </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1 uppercase tracking-wide">
+                  Date of Birth *
+                </label>
+                <input
+                  type="date"
+                  name="dob"
+                  value={formData.dob}
+                  onChange={handleChange}
+                  max={new Date().toISOString().split('T')[0]}
+                  className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 outline-none transition-all font-semibold text-slate-800"
+                />
               </div>
 
               <div>

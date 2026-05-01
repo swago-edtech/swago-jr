@@ -177,7 +177,6 @@ const UserSchema = new mongoose.Schema(
       },
       ticketType: {
         type: String,
-        enum: ["Golden Ticket", "Diamond Ticket"],
         required: true
       },
       swagoMoneyEarned: {
@@ -247,7 +246,7 @@ UserSchema.methods.redeemLotteryCode = function (codeData: {
   shortForm: string;
   ticketType: string;
 }) {
-  const reward = 20;
+  const reward = 10;
 
   if (!this.ambassador) {
     this.ambassador = {};

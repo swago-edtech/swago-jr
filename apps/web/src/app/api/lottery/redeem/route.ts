@@ -4,17 +4,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectDB, LotteryCode, Product, User } from '@swago/database';
 import { getLoginSession } from '@/lib/auth';
 
-// Ticket type mapping
-const TICKET_TYPES = {
-  SSR: {
-    name: "Diamond Ticket",
-    productName: "Seek Rush",
-  },
-  SDC: {
-    name: "Golden Ticket",
-    productName: "Scarf Dumb Charades",
-  },
-} as const;
+// Ticket type names mapping
+const TICKET_TYPE_NAMES: Record<string, string> = {
+  SSR: "Diamond Ticket",
+  SDC: "Golden Ticket",
+  SCJ: "Diamond Ticket",
+};
 
 export async function POST(req: NextRequest) {
   try {
@@ -48,7 +43,7 @@ export async function POST(req: NextRequest) {
 
     // 3. Parse request body
     const body = await req.json();
-    const { code } = body; // ✅ No more kidProfileId needed
+    const { code } = body;
 
     if (!code || typeof code !== 'string') {
       return NextResponse.json({ error: 'Code is required' }, { status: 400 });
@@ -57,15 +52,17 @@ export async function POST(req: NextRequest) {
     const trimmedCode = code.trim().toUpperCase();
 
     // 4. Validate code format: SWAGO-XXX-XXXXXX
-    if (!/^SWAGO-(SSR|SDC)-[A-Z0-9]{6}$/.test(trimmedCode)) {
+    // Now allowing any alphanumeric shortForm (2-5 characters)
+    const formatRegex = /^SWAGO-([A-Z0-9]{2,5})-[A-Z0-9]{6}$/;
+    if (!formatRegex.test(trimmedCode)) {
       return NextResponse.json({
-        error: 'Invalid code format. Use format: SWAGO-SSR-XXXXXX or SWAGO-SDC-XXXXXX'
+        error: 'Invalid code format. Use format: SWAGO-XXX-XXXXXX'
       }, { status: 400 });
     }
 
-    // Extract shortForm and ticketType from code
-    const shortForm = trimmedCode.split('-')[1] as 'SSR' | 'SDC';
-    const ticketType = TICKET_TYPES[shortForm].name;
+    // Extract shortForm from code
+    const match = trimmedCode.match(formatRegex);
+    const shortForm = match ? match[1] : '';
 
     // 5. Find the code in database
     const lotteryCode = await LotteryCode.findOne({ code: trimmedCode });
@@ -90,7 +87,7 @@ export async function POST(req: NextRequest) {
       }, { status: 400 });
     }
 
-    // 7. Get product details
+    // 7. Get product details to ensure it still exists
     const product = await Product.findById(lotteryCode.productId);
 
     if (!product) {
@@ -99,7 +96,10 @@ export async function POST(req: NextRequest) {
       }, { status: 404 });
     }
 
-    // 8. Mark code as used — now points to User._id
+    // Determine ticket type name dynamically
+    const ticketType = TICKET_TYPE_NAMES[shortForm] || `${product.name} Ticket`;
+
+    // 8. Mark code as used
     lotteryCode.isUsed = true;
     lotteryCode.usedBy = user._id;
     lotteryCode.usedAt = new Date();
@@ -124,13 +124,13 @@ export async function POST(req: NextRequest) {
         productName: product.name,
         shortForm: lotteryCode.shortForm,
         ticketType: ticketType,
-        swagoMoneyEarned: 20,
+        swagoMoneyEarned: 10,
         redeemedAt: new Date().toISOString(),
       },
       user: {
         _id: user._id,
         name: user.name,
-        newBalance: user.ambassador?.swagoMoney || 20,
+        newBalance: user.ambassador?.swagoMoney || 10,
         totalTickets: user.lotteryTickets?.length || 1,
       },
     });
@@ -143,3 +143,4 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+

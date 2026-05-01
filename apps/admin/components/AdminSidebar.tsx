@@ -17,7 +17,6 @@ const navigation = [
   { name: 'Reviews', href: '/reviews', icon: MessageSquare },
   { name: 'Products', href: '/products', icon: Package },
   { name: 'Quests', href: '/quests', icon: Trophy },
-  { name: 'User Challenges', href: '/user-challenges', icon: Target }, // ✅ NEW
   { name: 'Banners', href: '/banners', icon: LayoutDashboard },
   {
     name: 'Lottery',

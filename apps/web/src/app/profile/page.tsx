@@ -107,6 +107,20 @@ function ProfileContent() {
     let allQuests = [];
 
     // 1. Common Mission
+    const entryStatus = user?.ambassador?.entryChallenge?.status || 'not_submitted';
+    let reelStatus = 'pending';
+    let reelButtonText = 'Start';
+    if (entryStatus === 'approved') {
+      reelStatus = 'completed';
+      reelButtonText = 'Approved';
+    } else if (entryStatus === 'pending') {
+      reelStatus = 'reviewing';
+      reelButtonText = 'Reviewing';
+    } else if (entryStatus === 'rejected') {
+      reelStatus = 'rejected';
+      reelButtonText = 'Rejected - Try Again';
+    }
+
     allQuests.push({
       title: '"Yes I Can" Dance',
       description: `Groove on "Yes I Can" song with your smart box`,
@@ -120,10 +134,13 @@ function ProfileContent() {
       frequency: 'Once/per season',
       skill: 'Growth',
       id: 'reel-task',
-      product: 'Common'
+      product: 'Common',
+      status: reelStatus,
+      buttonText: reelButtonText
     });
 
     // 2. Brain Gym Challenge
+    const bgCompleted = user?.ambassador?.brainGym?.completed;
     allQuests.push({
       title: 'Brain Gym Challenge',
       description: `Complete the Brain Gym Challenge to build unstoppable focus!`,
@@ -135,13 +152,24 @@ function ProfileContent() {
       reward: 15,
       currency: "SD",
       frequency: 'Once',
-      skill: 'Growth',
+      skill: 'Optimization',
       id: 'brain-gym-task',
-      product: 'Common'
+      product: 'Common',
+      status: bgCompleted ? 'completed' : 'pending',
+      buttonText: bgCompleted ? 'Completed' : 'Start'
     });
 
     // 3. Product-Specific Tickets
     purchasedBoxes.forEach((boxName) => {
+      let ticketTypePrefix = '';
+      if (boxName === 'Seek Rush') ticketTypePrefix = 'SSR';
+      else if (boxName === 'Scarf Dumb Charades') ticketTypePrefix = 'SDC';
+      else if (boxName === 'Confidence Journal') ticketTypePrefix = 'SCJ';
+      
+      const hasClaimedLottery = user?.lotteryTickets?.some((t: any) => 
+        ticketTypePrefix && t.code && (t.code.includes(`-${ticketTypePrefix}-`) || t.code.startsWith(`SWAGO-${ticketTypePrefix}-`))
+      );
+
       allQuests.push({
         title: `Claim your Lucky Ticket`,
         description: `Claim your lucky ticket from smart box and earn 10 Swago dollars`,
@@ -155,7 +183,9 @@ function ProfileContent() {
         frequency: 'Once/per box',
         skill: 'Growth',
         id: `lottery-${boxName}`,
-        product: boxName
+        product: boxName,
+        status: hasClaimedLottery ? 'completed' : 'pending',
+        buttonText: hasClaimedLottery ? 'Claimed' : 'Claim'
       });
     });
 
@@ -182,7 +212,7 @@ function ProfileContent() {
       <div className="max-w-4xl mx-auto px-4 pt-8">
 
         {/* Profile Completion Banner */}
-        {user && (!user.age || !user.gender || !user.grade) && (
+        {user && (!user.age || !user.gender || !user.grade || !user.dob) && (
           <motion.div 
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -211,7 +241,7 @@ function ProfileContent() {
           <div className="flex items-center gap-5 flex-1 w-full xl:max-w-xl">
             <div className="w-14 h-14 sm:w-20 sm:h-20 shrink-0 rounded-full border-4 border-white shadow-xl overflow-hidden bg-slate-100 relative">
               <Image
-                src="/images/kid_boy1.png"
+                src={user.gender === 'girl' ? "/images/kid_girl1.png" : "/images/kid_boy1.png"}
                 alt="Avatar"
                 fill
                 className="object-cover"
@@ -371,8 +401,17 @@ function ProfileContent() {
                     {quest.product !== 'Common' ? 'Box: ' : 'Skill: '}
                     <span className="font-[1000] text-slate-700">{quest.product !== 'Common' ? quest.product : quest.skill}</span>
                   </p>
-                  <button onClick={() => { if (quest.id === 'reel-task') setShowReelForm(true); else if (quest.id === 'brain-gym-task') router.push('/brain-gym-task'); else router.push('/lottery-code'); }} className={`px-6 sm:px-8 py-2 sm:py-2.5 rounded-full text-[11px] sm:text-sm font-[1000] active:scale-95 transition-all text-center tracking-wide ${quest.product !== 'Common' ? "bg-gradient-to-r from-green-400 to-green-500 hover:from-green-500 hover:to-green-600 text-white" : 'bg-gradient-to-r from-green-400 to-green-500 hover:from-green-500 hover:to-green-600 text-white'}`}>
-                    {quest.product !== 'Common' ? 'Claim' : 'Start'}
+                  <button 
+                    disabled={quest.status === 'completed' || quest.status === 'reviewing'}
+                    onClick={() => { if (quest.id === 'reel-task') setShowReelForm(true); else if (quest.id === 'brain-gym-task') router.push('/brain-gym-task'); else router.push('/lottery-code'); }} 
+                    className={`px-6 sm:px-8 py-2 sm:py-2.5 rounded-full text-[11px] sm:text-sm font-[1000] active:scale-95 transition-all text-center tracking-wide 
+                      ${quest.status === 'completed' || quest.status === 'reviewing' 
+                        ? 'bg-[hsl(var(--swago-purple))] text-white opacity-60 cursor-not-allowed' 
+                        : quest.product !== 'Common' 
+                          ? "bg-gradient-to-r from-green-400 to-green-500 hover:from-green-500 hover:to-green-600 text-white" 
+                          : 'bg-gradient-to-r from-green-400 to-green-500 hover:from-green-500 hover:to-green-600 text-white'}`}
+                  >
+                    {quest.buttonText}
                   </button>
                 </div>
 
