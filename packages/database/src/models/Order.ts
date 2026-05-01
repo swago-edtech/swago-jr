@@ -85,7 +85,7 @@ const OrderSchema = new mongoose.Schema(
     },
     swagoMoneyKidId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "KidProfile",
+      ref: "User",
       required: false
     }
   },

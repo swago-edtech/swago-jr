@@ -1,7 +1,7 @@
 // apps/admin/app/api/lottery-draws/[id]/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
-import { connectDB, LotteryDraw, LotteryCode, KidProfile, User } from "@swago/database";
+import { connectDB, LotteryDraw, LotteryCode, User } from "@swago/database";
 import mongoose from "mongoose";
 
 interface LotteryTicket {
@@ -11,12 +11,6 @@ interface LotteryTicket {
     shortForm: string;
     usedBy: mongoose.Types.ObjectId;
     usedAt: Date;
-}
-
-interface KidProfileWithUser {
-    _id: mongoose.Types.ObjectId;
-    username: string;
-    userId: mongoose.Types.ObjectId;
 }
 
 // GET - Get draw details with eligible tickets
@@ -46,16 +40,10 @@ export async function GET(
             .select("code productName shortForm usedBy usedAt productId")
             .lean() as any[];
 
-        // Get kid profile and parent info for each ticket
+        // ✅ Get user info for each ticket (usedBy now points to User)
         const ticketsWithDetails = await Promise.all(
             eligibleTickets.map(async (ticket) => {
-                const kidProfile = await KidProfile.findById(ticket.usedBy).select("username userId").lean() as KidProfileWithUser | null;
-                let parentInfo = null;
-
-                if (kidProfile) {
-                    const parent = await User.findById(kidProfile.userId).select("name phone email").lean();
-                    parentInfo = parent;
-                }
+                const user = await User.findById(ticket.usedBy).select("name phone email").lean() as { _id: any; name: string; phone: string; email: string } | null;
 
                 return {
                     _id: ticket._id,
@@ -63,11 +51,16 @@ export async function GET(
                     productName: ticket.productName || (ticket.productId as any)?.name || "Unknown Product",
                     shortForm: ticket.shortForm,
                     redeemedAt: ticket.usedAt,
-                    kidProfile: kidProfile ? {
-                        _id: kidProfile._id,
-                        name: kidProfile.username,
+                    // Keep "kidProfile" key for backward compat with display pages
+                    kidProfile: user ? {
+                        _id: user._id,
+                        name: user.name || 'Unknown',
                     } : null,
-                    parent: parentInfo,
+                    parent: user ? {
+                        name: user.name,
+                        phone: user.phone,
+                        email: user.email,
+                    } : null,
                 };
             })
         );
@@ -135,25 +128,23 @@ export async function POST(
             );
         }
 
-        // Get kid profile and parent
-        const kidProfile = await KidProfile.findById(ticket.usedBy).select("username userId");
-        if (!kidProfile) {
+        // ✅ Get user directly (usedBy now references User)
+        const user = await User.findById(ticket.usedBy).select("name phone email");
+        if (!user) {
             return NextResponse.json(
-                { error: "Kid profile not found" },
+                { error: "User not found" },
                 { status: 404 }
             );
         }
 
-        const parent = await User.findById(kidProfile.userId).select("name phone email");
-
         // Update draw with winner
         draw.winner = {
-            kidProfileId: kidProfile._id,
-            kidName: kidProfile.username,
+            kidProfileId: user._id, // Legacy field name kept
+            kidName: user.name || 'Unknown',
             ticketCode: ticket.code,
             ticketProductName: ticket.productName,
-            parentPhone: parent?.phone || "",
-            parentEmail: parent?.email || "",
+            parentPhone: user.phone || "",
+            parentEmail: user.email || "",
             announcedAt: new Date(),
             announcedBy: adminEmail || "admin",
         };
@@ -161,7 +152,7 @@ export async function POST(
 
         await draw.save();
 
-        console.log(`🎉 Lottery winner selected: ${kidProfile.username} with ticket ${ticketCode}`);
+        console.log(`🎉 Lottery winner selected: ${user.name} with ticket ${ticketCode}`);
 
         return NextResponse.json({
             success: true,

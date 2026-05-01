@@ -150,7 +150,7 @@ export default function ProductsPage() {
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         placeholder="Search by name..."
-        className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-black placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
       />
     </div>
 
@@ -163,7 +163,7 @@ export default function ProductsPage() {
         id="age-filter"
         value={ageFilter}
         onChange={(e) => setAgeFilter(e.target.value)}
-        className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-black focus:ring-2 focus:ring-blue-500 focus:border-transparent"
       >
         <option value="all">All Ages</option>
         <option value="6-7">6-7 years</option>
@@ -181,7 +181,7 @@ export default function ProductsPage() {
         id="stock-filter"
         value={stockFilter}
         onChange={(e) => setStockFilter(e.target.value)}
-        className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-black focus:ring-2 focus:ring-blue-500 focus:border-transparent"
       >
         <option value="all">All Stock</option>
         <option value="in-stock">In Stock</option>
@@ -199,7 +199,7 @@ export default function ProductsPage() {
         id="active-filter"
         value={activeFilter}
         onChange={(e) => setActiveFilter(e.target.value)}
-        className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-black focus:ring-2 focus:ring-blue-500 focus:border-transparent"
       >
         <option value="all">All Products</option>
         <option value="true">Active Only</option>

@@ -58,14 +58,26 @@ export type User = {
   wishlist: (number | string)[];
   email?: string;
   cart?: CartItem[];
+  gender?: string;
+  grade?: string;
   swagoMoney?: number;
-};
-
-export type SelectedKid = {
-  _id: string;
-  name: string;
-  age: number;
-  avatarColor: string;
+  ambassador?: {
+    isAmbassador?: boolean;
+    profileSetupRewardClaimed?: boolean;
+    swagoMoney?: number;
+    totalEarnings?: number;
+    status?: string;
+    currentStep?: number;
+    badges?: { name: string; awardedAt: string }[];
+    entryChallenge?: {
+      submitted?: boolean;
+      reelUrl?: string;
+      status?: string;
+    };
+    brainGym?: {
+      completed?: boolean;
+    };
+  };
 };
 
 export type CartPriceChange = {
@@ -92,9 +104,6 @@ type SharedContextType = {
   addToWishlist: (productId: number | string) => void;
   removeFromWishlist: (productId: number | string) => void;
   isWishlisted: (productId: number | string) => boolean;
-  selectedKid: SelectedKid | null;
-  setSelectedKid: (kid: SelectedKid | null) => void;
-  clearSelectedKid: () => void;
   isCartSidebarOpen: boolean;
   openCartSidebar: () => void;
   closeCartSidebar: () => void;
@@ -110,7 +119,6 @@ type SharedContextType = {
 
 const SharedContext = createContext<SharedContextType | undefined>(undefined);
 const STORAGE_KEY = "swago_cart";
-const KID_STORAGE_KEY = "selectedKidProfile";
 
 const USER_EVENTS = {
   LOGIN: 'user:login',
@@ -144,7 +152,6 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
   const [wishlist, setWishlist] = useState<(number | string)[]>([]);
-  const [selectedKid, setSelectedKidState] = useState<SelectedKid | null>(null);
   const [isCartSidebarOpen, setIsCartSidebarOpen] = useState(false);
   const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
   const [appliedSwagoMoney, setAppliedSwagoMoney] = useState(0);
@@ -245,11 +252,9 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
   const lastRefreshAttemptRef = useRef<number>(0);
 
   const refreshCartPrices = useCallback(async (): Promise<CartPriceChange[]> => {
-    // Get the latest cart from state via a ref to avoid stale closures
     const currentCart = cartRef.current;
     if (currentCart.length === 0) return [];
 
-    // Debounce: skip if we refreshed recently
     const now = Date.now();
     if (now - lastRefreshAttemptRef.current < REFRESH_DEBOUNCE_MS) {
       console.log('⏭️ Cart refresh skipped (debounced)');
@@ -287,18 +292,15 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
       const changes: CartPriceChange[] = data.changes || [];
       const removedItems: { productId: string; name: string; reason: string }[] = data.removedItems || [];
 
-      // Apply updated data to cart
       if (data.hasChanges || data.items?.length > 0) {
         setCart(prevCart => {
           let updatedCart = [...prevCart];
 
-          // Remove items that are no longer available
           if (removedItems.length > 0) {
             const removedIds = new Set(removedItems.map(r => r.productId));
             updatedCart = updatedCart.filter(item => !removedIds.has(getProductId(item)));
           }
 
-          // Update items with fresh data from DB
           updatedCart = updatedCart.map(item => {
             const itemId = getProductId(item);
             const refreshed = data.items.find((r: any) =>
@@ -314,12 +316,11 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
               images: refreshed.images || item.images,
               stock: refreshed.stock,
               originalPrice: refreshed.originalPrice || item.originalPrice,
-              // Clamp quantity to available stock
               quantity: refreshed.availableStock === 0
                 ? 0
                 : Math.min(item.quantity, refreshed.availableStock),
             };
-          }).filter(item => item.quantity > 0); // Remove out-of-stock items
+          }).filter(item => item.quantity > 0);
 
           return normalizeCart(updatedCart);
         });
@@ -342,7 +343,6 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // Keep a ref to the current cart for the refresh function (avoids stale closures)
   const cartRef = useRef<CartItem[]>([]);
   useEffect(() => {
     cartRef.current = cart;
@@ -367,25 +367,12 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
       if (raw) {
         const loadedCart = normalizeCart(JSON.parse(raw));
         setCart(loadedCart);
-        // Trigger a price refresh after a short delay to let the cart settle
         if (loadedCart.length > 0) {
           setTimeout(() => refreshCartPrices(), 500);
         }
       }
     } catch (e) {
       console.error("Error loading cart:", e);
-    }
-  }, []);
-
-  // Load selected kid from localStorage on mount
-  useEffect(() => {
-    try {
-      const storedKid = localStorage.getItem(KID_STORAGE_KEY);
-      if (storedKid) {
-        setSelectedKidState(JSON.parse(storedKid));
-      }
-    } catch (e) {
-      console.error("Error loading selected kid:", e);
     }
   }, []);
 
@@ -397,19 +384,6 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
       console.error("Error saving cart:", e);
     }
   }, [cart]);
-
-  // Save selected kid to localStorage whenever it changes
-  useEffect(() => {
-    try {
-      if (selectedKid) {
-        localStorage.setItem(KID_STORAGE_KEY, JSON.stringify(selectedKid));
-      } else {
-        localStorage.removeItem(KID_STORAGE_KEY);
-      }
-    } catch (e) {
-      console.error("Error saving selected kid:", e);
-    }
-  }, [selectedKid]);
 
   // Load cart from server when user logs in
   useEffect(() => {
@@ -553,7 +527,6 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
         setUser(null);
         setWishlist([]);
         setIsLoadingUser(false);
-        clearSelectedKid(); // ✅ ADDED THIS LINE
       }
     };
 
@@ -736,19 +709,6 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
 
   const total = cart.reduce((s, it) => s + it.price * it.quantity, 0);
 
-  const setSelectedKid = (kid: SelectedKid | null) => {
-    setSelectedKidState(kid);
-  };
-
-  const clearSelectedKid = () => {
-    setSelectedKidState(null);
-    try {
-      localStorage.removeItem(KID_STORAGE_KEY);
-    } catch (e) {
-      console.error("Error clearing selected kid:", e);
-    }
-  };
-
   // ✅ Cart Sidebar Functions
   const openCartSidebar = () => {
     setIsCartSidebarOpen(true);
@@ -776,9 +736,6 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
         addToWishlist,
         removeFromWishlist,
         isWishlisted,
-        selectedKid,
-        setSelectedKid,
-        clearSelectedKid,
         isCartSidebarOpen,
         openCartSidebar,
         closeCartSidebar,

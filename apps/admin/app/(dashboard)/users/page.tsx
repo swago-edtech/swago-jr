@@ -1,14 +1,49 @@
 import { connectDB, User, Order } from '@swago/database';
 import Link from 'next/link';
+import UserFilters from './UserFilters';
+import Pagination from '@/components/Pagination';
 
-async function getUsers() {
+async function getUsers(searchParams: { [key: string]: string | undefined }) {
   await connectDB();
   
-  const users = await User.find({ isAdmin: false })
-    .sort({ createdAt: -1 })
-    .select('name phone email orders wishlist cart createdAt') // ✅ Added 'cart'
-    .populate('orders')
-    .lean();
+  const query: any = { isAdmin: false };
+
+  if (searchParams.q) {
+    const searchRegex = new RegExp(searchParams.q, 'i');
+    query.$or = [
+      { name: searchRegex },
+      { phone: searchRegex },
+      { email: searchRegex },
+    ];
+  }
+
+  let sortConfig: any = { createdAt: -1 };
+  if (searchParams.sort) {
+    switch (searchParams.sort) {
+      case 'oldest':
+        sortConfig = { createdAt: 1 };
+        break;
+      case 'newest':
+      default:
+        sortConfig = { createdAt: -1 };
+        break;
+    }
+  }
+
+  const page = parseInt(searchParams.page || '1', 10) || 1;
+  const limit = 20;
+  const skip = (page - 1) * limit;
+
+  const [users, totalCount] = await Promise.all([
+    User.find(query)
+      .sort(sortConfig)
+      .skip(skip)
+      .limit(limit)
+      .select('name phone email orders wishlist cart createdAt') // ✅ Added 'cart'
+      .populate('orders')
+      .lean(),
+    User.countDocuments(query)
+  ]);
 
   // Backfill user names from their most recent order if missing
   const enrichedUsers = await Promise.all(
@@ -28,11 +63,19 @@ async function getUsers() {
     })
   );
 
-  return JSON.parse(JSON.stringify(enrichedUsers));
+  return {
+    users: JSON.parse(JSON.stringify(enrichedUsers)),
+    pagination: {
+      currentPage: page,
+      totalPages: Math.ceil(totalCount / limit),
+      totalCount,
+    }
+  };
 }
 
-export default async function UsersPage() {
-  const users = await getUsers();
+export default async function UsersPage(props: { searchParams?: Promise<{ [key: string]: string | undefined }> }) {
+  const searchParams = (await props.searchParams) || {};
+  const { users, pagination } = await getUsers(searchParams);
 
   return (
     <div className="space-y-6">
@@ -43,9 +86,11 @@ export default async function UsersPage() {
           <p className="text-gray-600 mt-1">Manage customer accounts</p>
         </div>
         <div className="text-sm text-gray-500">
-          Total: {users.length} customers
+          Total: {pagination.totalCount} customers
         </div>
       </div>
+
+      <UserFilters />
 
       {/* Users Table */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
@@ -93,7 +138,7 @@ export default async function UsersPage() {
                   ) || 0;
 
                   return (
-                    <tr key={user._id} className="hover:bg-gray-50 transition-colors">
+                     <tr key={user._id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4">
                         <div className="flex items-center">
                           <div className="flex-shrink-0 h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
@@ -166,23 +211,30 @@ export default async function UsersPage() {
         </div>
       </div>
 
+      <Pagination 
+        currentPage={pagination.currentPage}
+        totalPages={pagination.totalPages}
+        totalCount={pagination.totalCount}
+      />
+
+
       {/* Stats Cards */}
-      {users.length > 0 && (
+      {pagination.totalCount > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="bg-white rounded-lg shadow p-6">
             <p className="text-sm text-gray-600">Total Customers</p>
-            <p className="text-3xl font-bold text-gray-900 mt-2">{users.length}</p>
+            <p className="text-3xl font-bold text-gray-900 mt-2">{pagination.totalCount}</p>
           </div>
           <div className="bg-white rounded-lg shadow p-6">
-            <p className="text-sm text-gray-600">Total Orders</p>
+            <p className="text-sm text-gray-600">Orders (Current Page)</p>
             <p className="text-3xl font-bold text-gray-900 mt-2">
               {users.reduce((sum: number, user: any) => sum + (user.orders?.length || 0), 0)}
             </p>
           </div>
           <div className="bg-white rounded-lg shadow p-6">
-            <p className="text-sm text-gray-600">Avg Orders/Customer</p>
+            <p className="text-sm text-gray-600">Avg Orders/Customer (Current Page)</p>
             <p className="text-3xl font-bold text-gray-900 mt-2">
-              {(users.reduce((sum: number, user: any) => sum + (user.orders?.length || 0), 0) / users.length).toFixed(1)}
+              {(users.reduce((sum: number, user: any) => sum + (user.orders?.length || 0), 0) / (users.length || 1)).toFixed(1)}
             </p>
           </div>
         </div>

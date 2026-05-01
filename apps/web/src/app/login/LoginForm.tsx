@@ -31,7 +31,8 @@ export default function LoginForm() {
   const { setUser, cart } = useSharedContext();
 
   const searchParams = useSearchParams();
-  const redirectUrl = searchParams.get("redirect") || searchParams.get("callbackUrl");
+  const rawRedirect = searchParams.get("redirect") || searchParams.get("callbackUrl");
+  const redirectUrl = rawRedirect?.startsWith('/kids') ? '/profile' : rawRedirect;
 
   // Demo credentials
   const DEMO_PHONE = "9876543210";
@@ -380,12 +381,7 @@ export default function LoginForm() {
             window.dispatchEvent(new CustomEvent(USER_EVENTS.LOGIN));
 
             const target = redirectUrl || "/";
-            const SKIP_KID_CHECK_ROUTES = ['/checkout', '/cart'];
-            const skipKidCheck = SKIP_KID_CHECK_ROUTES.some(route => target.startsWith(route));
-            const nextUrl = (responseData.hasKidProfiles || skipKidCheck)
-              ? target
-              : `/profile?mode=create&redirect=${encodeURIComponent(target)}`;
-            setTimeout(() => router.push(nextUrl), 800);
+            setTimeout(() => router.push(target), 800);
           } else {
             setMessage(`❌ ${responseData.error || "Verification failed"}`);
           }

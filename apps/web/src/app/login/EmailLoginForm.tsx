@@ -27,7 +27,8 @@ export default function EmailLoginForm() {
   const { setUser, cart } = useSharedContext();
 
   const searchParams = useSearchParams();
-  const redirectUrl = searchParams.get("redirect") || searchParams.get("callbackUrl");
+  const rawRedirect = searchParams.get("redirect") || searchParams.get("callbackUrl");
+  const redirectUrl = rawRedirect?.startsWith('/kids') ? '/profile' : rawRedirect;
 
   // Email widget configuration
   const EMAIL_WIDGET_ID = process.env.NEXT_PUBLIC_MSG91_EMAIL_WIDGET_ID!;

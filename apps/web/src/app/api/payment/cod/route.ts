@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import mongoose from "mongoose";
 import { getLoginSession } from "@/lib/auth";
-import { connectDB, Product, Order, User, Coupon as CouponModel, Promotion, KidProfile } from "@swago/database";
+import { connectDB, Product, Order, User, Coupon as CouponModel, Promotion } from "@swago/database";
 import { isValidObjectId } from "mongoose";
 import { generateOrderId } from "@/lib/generateOrderId";
 import { sendOrderConfirmationEmail } from "@/lib/msg91-email";
@@ -269,7 +269,6 @@ export async function POST(req: Request) {
 
         // ✅ NEW: Handle Swago Money Redemption
         const swagoMoneyRedeemed = orderDetails.swagoMoneyRedeemed || 0;
-        let swagoMoneyKidId = orderDetails.swagoMoneyKidId;
 
         if (swagoMoneyRedeemed > 0) {
             if (calculatedAmountAfterCoupon < 799) {
@@ -281,30 +280,11 @@ export async function POST(req: Request) {
                 return NextResponse.json({ error: `You can only use up to 5% (₹${maxAllowed}) of your order amount in Swago Dollars` }, { status: 400 });
             }
 
-            // Verify User has enough
-            const profiles = await KidProfile.find({ userId: user._id }).select("ambassador.swagoMoney");
-            let totalAvailable = 0;
-            let profileToDeduct = null;
-
-            for (const p of profiles) {
-                const bal = p.ambassador?.swagoMoney || 0;
-                totalAvailable += bal;
-                if (bal >= swagoMoneyRedeemed) {
-                    profileToDeduct = p._id;
-                }
-            }
+            // ✅ Verify User has enough — check directly on User
+            const totalAvailable = user.ambassador?.swagoMoney || user.swagoMoney || 0;
 
             if (totalAvailable < swagoMoneyRedeemed) {
                 return NextResponse.json({ error: "Insufficient Swago Dollars balance" }, { status: 400 });
-            }
-
-            // If we don't have a specific kid ID capable of bearing the full deduction, 
-            // realistically we should deduct across multiple, but for simplicity we will deduct from the first profile that has enough,
-            // or just the first profile if we aggregate. For now we just pick a profile that has enough.
-            if (!swagoMoneyKidId && profileToDeduct) {
-                swagoMoneyKidId = profileToDeduct;
-            } else if (!swagoMoneyKidId && profiles.length > 0) {
-                swagoMoneyKidId = profiles[0]._id; // Fallback
             }
         }
 
@@ -332,7 +312,7 @@ export async function POST(req: Request) {
             shippingFee: shippingFee,
             total: calculatedTotal,
             swagoMoneyRedeemed: swagoMoneyRedeemed,
-            swagoMoneyKidId: swagoMoneyKidId,
+            swagoMoneyKidId: user._id, // ✅ Now references User directly
             stockReservedAt: new Date(),
             createdVia: 'frontend',
             ...(validatedCoupon && {
@@ -354,13 +334,13 @@ export async function POST(req: Request) {
             user.orders.push(newOrder._id);
             await user.save();
 
-            // ✅ NEW: Deduct Swago Money from Kid Profile if redeemed
-            if (swagoMoneyRedeemed > 0 && swagoMoneyKidId) {
-                await KidProfile.updateOne(
-                    { _id: swagoMoneyKidId },
+            // ✅ Deduct Swago Money from User directly
+            if (swagoMoneyRedeemed > 0) {
+                await User.updateOne(
+                    { _id: user._id },
                     { $inc: { "ambassador.swagoMoney": -swagoMoneyRedeemed } }
                 );
-                console.log(`💰 Deducted ${swagoMoneyRedeemed} SD from KidProfile ${swagoMoneyKidId} `);
+                console.log(`💰 Deducted ${swagoMoneyRedeemed} SD from User ${user._id}`);
             }
         } catch (linkError) {
             console.error('Could not link order to user:', linkError);

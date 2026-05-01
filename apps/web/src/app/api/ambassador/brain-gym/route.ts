@@ -1,6 +1,6 @@
 // apps/web/src/app/api/ambassador/brain-gym/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { connectDB, KidProfile, User } from "@swago/database";
+import { connectDB, User } from "@swago/database";
 import { getLoginSession } from "@/lib/auth";
 
 // Hardcoded riddle for testing
@@ -12,7 +12,7 @@ const TEST_RIDDLE = {
 };
 
 // Get riddle
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const session = await getLoginSession();
 
@@ -20,19 +20,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const url = new URL(request.url);
-    const kidProfileId = url.searchParams.get("kidProfileId");
-
-    if (!kidProfileId) {
-      return NextResponse.json(
-        { error: "Kid profile ID is required" },
-        { status: 400 }
-      );
-    }
-
     await connectDB();
 
-    // ✅ FIXED: Support both phone and email auth
     const user = session.phone
       ? await User.findOne({ phone: session.phone })
       : await User.findOne({ email: session.email });
@@ -41,20 +30,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const profile = await KidProfile.findOne({
-      _id: kidProfileId,
-      userId: user._id,
-    });
-
-    if (!profile) {
-      return NextResponse.json(
-        { error: "Profile not found" },
-        { status: 404 }
-      );
-    }
-
     // Check if entry challenge is approved
-    if (profile.ambassador?.entryChallenge?.status !== "approved") {
+    if (user.ambassador?.entryChallenge?.status !== "approved") {
       return NextResponse.json(
         { error: "Brain Gym is locked. Complete Entry Challenge first!" },
         { status: 403 }
@@ -62,7 +39,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Check if already completed
-    if (profile.ambassador?.brainGym?.completed) {
+    if (user.ambassador?.brainGym?.completed) {
       return NextResponse.json({
         success: true,
         alreadyCompleted: true,
@@ -96,18 +73,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { kidProfileId, answer } = await request.json();
+    const { answer } = await request.json();
 
-    if (!kidProfileId || !answer) {
+    if (!answer) {
       return NextResponse.json(
-        { error: "Kid profile ID and answer are required" },
+        { error: "Answer is required" },
         { status: 400 }
       );
     }
 
     await connectDB();
 
-    // Support both phone and email auth
     const user = session.phone
       ? await User.findOne({ phone: session.phone })
       : await User.findOne({ email: session.email });
@@ -116,20 +92,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const profile = await KidProfile.findOne({
-      _id: kidProfileId,
-      userId: user._id,
-    });
-
-    if (!profile) {
-      return NextResponse.json(
-        { error: "Profile not found" },
-        { status: 404 }
-      );
-    }
-
     // Check if entry challenge is approved
-    if (profile.ambassador?.entryChallenge?.status !== "approved") {
+    if (user.ambassador?.entryChallenge?.status !== "approved") {
       return NextResponse.json(
         { error: "Brain Gym is locked" },
         { status: 403 }
@@ -137,7 +101,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if already completed
-    if (profile.ambassador?.brainGym?.completed) {
+    if (user.ambassador?.brainGym?.completed) {
       return NextResponse.json(
         { error: "You've already completed this challenge" },
         { status: 400 }
@@ -148,38 +112,38 @@ export async function POST(request: NextRequest) {
     const isCorrect = answer.trim() === TEST_RIDDLE.correctAnswer;
 
     if (isCorrect) {
-      // Award Swago Money (keep at 50)
-      profile.ambassador.swagoMoney += TEST_RIDDLE.reward;
-      profile.ambassador.totalEarnings += TEST_RIDDLE.reward;
+      // Award Swago Money
+      user.ambassador.swagoMoney += TEST_RIDDLE.reward;
+      user.ambassador.totalEarnings += TEST_RIDDLE.reward;
 
       // Award Brain Champion badge
-      const hasBrainBadge = profile.ambassador.badges.some((b: { name: string }) => b.name === "Brain Champion");
+      const hasBrainBadge = user.ambassador.badges.some((b: { name: string }) => b.name === "Brain Champion");
       if (!hasBrainBadge) {
-        profile.ambassador.badges.push({
+        user.ambassador.badges.push({
           name: "Brain Champion",
           awardedAt: new Date(),
         });
       }
 
       // Update Brain Gym status
-      profile.ambassador.brainGym = {
+      user.ambassador.brainGym = {
         completed: true,
         answer: answer,
         completedAt: new Date(),
       };
 
-      // ✅ NEW: Check for Brand Ambassador badge at 200 Swago Money threshold
-      profile.checkAndAwardAmbassadorBadge();
+      // Check for Brand Ambassador badge at 200 Swago Money threshold
+      user.checkAndAwardAmbassadorBadge();
 
-      await profile.save();
+      await user.save();
 
-      console.log(`✅ Brain Gym completed for ${profile.username}. Awarded ${TEST_RIDDLE.reward} Swago Money + Brain Champion badge.`);
+      console.log(`✅ Brain Gym completed for ${user.name || user.phone}. Awarded ${TEST_RIDDLE.reward} Swago Money + Brain Champion badge.`);
 
       return NextResponse.json({
         success: true,
         correct: true,
         message: "Correct! You earned 50 Swago Dollars! 🎉",
-        swagoMoney: profile.ambassador.swagoMoney,
+        swagoMoney: user.ambassador.swagoMoney,
       });
     } else {
       return NextResponse.json({

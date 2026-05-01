@@ -1,12 +1,12 @@
 // apps/web/src/app/api/verify-otp/route.tsx
 import { NextResponse } from "next/server";
 import { SignJWT } from "jose";
-import { connectDB, User, KidProfile } from "@swago/database";
+import { connectDB, User } from "@swago/database";
 import { z } from "zod";
 import { formatPhoneForStorage } from "@/lib/msg91";
 
 // ========================================
-// ✅ UPDATED: Cart item with full product details
+// ✅ Cart item with full product details
 // ========================================
 interface CartItem {
   productId: string | number;
@@ -14,7 +14,7 @@ interface CartItem {
   price: number;
   name: string;
   image: string;
-  images?: string[]; // ✅ NEW
+  images?: string[];
   addedAt?: Date;
 }
 
@@ -49,16 +49,15 @@ function normalizeCartItem(item: CartInput): CartItem | null {
     price: Number(price),
     name,
     image,
-    images: item?.images || (image ? [image] : []), // ✅ NEW
+    images: item?.images || (image ? [image] : []),
     addedAt: item?.addedAt ? new Date(item.addedAt) : new Date()
   };
 }
 
-// ✅ UPDATED: Merge carts with normalization (handles qty/quantity mismatch)
+// ✅ Merge carts with normalization
 function mergeCartItems(dbCart: CartInput[], localCart: CartInput[]): CartItem[] {
   console.log('📦 Starting cart merge...');
 
-  // Normalize both carts first
   const dbItems = dbCart.map(normalizeCartItem).filter(Boolean) as CartItem[];
   const localItems = localCart.map(normalizeCartItem).filter(Boolean) as CartItem[];
 
@@ -67,19 +66,16 @@ function mergeCartItems(dbCart: CartInput[], localCart: CartInput[]): CartItem[]
 
   const merged = new Map<string, CartItem>();
 
-  // Add DB cart items first
   for (const item of dbItems) {
     const key = item.productId.toString();
     merged.set(key, { ...item });
   }
 
-  // Merge with local cart (keep higher quantity)
   for (const item of localItems) {
     const key = item.productId.toString();
     const existing = merged.get(key);
 
     if (existing) {
-      // Product exists in both carts - keep higher quantity
       if (item.quantity > existing.quantity) {
         console.log(`  🔄 Product ${key}: DB qty ${existing.quantity} → Local qty ${item.quantity} (higher)`);
         merged.set(key, {
@@ -88,14 +84,13 @@ function mergeCartItems(dbCart: CartInput[], localCart: CartInput[]): CartItem[]
           price: item.price,
           name: item.name,
           image: item.image,
-          images: item.images, // ✅ NEW
+          images: item.images,
           addedAt: item.addedAt || new Date()
         });
       } else {
         console.log(`  ✓ Product ${key}: Keeping DB qty ${existing.quantity} (higher than local ${item.quantity})`);
       }
     } else {
-      // New item from local cart
       console.log(`  ➕ Product ${key}: Adding from local cart (qty ${item.quantity})`);
       merged.set(key, {
         productId: item.productId,
@@ -103,7 +98,7 @@ function mergeCartItems(dbCart: CartInput[], localCart: CartInput[]): CartItem[]
         price: item.price,
         name: item.name,
         image: item.image,
-        images: item.images, // ✅ NEW
+        images: item.images,
         addedAt: item.addedAt || new Date()
       });
     }
@@ -122,7 +117,6 @@ const directOtpSchema = z.object({
   isDemo: z.boolean().optional(),
 });
 
-// ✅ UPDATED: Support full cart details in localCart
 const widgetSchema = z.object({
   accessToken: z.string().min(1, { message: "Access token is required" }),
   identifier: z.string().min(1, { message: "Phone or email is required" }),
@@ -235,7 +229,6 @@ export async function POST(req: Request) {
         user = await User.findOne({ phone: formattedPhone });
 
         if (!user) {
-          // ✅ NEW USER: Create with phone + optional email + local cart (with full details)
           user = await User.create({
             phone: formattedPhone,
             authMethod: 'phone',
@@ -254,7 +247,6 @@ export async function POST(req: Request) {
         user = await User.findOne({ email: identifier });
 
         if (!user) {
-          // ✅ NEW USER: Create with email + local cart (with full details)
           user = await User.create({
             email: identifier,
             authMethod: 'email',
@@ -269,14 +261,13 @@ export async function POST(req: Request) {
         }
       }
 
-      // ✅ CART MERGE: For existing users, merge local + DB carts (with normalization)
+      // ✅ CART MERGE: For existing users, merge local + DB carts
       if (!isNewUser && localCartItems.length > 0) {
         const dbCart = user.cart || [];
         const mergedCart = mergeCartItems(dbCart, localCartItems);
 
         console.log(`🔀 Cart merge complete: DB(${dbCart.length}) + Local(${localCartItems.length}) = Merged(${mergedCart.length})`);
 
-        // Update user cart atomically
         if (authMethod === 'phone') {
           user = await User.findOneAndUpdate(
             { phone: user.phone },
@@ -306,10 +297,7 @@ export async function POST(req: Request) {
         .setExpirationTime("7d")
         .sign(secret);
 
-      // ✅ NEW: Count kid profiles to determine if user should go to onboarding
-      const kidProfileCount = await KidProfile.countDocuments({ parentId: user._id });
-
-      // ✅ Create response - cart already has full details, no populate needed
+      // ✅ Create response — no more kid profile check
       const response = NextResponse.json({
         success: true,
         user: {
@@ -321,8 +309,8 @@ export async function POST(req: Request) {
           wishlist: user.wishlist || [],
           orders: user.orders || [],
           cart: user.cart || [],
+          swagoMoney: user.ambassador?.swagoMoney || user.swagoMoney || 0,
         },
-        hasKidProfiles: kidProfileCount > 0
       });
 
       // Set session cookie
@@ -385,7 +373,6 @@ export async function POST(req: Request) {
         .setExpirationTime("7d")
         .sign(secret);
 
-      // ✅ Return cart directly (already has full details)
       const response = NextResponse.json({
         success: true,
         user: {
@@ -397,6 +384,7 @@ export async function POST(req: Request) {
           wishlist: user.wishlist || [],
           orders: user.orders || [],
           cart: user.cart || [],
+          swagoMoney: user.ambassador?.swagoMoney || user.swagoMoney || 0,
         },
       });
 

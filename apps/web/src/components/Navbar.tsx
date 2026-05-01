@@ -16,7 +16,7 @@ const dropdownVariants: Variants = {
 };
 
 export default function Navbar() {
-  const { user, cart, wishlist, selectedKid, openCartSidebar } = useSharedContext();
+  const { user, cart, wishlist, openCartSidebar } = useSharedContext();
 
   const [isAgeDropdownOpen, setAgeDropdownOpen] = useState(false);
   const [isElementDropdownOpen, setElementDropdownOpen] = useState(false);

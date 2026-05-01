@@ -4,7 +4,6 @@
 export { default as User } from './models/User';
 export { default as Order } from './models/Order';
 export { default as Review } from './models/Review';
-export { default as KidProfile } from './models/KidProfile';
 export { default as ProductCode } from './models/ProductCode';
 export { default as Product } from "./models/Product";
 export { default as FAQ } from './models/FAQ';

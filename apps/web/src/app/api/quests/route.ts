@@ -1,6 +1,6 @@
 // apps/web/src/app/api/quests/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { connectDB, Quest, KidProfile } from "@swago/database";
+import { connectDB, Quest, User } from "@swago/database";
 import { getLoginSession } from "@/lib/auth";
 
 export async function GET(req: NextRequest) {
@@ -11,24 +11,20 @@ export async function GET(req: NextRequest) {
         }
 
         await connectDB();
-        const { searchParams } = new URL(req.url);
-        const kidId = searchParams.get("kidId");
 
-        if (!kidId) {
-            return NextResponse.json({ error: "kidId is required" }, { status: 400 });
+        // ✅ Find user from session directly
+        const user = session.phone
+            ? await User.findOne({ phone: session.phone })
+            : await User.findOne({ email: session.email });
+
+        if (!user) {
+            return NextResponse.json({ error: "User not found" }, { status: 404 });
         }
 
-        // 1. Get the kid profile to see their products
-        const kid = await KidProfile.findById(kidId);
-        if (!kid) {
-            return NextResponse.json({ error: "Kid not found" }, { status: 404 });
-        }
+        // ✅ Extract product IDs from user's lottery tickets
+        const productIds = (user.lotteryTickets || []).map((ticket: any) => ticket.productId).filter(Boolean);
 
-        // 2. Extract product IDs from lottery tickets (purchased products)
-        const productIds = kid.lotteryTickets.map((ticket: any) => ticket.productId).filter(Boolean);
-
-        // 3. Fetch active quests for these products
-        // If no products, we might want to return some general quests or nothing
+        // Fetch active quests for these products
         const quests = await Quest.find({
             productId: { $in: productIds },
             isActive: true

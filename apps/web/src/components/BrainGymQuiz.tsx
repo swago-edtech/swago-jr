@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 
 interface BrainGymQuizProps {
-  kidProfileId: string;
   onComplete: () => void;
 }
 
@@ -14,7 +13,7 @@ interface Riddle {
   reward: number;
 }
 
-export default function BrainGymQuiz({ kidProfileId, onComplete }: BrainGymQuizProps) {
+export default function BrainGymQuiz({ onComplete }: BrainGymQuizProps) {
   const [riddle, setRiddle] = useState<Riddle | null>(null);
   const [selectedAnswer, setSelectedAnswer] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -27,7 +26,7 @@ export default function BrainGymQuiz({ kidProfileId, onComplete }: BrainGymQuizP
 
   const fetchRiddle = async () => {
     try {
-      const res = await fetch(`/api/ambassador/brain-gym?kidProfileId=${kidProfileId}`);
+      const res = await fetch(`/api/ambassador/brain-gym`);
       const data = await res.json();
 
       if (res.ok) {
@@ -54,7 +53,6 @@ export default function BrainGymQuiz({ kidProfileId, onComplete }: BrainGymQuizP
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          kidProfileId,
           answer: selectedAnswer,
         }),
       });

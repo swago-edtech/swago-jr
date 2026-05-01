@@ -3,11 +3,10 @@
 import { useState } from "react";
 
 type ReelUploadFormProps = {
-  kidProfileId: string;
   onSuccess: () => void;
 };
 
-export default function ReelUploadForm({ kidProfileId, onSuccess }: ReelUploadFormProps) {
+export default function ReelUploadForm({ onSuccess }: ReelUploadFormProps) {
   const [reelUrl, setReelUrl] = useState("");
   const [instagramUsername, setInstagramUsername] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -46,7 +45,6 @@ export default function ReelUploadForm({ kidProfileId, onSuccess }: ReelUploadFo
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
-          kidProfileId, 
           reelUrl: reelUrl.trim(),
           instagramUsername: instagramUsername.trim(),
         }),

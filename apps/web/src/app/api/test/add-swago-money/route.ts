@@ -1,12 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectDB, KidProfile, User } from "@swago/database";
+import { connectDB, User } from "@swago/database";
 
 export async function POST(request: NextRequest) {
     try {
-        // Only allow in development or with a secret key
-        // For now, keeping it simple as a test endpoint
-
-        const { identifier, amount, kidName } = await request.json();
+        const { identifier, amount } = await request.json();
 
         if (!identifier || amount === undefined) {
             return NextResponse.json(
@@ -26,26 +23,9 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: "User not found" }, { status: 404 });
         }
 
-        // Find kid profiles for this user
-        let query: any = { userId: user._id };
-        if (kidName) {
-            query.name = new RegExp(`^${kidName}$`, "i");
-        }
-
-        const profiles = await KidProfile.find(query);
-
-        if (profiles.length === 0) {
-            return NextResponse.json(
-                { error: "No kid profiles found for this user" },
-                { status: 404 }
-            );
-        }
-
-        // Add money to the selected or first profile
-        const profile = profiles[0];
-
-        if (!profile.ambassador) {
-            profile.ambassador = {
+        // ✅ Add money directly to user's ambassador swagoMoney
+        if (!user.ambassador) {
+            user.ambassador = {
                 isAmbassador: false,
                 swagoMoney: 0,
                 totalEarnings: 0,
@@ -55,40 +35,38 @@ export async function POST(request: NextRequest) {
             };
         }
 
-        profile.ambassador.swagoMoney += Number(amount);
-        profile.ambassador.totalEarnings += Number(amount);
+        user.ambassador.swagoMoney += Number(amount);
+        user.ambassador.totalEarnings += Number(amount);
 
-        // Use the helper to check for badges
-        if (typeof profile.checkAndAwardAmbassadorBadge === 'function') {
-            profile.checkAndAwardAmbassadorBadge();
+        // Check for badges
+        if (typeof user.checkAndAwardAmbassadorBadge === 'function') {
+            user.checkAndAwardAmbassadorBadge();
         } else {
-            // Fallback if the method isn't available on the instance (rare but happens with some mongoose setups)
-            if (profile.ambassador.swagoMoney >= 200) {
-                const hasBadge = profile.ambassador.badges.some((b: any) => b.name === "Brand Ambassador");
+            if (user.ambassador.swagoMoney >= 200) {
+                const hasBadge = user.ambassador.badges.some((b: any) => b.name === "Brand Ambassador");
                 if (!hasBadge) {
-                    profile.ambassador.badges.push({
+                    user.ambassador.badges.push({
                         name: "Brand Ambassador",
                         awardedAt: new Date(),
                     });
-                    profile.ambassador.currentStep = 4;
-                    profile.ambassador.status = "brand_ambassador";
+                    user.ambassador.currentStep = 4;
+                    user.ambassador.status = "brand_ambassador";
                 }
             }
         }
 
-        await profile.save();
+        await user.save();
 
         return NextResponse.json({
             success: true,
-            message: `Added ${amount} SD to ${profile.username || profile.name || 'Kid'}'s profile.`,
-            newBalance: profile.ambassador.swagoMoney,
-            totalUserBalance: profiles.reduce((sum, p) => sum + (p.ambassador?.swagoMoney || 0), 0),
+            message: `Added ${amount} SD to ${user.name || 'User'}'s account.`,
+            newBalance: user.ambassador.swagoMoney,
         });
     } catch (error: any) {
         console.error("❌ Test Add Swago Money Error:", error);
         return NextResponse.json(
             { error: "Internal Server Error", details: error.message },
             { status: 500 }
-        );11595469
+        );
     }
 }

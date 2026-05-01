@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReelUploadForm from '@/components/ReelUploadForm';
+import CompleteProfileModal from '@/components/profile/CompleteProfileModal';
 
 const UI_THEMES = [
   { base: 'bg-[#b251a2]', ring: 'ring-[#b251a2]/30', hover: 'hover:bg-[#b251a2]/15 hover:text-[#b251a2]' },
@@ -40,14 +41,13 @@ function ProfileContent() {
   const { user, setUser, isLoadingUser } = useSharedContext();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectAfterAuth = searchParams.get("redirect");
-  const [loadingProfiles, setLoadingProfiles] = useState(true);
-  const [kidProfiles, setKidProfiles] = useState<any[]>([]);
+  const rawRedirect = searchParams.get("redirect");
+  const redirectAfterAuth = rawRedirect?.startsWith('/kids') ? '/profile' : rawRedirect;
   const [showReelForm, setShowReelForm] = useState(false);
   const [activeFilter, setActiveFilter] = useState("All");
   const [showFilters, setShowFilters] = useState(false);
-  const [isOnboarding, setIsOnboarding] = useState(false);
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
+  const [showProfileModal, setShowProfileModal] = useState(false);
 
   const getLevelData = (points: number) => {
     if (points <= 100) return { level: 1, title: 'Swago Saviour', min: 0, max: 100 };
@@ -57,32 +57,11 @@ function ProfileContent() {
     return { level: 5, title: 'Swago Ambassador', min: 500, max: 500, maxed: true };
   };
 
-  // Kid Creation Form State
-  const [isCreatingKid, setIsCreatingKid] = useState(false);
-  const [kidForm, setKidForm] = useState({
-    name: "",
-    age: "",
-    dob: "",
-    city: "",
-    gender: "boy",
-    avatarColor: "/images/kid_boy1.png",
-  });
-  const [kidError, setKidError] = useState("");
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("mode") === "create") {
-      setIsOnboarding(true);
-    }
-  }, []);
-
   useEffect(() => {
     if (isLoadingUser) return;
     if (!user) {
       router.push("/login?redirect=/profile");
     } else {
-      fetchKidProfiles();
-
       if (user.swagoMoney !== undefined) {
         setWalletBalance(user.swagoMoney);
       }
@@ -94,31 +73,12 @@ function ProfileContent() {
           }
         })
         .catch(console.error);
+
+      if (redirectAfterAuth && redirectAfterAuth !== "/profile") {
+        router.push(redirectAfterAuth);
+      }
     }
   }, [user, isLoadingUser, router]);
-
-  const fetchKidProfiles = async () => {
-    setLoadingProfiles(true);
-    try {
-      const res = await fetch("/api/kid-profiles");
-      if (res.ok) {
-        const data = await res.json();
-        const profiles = data.profiles || [];
-        setKidProfiles(profiles);
-        if (profiles.length > 0) {
-          if (redirectAfterAuth && redirectAfterAuth !== "/profile" && redirectAfterAuth !== "/profile?mode=create") {
-            router.push(redirectAfterAuth);
-          } else {
-            setIsOnboarding(false);
-          }
-        }
-      }
-    } catch (error) {
-      console.error("Failed to fetch kid profiles:", error);
-    } finally {
-      setLoadingProfiles(false);
-    }
-  };
 
   const purchasedProducts = useMemo(() => {
     if (!user?.orders) return [];
@@ -126,8 +86,6 @@ function ProfileContent() {
     user.orders.forEach((order: any) => {
       const status = (order.status || '').toLowerCase().trim();
       const validStatuses = ['paid', 'delivered', 'shipped', 'completed'];
-
-      console.log(`Checking order: ${order._id}, Status: ${status}`); // Debug log to see orders
 
       if (validStatuses.includes(status)) {
         order.items?.forEach((item: any) => {
@@ -151,7 +109,7 @@ function ProfileContent() {
     // 1. Common Mission
     allQuests.push({
       title: '"Yes I Can" Dance',
-      description: `Groove on “Yes I Can” song with your smart box`,
+      description: `Groove on "Yes I Can" song with your smart box`,
       tags: [
         { name: 'Growth', color: 'bg-[#8a59ed]', icon: Zap },
         { name: 'Spotlight', color: 'bg-[#e0914c]', icon: Star }
@@ -182,7 +140,7 @@ function ProfileContent() {
       product: 'Common'
     });
 
-    // 2. Product-Specific Tickets
+    // 3. Product-Specific Tickets
     purchasedBoxes.forEach((boxName) => {
       allQuests.push({
         title: `Claim your Lucky Ticket`,
@@ -201,157 +159,59 @@ function ProfileContent() {
       });
     });
 
-    // ✅ FIXED FILTER LOGIC: Support both Product and Skill filtering (SWAGO)
     if (activeFilter === "All") return allQuests;
     if (activeFilter === "Common") return allQuests.filter(q => q.product === "Common");
 
-    // Check if filtering by Skill (S-W-A-G-O)
     const skillsList = ["Smart", "Wisdom", "Ambition", "Growth", "Optimization"];
     if (skillsList.includes(activeFilter)) {
       return allQuests.filter(q => q.skill === activeFilter);
     }
 
-    // Default: Filter by Product
     return allQuests.filter(q => q.product === activeFilter || q.product === "Common");
   }, [activeFilter, purchasedBoxes]);
 
-  const handleKidSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsCreatingKid(true);
-    setKidError("");
-    try {
-      const res = await fetch("/api/kid-profiles", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...kidForm, age: parseInt(kidForm.age) }),
-      });
-      if (res.ok) {
-        await fetchKidProfiles();
-        setIsOnboarding(false);
-        if (redirectAfterAuth) {
-          router.push(redirectAfterAuth);
-        }
-      }
-    } catch (err) {
-      setKidError("An error occurred");
-    } finally {
-      setIsCreatingKid(false);
-    }
-  };
-
-  const handleKidFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    let nextForm = { ...kidForm, [name]: value };
-    if (name === "dob" && value) {
-      const age = Math.floor((new Date().getTime() - new Date(value).getTime()) / 31557600000);
-      nextForm.age = Math.max(0, age).toString();
-    }
-    setKidForm(nextForm);
-  };
-
-  if (isLoadingUser || (loadingProfiles && kidProfiles.length === 0)) {
+  if (isLoadingUser) {
     return <div className="min-h-screen bg-slate-50" />;
   }
 
   if (!user) return null;
-
-  if (isOnboarding && kidProfiles.length === 0) {
-    return (
-      <div className="min-h-screen bg-slate-50 py-12 px-4">
-        <div className="max-w-2xl mx-auto">
-          <div className="mb-8 text-center">
-            <h1 className="text-3xl font-bold text-slate-800">Create Kid Profile 🌟</h1>
-            <p className="text-slate-600 mt-2">Create a profile and enter the Swagoverse!</p>
-          </div>
-
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white p-8 rounded-2xl shadow-lg border border-slate-100">
-            {/* Parent Info Section (Pre-filled, Read-only) */}
-            <div className="border-b pb-8 mb-8">
-              <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
-                👨‍👩‍👧 Parent Information
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-slate-500 mb-1.5 px-0.5">Name</label>
-                  <p className="p-3 bg-slate-50 rounded-lg text-slate-700 font-semibold border border-slate-100 italic">
-                    {user.name || "Not set"}
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-500 mb-1.5 px-0.5">Phone</label>
-                  <p className="p-3 bg-slate-50 rounded-lg text-slate-700 font-semibold border border-slate-100 italic">
-                    {user.phone || "Not set"}
-                  </p>
-                </div>
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-slate-500 mb-1.5 px-0.5">Email</label>
-                  <p className="p-3 bg-slate-50 rounded-lg text-slate-700 font-semibold border border-slate-100 italic">
-                    {user.email || "Not set"}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <form onSubmit={handleKidSubmit} className="space-y-6">
-              <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2 pt-2">
-                🧒 Child Details
-              </h3>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Child's Name *</label>
-                  <input type="text" name="name" value={kidForm.name} onChange={handleKidFormChange} placeholder="Enter child's name" className="w-full border border-slate-300 rounded-lg p-3 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all" required />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">City *</label>
-                  <input type="text" name="city" value={kidForm.city} onChange={handleKidFormChange} placeholder="Enter city" className="w-full border border-slate-300 rounded-lg p-3 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all" required />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Date of Birth *</label>
-                  <input type="date" name="dob" value={kidForm.dob} onChange={handleKidFormChange} className="w-full border border-slate-300 rounded-lg p-3 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all" required />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Age</label>
-                  <input type="text" value={kidForm.age ? `${kidForm.age} Years` : '—'} readOnly className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-slate-500 font-bold" />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-3">Gender *</label>
-                <select name="gender" value={kidForm.gender} onChange={handleKidFormChange} className="w-full border border-slate-300 rounded-lg p-3 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all">
-                  <option value="boy">Boy 👦</option>
-                  <option value="girl">Girl 👧</option>
-                </select>
-              </div>
-
-              <div className="pt-6">
-                <button type="submit" disabled={isCreatingKid} className="w-full bg-[hsl(var(--swago-purple))] text-white py-4 rounded-xl font-bold text-lg hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-50 shadow-lg uppercase tracking-wide">
-                  {isCreatingKid ? "Creating Profile..." : "🚀 Enter the Swagoverse"}
-                </button>
-              </div>
-
-              {kidError && <p className="text-red-500 text-xs font-bold text-center mt-4">{kidError}</p>}
-            </form>
-          </motion.div>
-        </div>
-      </div>
-    );
-  }
 
   // MAIN PROFILE VIEW
   return (
     <div className="min-h-screen bg-[#F0F4F8] font-sans pb-10">
       <div className="max-w-4xl mx-auto px-4 pt-8">
 
-        {/* Header: Parent Info */}
+        {/* Profile Completion Banner */}
+        {user && (!user.age || !user.gender || !user.grade) && (
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6 bg-white border border-slate-200 rounded-[2rem] p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm"
+          >
+            <div className="flex items-center gap-4 text-slate-800">
+              <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center shadow-inner shrink-0 border border-slate-100 text-2xl">
+                🪙
+              </div>
+              <div>
+                <h3 className="font-[1000] text-[15px] sm:text-[17px] uppercase tracking-tighter leading-none italic">Complete your profile</h3>
+                <p className="text-[11px] sm:text-xs font-semibold text-slate-500 mt-1 leading-snug">Unlock your account fully and earn 5 Swago Money instantly!</p>
+              </div>
+            </div>
+            <button 
+              onClick={() => setShowProfileModal(true)}
+              className="w-full sm:w-auto shrink-0 bg-[hsl(var(--swago-purple))] hover:brightness-110 text-white px-6 sm:px-8 py-2.5 sm:py-3 rounded-full font-[1000] text-[11px] sm:text-sm uppercase tracking-wide active:scale-95 transition-all shadow-[0_10px_20px_-10px_rgba(124,93,250,0.5)]"
+            >
+              Complete Now →
+            </button>
+          </motion.div>
+        )}
+
+        {/* Header: User Info */}
         <div className="flex items-center justify-between mb-8 px-2">
           <div className="flex items-center gap-5 flex-1 w-full xl:max-w-xl">
             <div className="w-14 h-14 sm:w-20 sm:h-20 shrink-0 rounded-full border-4 border-white shadow-xl overflow-hidden bg-slate-100 relative">
               <Image
-                src={kidProfiles[0]?.avatarColor && kidProfiles[0].avatarColor !== '/images/swoo.png' ? kidProfiles[0].avatarColor : (kidProfiles[0]?.gender === 'girl' ? '/images/kid_girl1.png' : '/images/kid_boy1.png')}
+                src="/images/kid_boy1.png"
                 alt="Avatar"
                 fill
                 className="object-cover"
@@ -362,7 +222,7 @@ function ProfileContent() {
                 {user.name}
               </h1>
               {(() => {
-                const currentPoints = walletBalance !== null ? walletBalance : (user.swagoMoney || 0);
+                const currentPoints = walletBalance !== null ? walletBalance : (user.ambassador?.swagoMoney || user.swagoMoney || 0);
                 const { level, title, min, max, maxed } = getLevelData(currentPoints);
                 const progressPercent = maxed ? 100 : Math.min(100, Math.max(0, ((currentPoints - min) / (max - min)) * 100));
 
@@ -375,7 +235,7 @@ function ProfileContent() {
                           <span className="md:text-lg text-xs">🪙</span>
                         </div>
                         <span className="md:text-xl text-sm font-[1000] text-slate-800 tracking-tighter">
-                          {walletBalance !== null ? walletBalance : (user.swagoMoney || 0)}
+                          {walletBalance !== null ? walletBalance : (user.ambassador?.swagoMoney || user.swagoMoney || 0)}
                         </span>
                       </div>
                     </div>
@@ -402,7 +262,7 @@ function ProfileContent() {
               <span className="md:text-lg text-xs">🪙</span>
             </div>
             <span className="md:text-xl text-sm font-[1000] text-slate-800 tracking-tighter">
-              {walletBalance !== null ? walletBalance : (user.swagoMoney || 0)}
+              {walletBalance !== null ? walletBalance : (user.ambassador?.swagoMoney || user.swagoMoney || 0)}
             </span>
           </div>
         </div>
@@ -522,17 +382,27 @@ function ProfileContent() {
         </div>
       </div>
 
-      {/* Reel Modal */}
+      {/* Reel Modal — ✅ No more kidProfileId */}
       <AnimatePresence>
-        {showReelForm && kidProfiles.length > 0 && (
+        {showReelForm && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md">
             <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="w-full max-w-lg bg-white rounded-[3rem] shadow-2xl relative">
               <button onClick={() => setShowReelForm(false)} className="absolute top-6 right-6 font-bold text-slate-400 hover:text-slate-800">✕</button>
-              <div className="p-10"><ReelUploadForm kidProfileId={kidProfiles[0]._id} onSuccess={() => { setShowReelForm(false); fetchKidProfiles(); }} /></div>
+              <div className="p-10"><ReelUploadForm onSuccess={() => { setShowReelForm(false); }} /></div>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
+
+      {/* Complete Profile Modal */}
+      <CompleteProfileModal 
+        isOpen={showProfileModal} 
+        onClose={() => setShowProfileModal(false)}
+        onSuccess={() => {
+          setShowProfileModal(false);
+          // Reward logic is handled by API, and User Context is updated.
+        }}
+      />
     </div>
   );
 }

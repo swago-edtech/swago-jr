@@ -71,7 +71,7 @@ export default function WaitlistTable({ initialWaitlist }: WaitlistTableProps) {
               id="notified-filter"
               value={notifiedFilter}
               onChange={(e) => setNotifiedFilter(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:ring-2 focus:ring-blue-500"
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-black focus:ring-2 focus:ring-blue-500"
             >
               <option value="all">All</option>
               <option value="not_notified">Not Notified</option>
@@ -88,7 +88,7 @@ export default function WaitlistTable({ initialWaitlist }: WaitlistTableProps) {
               id="age-filter"
               value={ageFilter}
               onChange={(e) => setAgeFilter(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:ring-2 focus:ring-blue-500"
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-black focus:ring-2 focus:ring-blue-500"
             >
               <option value="all">All Ages</option>
               {[7, 8, 9, 10, 11, 12, 13, 14].map((age) => (

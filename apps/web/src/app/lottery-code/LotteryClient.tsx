@@ -19,17 +19,10 @@ const TICKET_TYPES = [
   { id: 'SDC', label: '🏆 Golden Ticket', product: 'Scarf Dumb Charades' }
 ];
 
-interface KidProfile {
-  _id: string;
-  name: string;
-  age: number;
-}
 
 export default function LotteryClient() {
   const [step, setStep] = useState(0);
   const [selectedTicket, setSelectedTicket] = useState('');
-  const [selectedKid, setSelectedKid] = useState('');
-  const [kidProfiles, setKidProfiles] = useState<KidProfile[]>([]);
   const [winners, setWinners] = useState<any[]>([]);
   const [ticketCode, setTicketCode] = useState(['', '', '', '', '', '']);
   const [loading, setLoading] = useState(false);
@@ -38,20 +31,8 @@ export default function LotteryClient() {
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   useEffect(() => {
-    fetchKidProfiles();
     fetchWinners();
   }, []);
-
-  const fetchKidProfiles = async () => {
-    try {
-      const res = await fetch('/api/kid-profiles');
-      const data = await res.json();
-      if (res.ok && data.profiles) {
-        setKidProfiles(data.profiles);
-        if (data.profiles.length > 0) setSelectedKid(data.profiles[0]._id);
-      }
-    } catch (err) { console.error(err); }
-  };
 
   const fetchWinners = async () => {
     try {
@@ -64,7 +45,7 @@ export default function LotteryClient() {
   const handleNext = () => {
     setError(null);
     if (step === 0) setStep(1);
-    else if (step === 1 && selectedTicket && selectedKid) setStep(2);
+    else if (step === 1 && selectedTicket) setStep(2);
   };
 
   const handleCodeChange = (index: number, value: string) => {
@@ -122,7 +103,7 @@ export default function LotteryClient() {
       const res = await fetch('/api/lottery/redeem', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: fullCode, kidProfileId: selectedKid }),
+        body: JSON.stringify({ code: fullCode }),
       });
       const data = await res.json();
       if (res.ok && data.success) {
@@ -214,11 +195,7 @@ export default function LotteryClient() {
                       </select>
                     </div>
 
-                    {kidProfiles.length === 0 && (
-                      <p className="text-xs text-rose-500 font-bold mt-2">
-                        You need to add a kid profile first to claim a ticket!
-                      </p>
-                    )}
+
                   </div>
                 </motion.div>
               )}
@@ -261,7 +238,7 @@ export default function LotteryClient() {
               {/* Action Button that changes text */}
               <button
                 onClick={step === 2 ? claimTicket : handleNext}
-                disabled={loading || (step === 1 && (!selectedTicket || !selectedKid)) || (step === 2 && ticketCode.some(c => !c))}
+                disabled={loading || (step === 1 && !selectedTicket) || (step === 2 && ticketCode.some(c => !c))}
                 className="w-full btn-shine bg-[hsl(var(--swago-purple))] text-white font-black py-4 md:py-5 rounded-2xl md:rounded-[1.5rem] text-sm md:text-lg uppercase tracking-[0.2em] shadow-xl shadow-purple-100 active:scale-95 transition-all disabled:opacity-50 disabled:grayscale"
               >
                 {loading ? "Claiming..." : step === 0 ? "Claim your ticket" : step === 1 ? "Enter your code" : "Claim"}

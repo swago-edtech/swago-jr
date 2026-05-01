@@ -1,4 +1,4 @@
-import { connectDB, Order, User, Product, Coupon, KidProfile } from "@swago/database";
+import { connectDB, Order, User, Product, Coupon } from "@swago/database";
 import { sendOrderConfirmationEmail } from "./msg91-email";
 import { invalidateProductCache } from "./productCache";
 import { isValidObjectId } from "mongoose";
@@ -63,14 +63,14 @@ export async function finalizeOrder({ orderIdOrMongoId, razorpayPaymentId, sourc
     }
   }
 
-  // 5. Swago Money Deduction
+  // 5. Swago Money Deduction — ✅ Now deducts from User directly
   if (order.swagoMoneyRedeemed > 0 && order.swagoMoneyKidId) {
     try {
-      await KidProfile.updateOne(
+      await User.updateOne(
         { _id: order.swagoMoneyKidId },
         { $inc: { "ambassador.swagoMoney": -order.swagoMoneyRedeemed } }
       );
-      console.log(`💰 Deducted ${order.swagoMoneyRedeemed} SD from KidProfile ${order.swagoMoneyKidId}`);
+      console.log(`💰 Deducted ${order.swagoMoneyRedeemed} SD from User ${order.swagoMoneyKidId}`);
     } catch (error) {
       console.error(`⚠️ Failed to deduct Swago Money:`, error);
     }

@@ -5,15 +5,11 @@ import { ExternalLink } from 'lucide-react';
 
 interface Submission {
   _id: string;
-  username: string;
-  age: number;
-  gender: string;
-  userId: {
-    _id: string;
-    name: string;
-    email: string;
-    phone: string;
-  };
+  name: string;
+  email: string;
+  phone: string;
+  age?: number;
+  gender?: string;
   ambassador: {
     swagoMoney: number;
     entryChallenge: {
@@ -36,12 +32,12 @@ export default function ReelSubmissionsTable({ initialSubmissions }: ReelSubmiss
   const [loading, setLoading] = useState(false);
   const [reviewModal, setReviewModal] = useState<{
     isOpen: boolean;
-    kidProfileId: string | null;
+    userId: string | null;
     action: 'approve' | 'reject' | null;
     notes: string;
   }>({
     isOpen: false,
-    kidProfileId: null,
+    userId: null,
     action: null,
     notes: '',
   });
@@ -54,28 +50,27 @@ export default function ReelSubmissionsTable({ initialSubmissions }: ReelSubmiss
 
   // Handle approve
   const handleApprove = async () => {
-    if (!reviewModal.kidProfileId) return;
+    if (!reviewModal.userId) return;
     
     setLoading(true);
     try {
-      const response = await fetch(`/api/ambassador/reels/${reviewModal.kidProfileId}/approve`, {
+      const response = await fetch(`/api/ambassador/reels/${reviewModal.userId}/approve`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reviewNotes: reviewModal.notes }),
+        body: JSON.stringify({ notes: reviewModal.notes }),
       });
 
       if (response.ok) {
         const data = await response.json();
         
-        // Update local state
         setSubmissions(
           submissions.map((sub) =>
-            sub._id === reviewModal.kidProfileId
+            sub._id === reviewModal.userId
               ? {
                   ...sub,
                   ambassador: {
                     ...sub.ambassador,
-                    swagoMoney: data.updatedProfile.ambassador.swagoMoney,
+                    swagoMoney: data.swagoMoney || sub.ambassador.swagoMoney,
                     entryChallenge: {
                       ...sub.ambassador.entryChallenge,
                       status: 'approved',
@@ -88,7 +83,7 @@ export default function ReelSubmissionsTable({ initialSubmissions }: ReelSubmiss
           )
         );
         
-        alert('✅ Reel approved! Kid earned 100 Swago Money and Brain Gym is unlocked!');
+        alert('✅ Reel approved! User earned Swago Money and Brain Gym is unlocked!');
         closeModal();
       } else {
         const data = await response.json();
@@ -103,24 +98,23 @@ export default function ReelSubmissionsTable({ initialSubmissions }: ReelSubmiss
 
   // Handle reject
   const handleReject = async () => {
-    if (!reviewModal.kidProfileId || !reviewModal.notes.trim()) {
+    if (!reviewModal.userId || !reviewModal.notes.trim()) {
       alert('Please provide a reason for rejection');
       return;
     }
     
     setLoading(true);
     try {
-      const response = await fetch(`/api/ambassador/reels/${reviewModal.kidProfileId}/reject`, {
+      const response = await fetch(`/api/ambassador/reels/${reviewModal.userId}/reject`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reviewNotes: reviewModal.notes }),
+        body: JSON.stringify({ notes: reviewModal.notes }),
       });
 
       if (response.ok) {
-        // Update local state
         setSubmissions(
           submissions.map((sub) =>
-            sub._id === reviewModal.kidProfileId
+            sub._id === reviewModal.userId
               ? {
                   ...sub,
                   ambassador: {
@@ -137,7 +131,7 @@ export default function ReelSubmissionsTable({ initialSubmissions }: ReelSubmiss
           )
         );
         
-        alert('❌ Reel rejected. Kid can resubmit.');
+        alert('❌ Reel rejected. User can resubmit.');
         closeModal();
       } else {
         const data = await response.json();
@@ -150,10 +144,10 @@ export default function ReelSubmissionsTable({ initialSubmissions }: ReelSubmiss
     }
   };
 
-  const openModal = (kidProfileId: string, action: 'approve' | 'reject') => {
+  const openModal = (userId: string, action: 'approve' | 'reject') => {
     setReviewModal({
       isOpen: true,
-      kidProfileId,
+      userId,
       action,
       notes: '',
     });
@@ -162,7 +156,7 @@ export default function ReelSubmissionsTable({ initialSubmissions }: ReelSubmiss
   const closeModal = () => {
     setReviewModal({
       isOpen: false,
-      kidProfileId: null,
+      userId: null,
       action: null,
       notes: '',
     });
@@ -182,7 +176,7 @@ export default function ReelSubmissionsTable({ initialSubmissions }: ReelSubmiss
               id="status-filter"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:ring-2 focus:ring-blue-500"
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-black focus:ring-2 focus:ring-blue-500"
             >
               <option value="all">All Status</option>
               <option value="pending">Pending</option>
@@ -207,7 +201,7 @@ export default function ReelSubmissionsTable({ initialSubmissions }: ReelSubmiss
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Kid Details
+                  User Details
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Parent Details
@@ -240,15 +234,14 @@ export default function ReelSubmissionsTable({ initialSubmissions }: ReelSubmiss
                 filteredSubmissions.map((sub) => (
                   <tr key={sub._id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4">
-                      <div className="text-sm font-medium text-gray-900">{sub.username}</div>
+                      <div className="text-sm font-medium text-gray-900">{sub.name}</div>
                       <div className="text-xs text-gray-500">
-                        {sub.age} years • {sub.gender}
+                        {sub.age ? `${sub.age} years` : ''} {sub.gender ? `• ${sub.gender}` : ''}
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm font-medium text-gray-900">{sub.userId.name}</div>
-                      <div className="text-xs text-gray-500">{sub.userId.email}</div>
-                      <div className="text-xs text-gray-500">{sub.userId.phone}</div>
+                      <div className="text-sm font-medium text-gray-900">{sub.email || '-'}</div>
+                      <div className="text-xs text-gray-500">{sub.phone || '-'}</div>
                     </td>
                     <td className="px-6 py-4">
                       <a
@@ -326,8 +319,8 @@ export default function ReelSubmissionsTable({ initialSubmissions }: ReelSubmiss
             
             <p className="text-sm text-gray-600 mb-4">
               {reviewModal.action === 'approve'
-                ? 'Kid will receive 100 Swago Money and Brain Gym will be unlocked.'
-                : 'Kid will be able to resubmit the reel with corrections.'}
+                ? 'User will receive Swago Money and Brain Gym will be unlocked.'
+                : 'User will be able to resubmit the reel with corrections.'}
             </p>
 
             <textarea

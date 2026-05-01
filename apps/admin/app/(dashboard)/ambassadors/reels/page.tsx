@@ -1,18 +1,18 @@
-import { connectDB, KidProfile, User } from '@swago/database';
+import { connectDB, User } from '@swago/database';
 import ReelSubmissionsTable from '@/components/ReelSubmissionsTable';
 
 async function getReelSubmissions() {
   await connectDB();
   
-  const profiles = await KidProfile.find({
+  const users = await User.find({
     'ambassador.isAmbassador': true,
     'ambassador.entryChallenge.submitted': true,
   })
-    .populate('userId', 'name email phone')
+    .select('name email phone ambassador')
     .sort({ 'ambassador.entryChallenge.submittedAt': -1 })
     .lean();
 
-  return JSON.parse(JSON.stringify(profiles));
+  return JSON.parse(JSON.stringify(users));
 }
 
 export default async function ReelSubmissionsPage() {
