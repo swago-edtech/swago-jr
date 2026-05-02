@@ -118,18 +118,17 @@ export default function SkillUnlockSlider() {
                         className="object-cover transition-transform duration-1000 group-hover:scale-110"
                       />
 
-                      {/* Solid White Content Section - High Contrast */}
-                      {/* <div className="absolute inset-x-4 bottom-4 p-6 bg-[#F8F9FB] rounded-[2rem] z-30 flex flex-col items-center text-center">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className={`text-3xl md:text-4xl font-black ${skill.color}  tracking-[0.2em] italic`}>
-                            {skill.title}
-                          </h3>
-                        </div>
-
-                        <p className="text-slate-500 font-bold text-[11px] md:text-xs leading-none tracking-widest opacity-80">
-                          {skill.description}
-                        </p>
-                      </div> */}
+                    </div>
+                    
+                    {/* Title - Description at Bottom - Maintaining same plane level */}
+                    <div className="mt-8 flex items-center justify-center gap-3 text-center px-4 whitespace-nowrap">
+                      <h3 className={`text-4xl md:text-5xl font-black ${skill.color} italic`}>
+                        {skill.title}
+                      </h3>
+                      <span className="text-slate-300 text-2xl md:text-3xl">—</span>
+                      <p className="text-slate-700 font-black text-sm md:text-lg tracking-tight uppercase">
+                        {skill.description}
+                      </p>
                     </div>
                   </div>
                 ))}

@@ -57,6 +57,23 @@ export default function RelatedProducts({ currentProductId, ageCategory }: Relat
         </p>
       </div>
 
+      {/* Vertical Grid Area (Mobile Stack) - Added as requested */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-2 gap-y-8 md:gap-6 mb-8">
+        {products.map((product, index) => (
+          <motion.div
+            key={product._id || product.id}
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: index * 0.1 }}
+            viewport={{ once: true }}
+            className="w-full"
+          >
+            <ProductCard product={product} />
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Horizontal Scroll Area - Commented out as requested
       <div className="flex overflow-x-auto pb-8 gap-6 snap-x snap-mandatory no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
         {products.map((product, index) => (
           <motion.div
@@ -71,6 +88,7 @@ export default function RelatedProducts({ currentProductId, ageCategory }: Relat
           </motion.div>
         ))}
       </div>
+      */}
     </div>
   );
 }

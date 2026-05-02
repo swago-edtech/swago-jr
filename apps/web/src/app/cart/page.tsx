@@ -383,9 +383,16 @@ export default function CartPage() {
               <h2 className="text-xs sm:text-xs font-black text-slate-800 tracking-wide mb-2 sm:mb-3 flex items-center gap-2">
                 <span className="text-pink-500">✨</span> Other parents are loving these products too
               </h2>
+              {/* Vertical Grid Area (Mobile Stack) - Added as requested */}
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 mb-4">
+                <RelatedProductsCompact currentProductId="cart" />
+              </div>
+
+              {/* Horizontal Scroll Area - Commented out as requested
               <div className="flex overflow-x-auto gap-3 pb-2 scrollbar-none snap-x snap-mandatory">
                 <RelatedProductsCompact currentProductId="cart" />
               </div>
+              */}
             </div>
 
             <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-100 shadow-sm space-y-3">
