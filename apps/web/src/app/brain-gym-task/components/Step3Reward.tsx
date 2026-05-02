@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowRight, CheckCircle2, Instagram } from "lucide-react";
 import confetti from "canvas-confetti";
+import SuccessModal from "@/components/SuccessModal";
 
 interface StepProps {
     onComplete: () => void;
@@ -12,6 +13,7 @@ export default function Step3Reward({ onComplete }: StepProps) {
     const [instagramUsername, setInstagramUsername] = useState("");
     const [error, setError] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [showSuccess, setShowSuccess] = useState(false);
 
     const handleSubmit = async () => {
         setError(null);
@@ -38,21 +40,38 @@ export default function Step3Reward({ onComplete }: StepProps) {
         }
 
         setIsSubmitting(true);
-        // Simulate API call or actual submission here
-        await new Promise(resolve => setTimeout(resolve, 800));
+        try {
+            const res = await fetch("/api/ambassador/brain-gym", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    reelUrl: reelUrl.trim(),
+                    instagramUsername: instagramUsername.trim(),
+                }),
+            });
 
-        confetti({
-            particleCount: 150,
-            spread: 70,
-            origin: { y: 0.6 }
-        });
-        
-        alert("Congratulations, your brain gym reel has been sent for review and your amount will be added after approval.");
-        onComplete();
+            const data = await res.json();
+
+            if (res.ok) {
+                confetti({
+                    particleCount: 150,
+                    spread: 70,
+                    origin: { y: 0.6 }
+                });
+                setShowSuccess(true);
+            } else {
+                setError(data.error || "Failed to submit. Please try again.");
+            }
+        } catch (err) {
+            console.error("Submission error:", err);
+            setError("An error occurred. Please try again.");
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (
-        <div className="flex-1 flex flex-col w-full min-h-screen md:min-h-full relative overflow-x-hidden bg-white px-4 pt-6 md:pt-0">
+        <div className="flex-1 flex flex-col w-full relative overflow-x-hidden bg-white px-4">
             <div className="flex-1 flex flex-col md:flex-row w-full h-full max-w-7xl mx-auto items-center">
 
                 {/* 1) TOP SECTION: Mascot & Headline */}
@@ -137,6 +156,15 @@ export default function Step3Reward({ onComplete }: StepProps) {
                 </div>
 
             </div>
+            
+            <SuccessModal 
+                isOpen={showSuccess}
+                onClose={() => {
+                    setShowSuccess(false);
+                    onComplete();
+                }}
+                message="Congratulations, your brain gym reel has been sent for review and your amount will be added after approval."
+            />
         </div>
     );
 }

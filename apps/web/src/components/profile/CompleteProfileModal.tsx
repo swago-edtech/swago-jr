@@ -93,10 +93,10 @@ export default function CompleteProfileModal({ isOpen, onClose, onSuccess }: Com
                 <span className="text-3xl">🪙</span>
               </div>
               <h2 className="text-2xl font-black text-slate-800 uppercase italic tracking-tight">
-                Complete Profile
+                Complete Kid's Profile
               </h2>
               <p className="text-sm font-semibold text-amber-600 mt-1">
-                Finish setting up your account to earn 5 Swago Money!
+                Finish setting up kid's profile to earn 5 Swago Money!
               </p>
             </div>
 
@@ -117,7 +117,7 @@ export default function CompleteProfileModal({ isOpen, onClose, onSuccess }: Com
                   value={formData.name}
                   onChange={handleChange}
                   className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 outline-none transition-all font-semibold text-slate-800"
-                  placeholder="Your name"
+                  placeholder="Kid's name"
                 />
               </div>
 

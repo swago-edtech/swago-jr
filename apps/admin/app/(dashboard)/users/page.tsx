@@ -2,7 +2,7 @@ import { connectDB, User, Order } from '@swago/database';
 import Link from 'next/link';
 import UserFilters from './UserFilters';
 import Pagination from '@/components/Pagination';
-import { Video, Brain, Ticket } from 'lucide-react';
+
 
 async function getUsers(searchParams: { [key: string]: string | undefined }) {
   await connectDB();
@@ -111,9 +111,7 @@ export default async function UsersPage(props: { searchParams?: Promise<{ [key: 
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Orders
                 </th>
-                <th className="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Challenge Progress
-                </th>
+
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Total SD
                 </th>
@@ -188,14 +186,7 @@ export default async function UsersPage(props: { searchParams?: Promise<{ [key: 
                           <span className="ml-1 text-xs text-gray-500">orders</span>
                         </div>
                       </td>
-                      {/* Challenge Progress Timeline */}
-                      <td className="px-6 py-4">
-                        <ProgressTimeline 
-                          entryStatus={entryStatus} 
-                          brainGymCompleted={brainGymCompleted} 
-                          lotteryCount={lotteryCount} 
-                        />
-                      </td>
+
                       {/* Total SD */}
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-black bg-amber-100 text-amber-800 shadow-sm border border-amber-200">
@@ -265,81 +256,6 @@ export default async function UsersPage(props: { searchParams?: Promise<{ [key: 
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-function ProgressTimeline({ entryStatus, brainGymCompleted, lotteryCount }: any) {
-  const steps = [
-    {
-      id: 'reel',
-      label: 'Reel',
-      status: entryStatus === 'approved' ? 'completed' : entryStatus === 'pending' ? 'in_progress' : entryStatus === 'rejected' ? 'failed' : 'pending',
-      icon: Video,
-      value: entryStatus === 'approved' ? 'Approved' : entryStatus === 'pending' ? 'Reviewing' : entryStatus === 'rejected' ? 'Rejected' : 'Not Submitted'
-    },
-    {
-      id: 'braingym',
-      label: 'Brain Gym',
-      status: brainGymCompleted ? 'completed' : 'pending',
-      icon: Brain,
-      value: brainGymCompleted ? 'Completed' : 'Pending'
-    },
-    {
-      id: 'lottery',
-      label: 'Lottery',
-      status: lotteryCount > 0 ? 'completed' : 'pending',
-      icon: Ticket,
-      value: `${lotteryCount} Ticket${lotteryCount !== 1 ? 's' : ''}`
-    }
-  ];
-
-  return (
-    <div className="flex items-center justify-center w-full min-w-[280px] max-w-[360px] mx-auto py-1">
-      {steps.map((step, index) => {
-        const Icon = step.icon;
-        const isCompleted = step.status === 'completed';
-        const isInProgress = step.status === 'in_progress';
-        const isFailed = step.status === 'failed';
-        
-        let bgColor = 'bg-gray-100 border-gray-200';
-        let iconColor = 'text-gray-400';
-        let textColor = 'text-gray-500';
-
-        if (isCompleted) {
-          bgColor = 'bg-green-500 border-green-500 shadow-green-500/20 shadow-sm';
-          iconColor = 'text-white';
-          textColor = 'text-green-600';
-        } else if (isInProgress) {
-          bgColor = 'bg-amber-500 border-amber-500 shadow-amber-500/20 shadow-sm';
-          iconColor = 'text-white';
-          textColor = 'text-amber-600';
-        } else if (isFailed) {
-          bgColor = 'bg-red-500 border-red-500 shadow-red-500/20 shadow-sm';
-          iconColor = 'text-white';
-          textColor = 'text-red-600';
-        }
-
-        return (
-          <div key={step.id} className="flex items-center flex-1 last:flex-none">
-            <div className="flex flex-col items-center gap-1 w-16">
-              <div className={`w-7 h-7 rounded-full border-2 flex items-center justify-center z-10 transition-all ${bgColor}`}>
-                <Icon className={`w-3.5 h-3.5 ${iconColor}`} />
-              </div>
-              <div className="flex flex-col items-center">
-                <span className="text-[9px] font-bold uppercase tracking-wider whitespace-nowrap text-black">{step.label}</span>
-                <span className={`text-[8.5px] font-bold whitespace-nowrap leading-none mt-0.5 ${textColor}`}>{step.value}</span>
-              </div>
-            </div>
-            
-            {index < steps.length - 1 && (
-              <div className="flex-1 mx-1.5 h-1 rounded-full bg-gray-100 relative -mt-6">
-                 <div className={`absolute top-0 left-0 h-full transition-all duration-500 ${isCompleted ? 'w-full bg-green-400' : 'w-0'}`}></div>
-              </div>
-            )}
-          </div>
-        );
-      })}
     </div>
   );
 }

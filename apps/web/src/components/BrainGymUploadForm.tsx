@@ -4,11 +4,11 @@ import { useState } from "react";
 import confetti from "canvas-confetti";
 import SuccessModal from "./SuccessModal";
 
-type ReelUploadFormProps = {
+type BrainGymUploadFormProps = {
   onSuccess: () => void;
 };
 
-export default function ReelUploadForm({ onSuccess }: ReelUploadFormProps) {
+export default function BrainGymUploadForm({ onSuccess }: BrainGymUploadFormProps) {
   const [reelUrl, setReelUrl] = useState("");
   const [instagramUsername, setInstagramUsername] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -44,7 +44,7 @@ export default function ReelUploadForm({ onSuccess }: ReelUploadFormProps) {
     setIsSubmitting(true);
 
     try {
-      const res = await fetch("/api/ambassador/reel-upload", {
+      const res = await fetch("/api/ambassador/brain-gym", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
@@ -62,14 +62,12 @@ export default function ReelUploadForm({ onSuccess }: ReelUploadFormProps) {
           origin: { y: 0.6 }
         });
         
-        
-        
         setShowSuccess(true);
       } else {
         setError(data.error || "Failed to submit reel");
       }
     } catch (err) {
-      console.error("Reel submission error:", err);
+      console.error("Brain Gym submission error:", err);
       setError("Failed to submit reel. Please try again.");
     } finally {
       setIsSubmitting(false);
@@ -79,10 +77,10 @@ export default function ReelUploadForm({ onSuccess }: ReelUploadFormProps) {
   return (
     <div className="bg-white rounded-2xl shadow-xl p-8">
       <h3 className="text-2xl font-bold text-slate-800 mb-2 text-center">
-        🎬 Upload Your Entry Challenge Reel
+        🧠 Brain Gym Challenge Submission
       </h3>
       <p className="text-slate-600 text-center mb-6">
-        Complete your Swago Ambassador First Challenge!
+        Complete your Brain Gym challenge and earn 15 Swago Dollars!
       </p>
 
       {error && (
@@ -137,7 +135,7 @@ export default function ReelUploadForm({ onSuccess }: ReelUploadFormProps) {
           disabled={isSubmitting}
           className="w-full bg-[hsl(var(--swago-purple))] text-white font-bold py-3 px-6 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {isSubmitting ? "Submitting..." : "Submit Reel 🚀"}
+          {isSubmitting ? "Submitting..." : "Submit Challenge 🚀"}
         </button>
       </form>
 
@@ -147,7 +145,7 @@ export default function ReelUploadForm({ onSuccess }: ReelUploadFormProps) {
           setShowSuccess(false);
           onSuccess();
         }}
-        message="Congratulations, your reel has been sent for review and your amount will be added after approval."
+        message="Congratulations, your brain gym reel has been sent for review and your amount will be added after approval."
       />
     </div>
   );

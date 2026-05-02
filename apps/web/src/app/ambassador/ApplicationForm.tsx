@@ -584,7 +584,7 @@ export default function ApplicationForm() {
                 Your account has been created successfully!
               </p>
               <p className="text-sm text-slate-600 mb-6 font-bold uppercase tracking-tight">
-                Redirecting to your profile in 3 seconds...
+                Redirecting to kid's profile in 3 seconds...
               </p>
               <button
                 onClick={() => router.push("/profile")}

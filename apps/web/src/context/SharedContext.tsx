@@ -74,11 +74,22 @@ export type User = {
     entryChallenge?: {
       submitted?: boolean;
       reelUrl?: string;
+      instagramUsername?: string;
+      submittedAt?: string;
+      reviewedAt?: string;
       status?: string;
+      reviewNotes?: string;
     };
     brainGym?: {
       completed?: boolean;
+      reelUrl?: string;
+      instagramUsername?: string;
+      submittedAt?: string;
+      reviewedAt?: string;
+      status?: string;
+      reviewNotes?: string;
     };
+
   };
 };
 

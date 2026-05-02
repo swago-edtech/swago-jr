@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { formatPrice } from '@swago/utils';
 import { connectDB, User, Product } from '@swago/database';
 import { getAdminSession } from '@/lib/auth';
+import { User as UserIcon, Video, Brain, Ticket, CheckCircle2, Clock, AlertCircle, XCircle } from 'lucide-react';
 
 // Fetch user data directly from DB (no API call)
 async function getUserData(userId: string) {
@@ -101,6 +102,13 @@ async function getUserData(userId: string) {
     },
     orders,
     wishlist: wishlistEnriched,
+    age: user.age,
+    gender: user.gender,
+    grade: user.grade,
+    dob: user.dob,
+    ambassador: user.ambassador,
+    lotteryTickets: user.lotteryTickets || [],
+    swagoMoney: user.swagoMoney || 0,
   };
 }
 
@@ -119,6 +127,69 @@ function getTimeAgo(dateString: string | Date | null): string {
   if (diffMins < 60) return `${diffMins} minute${diffMins !== 1 ? 's' : ''} ago`;
   if (diffHours < 24) return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
   return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
+}
+
+function ChallengeTimelineRow({ title, description, icon: Icon, steps, progressPercent, progressColor = 'bg-green-500' }: any) {
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 md:p-6 mb-4 flex flex-col lg:flex-row gap-6 lg:gap-8 items-start lg:items-center">
+      
+      {/* Left side: Info */}
+      <div className="flex items-center gap-4 w-full lg:w-[260px] shrink-0">
+        <div className="w-12 h-12 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center shrink-0">
+          <Icon className="w-6 h-6 text-indigo-600" />
+        </div>
+        <div>
+          <h3 className="font-bold text-gray-900 text-sm uppercase tracking-tight">{title}</h3>
+          <p className="text-xs font-medium text-gray-500 mt-0.5">{description}</p>
+        </div>
+      </div>
+
+      {/* Right side: Timeline */}
+      <div className="relative flex-1 w-full flex items-center justify-between px-2 md:px-8 mt-4 lg:mt-0">
+        {/* Background Line */}
+        <div className="absolute left-[20px] right-[20px] md:left-[40px] md:right-[40px] top-[14px] md:top-[16px] h-1.5 bg-gray-100 rounded-full z-0">
+           <div className={`h-full transition-all duration-1000 ease-out rounded-full ${progressColor}`} style={{ width: `${progressPercent}%` }}></div>
+        </div>
+
+        {/* Steps */}
+        {steps.map((step: any, idx: number) => {
+          let borderColor = 'border-gray-200';
+          let bgColor = 'bg-white';
+          let iconColor = 'text-gray-300';
+          let labelColor = 'text-gray-400';
+
+          switch (step.color) {
+            case 'green':
+              borderColor = 'border-green-500'; bgColor = 'bg-green-500'; iconColor = 'text-white'; labelColor = 'text-gray-900';
+              break;
+            case 'amber':
+              borderColor = 'border-amber-500'; bgColor = 'bg-white'; iconColor = 'text-amber-500'; labelColor = 'text-gray-900';
+              break;
+            case 'red':
+              borderColor = 'border-red-500'; bgColor = 'bg-white'; iconColor = 'text-red-500'; labelColor = 'text-gray-900';
+              break;
+            case 'gray':
+            default:
+              borderColor = 'border-gray-200'; bgColor = 'bg-white'; iconColor = 'text-gray-300'; labelColor = 'text-gray-400';
+              break;
+          }
+
+          const StepIcon = step.icon;
+          
+          return (
+            <div key={idx} className="relative z-10 flex flex-col items-center gap-2">
+               <div className={`w-7 h-7 md:w-8 md:h-8 rounded-full border-[3px] flex items-center justify-center transition-colors ${borderColor} ${bgColor}`}>
+                 <StepIcon className={`w-3.5 h-3.5 md:w-4 md:h-4 ${iconColor}`} />
+               </div>
+               <span className={`text-[9px] md:text-[10px] font-bold uppercase tracking-wider text-center max-w-[80px] leading-tight ${labelColor}`}>
+                 {step.label}
+               </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 export default async function UserDetailPage({
@@ -141,6 +212,91 @@ export default async function UserDetailPage({
 
   const { cart, cartStats, orders, wishlist } = user;
 
+  // --- Challenges & Milestones Calculation ---
+  const profileCompleted = !!(user.age && user.gender && user.grade && user.dob);
+  const entryChallengeStatus = user.ambassador?.entryChallenge?.status || 'not_submitted';
+  
+  const bgData = user.ambassador?.brainGym;
+  const bgStatus = bgData?.status || 'not_submitted';
+  const bgHasReel = !!bgData?.reelUrl;
+  const isGhostSubmission = bgData?.completed && !bgHasReel;
+  let computedBgStatus = 'not_submitted';
+  if (bgStatus === 'approved') computedBgStatus = 'approved';
+  else if (bgStatus === 'pending' && bgHasReel) computedBgStatus = 'pending';
+  else if (bgStatus === 'rejected') computedBgStatus = 'rejected';
+  else if (isGhostSubmission) computedBgStatus = 'not_submitted';
+
+  const productsMap = new Map<string, string>();
+  orders.forEach((order: any) => {
+    const status = (order.status || '').toLowerCase().trim();
+    const validStatuses = ['paid', 'delivered', 'shipped', 'completed'];
+    if (validStatuses.includes(status)) {
+      order.items?.forEach((item: any) => {
+        if (item.name) productsMap.set(item.name, item.name);
+      });
+    }
+  });
+  const purchasedBoxes = Array.from(productsMap.values()).filter(name =>
+    name === 'Seek Rush' || name === 'Scarf Dumb Charades' || name === 'Confidence Journal'
+  );
+  const eligibleLotteryCount = purchasedBoxes.length;
+  const claimedLotteryCount = (user.lotteryTickets || []).filter((t: any) => t.code).length;
+  // ---------------------------------------------
+
+
+  // --- Individual Timelines Data ---
+  
+  // 1. Profile Completion
+  const profileSteps = [
+    { label: 'Pending', icon: Clock, color: profileCompleted ? 'green' : 'amber' },
+    { label: 'Completed', icon: CheckCircle2, color: profileCompleted ? 'green' : 'gray' }
+  ];
+  const profileProgress = profileCompleted ? 100 : 0;
+
+  // 2. Entry Reel
+  const reelSteps = [
+    { label: 'Not Submitted', icon: AlertCircle, color: entryChallengeStatus === 'not_submitted' ? 'amber' : 'green' },
+    { label: entryChallengeStatus === 'rejected' ? 'Rejected' : 'Reviewing', icon: entryChallengeStatus === 'rejected' ? XCircle : Clock, color: entryChallengeStatus === 'not_submitted' ? 'gray' : entryChallengeStatus === 'rejected' ? 'red' : entryChallengeStatus === 'pending' ? 'amber' : 'green' },
+    { label: 'Approved', icon: CheckCircle2, color: entryChallengeStatus === 'approved' ? 'green' : 'gray' }
+  ];
+  const reelProgress = entryChallengeStatus === 'approved' ? 100 : entryChallengeStatus === 'not_submitted' ? 0 : 50;
+  const reelProgressColor = entryChallengeStatus === 'rejected' ? 'bg-red-500' : 'bg-green-500';
+
+  // 3. Brain Gym
+  const brainGymSteps = [
+    { label: 'Not Submitted', icon: AlertCircle, color: computedBgStatus === 'not_submitted' ? 'amber' : 'green' },
+    { label: computedBgStatus === 'rejected' ? 'Rejected' : 'Reviewing', icon: computedBgStatus === 'rejected' ? XCircle : Clock, color: computedBgStatus === 'not_submitted' ? 'gray' : computedBgStatus === 'rejected' ? 'red' : computedBgStatus === 'pending' ? 'amber' : 'green' },
+    { label: 'Approved', icon: CheckCircle2, color: computedBgStatus === 'approved' ? 'green' : 'gray' }
+  ];
+  const brainGymProgress = computedBgStatus === 'approved' ? 100 : computedBgStatus === 'not_submitted' ? 0 : 50;
+  const brainGymProgressColor = computedBgStatus === 'rejected' ? 'bg-red-500' : 'bg-green-500';
+
+  // 4. Lottery Claims
+  const lotterySteps = [
+    { label: 'Eligible', icon: Ticket, color: eligibleLotteryCount > 0 ? 'green' : 'amber' }
+  ];
+
+  if (eligibleLotteryCount === 0) {
+    lotterySteps.push({ label: 'No Boxes', icon: AlertCircle, color: 'gray' });
+  } else {
+    for(let i=1; i<=eligibleLotteryCount; i++) {
+       const isClaimed = claimedLotteryCount >= i;
+       const isCurrent = claimedLotteryCount === i - 1;
+       
+       lotterySteps.push({
+         label: `Claim ${i}`,
+         icon: isClaimed ? CheckCircle2 : Clock,
+         color: isClaimed ? 'green' : isCurrent ? 'amber' : 'gray'
+       });
+    }
+  }
+
+  let lotteryProgress = 0;
+  if (eligibleLotteryCount > 0) {
+    lotteryProgress = (claimedLotteryCount / eligibleLotteryCount) * 100;
+  }
+  // ---------------------------------------------
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -162,6 +318,57 @@ export default async function UserDetailPage({
         >
           ← Back to Users
         </Link>
+      </div>
+
+      {/* Challenges & Milestones Timelines Section */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="px-6 py-5 border-b border-gray-200 bg-gray-50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-black text-gray-900 flex items-center gap-2 uppercase tracking-tight">
+              🏆 Individual Challenges
+            </h2>
+            <p className="text-sm text-gray-500 font-medium mt-1">Detailed progress for each milestone.</p>
+          </div>
+          <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-black bg-gradient-to-r from-amber-100 to-yellow-100 text-amber-800 border border-amber-200 shadow-sm whitespace-nowrap">
+            Total Earned: {user.swagoMoney || 0} SD 🪙
+          </span>
+        </div>
+
+        <div className="p-6 md:p-8 bg-gray-50/50">
+          <ChallengeTimelineRow 
+            title="Profile Completion" 
+            description="Kid's demographic details"
+            icon={UserIcon}
+            steps={profileSteps}
+            progressPercent={profileProgress}
+          />
+
+          <ChallengeTimelineRow 
+            title="Entry Reel" 
+            description="Instagram Reel submission"
+            icon={Video}
+            steps={reelSteps}
+            progressPercent={reelProgress}
+            progressColor={reelProgressColor}
+          />
+
+          <ChallengeTimelineRow 
+            title="Brain Gym" 
+            description="Cognitive development tasks"
+            icon={Brain}
+            steps={brainGymSteps}
+            progressPercent={brainGymProgress}
+            progressColor={brainGymProgressColor}
+          />
+
+          <ChallengeTimelineRow 
+            title="Lottery Claims" 
+            description={`Based on ${eligibleLotteryCount} eligible box(es)`}
+            icon={Ticket}
+            steps={lotterySteps}
+            progressPercent={lotteryProgress}
+          />
+        </div>
       </div>
 
       {/* Cart Stats Cards */}

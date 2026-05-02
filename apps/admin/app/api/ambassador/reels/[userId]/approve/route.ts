@@ -43,6 +43,7 @@ export async function POST(
 
     await user.save();
 
+
     console.log(`✅ Reel approved for user ${userId}. Awarded ${swagoMoneyReward} SD.`);
 
     return NextResponse.json({

@@ -36,6 +36,7 @@ const navigation = [
     icon: Award,
     submenu: [
       { name: 'Reel Submissions', href: '/ambassadors/reels' },
+      { name: 'Brain Gym', href: '/ambassadors/brain-gym' },
     ]
   },
   { name: 'Price Ranges', href: '/price-ranges', icon: Gift },

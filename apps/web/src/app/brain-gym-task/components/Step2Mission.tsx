@@ -7,7 +7,7 @@ interface StepProps {
 
 export default function Step2Mission({ onNext }: StepProps) {
   return (
-    <div className="flex-1 flex flex-col w-full min-h-screen md:min-h-full relative overflow-x-hidden bg-white px-4 pt-2 md:pt-0">
+    <div className="flex-1 flex flex-col w-full relative overflow-x-hidden bg-white px-4 pt-2">
       
       <div className="flex-1 flex flex-col md:flex-row w-full h-full max-w-7xl mx-auto items-center">
         

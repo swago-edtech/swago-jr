@@ -27,6 +27,8 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReelUploadForm from '@/components/ReelUploadForm';
+import BrainGymUploadForm from '@/components/BrainGymUploadForm';
+import BrainGymModal from '@/components/BrainGymModal';
 import CompleteProfileModal from '@/components/profile/CompleteProfileModal';
 
 const UI_THEMES = [
@@ -44,6 +46,7 @@ function ProfileContent() {
   const rawRedirect = searchParams.get("redirect");
   const redirectAfterAuth = rawRedirect?.startsWith('/kids') ? '/profile' : rawRedirect;
   const [showReelForm, setShowReelForm] = useState(false);
+  const [showBrainGymForm, setShowBrainGymForm] = useState(false);
   const [activeFilter, setActiveFilter] = useState("All");
   const [showFilters, setShowFilters] = useState(false);
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
@@ -140,7 +143,31 @@ function ProfileContent() {
     });
 
     // 2. Brain Gym Challenge
-    const bgCompleted = user?.ambassador?.brainGym?.completed;
+    const bgData = user?.ambassador?.brainGym;
+    const bgStatus = bgData?.status || 'not_submitted';
+    const bgHasReel = !!bgData?.reelUrl;
+    
+    let bgButtonText = 'Start';
+    let bgQuestStatus = 'pending';
+
+    // Handle "ghost" submissions from old schema where only 'completed' was saved
+    const isGhostSubmission = bgData?.completed && !bgHasReel;
+
+    if (bgStatus === 'approved') {
+      bgQuestStatus = 'completed';
+      bgButtonText = 'Completed';
+    } else if (bgStatus === 'pending' && bgHasReel) {
+      bgQuestStatus = 'reviewing';
+      bgButtonText = 'Reviewing';
+    } else if (bgStatus === 'rejected') {
+      bgQuestStatus = 'rejected';
+      bgButtonText = 'Rejected - Try Again';
+    } else if (isGhostSubmission) {
+      // Allow resubmission if data was lost
+      bgQuestStatus = 'pending';
+      bgButtonText = 'Start';
+    }
+
     allQuests.push({
       title: 'Brain Gym Challenge',
       description: `Complete the Brain Gym Challenge to build unstoppable focus!`,
@@ -155,8 +182,8 @@ function ProfileContent() {
       skill: 'Optimization',
       id: 'brain-gym-task',
       product: 'Common',
-      status: bgCompleted ? 'completed' : 'pending',
-      buttonText: bgCompleted ? 'Completed' : 'Start'
+      status: bgQuestStatus,
+      buttonText: bgButtonText
     });
 
     // 3. Product-Specific Tickets
@@ -223,8 +250,8 @@ function ProfileContent() {
                 🪙
               </div>
               <div>
-                <h3 className="font-[1000] text-[15px] sm:text-[17px] uppercase tracking-tighter leading-none italic">Complete your profile</h3>
-                <p className="text-[11px] sm:text-xs font-semibold text-slate-500 mt-1 leading-snug">Unlock your account fully and earn 5 Swago Money instantly!</p>
+                <h3 className="font-[1000] text-[15px] sm:text-[17px] uppercase tracking-tighter leading-none italic">Complete Kid's profile</h3>
+                <p className="text-[11px] sm:text-xs font-semibold text-slate-500 mt-1 leading-snug">Unlock kid's account fully and earn 5 Swago Money instantly!</p>
               </div>
             </div>
             <button 
@@ -403,7 +430,11 @@ function ProfileContent() {
                   </p>
                   <button 
                     disabled={quest.status === 'completed' || quest.status === 'reviewing'}
-                    onClick={() => { if (quest.id === 'reel-task') setShowReelForm(true); else if (quest.id === 'brain-gym-task') router.push('/brain-gym-task'); else router.push('/lottery-code'); }} 
+                    onClick={() => { 
+                      if (quest.id === 'reel-task') setShowReelForm(true); 
+                      else if (quest.id === 'brain-gym-task') setShowBrainGymForm(true); 
+                      else router.push('/lottery-code'); 
+                    }} 
                     className={`px-6 sm:px-8 py-2 sm:py-2.5 rounded-full text-[11px] sm:text-sm font-[1000] active:scale-95 transition-all text-center tracking-wide 
                       ${quest.status === 'completed' || quest.status === 'reviewing' 
                         ? 'bg-[hsl(var(--swago-purple))] text-white opacity-60 cursor-not-allowed' 
@@ -421,13 +452,25 @@ function ProfileContent() {
         </div>
       </div>
 
-      {/* Reel Modal — ✅ No more kidProfileId */}
+      {/* Reel Modal */}
       <AnimatePresence>
         {showReelForm && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md">
             <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="w-full max-w-lg bg-white rounded-[3rem] shadow-2xl relative">
               <button onClick={() => setShowReelForm(false)} className="absolute top-6 right-6 font-bold text-slate-400 hover:text-slate-800">✕</button>
               <div className="p-10"><ReelUploadForm onSuccess={() => { setShowReelForm(false); }} /></div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Brain Gym Modal */}
+      <AnimatePresence>
+        {showBrainGymForm && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md">
+            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="w-full max-w-lg bg-white rounded-[3rem] shadow-2xl relative">
+              <button onClick={() => setShowBrainGymForm(false)} className="absolute top-6 right-6 font-bold text-slate-400 hover:text-slate-800">✕</button>
+              <div className="p-10"><BrainGymUploadForm onSuccess={() => { setShowBrainGymForm(false); }} /></div>
             </motion.div>
           </div>
         )}
