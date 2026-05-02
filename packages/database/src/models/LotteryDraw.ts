@@ -45,7 +45,7 @@ const LotteryDrawSchema = new mongoose.Schema(
         winner: {
             kidProfileId: {
                 type: mongoose.Schema.Types.ObjectId,
-                ref: "KidProfile",
+                ref: "User",
             },
             kidName: String,
             ticketCode: String,

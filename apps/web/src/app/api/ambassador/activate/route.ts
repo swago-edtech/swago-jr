@@ -1,9 +1,9 @@
 // apps/web/src/app/api/ambassador/activate/route.ts
-import { NextRequest, NextResponse } from "next/server";
-import { connectDB, KidProfile } from "@swago/database";
+import { NextResponse } from "next/server";
+import { connectDB, User } from "@swago/database";
 import { getLoginSession } from "@/lib/auth";
 
-export async function POST(request: NextRequest) {
+export async function POST() {
   try {
     const session = await getLoginSession();
 
@@ -11,33 +11,30 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { kidProfileId } = await request.json();
-
-    if (!kidProfileId) {
-      return NextResponse.json(
-        { error: "Kid profile ID is required" },
-        { status: 400 }
-      );
-    }
-
     await connectDB();
 
-    const profile = await KidProfile.findById(kidProfileId);
+    // Find user from session
+    let user;
+    if (session.email) {
+      user = await User.findOne({ email: session.email });
+    } else if (session.phone) {
+      user = await User.findOne({ phone: session.phone });
+    }
 
-    if (!profile) {
+    if (!user) {
       return NextResponse.json(
-        { error: "Profile not found" },
+        { error: "User not found" },
         { status: 404 }
       );
     }
 
-    // Initialize ambassador program
-    await profile.initializeAmbassador();
+    // Initialize ambassador program on user
+    await user.initializeAmbassador();
 
     return NextResponse.json({
       success: true,
       message: "Ambassador program activated!",
-      swagoMoney: profile.ambassador.swagoMoney,
+      swagoMoney: user.ambassador.swagoMoney,
       badge: "Swago Saviour",
     });
   } catch (error) {

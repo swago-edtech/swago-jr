@@ -1,17 +1,19 @@
 "use client";
 
 import { useState } from "react";
+import confetti from "canvas-confetti";
+import SuccessModal from "./SuccessModal";
 
 type ReelUploadFormProps = {
-  kidProfileId: string;
   onSuccess: () => void;
 };
 
-export default function ReelUploadForm({ kidProfileId, onSuccess }: ReelUploadFormProps) {
+export default function ReelUploadForm({ onSuccess }: ReelUploadFormProps) {
   const [reelUrl, setReelUrl] = useState("");
   const [instagramUsername, setInstagramUsername] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,7 +48,6 @@ export default function ReelUploadForm({ kidProfileId, onSuccess }: ReelUploadFo
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
-          kidProfileId, 
           reelUrl: reelUrl.trim(),
           instagramUsername: instagramUsername.trim(),
         }),
@@ -55,7 +56,15 @@ export default function ReelUploadForm({ kidProfileId, onSuccess }: ReelUploadFo
       const data = await res.json();
 
       if (res.ok && data.success) {
-        onSuccess();
+        confetti({
+          particleCount: 150,
+          spread: 70,
+          origin: { y: 0.6 }
+        });
+        
+        
+        
+        setShowSuccess(true);
       } else {
         setError(data.error || "Failed to submit reel");
       }
@@ -131,6 +140,15 @@ export default function ReelUploadForm({ kidProfileId, onSuccess }: ReelUploadFo
           {isSubmitting ? "Submitting..." : "Submit Reel 🚀"}
         </button>
       </form>
+
+      <SuccessModal 
+        isOpen={showSuccess}
+        onClose={() => {
+          setShowSuccess(false);
+          onSuccess();
+        }}
+        message="Congratulations, your reel has been sent for review and your amount will be added after approval."
+      />
     </div>
   );
 }

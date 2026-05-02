@@ -46,40 +46,6 @@ export default function ApplicationForm() {
     setScriptLoaded(true);
   };
 
-  // ✅ Helper: Auto-select first kid profile and redirect
-  const autoSelectFirstProfile = async () => {
-    try {
-      console.log("🔍 Fetching kid profiles for auto-selection...");
-
-      const res = await fetch("/api/kid-profiles");
-      if (res.ok) {
-        const data = await res.json();
-        const profiles = data.profiles || [];
-
-        if (profiles.length > 0) {
-          const firstProfile = profiles[0];
-          console.log("✅ Auto-selecting first profile:", firstProfile.name);
-
-          // Save to localStorage
-          localStorage.setItem("selectedKidProfile", JSON.stringify({
-            _id: firstProfile._id,
-            name: firstProfile.name,
-            age: firstProfile.age,
-            avatarColor: firstProfile.avatarColor,
-          }));
-
-          return true;
-        } else {
-          console.warn("⚠️ No profiles found");
-          return false;
-        }
-      }
-      return false;
-    } catch (error) {
-      console.error("❌ Failed to auto-select profile:", error);
-      return false;
-    }
-  };
 
   // ✅ Ensure client-side only rendering AND handle widget conflicts
   useEffect(() => {
@@ -139,12 +105,12 @@ export default function ApplicationForm() {
   // ✅ Redirect if user is already logged in
   useEffect(() => {
     if (!isLoadingUser && user) {
-      console.log("✅ User already logged in, redirecting to /kids/dashboard");
+      console.log("✅ User already logged in, redirecting to /profile");
       router.push('/profile');
     }
   }, [user, isLoadingUser, router]);
 
-  // Redirect to /kids/dashboard after successful registration
+  // Redirect to /profile after successful registration
   useEffect(() => {
     if (step === 'success') {
       const timer = setTimeout(() => {
@@ -512,14 +478,11 @@ export default function ApplicationForm() {
               setUser(responseData.user);
               window.dispatchEvent(new CustomEvent(USER_EVENTS.LOGIN));
 
-              setMessage("✅ Login successful! Loading your profile...");
-
-              // ✅ AUTO-SELECT FIRST PROFILE
-              const profileSelected = await autoSelectFirstProfile();
+              setMessage("✅ Login successful!");
 
               setIsSubmitting(false);
 
-              // Redirect to dashboard (or /kids if no profiles)
+              // Redirect to profile
               setTimeout(() => {
                 router.push('/profile');
               }, 500);
@@ -555,16 +518,6 @@ export default function ApplicationForm() {
             setUser(responseData.user);
             window.dispatchEvent(new CustomEvent(USER_EVENTS.LOGIN));
 
-            // ✅ AUTO-SAVE THE CREATED KID PROFILE
-            if (responseData.kidProfile) {
-              console.log("✅ Auto-selecting newly created profile:", responseData.kidProfile.name);
-              localStorage.setItem("selectedKidProfile", JSON.stringify({
-                _id: responseData.kidProfile._id,
-                name: responseData.kidProfile.name,
-                age: responseData.kidProfile.age,
-                avatarColor: responseData.kidProfile.avatarColor,
-              }));
-            }
 
             setMessage("✅ Account created successfully!");
             setStep("success");
@@ -631,7 +584,7 @@ export default function ApplicationForm() {
                 Your account has been created successfully!
               </p>
               <p className="text-sm text-slate-600 mb-6 font-bold uppercase tracking-tight">
-                Redirecting to your profile in 3 seconds...
+                Redirecting to kid's profile in 3 seconds...
               </p>
               <button
                 onClick={() => router.push("/profile")}

@@ -1,20 +1,15 @@
 // apps/web/src/app/api/lottery/redeem/route.ts
 
 import { NextRequest, NextResponse } from 'next/server';
-import { connectDB, LotteryCode, Product, User, KidProfile } from '@swago/database';
+import { connectDB, LotteryCode, Product, User } from '@swago/database';
 import { getLoginSession } from '@/lib/auth';
 
-// 🆕 NEW: Ticket type mapping
-const TICKET_TYPES = {
-  SSR: {
-    name: "Diamond Ticket",
-    productName: "Seek Rush",
-  },
-  SDC: {
-    name: "Golden Ticket",
-    productName: "Scarf Dumb Charades",
-  },
-} as const;
+// Ticket type names mapping
+const TICKET_TYPE_NAMES: Record<string, string> = {
+  SSR: "Diamond Ticket",
+  SDC: "Golden Ticket",
+  SCJ: "Diamond Ticket",
+};
 
 export async function POST(req: NextRequest) {
   try {
@@ -48,44 +43,26 @@ export async function POST(req: NextRequest) {
 
     // 3. Parse request body
     const body = await req.json();
-    const { code, kidProfileId } = body; // 🆕 CHANGED: Added kidProfileId
+    const { code } = body;
 
     if (!code || typeof code !== 'string') {
       return NextResponse.json({ error: 'Code is required' }, { status: 400 });
     }
 
-    // 🆕 NEW: Validate kidProfileId is provided
-    if (!kidProfileId) {
-      return NextResponse.json({
-        error: 'Please select a kid profile to redeem this code'
-      }, { status: 400 });
-    }
-
     const trimmedCode = code.trim().toUpperCase();
 
     // 4. Validate code format: SWAGO-XXX-XXXXXX
-    // 🆕 CHANGED: Now specifically checking for SSR or SDC
-    if (!/^SWAGO-(SSR|SDC)-[A-Z0-9]{6}$/.test(trimmedCode)) {
+    // Now allowing any alphanumeric shortForm (2-5 characters)
+    const formatRegex = /^SWAGO-([A-Z0-9]{2,5})-[A-Z0-9]{6}$/;
+    if (!formatRegex.test(trimmedCode)) {
       return NextResponse.json({
-        error: 'Invalid code format. Use format: SWAGO-SSR-XXXXXX or SWAGO-SDC-XXXXXX'
+        error: 'Invalid code format. Use format: SWAGO-XXX-XXXXXX'
       }, { status: 400 });
     }
 
-    // 🆕 NEW: Extract shortForm and ticketType from code
-    const shortForm = trimmedCode.split('-')[1] as 'SSR' | 'SDC';
-    const ticketType = TICKET_TYPES[shortForm].name;
-
-    // 🆕 NEW: Verify kid profile belongs to this user
-    const kidProfile = await KidProfile.findOne({
-      _id: kidProfileId,
-      userId: user._id
-    });
-
-    if (!kidProfile) {
-      return NextResponse.json({
-        error: 'Kid profile not found or does not belong to you'
-      }, { status: 404 });
-    }
+    // Extract shortForm from code
+    const match = trimmedCode.match(formatRegex);
+    const shortForm = match ? match[1] : '';
 
     // 5. Find the code in database
     const lotteryCode = await LotteryCode.findOne({ code: trimmedCode });
@@ -103,14 +80,14 @@ export async function POST(req: NextRequest) {
       }, { status: 400 });
     }
 
-    // 🆕 NEW: Verify shortForm matches (extra validation)
+    // Verify shortForm matches
     if (lotteryCode.shortForm !== shortForm) {
       return NextResponse.json({
         error: `This code is for ${lotteryCode.shortForm} product, but you entered ${shortForm}`
       }, { status: 400 });
     }
 
-    // 7. Get product details
+    // 7. Get product details to ensure it still exists
     const product = await Product.findById(lotteryCode.productId);
 
     if (!product) {
@@ -119,16 +96,17 @@ export async function POST(req: NextRequest) {
       }, { status: 404 });
     }
 
+    // Determine ticket type name dynamically
+    const ticketType = TICKET_TYPE_NAMES[shortForm] || `${product.name} Ticket`;
+
     // 8. Mark code as used
-    // 🆕 CHANGED: usedBy now stores kidProfile._id instead of user._id
     lotteryCode.isUsed = true;
-    lotteryCode.usedBy = kidProfile._id;
+    lotteryCode.usedBy = user._id;
     lotteryCode.usedAt = new Date();
     await lotteryCode.save();
 
-    // 9. Use helper method to redeem ticket
-    // 🆕 NEW: Using the new redeemLotteryCode() method from KidProfile
-    await kidProfile.redeemLotteryCode({
+    // 9. Use helper method to redeem ticket directly on User
+    await user.redeemLotteryCode({
       codeId: lotteryCode._id,
       code: trimmedCode,
       productId: product._id,
@@ -137,12 +115,7 @@ export async function POST(req: NextRequest) {
       ticketType: ticketType,
     });
 
-    // Award 20 Swago Money to parent profile as well
-    user.swagoMoney = (user.swagoMoney || 0) + 20;
-    await user.save();
-
-    // 10. Return success with detailed info
-    // 🆕 CHANGED: Now includes kid profile info and ticket details
+    // 10. Return success
     return NextResponse.json({
       success: true,
       message: 'Code redeemed successfully!',
@@ -151,14 +124,14 @@ export async function POST(req: NextRequest) {
         productName: product.name,
         shortForm: lotteryCode.shortForm,
         ticketType: ticketType,
-        swagoMoneyEarned: 20,
+        swagoMoneyEarned: 10,
         redeemedAt: new Date().toISOString(),
       },
-      kidProfile: {
-        _id: kidProfile._id,
-        name: kidProfile.username,
-        newBalance: kidProfile.ambassador?.swagoMoney || 20, // Show new balance
-        totalTickets: kidProfile.lotteryTickets?.length || 1,
+      user: {
+        _id: user._id,
+        name: user.name,
+        newBalance: user.ambassador?.swagoMoney || 10,
+        totalTickets: user.lotteryTickets?.length || 1,
       },
     });
 
@@ -170,3 +143,4 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+

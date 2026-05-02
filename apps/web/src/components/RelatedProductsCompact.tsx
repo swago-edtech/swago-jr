@@ -41,7 +41,7 @@ export default function RelatedProductsCompact({ currentProductId }: RelatedProd
       {products.map((product) => (
         <div
           key={product._id || product.id}
-          className="flex-shrink-0 w-28 snap-start group bg-slate-50 rounded-xl p-1.5 border border-slate-100/50"
+          className="group bg-slate-50 rounded-xl p-1.5 border border-slate-100/50"
         >
           <Link href={`/product/${product.slug || product._id || product.id}`}>
             <div className="relative aspect-square rounded-lg overflow-hidden bg-white mb-1.5 shadow-sm">

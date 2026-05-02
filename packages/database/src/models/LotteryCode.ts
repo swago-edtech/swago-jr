@@ -41,7 +41,7 @@ const LotteryCodeSchema = new mongoose.Schema(
     },
     usedBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "KidProfile", // Changed from User to KidProfile based on usage
+      ref: "User",
       default: null,
     },
     usedAt: {

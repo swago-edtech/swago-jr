@@ -14,12 +14,11 @@ export default function LayoutUI({ children, isBlogOnly }: LayoutUIProps) {
   const pathname = usePathname();
 
   // Check routes for conditional rendering
-  const isKidsRoute = pathname.startsWith("/kids");
   const isLoginRoute = pathname.startsWith("/login");
   const isBlogRoute = pathname.startsWith("/blog");
 
   // Logic for showing elements
-  const showBanner = !isKidsRoute && !isBlogOnly && !isLoginRoute;
+  const showBanner = !isBlogOnly && !isLoginRoute;
   const showNavAndFooter = (!isBlogOnly || isBlogRoute) && !isLoginRoute;
 
   return (

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getLoginSession } from "@/lib/auth";
-import { connectDB, User, KidProfile } from "@swago/database";
+import { connectDB, User } from "@swago/database";
 import ApplicationForm from "../ApplicationForm";
 
 export const metadata = {
@@ -25,27 +25,17 @@ export default async function RegisterPage() {
       }
 
       if (user) {
-        // Count kid profiles
-        const kidCount = await KidProfile.countDocuments({ userId: user._id });
-
-        if (kidCount === 0) {
-          // No kids → go create one
-          console.log("✅ User logged in with 0 kids, redirecting to /profile/kids/new");
-          redirect("/profile/kids/new");
-        } else {
-          // Has kids → go to dashboard
-          console.log(`✅ User logged in with ${kidCount} kid(s), redirecting to /kids/dashboard`);
-          redirect("/kids/dashboard");
-        }
+        // ✅ User exists → redirect directly to profile
+        console.log("✅ User logged in, redirecting to /profile");
+        redirect("/profile");
       }
     } catch (error) {
       // ✅ Re-throw NEXT_REDIRECT errors (this is how redirect() works internally)
       if (error && typeof error === 'object' && 'digest' in error) {
         throw error;
       }
-      console.error("❌ Error checking kid profiles:", error);
-      // Fallback to dashboard
-      redirect("/kids/dashboard");
+      console.error("❌ Error checking user:", error);
+      redirect("/profile");
     }
   }
 

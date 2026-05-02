@@ -21,7 +21,6 @@ interface SuccessData {
 
 interface ClaimPhaseProps {
   ticketType: 'SSR' | 'SDC';
-  kidProfileId: string;
   onBack: () => void;
   onSuccess: (data: SuccessData) => void;
 }
@@ -43,7 +42,6 @@ const TICKET_INFO = {
 
 export default function ClaimPhase({
   ticketType,
-  kidProfileId,
   onBack,
   onSuccess
 }: ClaimPhaseProps) {
@@ -136,7 +134,6 @@ export default function ClaimPhase({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           code: fullCode,
-          kidProfileId: kidProfileId,
         }),
       });
 

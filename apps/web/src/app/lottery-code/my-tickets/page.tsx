@@ -5,7 +5,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import Image from "next/image";
 import { FiArrowLeft } from "react-icons/fi";
 
 interface Ticket {
@@ -18,70 +17,25 @@ interface Ticket {
   redeemedAt: string;
 }
 
-interface KidProfile {
-  _id: string;
-  name: string;
-  age: number;
-  avatarColor?: string;
-}
-
-interface KidInfo {
-  _id: string;
-  username: string;
-  age: number;
-  avatar?: string;
-  swagoMoney: number;
-}
-
 export default function MyTicketsPage() {
-  const [kidProfiles, setKidProfiles] = useState<KidProfile[]>([]);
-  const [selectedKidId, setSelectedKidId] = useState<string | null>(null);
   const [tickets, setTickets] = useState<Ticket[]>([]);
-  const [kidInfo, setKidInfo] = useState<KidInfo | null>(null);
+  const [swagoMoney, setSwagoMoney] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchKidProfiles();
+    fetchTickets();
   }, []);
 
-  useEffect(() => {
-    if (selectedKidId) {
-      fetchTickets(selectedKidId);
-    }
-  }, [selectedKidId]);
-
-  const fetchKidProfiles = async () => {
-    try {
-      const res = await fetch('/api/kid-profiles');
-      const data = await res.json();
-
-      if (res.ok && data.profiles) {
-        setKidProfiles(data.profiles);
-
-        if (data.profiles.length > 0) {
-          setSelectedKidId(data.profiles[0]._id);
-        }
-      } else {
-        setError(data.error || 'Failed to load kid profiles');
-      }
-    } catch (error) {
-      console.error('Failed to load kid profiles:', error);
-      setError('Failed to load kid profiles');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchTickets = async (kidId: string) => {
+  const fetchTickets = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`/api/lottery/my-tickets?kidProfileId=${kidId}`);
+      const res = await fetch('/api/lottery/my-tickets');
       const data = await res.json();
 
       if (res.ok) {
         setTickets(data.tickets || []);
-        setKidInfo(data.kidProfile || null);
+        setSwagoMoney(data.swagoMoney || 0);
       } else {
         setError(data.error || 'Failed to load tickets');
       }
@@ -125,59 +79,23 @@ export default function MyTicketsPage() {
           </p>
         </div>
 
-        {/* Kid Selector */}
-        {kidProfiles.length > 1 && (
-          <div className="bg-white rounded-2xl shadow-md p-4 mb-6">
-            <p className="text-sm font-semibold text-slate-700 mb-3">
-              Select Kid Profile:
-            </p>
-            <div className="flex gap-3 overflow-x-auto pb-2">
-              {kidProfiles.map((kid) => (
-                <button
-                  key={kid._id}
-                  onClick={() => setSelectedKidId(kid._id)}
-                  className={`
-                    flex items-center gap-3 px-4 py-2 rounded-xl border-2 transition-all flex-shrink-0
-                    ${selectedKidId === kid._id
-                      ? 'border-[hsl(var(--swago-purple))] bg-purple-50'
-                      : 'border-slate-200 bg-white hover:border-slate-300'
-                    }
-                  `}
-                >
-                  {/* ✅ Fixed: Show avatar image instead of colored circle */}
-                  <Image
-                    src={kid.avatarColor?.startsWith('#') ? '/images/swoo.png' : kid.avatarColor || '/images/swoo.png'}
-                    alt={kid.name}
-                    width={40}
-                    height={40}
-                    className="w-10 h-10 rounded-full object-cover"
-                  />
-                  <span className="font-bold text-slate-800">{kid.name}</span>
-                </button>
-              ))}
+        {/* Info Banner */}
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-[hsl(var(--swago-purple))] text-white rounded-2xl p-6 mb-6 shadow-lg"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm opacity-90 mb-1">Total Tickets</p>
+              <p className="text-4xl font-black">{tickets.length}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-sm opacity-90 mb-1">Swago Money</p>
+              <p className="text-4xl font-black">{swagoMoney}</p>
             </div>
           </div>
-        )}
-
-        {/* Kid Info Banner */}
-        {kidInfo && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-[hsl(var(--swago-purple))] text-white rounded-2xl p-6 mb-6 shadow-lg"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm opacity-90 mb-1">Total Tickets</p>
-                <p className="text-4xl font-black">{tickets.length}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-sm opacity-90 mb-1">Swago Money</p>
-                <p className="text-4xl font-black">{kidInfo.swagoMoney}</p>
-              </div>
-            </div>
-          </motion.div>
-        )}
+        </motion.div>
 
         {/* Loading */}
         {loading && (

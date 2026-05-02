@@ -14,22 +14,12 @@ const SURPRISE_GIFTS = [
   { icon: "🎟️", title: "VIP Tickets", desc: "Exclusive access to new launches" }
 ];
 
-const TICKET_TYPES = [
-  { id: 'SSR', label: '💎 Diamond Ticket', product: 'Seek Rush' },
-  { id: 'SDC', label: '🏆 Golden Ticket', product: 'Scarf Dumb Charades' }
-];
 
-interface KidProfile {
-  _id: string;
-  name: string;
-  age: number;
-}
+
 
 export default function LotteryClient() {
   const [step, setStep] = useState(0);
   const [selectedTicket, setSelectedTicket] = useState('');
-  const [selectedKid, setSelectedKid] = useState('');
-  const [kidProfiles, setKidProfiles] = useState<KidProfile[]>([]);
   const [winners, setWinners] = useState<any[]>([]);
   const [ticketCode, setTicketCode] = useState(['', '', '', '', '', '']);
   const [loading, setLoading] = useState(false);
@@ -37,21 +27,12 @@ export default function LotteryClient() {
   const [earnedMoney, setEarnedMoney] = useState<number>(0);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  useEffect(() => {
-    fetchKidProfiles();
-    fetchWinners();
-  }, []);
+  const [ticketTypes, setTicketTypes] = useState<any[]>([]);
 
-  const fetchKidProfiles = async () => {
-    try {
-      const res = await fetch('/api/kid-profiles');
-      const data = await res.json();
-      if (res.ok && data.profiles) {
-        setKidProfiles(data.profiles);
-        if (data.profiles.length > 0) setSelectedKid(data.profiles[0]._id);
-      }
-    } catch (err) { console.error(err); }
-  };
+  useEffect(() => {
+    fetchWinners();
+    fetchTicketTypes();
+  }, []);
 
   const fetchWinners = async () => {
     try {
@@ -61,10 +42,24 @@ export default function LotteryClient() {
     } catch (err) { console.error(err); }
   };
 
+  const fetchTicketTypes = async () => {
+    try {
+      const res = await fetch('/api/lottery/ticket-types');
+      const data = await res.json();
+      if (res.ok && data.ticketTypes) {
+        setTicketTypes(data.ticketTypes);
+        // Auto-select first one if only one exists
+        if (data.ticketTypes.length === 1) {
+          setSelectedTicket(data.ticketTypes[0].id);
+        }
+      }
+    } catch (err) { console.error(err); }
+  };
+
   const handleNext = () => {
     setError(null);
     if (step === 0) setStep(1);
-    else if (step === 1 && selectedTicket && selectedKid) setStep(2);
+    else if (step === 1 && selectedTicket) setStep(2);
   };
 
   const handleCodeChange = (index: number, value: string) => {
@@ -81,9 +76,16 @@ export default function LotteryClient() {
     e.preventDefault();
     let pastedText = e.clipboardData.getData('text').toUpperCase();
 
-    // Automatically extract 6-digit code if they paste the full "SWAGO-SSR-123456" formatted string
+    // Automatically extract shortForm and 6-digit code if they paste the full "SWAGO-SSR-123456" formatted string
     if (pastedText.includes('SWAGO-')) {
       const parts = pastedText.split('-');
+      if (parts.length >= 2) {
+        const pastedShortForm = parts[1];
+        if (ticketTypes.some(t => t.id === pastedShortForm)) {
+          setSelectedTicket(pastedShortForm);
+          if (step === 1) setStep(2); // Auto-advance to code entry
+        }
+      }
       pastedText = parts[parts.length - 1] || '';
     }
 
@@ -122,7 +124,7 @@ export default function LotteryClient() {
       const res = await fetch('/api/lottery/redeem', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: fullCode, kidProfileId: selectedKid }),
+        body: JSON.stringify({ code: fullCode }),
       });
       const data = await res.json();
       if (res.ok && data.success) {
@@ -208,17 +210,13 @@ export default function LotteryClient() {
                         className="w-full h-10 md:h-12 px-3 md:px-4 rounded-lg md:rounded-xl bg-white border-2 border-slate-100 font-bold text-xs md:text-sm outline-none focus:border-[hsl(var(--swago-purple))] transition-all appearance-none"
                       >
                         <option value="" disabled>Choose Ticket...</option>
-                        {TICKET_TYPES.map(t => (
+                        {ticketTypes.map(t => (
                           <option key={t.id} value={t.id}>{t.label}</option>
                         ))}
                       </select>
                     </div>
 
-                    {kidProfiles.length === 0 && (
-                      <p className="text-xs text-rose-500 font-bold mt-2">
-                        You need to add a kid profile first to claim a ticket!
-                      </p>
-                    )}
+
                   </div>
                 </motion.div>
               )}
@@ -261,7 +259,7 @@ export default function LotteryClient() {
               {/* Action Button that changes text */}
               <button
                 onClick={step === 2 ? claimTicket : handleNext}
-                disabled={loading || (step === 1 && (!selectedTicket || !selectedKid)) || (step === 2 && ticketCode.some(c => !c))}
+                disabled={loading || (step === 1 && !selectedTicket) || (step === 2 && ticketCode.some(c => !c))}
                 className="w-full btn-shine bg-[hsl(var(--swago-purple))] text-white font-black py-4 md:py-5 rounded-2xl md:rounded-[1.5rem] text-sm md:text-lg uppercase tracking-[0.2em] shadow-xl shadow-purple-100 active:scale-95 transition-all disabled:opacity-50 disabled:grayscale"
               >
                 {loading ? "Claiming..." : step === 0 ? "Claim your ticket" : step === 1 ? "Enter your code" : "Claim"}

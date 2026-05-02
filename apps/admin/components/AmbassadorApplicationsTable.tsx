@@ -132,7 +132,7 @@ export default function AmbassadorApplicationsTable({ initialApplications }: Amb
               id="status-filter"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:ring-2 focus:ring-blue-500"
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-black focus:ring-2 focus:ring-blue-500"
             >
               <option value="all">All Status</option>
               <option value="pending">Pending</option>
@@ -152,7 +152,7 @@ export default function AmbassadorApplicationsTable({ initialApplications }: Amb
               id="city-filter"
               value={cityFilter}
               onChange={(e) => setCityFilter(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:ring-2 focus:ring-blue-500"
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-black focus:ring-2 focus:ring-blue-500"
             >
               <option value="all">All Cities</option>
               {cities.map((city) => (
@@ -172,7 +172,7 @@ export default function AmbassadorApplicationsTable({ initialApplications }: Amb
               id="age-filter"
               value={ageFilter}
               onChange={(e) => setAgeFilter(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:ring-2 focus:ring-blue-500"
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-black focus:ring-2 focus:ring-blue-500"
             >
               <option value="all">All Ages</option>
               {[7, 8, 9, 10, 11, 12, 13, 14].map((age) => (

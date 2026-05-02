@@ -148,7 +148,7 @@ export default function AnnouncementPage() {
             placeholder="e.g., Use code SHARKFUN for 10% off! For new users only!"
             rows={3}
             maxLength={200}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-black placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
           <p className="text-xs text-gray-500 mt-1">
             {announcement.text.length}/200 characters
@@ -164,7 +164,7 @@ export default function AnnouncementPage() {
             id="background-color"
             value={announcement.backgroundColor}
             onChange={(e) => setAnnouncement({ ...announcement, backgroundColor: e.target.value })}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-black focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
             {Object.entries(BACKGROUND_OPTIONS).map(([key, label]) => (
               <option key={key} value={key}>

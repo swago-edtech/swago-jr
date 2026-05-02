@@ -1,7 +1,7 @@
 // apps/admin/app/api/lottery-draws/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
-import { connectDB, LotteryDraw, LotteryCode, KidProfile, User } from "@swago/database";
+import { connectDB, LotteryDraw, LotteryCode, User } from "@swago/database";
 
 // GET - List all lottery draws with summary
 export async function GET(request: NextRequest) {

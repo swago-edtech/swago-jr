@@ -341,6 +341,28 @@ export default function CartSidebar() {
                       </button>
                     </div>
 
+                    {/* Vertical Grid Area (Mobile Stack) - Added as requested */}
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                      {recommendedProducts.map((p) => (
+                        <div key={p._id || p.id} className="w-full group">
+                          <div className="relative aspect-square rounded-xl overflow-hidden mb-3 bg-slate-50 border border-slate-50">
+                            <Image src={p.images?.[0] || ''} alt={p.name} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
+                          </div>
+                          <h4 className="text-xs font-bold text-slate-800 line-clamp-1 mb-1">{p.name}</h4>
+                          <div className="flex items-center gap-2 flex-wrap my-1.5">
+                            <span className="text-sm font-black text-slate-900 tracking-tight">₹{p.price}</span>
+                          </div>
+                          <button
+                            onClick={() => addToCart(p, 1)}
+                            className="w-full py-2 rounded-lg border-2 border-[#1EAA5F] text-[#1EAA5F] text-[10px] font-black uppercase tracking-widest hover:bg-[#1EAA5F] hover:text-white transition-all flex items-center justify-center"
+                          >
+                            + ADD
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Horizontal Scroll Area - Commented out as requested
                     <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-none snap-x">
                       {recommendedProducts.map((p) => (
                         <div key={p._id || p.id} className="flex-shrink-0 w-44 snap-start group">
@@ -360,6 +382,7 @@ export default function CartSidebar() {
                         </div>
                       ))}
                     </div>
+                    */}
                   </div>
                 </div>
 

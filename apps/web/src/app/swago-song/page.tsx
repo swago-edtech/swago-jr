@@ -22,7 +22,7 @@ export default function YesICanFlow() {
             case 2: return <Step2Mascot onNext={nextStep} />;
             case 3: return <Step3SmartBox onNext={nextStep} />;
             case 4: return <Step4FaceAlign onNext={nextStep} />;
-            case 5: return <Step5Record onComplete={() => router.push("/kids/dashboard")} />;
+            case 5: return <Step5Record onComplete={() => router.push("/profile")} />;
             default: return null;
         }
     };

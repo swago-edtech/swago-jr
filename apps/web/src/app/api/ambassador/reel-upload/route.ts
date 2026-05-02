@@ -1,6 +1,6 @@
 // apps/web/src/app/api/ambassador/reel-upload/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { connectDB, KidProfile, User } from "@swago/database";
+import { connectDB, User } from "@swago/database";
 import { getLoginSession } from "@/lib/auth";
 
 // Submit reel URL
@@ -12,11 +12,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { kidProfileId, reelUrl } = await request.json();
+    const { reelUrl, instagramUsername } = await request.json();
 
-    if (!kidProfileId || !reelUrl) {
+    if (!reelUrl) {
       return NextResponse.json(
-        { error: "Kid profile ID and reel URL are required" },
+        { error: "Reel URL is required" },
         { status: 400 }
       );
     }
@@ -32,7 +32,6 @@ export async function POST(request: NextRequest) {
 
     await connectDB();
 
-    // ✅ FIX: Support both email and phone
     let user;
     if (session.email) {
       user = await User.findOne({ email: session.email });
@@ -44,49 +43,37 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const profile = await KidProfile.findOne({
-      _id: kidProfileId,
-      userId: user._id,
-    });
-
-    if (!profile) {
-      return NextResponse.json(
-        { error: "Profile not found or unauthorized" },
-        { status: 404 }
-      );
-    }
-
     // Check if already submitted
-    if (profile.ambassador.entryChallenge.submitted) {
+    if (user.ambassador?.entryChallenge?.submitted) {
       return NextResponse.json(
         { error: "Entry challenge already submitted" },
         { status: 400 }
       );
     }
 
+    // Initialize ambassador if needed
+    if (!user.ambassador) {
+      user.ambassador = {};
+    }
+
     // Update entry challenge
-    profile.ambassador.entryChallenge = {
+    user.ambassador.entryChallenge = {
       submitted: true,
       reelUrl: reelUrl,
+      instagramUsername: instagramUsername?.trim() || '',
       submittedAt: new Date(),
       status: "pending",
     };
-    profile.ambassador.status = "entry_pending";
+    user.ambassador.status = "entry_pending";
 
-    // Award 25 Swago Money for completion/submission
-    user.swagoMoney = (user.swagoMoney || 0) + 25;
-    
-    // Also award to kid profile for consistency
-    profile.ambassador.swagoMoney = (profile.ambassador.swagoMoney || 0) + 25;
-    profile.ambassador.totalEarnings = (profile.ambassador.totalEarnings || 0) + 25;
+    // Credit happens on admin approval, not here.
 
-    await profile.save();
     await user.save();
 
     return NextResponse.json({
       success: true,
-      message: "Reel submitted successfully! 25 Swago Dollars added to your wallet.",
-      swagoMoney: user.swagoMoney,
+      message: "Reel submitted successfully! Sent for review.",
+      swagoMoney: user.ambassador.swagoMoney || 0,
     });
   } catch (error) {
     console.error("Reel submission error:", error);
@@ -98,7 +85,7 @@ export async function POST(request: NextRequest) {
 }
 
 // Get reel status
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const session = await getLoginSession();
 
@@ -106,19 +93,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const url = new URL(request.url);
-    const kidProfileId = url.searchParams.get("kidProfileId");
-
-    if (!kidProfileId) {
-      return NextResponse.json(
-        { error: "Kid profile ID is required" },
-        { status: 400 }
-      );
-    }
-
     await connectDB();
 
-    // ✅ FIX: Support both email and phone
     let user;
     if (session.email) {
       user = await User.findOne({ email: session.email });
@@ -130,23 +106,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const profile = await KidProfile.findOne({
-      _id: kidProfileId,
-      userId: user._id,
-    });
-
-    if (!profile) {
-      return NextResponse.json(
-        { error: "Profile not found" },
-        { status: 404 }
-      );
-    }
-
     return NextResponse.json({
       success: true,
-      entryChallenge: profile.ambassador.entryChallenge,
-      currentStep: profile.ambassador.currentStep,
-      status: profile.ambassador.status,
+      entryChallenge: user.ambassador?.entryChallenge || { submitted: false, status: "not_submitted" },
+      currentStep: user.ambassador?.currentStep || 1,
+      status: user.ambassador?.status || "not_started",
     });
   } catch (error) {
     console.error("Get reel status error:", error);

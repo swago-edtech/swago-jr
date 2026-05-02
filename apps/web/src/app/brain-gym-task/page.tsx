@@ -17,7 +17,7 @@ export default function BrainGymTaskFlow() {
         switch (currentStep) {
             case 1: return <Step1Intro onNext={nextStep} />;
             case 2: return <Step2Mission onNext={nextStep} />;
-            case 3: return <Step3Reward onComplete={() => router.push("/kids/dashboard")} />;
+            case 3: return <Step3Reward onComplete={() => router.push("/profile")} />;
             default: return null;
         }
     };

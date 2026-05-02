@@ -154,7 +154,13 @@ export default function CouponsPage() {
                                         </button>
                                     </td>
                                     <td className="px-6 py-4">
-                                        <div className="flex gap-4">
+                                        <div className="flex gap-4 items-center">
+                                            <Link
+                                                href={`/coupons/${coupon._id}`}
+                                                className="text-blue-600 hover:text-blue-900 text-sm font-medium"
+                                            >
+                                                Edit
+                                            </Link>
                                             <button
                                                 onClick={() => handleDelete(coupon._id, coupon.code)}
                                                 disabled={deleting === coupon._id}

@@ -5,8 +5,13 @@ export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
   // ✅ Protected routes that require authentication
-  const protectedRoutes = ['/kids', '/orders', '/profile', '/lottery-code', '/checkout', '/swago-pass', '/ticket', '/wishlist'];
+  const protectedRoutes = ['/orders', '/profile', '/lottery-code', '/checkout', '/swago-pass', '/ticket', '/wishlist'];
   const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
+
+  // ✅ Legacy redirect for /kids routes
+  if (pathname.startsWith('/kids')) {
+    return NextResponse.redirect(new URL('/profile', request.url));
+  }
 
   // ✅ Check authentication for protected routes
   if (isProtectedRoute) {

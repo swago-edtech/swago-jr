@@ -30,7 +30,7 @@ const ProductCodeSchema = new mongoose.Schema(
     },
     usedBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "KidProfile", // References kid profile, not User!
+      ref: "User",
     },
     usedAt: {
       type: Date,

@@ -16,7 +16,7 @@ const dropdownVariants: Variants = {
 };
 
 export default function Navbar() {
-  const { user, cart, wishlist, selectedKid, openCartSidebar } = useSharedContext();
+  const { user, cart, wishlist, openCartSidebar } = useSharedContext();
 
   const [isAgeDropdownOpen, setAgeDropdownOpen] = useState(false);
   const [isElementDropdownOpen, setElementDropdownOpen] = useState(false);
@@ -88,6 +88,9 @@ export default function Navbar() {
             <Link href="/blog/child-brain-quiz" className="transition-colors hover:text-black font-bold">Child Brain Quiz</Link>
           ) : (
             <>
+              <motion.div whileHover={{ y: -2 }}>
+                <Link href="/products" className="transition-colors hover:text-black">All Products</Link>
+              </motion.div>
               <motion.div whileHover={{ y: -2 }}>
                 <Link href="/about" className="transition-colors hover:text-black">About Us</Link>
               </motion.div>
@@ -237,6 +240,8 @@ export default function Navbar() {
                       </span>
                     )}
                   </Link>
+                  <Link href="/products" onClick={() => setMobileMenuOpen(false)} className="block text-xl font-bold text-slate-800">All Products</Link>
+                  <Link href="/blog" onClick={() => setMobileMenuOpen(false)} className="block text-xl font-bold text-slate-800">Blogs</Link>
                   <Link href="/about" onClick={() => setMobileMenuOpen(false)} className="block text-xl font-bold text-slate-800">About Us</Link>
                   <hr className="border-slate-100" />
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectDB, LotteryCode, KidProfile, User } from "@swago/database";
+import { connectDB, LotteryCode, User } from "@swago/database";
 import { getAdminSession } from "@/lib/auth";
 
 export async function GET(req: NextRequest) {
@@ -16,16 +16,10 @@ export async function GET(req: NextRequest) {
             .sort({ usedAt: -1 })
             .lean();
 
-        // Get kid profile and parent info for each ticket
+        // ✅ Get user info for each ticket (usedBy now points to User)
         const ticketsWithDetails = await Promise.all(
             tickets.map(async (ticket: any) => {
-                const kidProfile = await KidProfile.findById(ticket.usedBy).select("username userId").lean() as { _id: any; username: string; userId: any } | null;
-                let parentInfo = null;
-
-                if (kidProfile) {
-                    const parent = await User.findById(kidProfile.userId).select("name phone email").lean() as { name: string; phone: string; email: string } | null;
-                    parentInfo = parent;
-                }
+                const user = await User.findById(ticket.usedBy).select("name phone email").lean() as { _id: any; name: string; phone: string; email: string } | null;
 
                 return {
                     _id: ticket._id,
@@ -33,11 +27,16 @@ export async function GET(req: NextRequest) {
                     productName: ticket.productName,
                     shortForm: ticket.shortForm,
                     redeemedAt: ticket.usedAt,
-                    kidProfile: kidProfile ? {
-                        _id: kidProfile._id,
-                        name: kidProfile.username,
+                    // Keep "kidProfile" key for backward compat with display pages
+                    kidProfile: user ? {
+                        _id: user._id,
+                        name: user.name || 'Unknown',
                     } : null,
-                    parent: parentInfo,
+                    parent: user ? {
+                        name: user.name,
+                        phone: user.phone,
+                        email: user.email,
+                    } : null,
                 };
             })
         );

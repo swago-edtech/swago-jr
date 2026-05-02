@@ -1,5 +1,5 @@
 import connectDB from "../packages/database/src/connection";
-import { User, KidProfile, Order } from "@swago/database";
+import { User, Order } from "@swago/database";
 
 async function run() {
   const phone = "6369758396";
@@ -15,9 +15,6 @@ async function run() {
 
     const userId = user._id;
     console.log(`Found user: ${user.name} (${userId})`);
-
-    const kidResult = await KidProfile.deleteMany({ userId });
-    console.log(`Deleted ${kidResult.deletedCount} kid profiles`);
 
     const orderResult = await Order.deleteMany({ userId });
     console.log(`Deleted ${orderResult.deletedCount} orders`);

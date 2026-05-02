@@ -65,9 +65,20 @@ export default function FeaturedProducts() {
           Our latest offerings
         </p>
 
-        {/* Horizontal Scroll Area */}
+        {/* Vertical Scroll Area (Mobile Stack) - Added as requested */}
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-x-2 gap-y-8 md:gap-6 mb-8">
+          {featured.map((product) => (
+            <div
+              key={getProductKey(product)}
+              className="w-full"
+            >
+              <ProductCard product={product} />
+            </div>
+          ))}
+        </div>
+
+        {/* Horizontal Scroll Area - Commented out as requested
         <div className="relative mb-8">
-          {/* 📱 Mobile: 82% card width + snap-start for a perfect ~15% peek at the next card */}
           <div className="flex overflow-x-auto gap-5 pb-8 snap-x snap-mandatory no-scrollbar scroll-smooth -mx-4 px-4 md:-mx-6 md:px-6 lg:mx-0 lg:px-0">
             {featured.map((product) => (
               <div
@@ -78,14 +89,13 @@ export default function FeaturedProducts() {
               </div>
             ))}
 
-            {/* Right Spacer for scroll end breathing room - hidden on desktop where no scroll is needed */}
             <div className="flex-none w-1 xl:hidden" />
           </div>
 
-          {/* Subtle fade indicators for scroll */}
           <div className="absolute top-0 left-0 w-8 h-full bg-gradient-to-r from-white to-transparent pointer-events-none md:hidden" />
           <div className="absolute top-0 right-0 w-8 h-full bg-gradient-to-l from-white to-transparent pointer-events-none md:hidden" />
         </div>
+        */}
 
         {/* View All Button */}
         <div className="mt-4">

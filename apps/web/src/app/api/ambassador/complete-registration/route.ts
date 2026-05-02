@@ -1,7 +1,7 @@
 // apps/web/src/app/api/ambassador/complete-registration/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { SignJWT } from "jose";
-import { connectDB, User, KidProfile } from "@swago/database";
+import { connectDB, User } from "@swago/database";
 import { z } from "zod";
 import { formatPhoneForStorage } from "@/lib/msg91";
 
@@ -129,52 +129,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create parent user account
-    console.log("👤 Creating parent account...");
-    const newUser = await User.create({
-      email: normalizedEmail,
-      phone: formattedPhone,
-      name: parentName.trim(),
-      address: city.trim(),
-      authMethod: "email",
-      cart: [],
-      wishlist: [],
-      orders: [],
-    });
-
-    console.log(`✅ Parent account created successfully:`, {
-      _id: newUser._id,
-      email: newUser.email,
-      name: newUser.name,
-      phone: newUser.phone,
-      address: newUser.address,
-    });
-
     // ✅ Determine avatar image based on gender
-    const avatarColor =
+    const avatarImage =
       gender === "boy" ? "/images/kid_boy1.png" :
         gender === "girl" ? "/images/kid_girl1.png" :
           "/images/kid_boy1.png";
 
-    // Create kid profile with ambassador program auto-activated
-    console.log("🧒 Creating kid profile...");
-    console.log("Kid profile data:", {
-      userId: newUser._id,
-      username: childName.trim(),
-      age: childAge,
-      gender: gender,
-      avatar: avatarColor,
-    });
-
-    const kidProfile = new KidProfile({
-      userId: newUser._id,
-      username: childName.trim(),
+    // ✅ Create user account with ambassador data directly (no more KidProfile)
+    console.log("👤 Creating user account with ambassador program...");
+    const newUser = await User.create({
+      email: normalizedEmail,
+      phone: formattedPhone,
+      name: childName.trim(), // Use child name as the account display name
+      address: city.trim(),
+      authMethod: "email",
       age: childAge,
       dob: new Date(childDob),
       gender: gender,
-      avatar: avatarColor,
-      unlockedProducts: [],
-      progress: {},
+      avatar: avatarImage,
+      cart: [],
+      wishlist: [],
+      orders: [],
       ambassador: {
         isAmbassador: true,
         status: "profile_created",
@@ -196,18 +171,17 @@ export async function POST(request: NextRequest) {
           completed: false,
         },
       },
+      swagoMoney: 0,
     });
 
-    await kidProfile.save();
-
-    console.log(`✅ Kid profile created successfully:`, {
-      _id: kidProfile._id,
-      username: kidProfile.username,
-      age: kidProfile.age,
-      gender: kidProfile.gender,
-      isAmbassador: kidProfile.ambassador?.isAmbassador,
-      swagoMoney: kidProfile.ambassador?.swagoMoney,
-      currentStep: kidProfile.ambassador?.currentStep,
+    console.log(`✅ User account created successfully:`, {
+      _id: newUser._id,
+      email: newUser.email,
+      name: newUser.name,
+      phone: newUser.phone,
+      isAmbassador: newUser.ambassador?.isAmbassador,
+      swagoMoney: newUser.ambassador?.swagoMoney,
+      currentStep: newUser.ambassador?.currentStep,
     });
 
     // Create JWT session
@@ -230,13 +204,7 @@ export async function POST(request: NextRequest) {
         wishlist: [],
         orders: [],
         cart: [],
-      },
-      kidProfile: {
-        _id: kidProfile._id,
-        name: kidProfile.username,
-        age: kidProfile.age,
-        gender: kidProfile.gender,
-        avatarColor: kidProfile.avatar,
+        swagoMoney: 0,
         ambassador: {
           swagoMoney: 0,
           badges: ["Swago Saviour"],

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import Razorpay from "razorpay";
 import mongoose from "mongoose";
 import { getLoginSession } from "@/lib/auth";
-import { connectDB, Product, Order, User, Coupon as CouponModel, Promotion, KidProfile } from "@swago/database";
+import { connectDB, Product, Order, User, Coupon as CouponModel, Promotion } from "@swago/database";
 import { isValidObjectId } from "mongoose";
 import { generateOrderId } from "@/lib/generateOrderId";
 import { cleanupExpiredOrders } from "@/lib/cleanupExpiredOrders";
@@ -281,7 +281,6 @@ export async function POST(req: Request) {
 
     // ✅ NEW: Handle Swago Money Redemption
     const swagoMoneyRedeemed = orderDetails.swagoMoneyRedeemed || 0;
-    let swagoMoneyKidId = orderDetails.swagoMoneyKidId;
 
     if (swagoMoneyRedeemed > 0) {
       if (calculatedAmountAfterCoupon < 799) {
@@ -293,27 +292,11 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: `You can only use up to 5% (₹${maxAllowed}) of your order amount in Swago Dollars` }, { status: 400 });
       }
 
-      // Verify User has enough
-      const profiles = await KidProfile.find({ userId: user._id }).select("ambassador.swagoMoney");
-      let totalAvailable = 0;
-      let profileToDeduct = null;
-
-      for (const p of profiles) {
-        const bal = p.ambassador?.swagoMoney || 0;
-        totalAvailable += bal;
-        if (bal >= swagoMoneyRedeemed) {
-          profileToDeduct = p._id;
-        }
-      }
+      // ✅ Verify User has enough — check directly on User
+      const totalAvailable = user.ambassador?.swagoMoney || user.swagoMoney || 0;
 
       if (totalAvailable < swagoMoneyRedeemed) {
         return NextResponse.json({ error: "Insufficient Swago Dollars balance" }, { status: 400 });
-      }
-
-      if (!swagoMoneyKidId && profileToDeduct) {
-        swagoMoneyKidId = profileToDeduct;
-      } else if (!swagoMoneyKidId && profiles.length > 0) {
-        swagoMoneyKidId = profiles[0]._id; // Fallback
       }
     }
 
@@ -347,7 +330,7 @@ export async function POST(req: Request) {
       shippingFee: shippingFee,
       total: calculatedTotal,
       swagoMoneyRedeemed: swagoMoneyRedeemed,
-      swagoMoneyKidId: swagoMoneyKidId,
+      swagoMoneyKidId: user._id,
       stockReservedAt: new Date(),
       paymentAttempts: 0,
       ...(validatedCoupon && {

@@ -248,7 +248,7 @@ export default function LotteryGeneratorPage() {
                 <select
                   value={selectedProductId}
                   onChange={handleProductSelect}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-black focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   <option value="">-- Select a Product --</option>
                   {products.map((product) => (
@@ -312,7 +312,7 @@ export default function LotteryGeneratorPage() {
                     onChange={(e) => setNewShortForm(e.target.value.toUpperCase())}
                     placeholder="e.g., SDC, SR, COMBO"
                     maxLength={10}
-                    className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-gray-900 placeholder-gray-400 uppercase focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-black placeholder-gray-400 uppercase focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                   <button
                     onClick={handleAddShortForm}
@@ -345,7 +345,7 @@ export default function LotteryGeneratorPage() {
                   <select
                     value={selectedShortForm}
                     onChange={handleShortFormSelect}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-black focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <option value="">-- Select Short Form --</option>
                     {shortForms.map((sf) => (
@@ -374,7 +374,7 @@ export default function LotteryGeneratorPage() {
                     min="1"
                     max="10000"
                     disabled={!selectedShortForm}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-black placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
                   />
                   <p className="text-xs text-gray-500 mt-1">Max: 10,000 codes per batch</p>
                 </div>

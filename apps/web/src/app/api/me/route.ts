@@ -15,6 +15,8 @@ interface IUser {
   address?: string;
   orders?: string[];
   swagoMoney?: number;
+  lotteryTickets?: any[];
+  ambassador?: any;
   createdAt?: Date;
   updatedAt?: Date;
 }

@@ -3,23 +3,81 @@ import { formatPrice } from '@swago/utils';
 import Link from 'next/link';
 import OrderDateCell from './OrderDateCell'; // ✨ NEW: Client component for dates
 import { cleanupExpiredOrders } from '@/lib/cleanupExpiredOrders';
+import OrderFilters from './OrderFilters';
+import Pagination from '@/components/Pagination';
 
-async function getOrders() {
+async function getOrders(searchParams: { [key: string]: string | undefined }) {
   await connectDB();
 
   // ✅ Clean up expired prepaid orders
   await cleanupExpiredOrders();
 
-  const orders = await Order.find()
-    .sort({ createdAt: -1 })
-    .select('orderId name phone email total status items createdAt razorpay_payment_id paymentMethod couponCode discount')
-    .lean();
+  const query: any = {};
 
-  return JSON.parse(JSON.stringify(orders));
+  if (searchParams.q) {
+    const searchRegex = new RegExp(searchParams.q, 'i');
+    query.$or = [
+      { orderId: searchRegex },
+      { name: searchRegex },
+      { phone: searchRegex },
+      { email: searchRegex },
+    ];
+  }
+
+  if (searchParams.status) {
+    query.status = searchParams.status;
+  }
+
+  if (searchParams.payment) {
+    query.paymentMethod = searchParams.payment;
+  }
+
+  let sortConfig: any = { createdAt: -1 };
+  if (searchParams.sort) {
+    switch (searchParams.sort) {
+      case 'oldest':
+        sortConfig = { createdAt: 1 };
+        break;
+      case 'highest':
+        sortConfig = { total: -1 };
+        break;
+      case 'lowest':
+        sortConfig = { total: 1 };
+        break;
+      case 'newest':
+      default:
+        sortConfig = { createdAt: -1 };
+        break;
+    }
+  }
+
+  const page = parseInt(searchParams.page || '1', 10) || 1;
+  const limit = 20;
+  const skip = (page - 1) * limit;
+
+  const [orders, totalCount] = await Promise.all([
+    Order.find(query)
+      .sort(sortConfig)
+      .skip(skip)
+      .limit(limit)
+      .select('orderId name phone email total status items createdAt razorpay_payment_id paymentMethod couponCode discount')
+      .lean(),
+    Order.countDocuments(query)
+  ]);
+
+  return {
+    orders: JSON.parse(JSON.stringify(orders)),
+    pagination: {
+      currentPage: page,
+      totalPages: Math.ceil(totalCount / limit),
+      totalCount,
+    }
+  };
 }
 
-export default async function OrdersPage() {
-  const orders = await getOrders();
+export default async function OrdersPage(props: { searchParams?: Promise<{ [key: string]: string | undefined }> }) {
+  const searchParams = (await props.searchParams) || {};
+  const { orders, pagination } = await getOrders(searchParams);
 
   return (
     <div className="space-y-6">
@@ -30,9 +88,11 @@ export default async function OrdersPage() {
           <p className="text-gray-600 mt-1">Manage all customer orders</p>
         </div>
         <div className="text-sm text-gray-500">
-          Total: {orders.length} orders
+          Total: {pagination.totalCount} orders
         </div>
       </div>
+
+      <OrderFilters />
 
       {/* Orders Table */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
@@ -72,7 +132,7 @@ export default async function OrdersPage() {
             <tbody className="bg-white divide-y divide-gray-200">
               {orders.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-12 text-center text-gray-500">
+                  <td colSpan={9} className="px-6 py-12 text-center text-gray-500">
                     No orders found
                   </td>
                 </tr>
@@ -138,6 +198,12 @@ export default async function OrdersPage() {
           </table>
         </div>
       </div>
+
+      <Pagination 
+        currentPage={pagination.currentPage}
+        totalPages={pagination.totalPages}
+        totalCount={pagination.totalCount}
+      />
     </div>
   );
 }
