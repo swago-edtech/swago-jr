@@ -80,12 +80,35 @@ export default function BookingModal({ isOpen, onClose, masterclass, session, cu
     try {
       setLoading(true);
       
+      // Re-fetch fresh masterclass data to get current session IDs
+      // (IDs can change if sessions are recreated via admin/seed)
+      let freshMasterclassId = masterclass._id;
+      let freshSessionId = session._id;
+      
+      try {
+        const freshRes = await fetch(`/api/masterclass?t=${Date.now()}`);
+        const freshData = await freshRes.json();
+        if (freshData.success && freshData.masterclass) {
+          freshMasterclassId = freshData.masterclass._id;
+          // Match by title since _id may have changed
+          const freshSession = freshData.masterclass.sessions.find(
+            (s: any) => s.title === session.title
+          );
+          if (freshSession) {
+            freshSessionId = freshSession._id;
+          }
+        }
+      } catch (refreshErr) {
+        console.warn("Could not refresh masterclass data, using cached IDs:", refreshErr);
+      }
+      
       const res = await fetch("/api/masterclass/book", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          masterclassId: masterclass._id,
-          sessionId: session._id,
+          masterclassId: freshMasterclassId,
+          sessionId: freshSessionId,
+          sessionTitle: session.title,
           currency: displayCurrency,
           ...formData,
           childAge: Number(formData.childAge)
