@@ -20,6 +20,8 @@ export { default as Promotion } from './models/Promotion';
 export { default as Quest } from './models/Quest';
 export { default as PriceRange } from './models/PriceRange';
 export { default as Blog } from './models/Blog';
+export { default as Masterclass } from './models/Masterclass';
+export { default as MasterclassBooking } from './models/MasterclassBooking';
 
 // Export database connection
 export { default as connectDB } from './connection';

@@ -5,7 +5,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { LayoutDashboard, ShoppingBag, Package, Users, MessageSquare, X, Menu, HelpCircle, TrendingUp, Award, ChevronDown, ChevronRight, Mail, Ticket, Megaphone, Trophy, Gift, Target } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, Package, Users, MessageSquare, X, Menu, HelpCircle, TrendingUp, Award, ChevronDown, ChevronRight, Mail, Ticket, Megaphone, Trophy, Gift, Target, GraduationCap } from 'lucide-react';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -17,6 +17,15 @@ const navigation = [
   { name: 'Reviews', href: '/reviews', icon: MessageSquare },
   { name: 'Products', href: '/products', icon: Package },
   { name: 'Quests', href: '/quests', icon: Trophy },
+  {
+    name: 'Masterclass',
+    icon: GraduationCap,
+    submenu: [
+      { name: 'Page Builder', href: '/masterclass' },
+      { name: 'Sessions', href: '/masterclass/sessions' },
+      { name: 'Bookings', href: '/masterclass/bookings' },
+    ]
+  },
   { name: 'Banners', href: '/banners', icon: LayoutDashboard },
   {
     name: 'Lottery',
@@ -181,7 +190,12 @@ export default function AdminSidebar() {
                   {isExpanded && (
                     <div className="ml-4 mt-1 space-y-1">
                       {item.submenu.map((subItem) => {
-                        const isSubActive = pathname === subItem.href || pathname.startsWith(subItem.href + '/');
+                        // If it's a base path like /masterclass, only match exactly to avoid highlighting everything in the submenu
+                        const isBasePath = subItem.href === '/masterclass' || subItem.href === '/lottery' || subItem.href === '/ambassadors';
+                        const isSubActive = isBasePath 
+                          ? pathname === subItem.href 
+                          : (pathname === subItem.href || pathname.startsWith(subItem.href + '/'));
+
                         return (
                           <Link
                             key={subItem.name}
