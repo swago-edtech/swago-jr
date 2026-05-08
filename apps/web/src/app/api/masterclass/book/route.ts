@@ -19,9 +19,23 @@ export async function POST(req: Request) {
     await connectDB();
 
     const body = await req.json();
-    const { masterclassId, sessionId, childName, childAge, parentName, parentPhone, parentEmail, currency = "INR" } = body;
+    const { 
+      masterclassId, 
+      sessionId, 
+      childName, 
+      childAge, 
+      childGrade,
+      schoolName,
+      goals,
+      city,
+      state,
+      parentName, 
+      parentPhone, 
+      parentEmail, 
+      currency = "INR" 
+    } = body;
 
-    if (!masterclassId || !sessionId || !childName || !childAge || !parentName || !parentPhone || !parentEmail) {
+    if (!masterclassId || !sessionId || !childName || !childAge || !parentName || !parentPhone || !parentEmail || !city || !state) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
@@ -87,6 +101,11 @@ export async function POST(req: Request) {
       sessionId,
       childName,
       childAge,
+      childGrade,
+      schoolName,
+      goals,
+      city,
+      state,
       parentName,
       parentPhone,
       parentEmail,

@@ -25,6 +25,11 @@ const MasterclassBookingSchema = new mongoose.Schema(
 
     childName: { type: String, required: true },
     childAge: { type: Number, required: true },
+    childGrade: { type: String },
+    schoolName: { type: String },
+    goals: { type: String },
+    city: { type: String },
+    state: { type: String },
     parentName: { type: String, required: true },
     parentPhone: { type: String, required: true },
     parentEmail: { type: String, required: true },

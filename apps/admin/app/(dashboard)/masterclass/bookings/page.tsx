@@ -104,8 +104,15 @@ export default function MasterclassBookingsPage() {
                       <div className="text-xs text-gray-500">Session ID: {booking.sessionId}</div>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="font-medium">{booking.childName}</div>
-                      <div className="text-xs text-gray-500">Age: {booking.childAge} yrs</div>
+                      <div className="font-bold text-black">{booking.childName}</div>
+                      <div className="text-xs text-gray-600">Age: {booking.childAge} yrs | {booking.childGrade || 'N/A'}</div>
+                      <div className="text-xs text-gray-500 italic mt-0.5">{booking.schoolName || 'No school specified'}</div>
+                      <div className="text-[10px] text-gray-400 font-bold uppercase mt-1">{booking.city || 'N/A'}, {booking.state || 'N/A'}</div>
+                      {booking.goals && (
+                        <div className="text-[10px] text-purple-600 font-medium mt-1 leading-tight max-w-[150px]">
+                          Goal: {booking.goals}
+                        </div>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       <div>{booking.parentName}</div>
