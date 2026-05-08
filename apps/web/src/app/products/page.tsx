@@ -1,6 +1,8 @@
 import { Suspense } from 'react';
 import ProductGrid from './ProductGrid';
 
+export const revalidate = 0;
+
 // A simple loading component to show while the client component loads
 function Loading() {
   return <p className="text-center p-8">Loading products...</p>;

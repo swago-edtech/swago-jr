@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { connectDB, Product } from "@swago/database";
 import { isValidObjectId } from "mongoose";
 
+export const revalidate = 0;
+
 // Fetch product directly from DB
 async function getProduct(id: string) {
   try {
