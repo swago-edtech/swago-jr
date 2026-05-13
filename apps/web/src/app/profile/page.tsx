@@ -131,7 +131,7 @@ function ProfileContent() {
         { name: 'Growth', color: 'bg-[#8a59ed]', icon: Zap },
         { name: 'Spotlight', color: 'bg-[#e0914c]', icon: Star }
       ],
-      image: '/images/test/quest_ice_clock.png',
+      image: '/images/home/step-one-Photoroom.png',
       reward: 15,
       currency: "SD",
       frequency: 'Once/per season',

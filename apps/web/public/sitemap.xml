@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="https://www.sitemaps.org/schemas/sitemap/0.9">
+
+  <!-- Homepage -->
+  <url>
+    <loc>https://swagojr.com/</loc>
+  </url>
+
+  <!-- Existing Pages -->
+  <url>
+    <loc>https://swagojr.com/about</loc>
+  </url>
+  <url>
+    <loc>https://swagojr.com/faq</loc>
+  </url>
+  <url>
+    <loc>https://swagojr.com/contact</loc>
+  </url>
+
+  <!-- Policy Pages -->
+  <url>
+    <loc>https://swagojr.com/terms</loc>
+  </url>
+  <url>
+    <loc>https://swagojr.com/shipping</loc>
+  </url>
+  <url>
+    <loc>https://swagojr.com/privacy</loc>
+  </url>
+  <url>
+    <loc>https://swagojr.com/cancellation-policy</loc>
+  </url>
+
+  <!-- ADD THESE ONLY IF THEY EXIST (very important) -->
+
+  
+  <url>
+    <loc>https://swagojr.com/products/scarf-dumb-chardaes</loc>
+  </url>
+  <url>
+    <loc>https://swagojr.com/products/seek-rush</loc>
+  </url>
+ 
+
+</urlset>
