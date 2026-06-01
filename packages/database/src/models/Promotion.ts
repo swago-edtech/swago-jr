@@ -23,7 +23,8 @@ const PromotionSchema = new mongoose.Schema(
             {
                 threshold: { type: Number, required: true },
                 label: { type: String, required: true },
-                slug: { type: String, required: true }
+                slug: { type: String, required: true },
+                rewardType: { type: String, default: 'gift' }
             }
         ],
         shippingThreshold: {

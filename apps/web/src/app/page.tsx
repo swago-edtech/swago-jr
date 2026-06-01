@@ -2,6 +2,7 @@ import HeroCarousel from "@/components/HeroCarousel";
 import AnimateOnScroll from "@/components/AnimateOnScroll";
 import FeaturedProducts from "@/components/FeaturedProducts";
 import HowToEarnSwagoMoney from "@/components/HowToEarnSwagoMoney";
+import HomePopup from "@/components/HomePopup";
 import SwagoElementsSection from "@/components/SwagoElementsSection";
 import WhySwagoIsFunSection from "@/components/WhySwagoIsFunSection";
 import SkillUnlockSlider from "@/components/SkillUnlockSlider";
@@ -18,6 +19,7 @@ export default function Home() {
 
   return (
     <div className="w-full">
+      <HomePopup />
       <AnimateOnScroll>
         <HeroCarousel />
       </AnimateOnScroll>
@@ -38,9 +40,9 @@ export default function Home() {
         <SkillUnlockSlider />
       </AnimateOnScroll>
 
-      {/* <AnimateOnScroll>
+      <AnimateOnScroll>
         <SkillBuildingSystem />
-      </AnimateOnScroll> */}
+      </AnimateOnScroll>
 
       <AnimateOnScroll>
         <HomeBlogSection />

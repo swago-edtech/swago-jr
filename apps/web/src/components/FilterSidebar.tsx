@@ -77,23 +77,7 @@ export default function FilterSidebar({ filters, onFilterChange }: FilterSidebar
         </div>
       </div>
 
-      {/* Swago Elements Filter */}
-      <div>
-        <h3 className="text-sm font-bold text-gray-700">Swago Elements</h3>
-        <div className="space-y-2 mt-2">
-          {swagoElements.map(element => (
-            <label key={element.id} className="flex items-center">
-              <input
-                type="checkbox"
-                checked={filters.elements.includes(element.id)}
-                onChange={() => handleElementChange(element.id)}
-                className="h-4 w-4 rounded border-gray-300 text-swago-purple focus:ring-swago-purple"
-              />
-              <span className="ml-2 text-gray-700">{element.name}</span>
-            </label>
-          ))}
-        </div>
-      </div>
+
     </aside>
   );
 }

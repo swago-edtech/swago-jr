@@ -6,6 +6,7 @@ interface BonusItem {
   threshold: number;
   label: string;
   slug: string;
+  rewardType?: string;
 }
 
 interface CartProgressProps {
@@ -15,22 +16,8 @@ interface CartProgressProps {
 
 export default function CartProgress({
   total,
-  promotionData: initialPromotionData
-}: CartProgressProps) {
-  const [promotion, setPromotion] = useState<any>(initialPromotionData);
-
-  useEffect(() => {
-    if (!initialPromotionData) {
-      fetch("/api/promotion")
-        .then(r => r.json())
-        .then(d => {
-          if (d.success) setPromotion(d.promotion);
-        })
-        .catch(console.error);
-    }
-  }, [initialPromotionData]);
-
-  const shippingThreshold = promotion?.shippingThreshold || 1450;
+  promotionData: promotion
+}: CartProgressProps) {  const shippingThreshold = promotion?.shippingThreshold || 1450;
   
   // Sort bonus items by threshold to ensure correct progress display
   const bonusItems = useMemo(() => {
@@ -52,9 +39,12 @@ export default function CartProgress({
   const nextReward = useMemo(() => {
     if (total < shippingThreshold) return { type: 'shipping', value: shippingThreshold };
     const nextBonus = bonusItems.find((b: any) => total < b.threshold);
-    if (nextBonus) return { type: 'gift', value: nextBonus.threshold, label: nextBonus.label };
+    if (nextBonus) return { type: 'gift', value: nextBonus.threshold, label: nextBonus.label, rewardType: nextBonus.rewardType || 'gift' };
     return null;
   }, [total, shippingThreshold, bonusItems]);
+
+  if (!promotion) return null;
+  if (promotion.isActive === false) return null;
 
   return (
     <div className="bg-white rounded-[1.5rem] px-4 pt-3 pb-4 border border-slate-100 shadow-sm mb-4">
@@ -110,9 +100,15 @@ export default function CartProgress({
                 style={{ left: `${leftPos}%` }}
               >
                 <div className={`w-8 h-8 rounded-2xl flex items-center justify-center border-[3px] border-white shadow-xl transition-all duration-500 ${isUnlocked ? 'bg-[#8a59ed] text-white' : 'bg-slate-50 text-slate-300'}`}>
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 11.25v8.25a1.5 1.5 0 0 1-1.5 1.5H4.5a1.5 1.5 0 0 1-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 1 0 9.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1 1 14.625 7.5H12m0 0V21m-8.625-9.75h17.25" />
-                  </svg>
+                  {item.rewardType === 'coupon' ? (
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-5.25h5.25M7.5 15h3M3.375 5.25c-.621 0-1.125.504-1.125 1.125v3.026a2.999 2.999 0 0 1 0 5.198v3.026c0 .621.504 1.125 1.125 1.125h17.25c.621 0 1.125-.504 1.125-1.125v-3.026a2.999 2.999 0 0 1 0-5.198V6.375c0-.621-.504-1.125-1.125-1.125H3.375Z" />
+                    </svg>
+                  ) : (
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M21 11.25v8.25a1.5 1.5 0 0 1-1.5 1.5H4.5a1.5 1.5 0 0 1-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 1 0 9.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1 1 14.625 7.5H12m0 0V21m-8.625-9.75h17.25" />
+                    </svg>
+                  )}
                 </div>
                 <div className="absolute top-10 left-1/2 -translate-x-1/2 text-center whitespace-nowrap">
                   <p className={`text-[8px] font-black leading-none ${isUnlocked ? 'text-slate-800' : 'text-slate-400'}`}>₹{item.threshold}</p>
@@ -128,7 +124,7 @@ export default function CartProgress({
         {nextReward ? (
           <div className="bg-slate-50 py-2.5 px-5 rounded-[1rem] border border-slate-100 inline-block shadow-inner">
             <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-none">
-              Add <span className="text-[#8a59ed] font-black text-xs mx-0.5 tabular-nums">₹{(nextReward.value - total).toFixed(0)}</span> more for <span className="text-slate-900 font-black">{nextReward.type === 'shipping' ? 'FREE COD Shipping' : `FREE ${nextReward.label}`}! {nextReward.type === 'shipping' ? '🚚' : '🎁'}</span>
+              Add <span className="text-[#8a59ed] font-black text-xs mx-0.5 tabular-nums">₹{(nextReward.value - total).toFixed(0)}</span> more for <span className="text-slate-900 font-black">{nextReward.type === 'shipping' ? 'FREE COD Shipping' : nextReward.rewardType === 'coupon' ? `Unlock ${nextReward.label}` : `FREE ${nextReward.label}`}! {nextReward.type === 'shipping' ? '🚚' : nextReward.rewardType === 'coupon' ? '🎟️' : '🎁'}</span>
             </p>
           </div>
         ) : (

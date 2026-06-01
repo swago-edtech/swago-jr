@@ -51,6 +51,7 @@ export default function Footer() {
               <ul className="space-y-2 text-sm">
                 <li><Link href="/about" className="text-slate-600 hover:text-[hsl(var(--swago-purple))] transition-colors hover:underline">About Us</Link></li>
                 <li><Link href="/contact" className="text-slate-600 hover:text-[hsl(var(--swago-purple))] transition-colors hover:underline">Contact Us</Link></li>
+                <li><Link href="/masterclass" className="text-slate-600 hover:text-[hsl(var(--swago-purple))] transition-colors hover:underline">Masterclass</Link></li>
                 <li><Link href="/faq" className="text-slate-600 hover:text-[hsl(var(--swago-purple))] transition-colors hover:underline">FAQ</Link></li>
                 <li><Link href="/terms" className="text-slate-600 hover:text-[hsl(var(--swago-purple))] transition-colors hover:underline">Terms & Conditions</Link></li>
               </ul>

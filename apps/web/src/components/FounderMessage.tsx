@@ -7,8 +7,8 @@ import { Mic2, Users, Heart } from "lucide-react"; // npm install lucide-react
 
 export default function FounderMessage() {
   return (
-    <section className="w-full bg-white font-poppins overflow-hidden">
-      <div className="flex flex-col lg:flex-row items-start">
+    <section className="w-full bg-white font-poppins">
+      <div className="flex flex-col lg:flex-row items-stretch">
         
         {/* Left Side - Full Portrait */}
         <motion.div 
@@ -16,7 +16,7 @@ export default function FounderMessage() {
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
           transition={{ duration: 1.2 }}
-          className="w-full lg:w-1/2 relative h-[600px] lg:h-[85vh] bg-slate-100"
+          className="w-full lg:w-1/2 relative h-[500px] sm:h-[600px] lg:h-auto bg-slate-100"
         >
           <Image
             src="/images/home/founder.jpeg" 

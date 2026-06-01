@@ -92,6 +92,9 @@ export default function Navbar() {
                 <Link href="/products" className="transition-colors hover:text-black">All Products</Link>
               </motion.div>
               <motion.div whileHover={{ y: -2 }}>
+                <Link href="/masterclass" className="transition-colors hover:text-black">Masterclass</Link>
+              </motion.div>
+              <motion.div whileHover={{ y: -2 }}>
                 <Link href="/about" className="transition-colors hover:text-black">About Us</Link>
               </motion.div>
 
@@ -111,7 +114,7 @@ export default function Navbar() {
           <>
             {/* Swago Dollars Button */}
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Link href={user ? "/profile" : "/login?redirect=/profile"} className="relative p-1 sm:p-2 flex items-center gap-1 sm:gap-1.5 group transition-colors bg-purple-50 hover:bg-purple-100 rounded-lg sm:rounded-full md:rounded-lg" aria-label="Swago Dollars">
+              <Link href={mounted && user ? "/profile" : "/login?redirect=/profile"} className="relative p-1 sm:p-2 flex items-center gap-1 sm:gap-1.5 group transition-colors bg-purple-50 hover:bg-purple-100 rounded-lg sm:rounded-full md:rounded-lg" aria-label="Swago Dollars">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" className="w-5 h-5 sm:w-6 sm:h-6 text-[hsl(var(--swago-purple))]">
                   <path fillRule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zM12.75 6a.75.75 0 00-1.5 0v.816a3.836 3.836 0 00-1.72.756c-.712.566-1.112 1.484-1.112 2.428 0 1.369.962 2.406 2.022 2.898 1.201.558 2.397.864 2.397 1.468 0 .584-.528.924-1.15.924-.407 0-.76-.17-1.127-.446a.75.75 0 00-1.15.924c.712.886 1.706 1.417 2.766 1.572V18a.75.75 0 001.5 0v-.816a3.836 3.836 0 001.72-.756c.712-.566 1.112-1.484 1.112-2.428 0-1.369-.962-2.406-2.022-2.898-1.201-.558-2.397-.864-2.397-1.468 0-.584.528-.924 1.15-.924.407 0 .76.17 1.127.446a.75.75 0 001.15-.924c-.712-.886-1.706-1.417-2.766-1.572V6z" clipRule="evenodd" />
                 </svg>
@@ -158,7 +161,7 @@ export default function Navbar() {
         {/* User Menu */}
         {process.env.NEXT_PUBLIC_BLOG_ONLY_MODE !== "true" && (
           <div className="relative" ref={userMenuRef}>
-            {user ? (
+            {mounted && user ? (
               <>
                 <motion.button
                   whileHover={{ scale: 1.1 }}
@@ -241,6 +244,7 @@ export default function Navbar() {
                     )}
                   </Link>
                   <Link href="/products" onClick={() => setMobileMenuOpen(false)} className="block text-xl font-bold text-slate-800">All Products</Link>
+                  <Link href="/masterclass" onClick={() => setMobileMenuOpen(false)} className="block text-xl font-bold text-slate-800">Masterclass</Link>
                   <Link href="/blog" onClick={() => setMobileMenuOpen(false)} className="block text-xl font-bold text-slate-800">Blogs</Link>
                   <Link href="/about" onClick={() => setMobileMenuOpen(false)} className="block text-xl font-bold text-slate-800">About Us</Link>
                   <hr className="border-slate-100" />

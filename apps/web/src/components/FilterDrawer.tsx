@@ -71,13 +71,13 @@ export default function FilterDrawer({ isOpen, onClose, filters, setFilters, tot
                             type="checkbox"
                             checked={filters.age === age.value}
                             onChange={() => setFilters({ ...filters, age: filters.age === age.value ? '' : age.value })}
-                            className="w-5 h-5 border-2 border-slate-300 rounded-sm appearance-none checked:bg-black checked:border-black transition-colors cursor-pointer"
+                            className="w-5 h-5 border-2 border-slate-300 rounded-sm appearance-none checked:bg-[hsl(var(--swago-purple))] checked:border-[hsl(var(--swago-purple))] transition-colors cursor-pointer"
                           />
                           <svg className={`absolute w-3 h-3 text-white pointer-events-none transform transition-transform ${filters.age === age.value ? 'scale-100' : 'scale-0'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                           </svg>
                         </div>
-                        <span className="text-base text-slate-700 font-medium group-hover:text-black">
+                        <span className="text-base text-slate-700 font-medium group-hover:text-[hsl(var(--swago-purple))]">
                           {age.label}
                         </span>
                       </label>
@@ -86,39 +86,7 @@ export default function FilterDrawer({ isOpen, onClose, filters, setFilters, tot
                 </div>
               </FilterSection>
 
-              {/* Product Type Section */}
-              <FilterSection title="Product Type" defaultOpen={true}>
-                <div className="flex flex-col gap-4 mt-2">
-                  {[
-                    { label: "Activity Kit", id: "Activity", count: 22 },
-                    { label: "Construction Type", id: "Construction", count: 1 },
-                    { label: "Educational Toys", id: "Educational", count: 8 }
-                  ].map(type => (
-                    <label key={type.id} className="flex items-center gap-3 cursor-pointer group">
-                      <div className="relative flex items-center justify-center">
-                        <input
-                          type="checkbox"
-                          checked={filters.elements.includes(type.id)}
-                          onChange={() => {
-                            const current = filters.elements;
-                            const next = current.includes(type.id)
-                              ? current.filter(id => id !== type.id)
-                              : [...current, type.id];
-                            setFilters({ ...filters, elements: next });
-                          }}
-                          className="w-5 h-5 border-2 border-slate-300 rounded-sm appearance-none checked:bg-black checked:border-black transition-colors cursor-pointer"
-                        />
-                        <svg className={`absolute w-3 h-3 text-white pointer-events-none transform transition-transform ${filters.elements.includes(type.id) ? 'scale-100' : 'scale-0'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                        </svg>
-                      </div>
-                      <span className="text-base text-slate-700 font-medium group-hover:text-black">
-                        {type.label}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              </FilterSection>
+
             </div>
 
             <div className="p-6 border-t border-slate-100 flex gap-4 bg-white">
@@ -126,13 +94,13 @@ export default function FilterDrawer({ isOpen, onClose, filters, setFilters, tot
                 onClick={() => {
                   setFilters({ ...filters, search: "", age: "", elements: [], minPrice: undefined, maxPrice: undefined });
                 }}
-                className="flex-1 py-4 border-2 border-black transition text-black bg-white rounded-lg font-black uppercase tracking-widest text-xs hover:bg-slate-50 active:scale-[0.98]"
+                className="flex-1 py-4 border-2 border-[hsl(var(--swago-purple))] transition text-[hsl(var(--swago-purple))] bg-white rounded-lg font-black uppercase tracking-widest text-xs hover:bg-[hsl(var(--swago-purple))/0.05] active:scale-[0.98]"
               >
                 Clear All
               </button>
               <button
                 onClick={onClose}
-                className="flex-1 py-4 bg-black text-white rounded-lg font-black uppercase tracking-widest text-xs hover:bg-slate-800 transition-colors shadow-lg active:scale-[0.98]"
+                className="flex-1 py-4 bg-[hsl(var(--swago-purple))] text-white rounded-lg font-black uppercase tracking-widest text-xs hover:brightness-110 transition-colors shadow-lg active:scale-[0.98]"
               >
                 Apply
               </button>
@@ -157,9 +125,9 @@ function FilterSection({ title, children, defaultOpen = false }: { title: string
           {title}
         </span>
         {isOpen ? (
-          <HiChevronUp className="w-6 h-6 text-slate-400 group-hover:text-black transition-colors" />
+          <HiChevronUp className="w-6 h-6 text-slate-400 group-hover:text-[hsl(var(--swago-purple))] transition-colors" />
         ) : (
-          <HiChevronDown className="w-6 h-6 text-slate-400 group-hover:text-black transition-colors" />
+          <HiChevronDown className="w-6 h-6 text-slate-400 group-hover:text-[hsl(var(--swago-purple))] transition-colors" />
         )}
       </button>
       <AnimatePresence initial={false}>
@@ -221,7 +189,7 @@ function PriceSlider({ min, max, onChange }: { min: number, max: number, onChang
       >
         <div className="absolute inset-0 bg-slate-900/10 rounded-full" />
         <motion.div
-          className="absolute h-full bg-slate-900 rounded-full"
+          className="absolute h-full bg-[hsl(var(--swago-purple))] rounded-full"
           initial={false}
           animate={{
             left: `${getPercentage(safeMinIdx)}%`,
@@ -232,7 +200,7 @@ function PriceSlider({ min, max, onChange }: { min: number, max: number, onChang
         {/* Thumbs */}
         <div className="absolute inset-0 pointer-events-none">
           <motion.div
-            className="absolute top-1/2 -translate-y-1/2 -ml-3 w-6 h-6 bg-slate-900 rounded-full cursor-pointer pointer-events-auto border-4 border-white shadow-sm"
+            className="absolute top-1/2 -translate-y-1/2 -ml-3 w-6 h-6 bg-[hsl(var(--swago-purple))] rounded-full cursor-pointer pointer-events-auto border-4 border-white shadow-sm"
             animate={{ left: `${getPercentage(safeMinIdx)}%` }}
             initial={false}
             onMouseDown={(e) => {
@@ -241,7 +209,7 @@ function PriceSlider({ min, max, onChange }: { min: number, max: number, onChang
             }}
           />
           <motion.div
-            className="absolute top-1/2 -translate-y-1/2 -ml-3 w-6 h-6 bg-slate-900 rounded-full cursor-pointer pointer-events-auto border-4 border-white shadow-sm"
+            className="absolute top-1/2 -translate-y-1/2 -ml-3 w-6 h-6 bg-[hsl(var(--swago-purple))] rounded-full cursor-pointer pointer-events-auto border-4 border-white shadow-sm"
             animate={{ left: `${getPercentage(safeMaxIdx)}%` }}
             initial={false}
             onMouseDown={(e) => {

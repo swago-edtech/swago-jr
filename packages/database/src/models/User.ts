@@ -60,6 +60,9 @@ const UserSchema = new mongoose.Schema(
         required: true
       },
       images: [String],
+      slug: {
+        type: String
+      },
       addedAt: { 
         type: Date, 
         default: Date.now 

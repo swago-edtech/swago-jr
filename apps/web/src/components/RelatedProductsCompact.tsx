@@ -43,7 +43,7 @@ export default function RelatedProductsCompact({ currentProductId }: RelatedProd
           key={product._id || product.id}
           className="group bg-slate-50 rounded-xl p-1.5 border border-slate-100/50"
         >
-          <Link href={`/product/${product.slug || product._id || product.id}`}>
+          <Link href={`/product/${product.slug}`}>
             <div className="relative aspect-square rounded-lg overflow-hidden bg-white mb-1.5 shadow-sm">
               <Image
                 src={product.images?.[0] || "/images/placeholder.png"}
