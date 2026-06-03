@@ -130,6 +130,8 @@ export default function LotteryClient() {
       if (res.ok && data.success) {
         setEarnedMoney(data.ticket?.swagoMoneyEarned || 20);
         setStep(3);
+        // Fire event to sync updated user context (Swago Money, lotteryTickets array, etc)
+        window.dispatchEvent(new Event('user:profile_update'));
       } else {
         setError(data.error || 'Invalid ticket code');
       }

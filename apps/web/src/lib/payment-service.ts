@@ -22,6 +22,9 @@ export async function finalizeOrder({ orderIdOrMongoId, razorpayPaymentId, sourc
   if (!order && isValidObjectId(orderIdOrMongoId)) {
     order = await Order.findById(orderIdOrMongoId);
   }
+  if (!order && orderIdOrMongoId.startsWith("order_")) {
+    order = await Order.findOne({ razorpay_order_id: orderIdOrMongoId });
+  }
 
   if (!order) {
     throw new Error(`Order not found: ${orderIdOrMongoId}`);
@@ -172,6 +175,9 @@ export async function handleFailedOrder(orderIdOrMongoId: string) {
   let order = await Order.findOne({ orderId: orderIdOrMongoId });
   if (!order && isValidObjectId(orderIdOrMongoId)) {
     order = await Order.findById(orderIdOrMongoId);
+  }
+  if (!order && orderIdOrMongoId.startsWith("order_")) {
+    order = await Order.findOne({ razorpay_order_id: orderIdOrMongoId });
   }
 
   if (!order) return;
