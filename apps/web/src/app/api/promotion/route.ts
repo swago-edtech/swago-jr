@@ -12,7 +12,7 @@ export async function GET() {
         // which it already is in the original code.
         await connectDB();
 
-        let promotion: any = await Promotion.findOne({ isActive: true }).lean();
+        let promotion: any = await Promotion.findOne().lean();
 
         // Default fallback if database is empty
         if (!promotion) {
@@ -27,7 +27,8 @@ export async function GET() {
                     { threshold: 999, label: "Mini Swago Game Card", slug: "mini-swago-game-card" },
                     { threshold: 1999, label: "Special Edition Item", slug: "special-edition-item" }
                 ],
-                shippingThreshold: 1450
+                shippingThreshold: 1450,
+                isActive: true
             };
         }
 

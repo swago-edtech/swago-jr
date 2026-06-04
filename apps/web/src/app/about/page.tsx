@@ -18,7 +18,7 @@ const swagoLetters = [
 
 export default function AboutPage() {
   return (
-    <div className="w-full min-h-screen bg-white overflow-x-hidden pb-12">
+    <div className="w-full min-h-screen bg-white pb-12">
 
       {/* 1) Founder Message Section */}
       <AnimateOnScroll>

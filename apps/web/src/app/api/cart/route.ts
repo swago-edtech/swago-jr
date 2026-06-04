@@ -12,6 +12,7 @@ interface CartItem {
   name: string;
   image: string;      // Legacy fallback
   images?: string[];  // ✅ NEW
+  slug?: string;
   addedAt?: Date;
 }
 
@@ -22,11 +23,13 @@ interface ProductDocument {
   isActive: boolean;
   price: number;
   name: string;
+  slug?: string;
   images: string[];
 }
 async function getFullProductDetails(productId: string | number): Promise<{
   price: number;
   name: string;
+  slug?: string;
   image: string;
   images: string[];
   stock?: number;
@@ -45,6 +48,7 @@ async function getFullProductDetails(productId: string | number): Promise<{
       return {
         price: product.price,
         name: product.name,
+        slug: product.slug,
         image: product.images?.[0] || '/images/placeholder.png',
         images: product.images || ['/images/placeholder.png'],
         stock: product.stock
@@ -182,6 +186,7 @@ export async function POST(req: Request) {
         quantity: item.quantity,
         price: productDetails.price,
         name: productDetails.name,
+        slug: productDetails.slug || item.slug,
         image: productDetails.image,
         images: productDetails.images, // ✅ NEW
         addedAt: item.addedAt || new Date()

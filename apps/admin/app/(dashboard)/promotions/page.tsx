@@ -14,6 +14,7 @@ interface BonusItem {
     threshold: number;
     label: string;
     slug: string;
+    rewardType?: string;
 }
 
 interface Product {
@@ -28,7 +29,9 @@ export default function PromotionsPage() {
     const [redemptionTiers, setRedemptionTiers] = useState<RedemptionTier[]>([]);
     const [bonusItems, setBonusItems] = useState<BonusItem[]>([]);
     const [products, setProducts] = useState<Product[]>([]);
+    const [isActive, setIsActive] = useState(true);
     const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+    const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
     useEffect(() => {
         fetchData();
@@ -47,6 +50,7 @@ export default function PromotionsPage() {
                 if (data.success) {
                     setRedemptionTiers(data.promotion.redemptionTiers || []);
                     setBonusItems(data.promotion.bonusItems || []);
+                    setIsActive(data.promotion.isActive ?? true);
                 }
             }
 
@@ -72,13 +76,19 @@ export default function PromotionsPage() {
     const handleSave = async () => {
         setSaving(true);
         try {
+            const validTiers = redemptionTiers.filter(t => t.target > 0 && t.off > 0);
+            const validItems = bonusItems.filter(b => b.threshold > 0 && b.label && b.slug);
+
             const res = await fetch("/api/promotion", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ redemptionTiers, bonusItems })
+                body: JSON.stringify({ redemptionTiers: validTiers, bonusItems: validItems, isActive })
             });
 
             if (res.ok) {
+                setRedemptionTiers(validTiers);
+                setBonusItems(validItems);
+                setHasUnsavedChanges(false);
                 showMessage("success", "Promotions updated successfully!");
             } else {
                 const data = await res.json();
@@ -89,6 +99,27 @@ export default function PromotionsPage() {
             showMessage("error", "An error occurred while saving");
         } finally {
             setSaving(false);
+        }
+    };
+
+    const handleToggleIsActive = async (checked: boolean) => {
+        setIsActive(checked);
+        try {
+            const res = await fetch("/api/promotion", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ isActive: checked })
+            });
+            
+            if (res.ok) {
+                showMessage("success", `Progress bar ${checked ? 'enabled' : 'disabled'}`);
+            } else {
+                setIsActive(!checked);
+                showMessage("error", "Failed to save toggle state");
+            }
+        } catch (error) {
+            setIsActive(!checked);
+            showMessage("error", "Network error while saving toggle state");
         }
     };
 
@@ -104,10 +135,11 @@ export default function PromotionsPage() {
         const newTiers = [...redemptionTiers];
         newTiers[index] = { ...newTiers[index], [field]: value };
         setRedemptionTiers(newTiers);
+        setHasUnsavedChanges(true);
     };
 
     const addBonusItem = () => {
-        setBonusItems([...bonusItems, { threshold: 0, label: "", slug: "" }]);
+        setBonusItems([...bonusItems, { threshold: 0, label: "", slug: "", rewardType: "gift" }]);
     };
 
     const removeBonusItem = (index: number) => {
@@ -116,13 +148,17 @@ export default function PromotionsPage() {
 
     const updateBonusItem = (index: number, field: keyof BonusItem, value: any) => {
         const newItems = [...bonusItems];
-        if (field === "slug") {
+        if (field === "slug" && newItems[index].rewardType !== "coupon") {
             const product = products.find(p => p.slug === value);
             newItems[index] = { ...newItems[index], slug: value, label: product?.name || "" };
+        } else if (field === "rewardType") {
+            // Reset fields when switching type
+            newItems[index] = { ...newItems[index], rewardType: value, slug: "", label: "" };
         } else {
             newItems[index] = { ...newItems[index], [field]: value };
         }
         setBonusItems(newItems);
+        setHasUnsavedChanges(true);
     };
 
     if (loading) {
@@ -137,20 +173,28 @@ export default function PromotionsPage() {
     }
 
     return (
-        <div className="max-w-4xl mx-auto space-y-8 pb-12">
-            <div className="flex items-center justify-between">
+        <div className="max-w-4xl mx-auto space-y-8 pb-12 relative">
+            <div className="sticky top-0 z-50 bg-white/80 backdrop-blur-md pt-6 pb-4 border-b border-gray-100 flex items-center justify-between">
                 <div>
                     <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Checkout Strategy</h1>
                     <p className="text-gray-500 text-sm mt-1">Configure automated upsells and redemption tiers.</p>
                 </div>
-                <button
-                    onClick={handleSave}
-                    disabled={saving}
-                    className="flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-all font-bold shadow-lg shadow-blue-200"
-                >
-                    {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                    {saving ? "Saving Changes..." : "Apply Strategy"}
-                </button>
+                <div className="flex items-center gap-4">
+                    {hasUnsavedChanges && (
+                        <div className="text-amber-600 text-sm font-bold animate-pulse flex items-center gap-1.5 bg-amber-50 px-3 py-1.5 rounded-full border border-amber-100">
+                            <div className="w-2 h-2 rounded-full bg-amber-500" />
+                            Unsaved Changes
+                        </div>
+                    )}
+                    <button
+                        onClick={handleSave}
+                        disabled={saving || !hasUnsavedChanges}
+                        className="flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-bold shadow-lg shadow-blue-200"
+                    >
+                        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                        {saving ? "Saving Changes..." : "Apply Strategy"}
+                    </button>
+                </div>
             </div>
 
             {message && (
@@ -164,6 +208,23 @@ export default function PromotionsPage() {
                     <p className="text-sm font-bold">{message.text}</p>
                 </div>
             )}
+
+            {/* General Settings */}
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 mb-8 flex items-center justify-between">
+                <div>
+                    <h2 className="text-lg font-bold text-gray-900">Enable Progress Bar</h2>
+                    <p className="text-sm text-gray-500 mt-1">When disabled, the milestone progress bar will be hidden on the cart and checkout pages.</p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                    <input 
+                        type="checkbox" 
+                        className="sr-only peer" 
+                        checked={isActive}
+                        onChange={(e) => handleToggleIsActive(e.target.checked)}
+                    />
+                    <div className="w-14 h-7 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-blue-600"></div>
+                </label>
+            </div>
 
             {/* Redemption Tiers Section */}
             <div className="bg-white rounded-2xl border border-gray-200 shadow-xl shadow-gray-100 overflow-hidden">
@@ -287,6 +348,27 @@ export default function PromotionsPage() {
                             .sort((a, b) => a.threshold - b.threshold)
                             .map((item, index) => (
                                 <div key={index} className="bg-white p-6 rounded-2xl border-2 border-gray-100 hover:border-purple-100 transition-all group shadow-sm">
+                                    <div className="flex gap-4 mb-6">
+                                        <label className="flex items-center gap-2 cursor-pointer">
+                                            <input
+                                                type="radio"
+                                                checked={item.rewardType !== 'coupon'}
+                                                onChange={() => updateBonusItem(index, "rewardType", "gift")}
+                                                className="w-4 h-4 text-purple-600 focus:ring-purple-500 border-gray-300"
+                                            />
+                                            <span className="text-sm font-bold text-gray-700">Gift Product</span>
+                                        </label>
+                                        <label className="flex items-center gap-2 cursor-pointer">
+                                            <input
+                                                type="radio"
+                                                checked={item.rewardType === 'coupon'}
+                                                onChange={() => updateBonusItem(index, "rewardType", "coupon")}
+                                                className="w-4 h-4 text-purple-600 focus:ring-purple-500 border-gray-300"
+                                            />
+                                            <span className="text-sm font-bold text-gray-700">Coupon Code</span>
+                                        </label>
+                                    </div>
+
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
                                         <div className="space-y-2">
                                             <label className="text-[10px] uppercase font-black text-gray-400 tracking-wider">Spend Milestone (₹)</label>
@@ -301,25 +383,48 @@ export default function PromotionsPage() {
                                                 />
                                             </div>
                                         </div>
-                                        <div className="space-y-2">
-                                            <label className="text-[10px] uppercase font-black text-purple-400 tracking-wider">Gift Product</label>
-                                            <select
-                                                value={item.slug}
-                                                onChange={(e) => updateBonusItem(index, "slug", e.target.value)}
-                                                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-4 focus:ring-purple-500/10 focus:border-purple-500 outline-none font-black bg-white"
-                                            >
-                                                <option value="">Choose a product...</option>
-                                                {products.map(p => (
-                                                    <option key={p._id} value={p.slug}>{p.name}</option>
-                                                ))}
-                                            </select>
-                                        </div>
+                                        
+                                        {item.rewardType === 'coupon' ? (
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] uppercase font-black text-purple-400 tracking-wider">Coupon Code & Description</label>
+                                                <div className="flex gap-2">
+                                                    <input
+                                                        type="text"
+                                                        value={item.slug}
+                                                        onChange={(e) => updateBonusItem(index, "slug", e.target.value)}
+                                                        className="w-1/2 px-4 py-3 rounded-xl border border-gray-200 focus:ring-4 focus:ring-purple-500/10 focus:border-purple-500 outline-none font-black"
+                                                        placeholder="e.g. FREE20"
+                                                    />
+                                                    <input
+                                                        type="text"
+                                                        value={item.label}
+                                                        onChange={(e) => updateBonusItem(index, "label", e.target.value)}
+                                                        className="w-1/2 px-4 py-3 rounded-xl border border-gray-200 focus:ring-4 focus:ring-purple-500/10 focus:border-purple-500 outline-none font-black"
+                                                        placeholder="e.g. 20% OFF"
+                                                    />
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] uppercase font-black text-purple-400 tracking-wider">Gift Product</label>
+                                                <select
+                                                    value={item.slug}
+                                                    onChange={(e) => updateBonusItem(index, "slug", e.target.value)}
+                                                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-4 focus:ring-purple-500/10 focus:border-purple-500 outline-none font-black bg-white"
+                                                >
+                                                    <option value="">Choose a product...</option>
+                                                    {products.map(p => (
+                                                        <option key={p._id} value={p.slug}>{p.name}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        )}
                                     </div>
                                     <div className="flex items-center justify-between pt-4 border-t border-gray-50">
                                         <div className="flex items-center gap-2">
                                             <div className={`h-2 w-2 rounded-full ${item.slug ? "bg-green-500 shadow-sm shadow-green-200" : "bg-gray-300"}`} />
                                             <span className="text-[11px] font-bold text-gray-500">
-                                                {item.slug ? `Live Gift: ${item.label}` : "Waiting for configuration..."}
+                                                {item.slug ? `Live ${item.rewardType === 'coupon' ? 'Coupon' : 'Gift'}: ${item.label || item.slug}` : "Waiting for configuration..."}
                                             </span>
                                         </div>
                                         <button

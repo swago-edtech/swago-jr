@@ -24,6 +24,16 @@ export default function CartPage() {
   const [stockInfo, setStockInfo] = useState<StockInfo>({});
   const [mounted, setMounted] = useState(false);
   const [priceChanges, setPriceChanges] = useState<CartPriceChange[]>([]);
+  const [promotion, setPromotion] = useState<any>(null);
+
+  useEffect(() => {
+    fetch("/api/promotion")
+      .then(r => r.json())
+      .then(d => {
+        if (d.success) setPromotion(d.promotion);
+      })
+      .catch(console.error);
+  }, []);
 
   useEffect(() => {
     setMounted(true);
@@ -224,6 +234,12 @@ export default function CartPage() {
             Verifying prices...
           </div>
         )}
+
+        {/* Mobile-only Cart Progress (Shows above cart items) */}
+        <div className="block lg:hidden mb-6">
+          <CartProgress total={total} promotionData={promotion} />
+        </div>
+
         <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 items-start">
           <div className="w-full lg:w-2/3 flex flex-col gap-4 sm:gap-6">
             <div className="flex flex-col gap-3 sm:gap-4">
@@ -237,15 +253,17 @@ export default function CartPage() {
 
                 return (
                   <div key={productId} className="bg-white rounded-2xl border border-slate-100 p-3 sm:p-4 shadow-sm flex flex-row gap-3 sm:gap-4 overflow-hidden items-stretch">
-                    <div className="relative w-20 h-20 sm:w-28 sm:h-28 rounded-xl bg-slate-50 flex-shrink-0 border border-slate-100 overflow-hidden">
-                      <Image src={imageUrl} alt={item.name} fill className="object-cover" />
+                    <Link href={`/product/${item.slug}`} className="relative w-20 h-20 sm:w-28 sm:h-28 rounded-xl bg-slate-50 flex-shrink-0 border border-slate-100 overflow-hidden group">
+                      <Image src={imageUrl} alt={item.name} fill className="object-cover group-hover:scale-105 transition-transform duration-300" />
                       {isOutOfStock && <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white text-[9px] font-black tracking-wider backdrop-blur-sm">Out of Stock</div>}
-                    </div>
+                    </Link>
 
                     <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
                       <div className="flex flex-col sm:flex-row justify-between items-start gap-1 sm:gap-3">
                         <div className="flex-1 min-w-0 w-full sm:w-auto pr-0 sm:pr-2">
-                          <h3 className="text-sm sm:text-base font-bold text-slate-800 leading-snug mb-1">{item.name}</h3>
+                          <Link href={`/product/${item.slug}`}>
+                            <h3 className="text-sm sm:text-base font-bold text-slate-800 leading-snug mb-1 hover:text-[hsl(var(--swago-purple))] hover:underline transition-colors">{item.name}</h3>
+                          </Link>
                           <span className="text-[8px] sm:text-[9px] font-black text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full tracking-widest inline-block truncate max-w-full">
                             Mystery reward inside
                           </span>
@@ -287,6 +305,11 @@ export default function CartPage() {
           </div>
 
           <div className="w-full lg:w-1/3 flex flex-col gap-4 sm:gap-6">
+            {/* Desktop-only Cart Progress (Shows in summary column) */}
+            <div className="hidden lg:block">
+              <CartProgress total={total} promotionData={promotion} />
+            </div>
+
             <div className="bg-white rounded-2xl px-4 sm:px-5 py-4 border border-slate-100 shadow-sm">
               <div className="flex items-center gap-2 mb-3">
                 <div className="bg-emerald-50 p-1.5 rounded-lg text-emerald-600">

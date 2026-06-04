@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { formatPrice } from '@swago/utils';
-import { connectDB, User, Product } from '@swago/database';
+import { connectDB, User, Product, LotteryCode } from '@swago/database';
 import { getAdminSession } from '@/lib/auth';
 import { User as UserIcon, Video, Brain, Ticket, CheckCircle2, Clock, AlertCircle, XCircle } from 'lucide-react';
 
@@ -83,6 +83,11 @@ async function getUserData(userId: string) {
     };
   });
 
+  const actualClaimedLotteryCount = await LotteryCode.countDocuments({
+    usedBy: userId,
+    isUsed: true
+  });
+
   return {
     id: user._id.toString(),
     name: user.name,
@@ -108,6 +113,7 @@ async function getUserData(userId: string) {
     dob: user.dob,
     ambassador: user.ambassador,
     lotteryTickets: user.lotteryTickets || [],
+    claimedLotteryCount: actualClaimedLotteryCount,
     swagoMoney: user.swagoMoney || 0,
   };
 }
@@ -240,7 +246,7 @@ export default async function UserDetailPage({
     name === 'Seek Rush' || name === 'Scarf Dumb Charades' || name === 'Confidence Journal'
   );
   const eligibleLotteryCount = purchasedBoxes.length;
-  const claimedLotteryCount = (user.lotteryTickets || []).filter((t: any) => t.code).length;
+  const claimedLotteryCount = user.claimedLotteryCount;
   // ---------------------------------------------
 
 

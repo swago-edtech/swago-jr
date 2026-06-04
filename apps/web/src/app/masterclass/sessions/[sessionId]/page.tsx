@@ -12,6 +12,7 @@ import { useCurrency, formatPrice } from "@/hooks/useCurrency";
 import MasterclassModules from "@/components/masterclass/MasterclassModules";
 import MasterclassTestimonials from "@/components/masterclass/MasterclassTestimonials";
 import MasterclassFAQ from "@/components/masterclass/MasterclassFAQ";
+import MasterclassCertification from "@/components/masterclass/MasterclassCertification";
 import BookingModal from "@/components/masterclass/BookingModal";
 
 export default function SessionDetailsPage() {
@@ -33,7 +34,15 @@ export default function SessionDetailsPage() {
         const data = await res.json();
         if (data.success && data.masterclass) {
           setMasterclass(data.masterclass);
-          const foundSession = data.masterclass.sessions.find((s: any) => s._id === sessionId);
+          const foundSession = data.masterclass.sessions.find((s: any) => {
+            if (s._id === sessionId) return true;
+            if (s.title) {
+              const expectedSlug = encodeURIComponent(s.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, ''));
+              // Next.js params might automatically decode URI components, so we should check both encoded and decoded
+              return expectedSlug === sessionId || expectedSlug === encodeURIComponent(sessionId);
+            }
+            return false;
+          });
           if (foundSession) {
             setSession(foundSession);
           } else {
@@ -63,6 +72,18 @@ export default function SessionDetailsPage() {
 
   if (!session || !masterclass) return null;
 
+  // Temporarily hiding masterclass session - forcing coming soon screen
+  if (true) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="text-center p-10 bg-white border border-slate-200 rounded-2xl shadow-sm max-w-sm mx-4">
+          <p className="text-slate-900 text-xl font-black mb-2">Coming Soon</p>
+          <p className="text-slate-500 font-medium">Our masterclass is currently being prepared. Check back soon!</p>
+        </div>
+      </div>
+    );
+  }
+
   const isFullyBooked = session.bookedSeats >= session.maxSeats;
   const spotsLeft = Math.max(0, session.maxSeats - session.bookedSeats);
 
@@ -88,8 +109,8 @@ export default function SessionDetailsPage() {
       {/* Top Nav/Breadcrumb */}
       <div className="bg-white/80 backdrop-blur-md border-b border-slate-100 sticky top-0 z-40">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center">
-          <Link href="/masterclass" className="group flex items-center gap-2 text-slate-500 hover:text-[hsl(var(--swago-purple))] transition-all font-black text-xs uppercase tracking-widest">
-            <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-[hsl(var(--swago-purple))]/10 transition-colors">
+          <Link href="/masterclass" className="group flex items-center gap-2 text-slate-500 hover:text-orange-500 transition-all font-black text-xs uppercase tracking-widest">
+            <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-orange-50 transition-colors">
               <ArrowLeft className="w-4 h-4" />
             </div>
             Back to Masterclasses
@@ -112,7 +133,7 @@ export default function SessionDetailsPage() {
                 <motion.div 
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
-                  className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[hsl(var(--swago-purple))]/10 text-[hsl(var(--swago-purple))] font-black text-[10px] uppercase tracking-widest border border-[hsl(var(--swago-purple))]/20"
+                  className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-orange-50 text-orange-600 font-black text-[10px] uppercase tracking-widest border border-orange-100"
                 >
                   <Zap className="w-3.5 h-3.5 fill-current" />
                   Limited Session • {session.ageGroup}
@@ -221,6 +242,9 @@ export default function SessionDetailsPage() {
 
       {/* Reusable Modules Section */}
       <MasterclassModules modules={masterclass.modules} />
+
+      {/* Certification Section */}
+      <MasterclassCertification certification={masterclass.certification} />
       
       {/* Testimonials Section */}
       <MasterclassTestimonials testimonials={masterclass.testimonials} />
@@ -253,7 +277,7 @@ export default function SessionDetailsPage() {
             <button
               onClick={handleBookClick}
               disabled={isFullyBooked}
-              className="w-full sm:w-auto btn-shine bg-[hsl(var(--swago-purple))] text-white font-black sm:px-10 sm:py-5 px-6 py-3.5 rounded-[18px] sm:rounded-[22px] text-lg sm:text-xl shadow-2xl shadow-purple-500/30 hover:shadow-purple-500/50 transition-all hover:-translate-y-1 active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed group"
+              className="w-full sm:w-auto bg-[hsl(var(--swago-purple))] text-white font-black sm:px-10 sm:py-5 px-6 py-3.5 rounded-[18px] sm:rounded-[22px] text-lg sm:text-xl shadow-[0_8px_30px_rgba(124,58,237,0.3)] hover:shadow-[0_12px_40px_rgba(124,58,237,0.5)] hover:-translate-y-1 active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed group"
             >
               <span>{isFullyBooked ? "Sold Out" : "Book Session Now"}</span>
               {!isFullyBooked && <ChevronRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />}

@@ -87,6 +87,11 @@ const OrderSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: false
+    },
+    // ✅ NEW: Where did you hear about us?
+    referralSource: {
+      type: String,
+      required: false
     }
   },
   { timestamps: true }

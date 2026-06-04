@@ -1,104 +1,91 @@
 "use client";
 
-import Image from "next/image";
-import { Gift, Sparkles, ChevronRight, Zap } from "lucide-react";
+import { Gift, Star, CheckCircle2, Zap } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function MasterclassBonuses({ bonuses }: { bonuses: any[] }) {
   if (!bonuses || bonuses.length === 0) return null;
 
   return (
-    <section className="py-24 bg-slate-900 text-white relative overflow-hidden">
-      {/* Dynamic Background */}
-      <div className="absolute inset-0 z-0">
-        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-yellow-500/10 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/3" />
-        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-purple-500/10 rounded-full blur-[120px] translate-y-1/2 -translate-x-1/3" />
+    <section className="py-20 bg-[#fffbf0] relative overflow-hidden">
+      {/* Very subtle warm pattern */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-yellow-100/60 rounded-full blur-[120px] -translate-x-1/3 -translate-y-1/3" />
+        <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-orange-100/50 rounded-full blur-[100px] translate-x-1/4 translate-y-1/3" />
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 relative z-10">
-        <div className="text-center mb-20 space-y-6">
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.8 }}
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 relative z-10">
+        {/* Header */}
+        <div className="text-center mb-14 space-y-5">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
-            className="inline-flex items-center gap-3 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 text-yellow-400 font-black px-6 py-2 rounded-full border border-yellow-500/30 shadow-[0_0_20px_rgba(234,179,8,0.1)]"
+            className="inline-flex items-center gap-2 bg-yellow-100 text-yellow-700 font-bold px-5 py-2 rounded-full border border-yellow-200 text-xs uppercase tracking-widest"
           >
-            <Gift className="w-5 h-5 animate-bounce" />
-            <span className="text-xs uppercase tracking-[0.2em]">Exclusive Enrollment Bonus</span>
+            <Gift className="w-4 h-4" />
+            Exclusive Enrollment Bonus
           </motion.div>
-          
-          <h2 className="text-4xl sm:text-6xl font-black tracking-tight leading-[1.1]">
-            Unlock Bonuses Worth<br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-orange-300 to-yellow-500">
+
+          <h2 className="text-3xl sm:text-5xl font-black text-slate-900 tracking-tight leading-tight">
+            Unlock Bonuses Worth{" "}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-500 to-orange-500">
               Thousands for Free
             </span>
           </h2>
-          
-          <p className="text-lg text-slate-400 max-w-2xl mx-auto font-medium leading-relaxed">
-            Enroll during this limited-time offer and gain instant access to a suite of professional resources to boost your child's journey.
+
+          <p className="text-slate-500 max-w-xl mx-auto font-medium">
+            Enroll during this limited-time offer and gain instant access to exclusive resources to accelerate learning.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {/* Bonus Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {bonuses.map((bonus: any, idx: number) => (
-            <motion.div 
-              key={idx} 
-              initial={{ opacity: 0, y: 30 }}
+            <motion.div
+              key={idx}
+              initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: idx * 0.1 }}
-              className="relative group h-full"
+              className="group bg-white border border-yellow-100 rounded-2xl p-6 hover:border-yellow-300 hover:shadow-[0_8px_30px_rgba(251,191,36,0.12)] transition-all duration-300 flex flex-col"
             >
-              <div className="absolute inset-0 bg-yellow-500/20 rounded-[32px] blur-2xl opacity-0 group-hover:opacity-100 transition-all duration-500" />
-              
-              <div className="relative bg-slate-800/50 backdrop-blur-sm border border-white/5 rounded-[32px] overflow-hidden flex flex-col h-full hover:border-yellow-500/30 hover:bg-slate-800 transition-all duration-500">
-                {bonus.image && (
-                  <div className="relative h-56 w-full overflow-hidden bg-slate-700">
-                    <Image 
-                      src={bonus.image} 
-                      alt={bonus.title} 
-                      fill 
-                      className="object-cover group-hover:scale-110 transition-transform duration-700" 
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent opacity-60" />
-                    
-                    <div className="absolute top-4 right-4 bg-yellow-500 text-slate-900 font-black px-4 py-1.5 rounded-full text-xs shadow-xl">
-                      {bonus.value}
-                    </div>
-                  </div>
-                )}
-                
-                <div className="p-8 flex flex-col flex-1">
-                  <div className="flex items-center gap-2 mb-4">
-                    <div className="w-8 h-8 rounded-lg bg-yellow-500/10 flex items-center justify-center text-yellow-500">
-                      <Zap className="w-4 h-4 fill-current" />
-                    </div>
-                    <h3 className="text-xl font-black text-white tracking-tight">{bonus.title}</h3>
-                  </div>
-                  
-                  <p className="text-slate-400 text-sm font-medium leading-relaxed mb-8 flex-1">
-                    {bonus.description}
-                  </p>
-                  
-                  <div className="flex items-center text-yellow-400 text-xs font-black uppercase tracking-widest gap-2 group/link">
-                    <span>Includes Guidebook</span>
-                    <ChevronRight className="w-4 h-4 group-hover/link:translate-x-1 transition-transform" />
-                  </div>
+              {/* Value badge */}
+              {bonus.value && (
+                <div className="self-start mb-4 bg-yellow-400 text-slate-900 font-black text-[10px] px-3 py-1 rounded-full uppercase tracking-wider">
+                  Worth {bonus.value}
                 </div>
+              )}
+
+              <div className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center text-orange-500 mb-4">
+                <Zap className="w-5 h-5" />
+              </div>
+
+              <h3 className="text-slate-900 font-black text-lg leading-snug mb-2">{bonus.title}</h3>
+              <p className="text-slate-500 text-sm font-medium leading-relaxed flex-1">{bonus.description}</p>
+
+              <div className="mt-5 pt-4 border-t border-slate-100 flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
+                <span className="text-xs text-green-600 font-bold">Included Free with Enrollment</span>
               </div>
             </motion.div>
           ))}
         </div>
-        
-        <div className="mt-20 text-center">
-          <a 
-            href="#sessions" 
-            className="btn-shine inline-flex items-center justify-center bg-white text-slate-900 font-black px-12 py-5 rounded-[22px] text-xl hover:bg-yellow-500 hover:text-slate-900 shadow-[0_20px_50px_rgba(0,0,0,0.2)] transition-all hover:-translate-y-1 group"
+
+        {/* CTA */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          className="mt-12 text-center"
+        >
+          <a
+            href="#sessions"
+            className="inline-flex items-center justify-center gap-2 bg-[hsl(var(--swago-purple))] text-white font-black px-10 py-4 rounded-full text-base shadow-[0_8px_30px_rgba(124,58,237,0.3)] hover:shadow-[0_12px_40px_rgba(124,58,237,0.5)] hover:-translate-y-0.5 transition-all duration-300"
           >
-            <span>Claim Your Bonuses</span>
-            <Sparkles className="w-6 h-6 ml-3 text-yellow-600 group-hover:rotate-12 transition-transform" />
+            Claim Your Bonuses →
           </a>
-        </div>
+        </motion.div>
       </div>
     </section>
   );

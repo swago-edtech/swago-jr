@@ -26,9 +26,19 @@ const DEFAULT_REDEMPTION_TIERS = [
   { target: 3000, off: 150 }
 ];
 
+const REFERRAL_OPTIONS = [
+  "Instagram",
+  "Youtube",
+  "Whatsapp community",
+  "Google",
+  "Facebook",
+  "Friend or Family"
+];
+
 export default function CheckoutPage() {
   const { cart, total, user, isLoadingUser, clearCart, addToCart, appliedCoupon, setAppliedCoupon, appliedSwagoMoney, refreshCartPrices, isRefreshingCart } = useSharedContext();
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [email, setEmail] = useState("");
   const [pincode, setPincode] = useState("");
@@ -42,6 +52,7 @@ export default function CheckoutPage() {
   const [billingAddressType, setBillingAddressType] = useState<'same' | 'different'>('same');
   const [couponCode, setCouponCode] = useState(appliedCoupon?.code || "");
   const [age, setAge] = useState("");
+  const [referralSource, setReferralSource] = useState("");
   const [message, setMessage] = useState("");
   const [errors, setErrors] = useState<string[]>([]);
   const [priceChangeModal, setPriceChangeModal] = useState<CartPriceChange[] | null>(null);
@@ -154,6 +165,7 @@ export default function CheckoutPage() {
             pincode,
             cart,
             age,
+            referralSource,
             coupon: appliedCoupon,
             finalAmount: finalAmount,
             swagoMoneyRedeemed: appliedSwagoMoney || 0
@@ -216,6 +228,7 @@ export default function CheckoutPage() {
             pincode,
             cart,
             age,
+            referralSource,
             coupon: appliedCoupon,
             finalAmount: finalAmount,
             swagoMoneyRedeemed: appliedSwagoMoney || 0
@@ -283,6 +296,18 @@ export default function CheckoutPage() {
     const tiers = promotion?.redemptionTiers || DEFAULT_REDEMPTION_TIERS;
     return tiers.find((t: any) => total < t.target);
   }, [total, promotion]);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white p-4">
+        <div className="w-8 h-8 border-4 border-[hsl(var(--swago-purple))] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   if (cart.length === 0) {
     return (
@@ -474,6 +499,22 @@ export default function CheckoutPage() {
                     <span className="text-xs text-slate-600 group-hover:text-slate-900 transition-colors">Text me with news and offers</span>
                   </label>
                 </div>
+              </div>
+            </section>
+
+            {/* Referral Section */}
+            <section>
+              <h2 className="text-lg font-semibold text-slate-800 mb-3">Where did you hear about us? <span className="text-slate-400 text-sm font-normal">(Optional)</span></h2>
+              <div className="flex flex-wrap gap-2">
+                {REFERRAL_OPTIONS.map(option => (
+                  <button
+                    key={option}
+                    onClick={() => setReferralSource(referralSource === option ? "" : option)}
+                    className={`px-4 py-2 rounded-full text-xs font-bold transition-all border ${referralSource === option ? 'bg-[hsl(var(--swago-purple))] text-white border-[hsl(var(--swago-purple))] shadow-md shadow-[hsl(var(--swago-purple))/0.2]' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'}`}
+                  >
+                    {option}
+                  </button>
+                ))}
               </div>
             </section>
 
@@ -671,7 +712,7 @@ function OrderSummary({
   return (
     <>
       <div className="mb-4">
-        {/* <CartProgress total={total} promotionData={promotion} /> */}
+        <CartProgress total={total} promotionData={promotion} />
       </div>
       {/* Cart Items */}
       <div className="space-y-5 mb-8">

@@ -13,7 +13,7 @@ export async function GET() {
 
         await connectDB();
 
-        let promotion = await Promotion.findOne({ isActive: true });
+        let promotion = await Promotion.findOne();
 
         // If no active promotion, create a default one
         if (!promotion) {
@@ -48,15 +48,24 @@ export async function POST(req: Request) {
         }
 
         const body = await req.json();
-        const { redemptionTiers, bonusItems } = body;
+        const { redemptionTiers, bonusItems, isActive } = body;
 
         await connectDB();
 
-        const promotion = await Promotion.findOneAndUpdate(
-            { isActive: true },
-            { redemptionTiers, bonusItems },
-            { new: true, upsert: true }
-        );
+        let promotion = await Promotion.findOne();
+        if (promotion) {
+            if (redemptionTiers !== undefined) promotion.redemptionTiers = redemptionTiers;
+            if (bonusItems !== undefined) promotion.bonusItems = bonusItems;
+            if (isActive !== undefined) promotion.isActive = isActive;
+            await promotion.save();
+        } else {
+            promotion = await Promotion.create({
+                name: "Default Promotion",
+                isActive: isActive ?? true,
+                redemptionTiers,
+                bonusItems
+            });
+        }
 
         return NextResponse.json({ success: true, promotion });
     } catch (error) {

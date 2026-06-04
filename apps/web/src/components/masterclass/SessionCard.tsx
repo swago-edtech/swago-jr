@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Clock, Calendar, Users, CheckCircle2, ChevronRight, Zap } from "lucide-react";
+import { Clock, Calendar, Users, CheckCircle2, ChevronRight, Zap, Shield } from "lucide-react";
 import { formatPrice } from "@/hooks/useCurrency";
 import { motion } from "framer-motion";
 
@@ -15,138 +15,188 @@ interface SessionCardProps {
 export default function SessionCard({ session, currency = "INR", onBook }: SessionCardProps) {
   const isFullyBooked = session.bookedSeats >= session.maxSeats;
   const spotsLeft = Math.max(0, session.maxSeats - session.bookedSeats);
+  const pctBooked = Math.min(100, Math.round((session.bookedSeats / session.maxSeats) * 100));
 
-  // Find pricing for the selected currency
   let activePricing = session.pricing?.find((p: any) => p.currency === currency);
   if (!activePricing && session.pricing?.length > 0) {
     activePricing = session.pricing.find((p: any) => p.currency === "INR") || session.pricing[0];
   }
 
-  // Fallback to top-level price if pricing array doesn't exist
   const displayPrice = activePricing?.price ?? session.price;
   const displayOriginalPrice = activePricing?.originalPrice ?? session.originalPrice;
   const displayCurrency = activePricing?.currency || currency;
+  const discount = displayOriginalPrice && displayPrice
+    ? Math.round(((displayOriginalPrice - displayPrice) / displayOriginalPrice) * 100)
+    : 0;
+
+  const sessionSlug = session.title 
+    ? encodeURIComponent(session.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '')) 
+    : session._id;
 
   return (
-    <motion.div 
-      whileHover={{ y: -8 }}
-      transition={{ type: "spring", stiffness: 300 }}
+    <motion.div
+      whileHover={{ y: -6 }}
+      transition={{ type: "spring", stiffness: 300, damping: 20 }}
       className="h-full"
     >
-      <Link href={`/masterclass/sessions/${session._id}`} className="block h-full">
-        <div className="group bg-white rounded-[32px] overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.04)] hover:shadow-[0_20px_50px_rgba(0,0,0,0.08)] border border-slate-100 hover:border-slate-200 transition-all duration-500 flex flex-col h-full relative">
-          
-          {/* Status Overlay for Fully Booked */}
-          {isFullyBooked && (
-            <div className="absolute inset-0 z-20 bg-white/60 backdrop-blur-[2px] flex items-center justify-center p-6 text-center">
-              <div className="bg-white px-6 py-3 rounded-2xl shadow-xl border border-red-100 transform -rotate-3">
-                <span className="text-xl font-black text-red-600 uppercase tracking-widest">Fully Booked</span>
+      <div className={`group bg-white rounded-2xl overflow-hidden border transition-all duration-300 flex flex-col h-full relative
+        ${isFullyBooked
+          ? "border-slate-200 opacity-75"
+          : "border-slate-200 hover:border-purple-300 hover:shadow-[0_12px_40px_rgba(124,58,237,0.12)]"
+        }`}
+      >
+        {/* Fully Booked Overlay */}
+        {isFullyBooked && (
+          <div className="absolute inset-0 z-20 bg-white/70 backdrop-blur-[2px] flex items-center justify-center">
+            <div className="bg-white px-6 py-3 rounded-2xl shadow-xl border border-red-100 -rotate-3">
+              <span className="text-lg font-black text-red-600 uppercase tracking-widest">Fully Booked</span>
+            </div>
+          </div>
+        )}
+
+        {/* Thumbnail */}
+        <div className="relative aspect-video w-full bg-slate-100 overflow-hidden shrink-0">
+          {session.thumbnail ? (
+            <Image
+              src={session.thumbnail}
+              alt={session.title}
+              fill
+              className="object-cover group-hover:scale-105 transition-transform duration-700"
+            />
+          ) : (
+            <div className="w-full h-full flex flex-col items-center justify-center text-slate-300 gap-2 bg-gradient-to-br from-purple-50 to-indigo-50">
+              <Zap className="w-10 h-10 text-purple-200" />
+              <span className="text-[10px] font-black uppercase tracking-widest text-purple-300">Premium Session</span>
+            </div>
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+
+          {/* Age badge */}
+          <div className="absolute top-3 left-3">
+            <span className="bg-white/90 backdrop-blur text-slate-800 text-[10px] font-black px-3 py-1 rounded-full shadow-sm uppercase tracking-wide">
+              {session.ageGroup}
+            </span>
+          </div>
+
+          {/* Discount badge */}
+          {discount > 0 && !isFullyBooked && (
+            <div className="absolute top-3 right-3">
+              <span className="bg-green-500 text-white text-[10px] font-black px-3 py-1 rounded-full shadow-sm uppercase tracking-wide">
+                {discount}% OFF
+              </span>
+            </div>
+          )}
+
+          {/* Spots left warning */}
+          {spotsLeft <= 5 && !isFullyBooked && (
+            <div className="absolute bottom-3 left-3">
+              <span className="bg-orange-500 text-white text-[10px] font-black px-3 py-1 rounded-full animate-pulse">
+                ⚡ Only {spotsLeft} spots left!
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* Card Body */}
+        <div className="p-6 flex flex-col flex-1">
+          <h3 className="text-xl font-black text-slate-900 mb-3 leading-tight tracking-tight line-clamp-2 group-hover:text-purple-700 transition-colors">
+            {session.title}
+          </h3>
+
+          {/* Meta row */}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mb-5">
+            {session.schedule && (
+              <span className="flex items-center gap-1.5 text-[11px] text-slate-400 font-semibold">
+                <Calendar className="w-3.5 h-3.5" />
+                {session.schedule}
+              </span>
+            )}
+            {session.duration && (
+              <span className="flex items-center gap-1.5 text-[11px] text-slate-400 font-semibold">
+                <Clock className="w-3.5 h-3.5" />
+                {session.duration}
+              </span>
+            )}
+          </div>
+
+          {/* Highlights */}
+          {session.highlights && session.highlights.length > 0 && (
+            <ul className="space-y-2 mb-6 flex-1">
+              {session.highlights.slice(0, 3).map((h: string, i: number) => (
+                <li key={i} className="flex items-start gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
+                  <span className="text-sm text-slate-600 font-medium leading-snug">{h}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {/* Seats progress */}
+          {!isFullyBooked && session.maxSeats > 0 && (
+            <div className="mb-5">
+              <div className="flex justify-between items-center mb-1.5">
+                <span className="text-[11px] text-slate-400 font-semibold flex items-center gap-1">
+                  <Users className="w-3 h-3" />
+                  {session.bookedSeats} / {session.maxSeats} enrolled
+                </span>
+                <span className="text-[11px] font-black text-orange-500">{spotsLeft} left</span>
+              </div>
+              <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-orange-400 to-red-500 rounded-full transition-all duration-500"
+                  style={{ width: `${pctBooked}%` }}
+                />
               </div>
             </div>
           )}
 
-          {/* Thumbnail & Image Badge */}
-          <div className="relative aspect-[16/10] w-full bg-slate-50 overflow-hidden">
-            {session.thumbnail ? (
-              <Image
-                src={session.thumbnail}
-                alt={session.title}
-                fill
-                className="object-cover group-hover:scale-110 transition-transform duration-700"
-              />
-            ) : (
-              <div className="w-full h-full flex flex-col items-center justify-center text-slate-200 gap-2">
-                <Zap className="w-12 h-12" />
-                <span className="text-[10px] font-black uppercase tracking-widest">Premium Session</span>
-              </div>
-            )}
-            
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-40" />
-
-            {/* Floating Badges */}
-            <div className="absolute top-4 left-4 flex flex-col gap-2">
-              <div className="bg-white/90 backdrop-blur-md px-4 py-1.5 rounded-full text-[10px] font-black text-slate-900 shadow-sm border border-white/50 uppercase tracking-wider">
-                {session.ageGroup}
-              </div>
-            </div>
-            
-            {spotsLeft <= 5 && !isFullyBooked && (
-              <div className="absolute top-4 right-4 bg-orange-500 text-white px-4 py-1.5 rounded-full text-[10px] font-black shadow-xl uppercase tracking-wider animate-pulse">
-                {spotsLeft} Spots Left
-              </div>
-            )}
-          </div>
-
-          {/* Content Area */}
-          <div className="p-8 flex flex-col flex-1">
-            <h3 className="text-2xl font-black text-slate-900 mb-4 leading-tight group-hover:text-[hsl(var(--swago-purple))] transition-colors line-clamp-2 tracking-tight">
-              {session.title}
-            </h3>
-            
-            {/* Quick Stats Grid */}
-            <div className="grid grid-cols-2 gap-4 mb-8">
-              <div className="flex items-center gap-2.5 text-slate-500">
-                <div className="w-8 h-8 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-[hsl(var(--swago-purple))]/5 group-hover:text-[hsl(var(--swago-purple))] transition-colors">
-                  <Calendar className="w-4 h-4" />
-                </div>
-                <span className="text-xs font-bold truncate">{session.schedule}</span>
-              </div>
-              <div className="flex items-center gap-2.5 text-slate-500">
-                <div className="w-8 h-8 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-[hsl(var(--swago-purple))]/5 group-hover:text-[hsl(var(--swago-purple))] transition-colors">
-                  <Clock className="w-4 h-4" />
-                </div>
-                <span className="text-xs font-bold truncate">{session.duration}</span>
-              </div>
-            </div>
-
-            {/* Highlights Section */}
-            {session.highlights && session.highlights.length > 0 && (
-              <div className="mb-8 space-y-3 flex-1">
-                {session.highlights.slice(0, 3).map((highlight: string, idx: number) => (
-                  <div key={idx} className="flex items-start gap-3 group/item">
-                    <div className="w-5 h-5 rounded-lg bg-green-50 flex items-center justify-center text-green-500 group-hover/item:bg-green-500 group-hover/item:text-white transition-all">
-                      <CheckCircle2 className="w-3 h-3" />
-                    </div>
-                    <span className="text-sm font-bold text-slate-600 line-clamp-1 group-hover/item:text-slate-900 transition-colors tracking-tight">{highlight}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Price & Action Container */}
-            <div className="pt-6 border-t border-slate-100 flex items-center justify-between mt-auto">
-              <div>
-                {displayOriginalPrice && (
-                  <p className="text-[10px] text-slate-400 line-through font-black uppercase tracking-widest mb-1">
-                    {formatPrice(displayOriginalPrice, displayCurrency)}
-                  </p>
-                )}
-                <p className="text-3xl font-black text-slate-900 tracking-tight">
-                  {formatPrice(displayPrice, displayCurrency)}
+          {/* Price + CTA */}
+          <div className="mt-auto pt-4 border-t border-slate-100 flex items-end justify-between gap-3">
+            <div>
+              {displayOriginalPrice && (
+                <p className="text-xs text-slate-400 line-through font-semibold mb-0.5">
+                  {formatPrice(displayOriginalPrice, displayCurrency)}
                 </p>
-              </div>
-              
-              <button
-                onClick={(e) => {
-                  if (onBook) {
-                    e.preventDefault();
-                    onBook();
-                  }
-                }}
-                disabled={isFullyBooked}
-                className={`flex items-center justify-center gap-2 sm:px-8 sm:py-4 px-4 py-2.5 rounded-xl sm:rounded-2xl font-black text-xs sm:text-sm transition-all duration-300 ${
-                  isFullyBooked 
-                    ? "bg-slate-100 text-slate-400 cursor-not-allowed"
-                    : "bg-[hsl(var(--swago-purple))] text-white hover:shadow-2xl hover:shadow-purple-500/40 hover:-translate-y-1 active:scale-95"
-                }`}
-              >
-                <span>{isFullyBooked ? "Sold Out" : "Book Now"}</span>
-                {!isFullyBooked && <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform" />}
-              </button>
+              )}
+              <p className="text-2xl font-black text-slate-900 leading-none tracking-tight">
+                {formatPrice(displayPrice, displayCurrency)}
+              </p>
             </div>
+
+            <button
+              onClick={(e) => {
+                if (onBook) { e.preventDefault(); onBook(); }
+              }}
+              disabled={isFullyBooked}
+              className={`shrink-0 flex items-center gap-1.5 px-5 py-3 rounded-xl font-black text-sm transition-all duration-200 ${
+                isFullyBooked
+                  ? "bg-slate-100 text-slate-400 cursor-not-allowed"
+                  : "bg-[hsl(var(--swago-purple))] text-white shadow-[0_8px_30px_rgba(124,58,237,0.3)] hover:shadow-[0_12px_40px_rgba(124,58,237,0.5)] hover:-translate-y-0.5 active:scale-95"
+              }`}
+            >
+              {isFullyBooked ? "Sold Out" : "Enroll"}
+              {!isFullyBooked && <ChevronRight className="w-4 h-4" />}
+            </button>
           </div>
+
+          {/* Guarantee note */}
+          {!isFullyBooked && (
+            <p className="flex items-center gap-1 text-[10px] text-slate-400 font-medium mt-3">
+              <Shield className="w-3 h-3 text-green-400" />
+              7-Day Risk Free Refund
+            </p>
+          )}
         </div>
-      </Link>
+
+        {/* View Details link */}
+        <Link
+          href={`/masterclass/sessions/${sessionSlug}`}
+          className="block mx-6 mb-5 text-center text-orange-500 hover:text-orange-700 text-xs font-bold underline underline-offset-2 transition-colors"
+          onClick={(e) => e.stopPropagation()}
+        >
+          View Full Details
+        </Link>
+      </div>
     </motion.div>
   );
 }

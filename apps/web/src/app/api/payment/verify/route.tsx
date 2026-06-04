@@ -79,7 +79,7 @@ export async function POST(req: Request) {
     // ✅ FINALIZE ORDER USING SHARED SERVICE
     // ========================================
     const result = await finalizeOrder({
-      orderIdOrMongoId: razorpay_order_id,
+      orderIdOrMongoId: order.orderId || order._id.toString(),
       razorpayPaymentId: razorpay_payment_id,
       source: 'frontend'
     });

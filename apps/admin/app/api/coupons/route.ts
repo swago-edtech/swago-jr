@@ -1,13 +1,26 @@
 // apps/admin/app/api/coupons/route.ts
 
 import { NextResponse } from 'next/server';
-import { connectDB, Coupon } from '@swago/database';
+import { connectDB, Coupon, Order } from '@swago/database';
 
 export async function GET() {
     try {
         await connectDB();
-        const coupons = await Coupon.find().sort({ createdAt: -1 });
-        return NextResponse.json({ success: true, coupons });
+        const coupons = await Coupon.find().sort({ createdAt: -1 }).lean();
+        
+        // Dynamically calculate actual usage count from completed orders
+        const couponsWithActualCount = await Promise.all(coupons.map(async (coupon: any) => {
+            const actualCount = await Order.countDocuments({
+                couponCode: coupon.code,
+                status: { $in: ['Paid', 'Shipped', 'Delivered'] }
+            });
+            return {
+                ...coupon,
+                usageCount: actualCount
+            };
+        }));
+
+        return NextResponse.json({ success: true, coupons: couponsWithActualCount });
     } catch (error: any) {
         return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }

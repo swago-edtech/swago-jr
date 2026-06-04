@@ -10,7 +10,14 @@ import { LayoutDashboard, ShoppingBag, Package, Users, MessageSquare, X, Menu, H
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Analytics', href: '/analytics', icon: TrendingUp },
-  { name: 'Announcement', href: '/announcement', icon: Megaphone }, // ✅ NEW
+  {
+    name: 'Marketing & Comm.',
+    icon: Megaphone,
+    submenu: [
+      { name: 'Announcement Banner', href: '/announcement' },
+      { name: 'Home Pop-up', href: '/home-popup' },
+    ]
+  },
   { name: 'Orders', href: '/orders', icon: ShoppingBag },
   { name: 'Coupons', href: '/coupons', icon: Ticket },
   { name: 'Promotions', href: '/promotions', icon: Gift },

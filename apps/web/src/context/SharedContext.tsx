@@ -329,6 +329,7 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
               images: refreshed.images || item.images,
               stock: refreshed.stock,
               originalPrice: refreshed.originalPrice || item.originalPrice,
+              slug: refreshed.slug || item.slug,
               quantity: refreshed.availableStock === 0
                 ? 0
                 : Math.min(item.quantity, refreshed.availableStock),
@@ -419,6 +420,7 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
         quantity: item.quantity,
         price: item.price,
         name: item.name,
+        slug: item.slug,
         image: item.images?.[0] || '/images/placeholder.png',
         images: item.images || ['/images/placeholder.png'],
         addedAt: new Date()
@@ -432,6 +434,7 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
       quantity: item.quantity,
       price: item.price,
       name: item.name,
+      slug: item.slug,
       image: item.images?.[0] || '/images/placeholder.png',
       images: item.images || ['/images/placeholder.png'],
       addedAt: new Date()

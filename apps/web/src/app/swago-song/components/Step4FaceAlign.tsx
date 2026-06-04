@@ -49,7 +49,7 @@ export default function Step4FaceAlign({ onNext }: StepProps) {
           </div>
 
           <a 
-            href="https://youtube.com/shorts/MqQhWabS5VI?feature=share" 
+            href="https://www.youtube.com/shorts/ZniPepamMuQ?feature=share" 
             target="_blank" 
             rel="noopener noreferrer"
             className="w-full"

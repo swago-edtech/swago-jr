@@ -56,7 +56,7 @@ export default function WhySwagoIsFunSection() {
           >
             Why Choose <span className="text-[hsl(var(--swago-purple))]">SWAGO?</span>
           </motion.h2>
-          <div className="w-24 h-2 bg-gradient-to-r from-[hsl(var(--swago-purple))] to-[hsl(var(--swago-orange))] mx-auto rounded-full" />
+          <div className="w-24 h-1.5 bg-[hsl(var(--swago-purple))] mx-auto rounded-full" />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-12">
