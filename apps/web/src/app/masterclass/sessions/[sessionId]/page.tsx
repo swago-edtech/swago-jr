@@ -72,6 +72,18 @@ export default function SessionDetailsPage() {
 
   if (!session || !masterclass) return null;
 
+  // Temporarily hiding masterclass session - forcing coming soon screen
+  if (true) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="text-center p-10 bg-white border border-slate-200 rounded-2xl shadow-sm max-w-sm mx-4">
+          <p className="text-slate-900 text-xl font-black mb-2">Coming Soon</p>
+          <p className="text-slate-500 font-medium">Our masterclass is currently being prepared. Check back soon!</p>
+        </div>
+      </div>
+    );
+  }
+
   const isFullyBooked = session.bookedSeats >= session.maxSeats;
   const spotsLeft = Math.max(0, session.maxSeats - session.bookedSeats);
 

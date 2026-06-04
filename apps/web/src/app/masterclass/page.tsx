@@ -76,7 +76,8 @@ export default function MasterclassGlobalPage() {
     );
   }
 
-  if (!masterclass) {
+  // Temporarily hiding masterclass - forcing coming soon screen
+  if (true || !masterclass) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <div className="text-center p-10 bg-white border border-slate-200 rounded-2xl shadow-sm max-w-sm mx-4">

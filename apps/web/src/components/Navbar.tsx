@@ -91,9 +91,11 @@ export default function Navbar() {
               <motion.div whileHover={{ y: -2 }}>
                 <Link href="/products" className="transition-colors hover:text-black">All Products</Link>
               </motion.div>
+              {/* Hiding masterclass for now
               <motion.div whileHover={{ y: -2 }}>
                 <Link href="/masterclass" className="transition-colors hover:text-black">Masterclass</Link>
               </motion.div>
+              */}
               <motion.div whileHover={{ y: -2 }}>
                 <Link href="/about" className="transition-colors hover:text-black">About Us</Link>
               </motion.div>
@@ -244,7 +246,9 @@ export default function Navbar() {
                     )}
                   </Link>
                   <Link href="/products" onClick={() => setMobileMenuOpen(false)} className="block text-xl font-bold text-slate-800">All Products</Link>
+                  {/* Hiding masterclass for now
                   <Link href="/masterclass" onClick={() => setMobileMenuOpen(false)} className="block text-xl font-bold text-slate-800">Masterclass</Link>
+                  */}
                   <Link href="/blog" onClick={() => setMobileMenuOpen(false)} className="block text-xl font-bold text-slate-800">Blogs</Link>
                   <Link href="/about" onClick={() => setMobileMenuOpen(false)} className="block text-xl font-bold text-slate-800">About Us</Link>
                   <hr className="border-slate-100" />
