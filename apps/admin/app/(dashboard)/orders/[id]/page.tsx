@@ -68,6 +68,10 @@ export default async function OrderDetailPage({
                 <p className="text-sm font-medium text-gray-900">{order.email}</p>
               </div>
             )}
+            <div>
+              <p className="text-sm text-gray-500">Source</p>
+              <p className="text-sm font-medium text-gray-900">{order.referralSource || '-'}</p>
+            </div>
           </div>
         </div>
 

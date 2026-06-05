@@ -12,24 +12,44 @@ async function getOrders(searchParams: { [key: string]: string | undefined }) {
   // ✅ Clean up expired prepaid orders
   await cleanupExpiredOrders();
 
-  const query: any = {};
+  const query: any = { $and: [] };
 
   if (searchParams.q) {
     const searchRegex = new RegExp(searchParams.q, 'i');
-    query.$or = [
-      { orderId: searchRegex },
-      { name: searchRegex },
-      { phone: searchRegex },
-      { email: searchRegex },
-    ];
+    query.$and.push({
+      $or: [
+        { orderId: searchRegex },
+        { name: searchRegex },
+        { phone: searchRegex },
+        { email: searchRegex },
+      ]
+    });
   }
 
   if (searchParams.status) {
-    query.status = searchParams.status;
+    // Case-insensitive exact match
+    query.$and.push({ status: new RegExp(`^${searchParams.status}$`, 'i') });
   }
 
   if (searchParams.payment) {
-    query.paymentMethod = searchParams.payment;
+    if (searchParams.payment === 'coupon_applied') {
+      query.$and.push({ couponCode: { $exists: true, $ne: null, $nin: ["", " "] } });
+    } else if (searchParams.payment === 'coupon_none') {
+      query.$and.push({
+        $or: [
+          { couponCode: { $exists: false } },
+          { couponCode: null },
+          { couponCode: "" },
+          { couponCode: " " }
+        ]
+      });
+    } else {
+      query.$and.push({ paymentMethod: new RegExp(`^${searchParams.payment}$`, 'i') });
+    }
+  }
+
+  if (query.$and.length === 0) {
+    delete query.$and;
   }
 
   let sortConfig: any = { createdAt: -1 };
@@ -60,7 +80,7 @@ async function getOrders(searchParams: { [key: string]: string | undefined }) {
       .sort(sortConfig)
       .skip(skip)
       .limit(limit)
-      .select('orderId name phone email total status items createdAt razorpay_payment_id paymentMethod couponCode discount')
+      .select('orderId name phone email total status items createdAt razorpay_payment_id paymentMethod couponCode discount referralSource')
       .lean(),
     Order.countDocuments(query)
   ]);
@@ -122,6 +142,9 @@ export default async function OrdersPage(props: { searchParams?: Promise<{ [key:
                   Payment
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Source
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Date
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -178,6 +201,11 @@ export default async function OrdersPage(props: { searchParams?: Promise<{ [key:
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <PaymentBadge method={order.paymentMethod} />
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                        {order.referralSource || '-'}
+                      </span>
                     </td>
                     {/* ✨ UPDATED: Use client component for date */}
                     <td className="px-6 py-4 whitespace-nowrap">

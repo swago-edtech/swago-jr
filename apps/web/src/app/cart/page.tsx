@@ -407,7 +407,7 @@ export default function CartPage() {
                 <span className="text-pink-500">✨</span> Other parents are loving these products too
               </h2>
               {/* Vertical Grid Area (Mobile Stack) - Added as requested */}
-              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 mb-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mb-4">
                 <RelatedProductsCompact currentProductId="cart" />
               </div>
 

@@ -106,7 +106,7 @@ export default function LotteryTicketsPage() {
                             <tbody className="divide-y divide-gray-200">
                                 {filteredTickets.map((ticket) => (
                                     <tr key={ticket._id} className="hover:bg-gray-50">
-                                        <td className="px-6 py-4 font-mono text-sm font-semibold">{ticket.code}</td>
+                                        <td className="px-6 py-4 font-mono text-sm text-black font-semibold">{ticket.code}</td>
                                         <td className="px-6 py-4 text-sm text-gray-900">
                                             {ticket.productName}
                                             <span className="ml-2 text-xs text-gray-500">({ticket.shortForm})</span>

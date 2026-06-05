@@ -91,7 +91,7 @@ const OrderSchema = new mongoose.Schema(
     // ✅ NEW: Where did you hear about us?
     referralSource: {
       type: String,
-      required: false
+      required: true
     }
   },
   { timestamps: true }
