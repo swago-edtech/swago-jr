@@ -76,9 +76,11 @@ export default function OrderFilters() {
           onChange={(e) => createQueryString("payment", e.target.value)}
           className="px-4 py-2 border border-gray-300 rounded-md bg-white text-black focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
-          <option value="">All Payment Methods</option>
+          <option value="">All Payment Options</option>
           <option value="cod">Cash on Delivery</option>
           <option value="razorpay">Prepaid (Razorpay)</option>
+          <option value="coupon_applied">Has Applied Coupon</option>
+          <option value="coupon_none">No Coupon Applied</option>
         </select>
 
         <select

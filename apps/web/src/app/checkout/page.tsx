@@ -86,6 +86,7 @@ export default function CheckoutPage() {
     if (!pincode) newErrors.push("pincode");
     if (!phone) newErrors.push("phone");
     if (!age) newErrors.push("age");
+    if (!referralSource) newErrors.push("referralSource");
 
     setErrors(newErrors);
     if (newErrors.length > 0) {
@@ -95,6 +96,7 @@ export default function CheckoutPage() {
       if (newErrors.includes("address") || newErrors.includes("city") || newErrors.includes("pincode")) missingFields.push("Complete Address");
       if (newErrors.includes("phone")) missingFields.push("Phone Number");
       if (newErrors.includes("age")) missingFields.push("Child's Age");
+      if (newErrors.includes("referralSource")) missingFields.push("How you heard about us");
       
       setMessage(`Almost there! Please provide: ${missingFields.join(", ")}`);
       return false;
@@ -504,18 +506,19 @@ export default function CheckoutPage() {
 
             {/* Referral Section */}
             <section>
-              <h2 className="text-lg font-semibold text-slate-800 mb-3">Where did you hear about us? <span className="text-slate-400 text-sm font-normal">(Optional)</span></h2>
+              <h2 className="text-lg font-semibold text-slate-800 mb-3">Where did you hear about us?</h2>
               <div className="flex flex-wrap gap-2">
                 {REFERRAL_OPTIONS.map(option => (
                   <button
                     key={option}
-                    onClick={() => setReferralSource(referralSource === option ? "" : option)}
+                    onClick={() => { setReferralSource(referralSource === option ? "" : option); if (errors.includes("referralSource")) { setErrors(errors.filter(f => f !== "referralSource")); setMessage(""); } }}
                     className={`px-4 py-2 rounded-full text-xs font-bold transition-all border ${referralSource === option ? 'bg-[hsl(var(--swago-purple))] text-white border-[hsl(var(--swago-purple))] shadow-md shadow-[hsl(var(--swago-purple))/0.2]' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'}`}
                   >
                     {option}
                   </button>
                 ))}
               </div>
+              {errors.includes("referralSource") && <p className="text-[10px] text-red-500 font-bold mt-2">Please let us know how you heard about us</p>}
             </section>
 
             {/* Shipping Method Section */}

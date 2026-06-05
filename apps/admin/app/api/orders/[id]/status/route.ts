@@ -61,10 +61,13 @@ export async function PATCH(
     await requireAdmin();
 
     const { id } = await params;
-    const { status } = await request.json();
+    const { status: rawStatus } = await request.json();
 
-    // Validate status
-    const validStatuses = ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled'];
+    // Normalize to Title Case to match DB enum
+    const status = rawStatus?.charAt(0).toUpperCase() + rawStatus?.slice(1).toLowerCase();
+
+    // Validate status — must match the Order schema enum exactly
+    const validStatuses = ['Pending', 'Paid', 'Shipped', 'Delivered', 'Cancelled', 'Failed', 'Abandoned'];
     if (!validStatuses.includes(status)) {
       return NextResponse.json(
         { error: 'Invalid status value' },
@@ -94,7 +97,7 @@ export async function PATCH(
     let generatedCodes: Array<{ productId: number; code: string }> = [];
 
     // Generate product codes if status is being set to "confirmed"
-    if (status === 'confirmed' && currentOrder.items) {
+    if (status === 'Shipped' && currentOrder.items) {
       generatedCodes = await generateProductCodes(id, currentOrder.items);
     }
 

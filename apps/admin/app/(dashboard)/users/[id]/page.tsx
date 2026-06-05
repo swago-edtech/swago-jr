@@ -245,8 +245,8 @@ export default async function UserDetailPage({
   const purchasedBoxes = Array.from(productsMap.values()).filter(name =>
     name === 'Seek Rush' || name === 'Scarf Dumb Charades' || name === 'Confidence Journal'
   );
-  const eligibleLotteryCount = purchasedBoxes.length;
-  const claimedLotteryCount = user.claimedLotteryCount;
+  const claimedLotteryCount = user.claimedLotteryCount || 0;
+  const eligibleLotteryCount = Math.max(purchasedBoxes.length, claimedLotteryCount);
   // ---------------------------------------------
 
 
