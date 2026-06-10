@@ -9,6 +9,7 @@ export async function GET() {
 
         const coupons = await Coupon.find({
             isPublic: { $ne: false },
+            isExpressOnly: { $ne: true },
             active: true,
             $or: [
                 { expiryDate: null },

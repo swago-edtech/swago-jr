@@ -2,7 +2,7 @@
 
 import { Coupon, User } from "@swago/database";
 
-export async function validateCoupon(couponCode: string, orderAmount: number, cartItems: any[] = [], userId?: string) {
+export async function validateCoupon(couponCode: string, orderAmount: number, cartItems: any[] = [], userId?: string, isExpressCheckout: boolean = false) {
     const coupon = await Coupon.findOne({
         code: couponCode.toUpperCase(),
         active: true,
@@ -10,6 +10,11 @@ export async function validateCoupon(couponCode: string, orderAmount: number, ca
 
     if (!coupon) {
         throw new Error("Invalid or inactive coupon code");
+    }
+
+    // Enforce Express Checkout Only logic
+    if (coupon.isExpressOnly && !isExpressCheckout) {
+        throw new Error("This coupon is only valid for Express Checkout");
     }
 
     // Check target group logic
@@ -71,7 +76,7 @@ export async function validateCoupon(couponCode: string, orderAmount: number, ca
     // Calculate discount
     let discountAmount = 0;
     if (coupon.type === "percentage") {
-        discountAmount = (applicableAmount * coupon.value) / 100;
+        discountAmount = Math.round((applicableAmount * coupon.value) / 100);
         // Apply maximum discount limit
         if (coupon.maxDiscount && discountAmount > coupon.maxDiscount) {
             discountAmount = coupon.maxDiscount;

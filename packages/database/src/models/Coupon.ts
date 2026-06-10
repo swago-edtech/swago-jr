@@ -57,6 +57,10 @@ const CouponSchema = new mongoose.Schema(
             type: Boolean,
             default: true,
         },
+        isExpressOnly: {
+            type: Boolean,
+            default: false,
+        },
         targetGroup: {
             type: String,
             enum: ["all", "new_users", "no_orders", "specific_users"],

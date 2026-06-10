@@ -278,7 +278,7 @@ export default function CheckoutPage() {
   }, []);
 
   const shippingFee = useMemo(() => {
-    if (paymentMethod === 'razorpay') return 0;
+    if (paymentMethod === 'cod') return 50;
     const threshold = promotion?.shippingThreshold || 1450;
     return total >= threshold ? 0 : 50;
   }, [paymentMethod, total, promotion]);
