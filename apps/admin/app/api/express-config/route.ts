@@ -12,6 +12,7 @@ export async function GET() {
         isTimerEnabled: false,
         timerText: "⚡ EXPRESS CHECKOUT — FREE SHIPPING ON ONLINE ORDERS",
         timerMinutes: 10,
+        allowPublicCoupons: false,
       });
     }
 
@@ -33,6 +34,7 @@ export async function PUT(request: Request) {
           isTimerEnabled: body.isTimerEnabled,
           timerText: body.timerText,
           timerMinutes: body.timerMinutes,
+          allowPublicCoupons: body.allowPublicCoupons,
         }
       },
       { new: true, upsert: true }

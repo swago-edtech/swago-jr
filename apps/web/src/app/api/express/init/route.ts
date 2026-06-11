@@ -150,28 +150,35 @@ export async function GET(request: NextRequest) {
     const promotion = await Promotion.findOne({ isActive: true }).lean();
 
     // ========================================
-    // 5. Fetch Active Coupons
+    // 5. Fetch Express Config
+    // ========================================
+    let expressConfig: any = await ExpressConfig.findOne({ isSingleton: true }).lean();
+    if (!expressConfig) {
+      expressConfig = { isTimerEnabled: false, timerText: "⚡ EXPRESS CHECKOUT — FREE SHIPPING ON ONLINE ORDERS", timerMinutes: 10, allowPublicCoupons: false };
+    }
+
+    // ========================================
+    // 6. Fetch Active Coupons
     // ========================================
     const currentDate = new Date();
-    const availableCoupons = await Coupon.find({
+    const couponQuery: any = {
       active: true,
       $or: [
           { expiryDate: null },
           { expiryDate: { $gt: currentDate } }
-      ],
-      $and: [
-          { $or: [{ isPublic: { $ne: false } }, { isExpressOnly: true }] }
       ]
-    }).select("code description").lean();
+    };
+    
+    // Apply express-only filter if public coupons are not allowed
+    if (!expressConfig.allowPublicCoupons) {
+      couponQuery.isExpressOnly = true;
+    }
+
+    const availableCoupons = await Coupon.find(couponQuery).select("code description").lean();
 
     // ========================================
-    // 6. Return assembled data
+    // 7. Return assembled data
     // ========================================
-    // 5. Fetch Express Config
-    let expressConfig = await ExpressConfig.findOne({ isSingleton: true }).lean();
-    if (!expressConfig) {
-      expressConfig = { isTimerEnabled: false, timerText: "⚡ EXPRESS CHECKOUT — FREE SHIPPING ON ONLINE ORDERS", timerMinutes: 10 };
-    }
 
     return NextResponse.json({
       success: true,

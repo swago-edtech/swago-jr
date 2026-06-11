@@ -1,6 +1,6 @@
 // apps/web/src/lib/coupon.ts
 
-import { Coupon, User } from "@swago/database";
+import { Coupon, User, ExpressConfig } from "@swago/database";
 
 export async function validateCoupon(couponCode: string, orderAmount: number, cartItems: any[] = [], userId?: string, isExpressCheckout: boolean = false) {
     const coupon = await Coupon.findOne({
@@ -12,9 +12,21 @@ export async function validateCoupon(couponCode: string, orderAmount: number, ca
         throw new Error("Invalid or inactive coupon code");
     }
 
-    // Enforce Express Checkout Only logic
-    if (coupon.isExpressOnly && !isExpressCheckout) {
-        throw new Error("This coupon is only valid for Express Checkout");
+    // Enforce coupon separation logic
+    if (isExpressCheckout) {
+        let allowPublicCoupons = false;
+        const config: any = await ExpressConfig.findOne({ isSingleton: true }).lean();
+        if (config && config.allowPublicCoupons) {
+            allowPublicCoupons = true;
+        }
+
+        if (!coupon.isExpressOnly && !allowPublicCoupons) {
+            throw new Error("This coupon is not valid for Checkout");
+        }
+    } else {
+        if (coupon.isExpressOnly) {
+            throw new Error("This coupon is only valid for Checkout");
+        }
     }
 
     // Check target group logic

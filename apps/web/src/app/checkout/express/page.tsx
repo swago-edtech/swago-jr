@@ -79,6 +79,7 @@ function ExpressCheckoutContent() {
         setCrossSells(data.crossSells || []);
         setPromotion(data.promotion);
         setExpressConfig(data.expressConfig);
+        setAvailableCoupons(data.availableCoupons || []);
         if (data.expressConfig?.isTimerEnabled) {
           setTimeLeft((data.expressConfig.timerMinutes || 10) * 60);
         }

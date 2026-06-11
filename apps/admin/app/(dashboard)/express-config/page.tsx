@@ -10,6 +10,7 @@ export default function ExpressConfigPage() {
     isTimerEnabled: false,
     timerText: "⚡ EXPRESS CHECKOUT — FREE SHIPPING ON ONLINE ORDERS",
     timerMinutes: 10,
+    allowPublicCoupons: false,
   });
 
   useEffect(() => {
@@ -147,6 +148,27 @@ export default function ExpressConfigPage() {
               </p>
             </div>
           )}
+
+          {/* Toggle Public Coupons */}
+          <div className="pt-4 border-t border-gray-100 flex items-center justify-between">
+            <div>
+              <label className="text-base font-medium text-gray-900">Allow Public Coupons</label>
+              <p className="text-sm text-gray-500">Allow general website coupons to be used in Express Checkout.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setConfig({ ...config, allowPublicCoupons: !config.allowPublicCoupons })}
+              className={`${
+                config.allowPublicCoupons ? "bg-blue-600" : "bg-gray-200"
+              } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2`}
+            >
+              <span
+                className={`${
+                  config.allowPublicCoupons ? "translate-x-5" : "translate-x-0"
+                } pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}
+              />
+            </button>
+          </div>
         </div>
 
         <div className="bg-gray-50 px-6 py-4 flex justify-end">
