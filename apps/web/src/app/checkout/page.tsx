@@ -278,7 +278,7 @@ export default function CheckoutPage() {
   }, []);
 
   const shippingFee = useMemo(() => {
-    if (paymentMethod === 'cod') return 50;
+    if (paymentMethod === 'razorpay') return 0;
     const threshold = promotion?.shippingThreshold || 1450;
     return total >= threshold ? 0 : 50;
   }, [paymentMethod, total, promotion]);
@@ -334,7 +334,7 @@ export default function CheckoutPage() {
 
 
       {/* Mobile Sticky Order Summary Toggle */}
-      <div className="md:hidden border-b bg-[#F7F7F7] px-6 py-4 flex flex-col gap-2">
+      <div className="md:hidden sticky top-[37px] z-[90] border-b bg-[#F7F7F7] px-6 py-4 flex flex-col gap-2 shadow-sm">
         <button
           onClick={() => setIsSummaryExpanded(!isSummaryExpanded)}
           className="flex items-center justify-between group"
