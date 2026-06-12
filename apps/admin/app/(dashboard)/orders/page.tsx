@@ -80,7 +80,7 @@ async function getOrders(searchParams: { [key: string]: string | undefined }) {
       .sort(sortConfig)
       .skip(skip)
       .limit(limit)
-      .select('orderId name phone email total status items createdAt razorpay_payment_id paymentMethod couponCode discount referralSource')
+      .select('orderId name phone email total status items createdAt razorpay_payment_id paymentMethod couponCode discount referralSource createdVia utm_source utm_medium utm_campaign')
       .lean(),
     Order.countDocuments(query)
   ]);
@@ -203,9 +203,22 @@ export default async function OrdersPage(props: { searchParams?: Promise<{ [key:
                       <PaymentBadge method={order.paymentMethod} />
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
-                        {order.referralSource || '-'}
-                      </span>
+                      <div className="flex flex-col gap-1 items-start">
+                        {order.createdVia === 'express' ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-800 uppercase tracking-wider">
+                            Express
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-gray-100 text-gray-800 uppercase tracking-wider">
+                            Standard
+                          </span>
+                        )}
+                        {(order.utm_source || order.referralSource) && (
+                          <span className="text-xs text-gray-500 font-medium truncate max-w-[120px]" title={order.utm_source || order.referralSource}>
+                            {order.utm_source || order.referralSource}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     {/* ✨ UPDATED: Use client component for date */}
                     <td className="px-6 py-4 whitespace-nowrap">

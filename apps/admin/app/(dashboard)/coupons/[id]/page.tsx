@@ -23,6 +23,7 @@ export default function EditCouponPage({ params }: { params: Promise<{ id: strin
         usageLimit: null as number | null,
         applicableProducts: [] as string[],
         isPublic: true,
+        isExpressOnly: false,
         targetGroup: "all",
     });
 
@@ -62,6 +63,7 @@ export default function EditCouponPage({ params }: { params: Promise<{ id: strin
                     usageLimit: coupon.usageLimit,
                     applicableProducts: coupon.applicableProducts || [],
                     isPublic: coupon.isPublic ?? true,
+                    isExpressOnly: coupon.isExpressOnly ?? false,
                     targetGroup: coupon.targetGroup || "all",
                 });
             } else {
@@ -285,7 +287,18 @@ export default function EditCouponPage({ params }: { params: Promise<{ id: strin
                                 onChange={(e) => setFormData({ ...formData, isPublic: e.target.checked })}
                                 className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                             />
-                            <label htmlFor="isPublic" className="text-sm font-medium text-gray-700">Make Public (Visible on Cart Page)</label>
+                            <label htmlFor="isPublic" className="text-sm font-medium text-gray-700">Make Public (Visible on Normal Checkout/Cart)</label>
+                        </div>
+
+                        <div className="flex items-center space-x-2 mt-2">
+                            <input
+                                id="isExpressOnly"
+                                type="checkbox"
+                                checked={formData.isExpressOnly}
+                                onChange={(e) => setFormData({ ...formData, isExpressOnly: e.target.checked })}
+                                className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                            />
+                            <label htmlFor="isExpressOnly" className="text-sm font-medium text-gray-700">Express Checkout Only (Visible exclusively on Express Checkout)</label>
                         </div>
 
                         <div className="space-y-2 mt-4">

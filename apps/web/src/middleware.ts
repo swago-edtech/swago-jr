@@ -8,13 +8,16 @@ export function middleware(request: NextRequest) {
   const protectedRoutes = ['/orders', '/profile', '/lottery-code', '/checkout', '/swago-pass', '/ticket', '/wishlist'];
   const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
 
+  // ✅ Express checkout is PUBLIC (ad traffic, no auth required)
+  const isExpressCheckout = pathname.startsWith('/checkout/express');
+
   // ✅ Legacy redirect for /kids routes
   if (pathname.startsWith('/kids')) {
     return NextResponse.redirect(new URL('/profile', request.url));
   }
 
   // ✅ Check authentication for protected routes
-  if (isProtectedRoute) {
+  if (isProtectedRoute && !isExpressCheckout) {
     const sessionCookie = request.cookies.get('session');
 
     if (!sessionCookie || !sessionCookie.value) {

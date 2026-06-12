@@ -289,7 +289,7 @@ export async function POST(req: Request) {
         }
 
         const shippingThreshold = activePromotion?.shippingThreshold || 1450;
-        const shippingFee = calculatedAmountAfterCoupon >= shippingThreshold ? 0 : 50;
+        const shippingFee = 50; // Flat COD fee
         const calculatedTotal = Math.max(0, calculatedAmountAfterCoupon - swagoMoneyRedeemed + shippingFee);
 
         // Create the order with COD payment method

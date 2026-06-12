@@ -69,9 +69,32 @@ export default async function OrderDetailPage({
               </div>
             )}
             <div>
-              <p className="text-sm text-gray-500">Source</p>
-              <p className="text-sm font-medium text-gray-900">{order.referralSource || '-'}</p>
+              <p className="text-sm text-gray-500">Checkout Type</p>
+              <p className="text-sm font-medium text-gray-900 mt-0.5">
+                {order.createdVia === 'express' ? (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-800 uppercase tracking-wider">
+                    Express Checkout
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-gray-100 text-gray-800 uppercase tracking-wider">
+                    Standard
+                  </span>
+                )}
+              </p>
             </div>
+            
+            {/* Marketing / UTM Data */}
+            {(order.utm_source || order.utm_medium || order.utm_campaign || order.referralSource) && (
+              <div className="pt-3 border-t border-gray-100 mt-2">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Marketing Data</p>
+                <div className="flex flex-col gap-1.5 bg-gray-50 p-2.5 rounded border border-gray-100">
+                  {order.utm_source && <p className="text-xs text-gray-700 flex justify-between"><span className="font-medium text-gray-500">Source:</span> <span className="font-semibold">{order.utm_source}</span></p>}
+                  {order.utm_medium && <p className="text-xs text-gray-700 flex justify-between"><span className="font-medium text-gray-500">Medium:</span> <span className="font-semibold">{order.utm_medium}</span></p>}
+                  {order.utm_campaign && <p className="text-xs text-gray-700 flex justify-between"><span className="font-medium text-gray-500">Campaign:</span> <span className="font-semibold">{order.utm_campaign}</span></p>}
+                  {order.referralSource && !order.utm_source && <p className="text-xs text-gray-700 flex justify-between"><span className="font-medium text-gray-500">Referral:</span> <span className="font-semibold">{order.referralSource}</span></p>}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

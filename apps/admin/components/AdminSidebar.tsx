@@ -16,6 +16,7 @@ const navigation = [
     submenu: [
       { name: 'Announcement Banner', href: '/announcement' },
       { name: 'Home Pop-up', href: '/home-popup' },
+      { name: 'Rush Timer Countdown', href: '/express-config' },
     ]
   },
   { name: 'Orders', href: '/orders', icon: ShoppingBag },

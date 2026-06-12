@@ -26,6 +26,8 @@ export default function CouponsPage() {
     const [coupons, setCoupons] = useState<Coupon[]>([]);
     const [loading, setLoading] = useState(true);
     const [deleting, setDeleting] = useState<string | null>(null);
+    const [expressConfig, setExpressConfig] = useState<any>(null);
+    const [togglingConfig, setTogglingConfig] = useState(false);
 
     const fetchCoupons = async () => {
         try {
@@ -42,8 +44,21 @@ export default function CouponsPage() {
         }
     };
 
+    const fetchConfig = async () => {
+        try {
+            const res = await fetch("/api/express-config");
+            const data = await res.json();
+            if (data.success && data.config) {
+                setExpressConfig(data.config);
+            }
+        } catch (error) {
+            console.error("Error fetching config:", error);
+        }
+    };
+
     useEffect(() => {
         fetchCoupons();
+        fetchConfig();
     }, []);
 
     const handleDelete = async (id: string, code: string) => {
@@ -81,6 +96,26 @@ export default function CouponsPage() {
         }
     };
 
+    const togglePublicCoupons = async () => {
+        if (!expressConfig) return;
+        setTogglingConfig(true);
+        try {
+            const res = await fetch("/api/express-config", {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ ...expressConfig, allowPublicCoupons: !expressConfig.allowPublicCoupons }),
+            });
+            const data = await res.json();
+            if (data.success) {
+                setExpressConfig(data.config);
+            }
+        } catch (error) {
+            console.error("Error toggling public coupons:", error);
+        } finally {
+            setTogglingConfig(false);
+        }
+    };
+
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
@@ -95,6 +130,29 @@ export default function CouponsPage() {
                     + Create New Coupon
                 </Link>
             </div>
+
+            {expressConfig && (
+                <div className="bg-white rounded-lg shadow p-4 flex items-center justify-between border-l-4 border-blue-500">
+                    <div>
+                        <h3 className="text-sm font-bold text-gray-900">Express Checkout Setting</h3>
+                        <p className="text-xs text-gray-500 mt-0.5">Allow regular website coupons to be applied and shown in the Express Checkout flow.</p>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={togglePublicCoupons}
+                        disabled={togglingConfig}
+                        className={`${
+                            expressConfig.allowPublicCoupons ? "bg-blue-600" : "bg-gray-200"
+                        } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:opacity-50`}
+                    >
+                        <span
+                            className={`${
+                                expressConfig.allowPublicCoupons ? "translate-x-5" : "translate-x-0"
+                            } pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}
+                        />
+                    </button>
+                </div>
+            )}
 
             {loading ? (
                 <div className="text-center py-12">

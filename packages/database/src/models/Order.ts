@@ -26,7 +26,7 @@ const OrderSchema = new mongoose.Schema(
     phone: { type: String, required: true },
     email: { type: String, required: true },
     name: { type: String, required: true },
-    age: { type: String, required: true },
+    age: { type: String },
     address: { type: String, required: true },
     city: { type: String, required: true },
     state: { type: String, required: true },
@@ -73,7 +73,7 @@ const OrderSchema = new mongoose.Schema(
     },
     createdVia: {
       type: String,
-      enum: ['webhook', 'frontend'],
+      enum: ['webhook', 'frontend', 'express'],
       default: 'webhook'
     },
     webhookProcessed: { type: Boolean, default: false },
@@ -88,11 +88,15 @@ const OrderSchema = new mongoose.Schema(
       ref: "User",
       required: false
     },
-    // ✅ NEW: Where did you hear about us?
+    // ✅ Where did you hear about us?
     referralSource: {
       type: String,
-      required: true
-    }
+      required: false
+    },
+    // ✅ NEW: UTM Tracking for Performance Marketing
+    utm_source: { type: String },
+    utm_medium: { type: String },
+    utm_campaign: { type: String }
   },
   { timestamps: true }
 );

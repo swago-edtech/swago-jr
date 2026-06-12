@@ -20,7 +20,14 @@ export function formatPhoneForMSG91(phone: string): string {
  * Input: "919876543210" or "+919876543210" → Output: "+919876543210"
  */
 export function formatPhoneForStorage(phone: string): string {
-  return phone.startsWith('+') ? phone : `+${phone}`;
+  if (!phone) return "";
+  const cleanPhone = phone.replace(/[^\d]/g, '');
+  
+  if (cleanPhone.length === 10) return `+91${cleanPhone}`;
+  if (cleanPhone.length === 11 && cleanPhone.startsWith('0')) return `+91${cleanPhone.substring(1)}`;
+  if (cleanPhone.length > 10 && cleanPhone.startsWith('91')) return `+${cleanPhone}`;
+  
+  return `+${cleanPhone}`;
 }
 
 /**
@@ -103,5 +110,41 @@ export async function verifyOTP(
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error('❌ MSG91 verify API error:', errorMessage);
     return { success: false, error: errorMessage };
+  }
+}
+
+/**
+ * Verify Access Token (for MSG91 Widget flow)
+ */
+export async function verifyAccessToken(accessToken: string): Promise<{ success: boolean; error?: string }> {
+  if (!MSG91_AUTH_KEY) {
+    return { success: false, error: "MSG91_AUTH_KEY not configured" };
+  }
+
+  try {
+    const response = await fetch("https://control.msg91.com/api/v5/widget/verifyAccessToken", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        authkey: MSG91_AUTH_KEY,
+        "access-token": accessToken,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (response.ok && data.type === "success") {
+      console.log("✅ Access token verified by MSG91");
+      return { success: true };
+    } else {
+      console.error("❌ MSG91 token verification failed:", data);
+      return { success: false, error: data.message || "Invalid access token" };
+    }
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    console.error("❌ MSG91 token verification error:", errorMessage);
+    return { success: false, error: "We couldn't verify your OTP. Please try again." };
   }
 }

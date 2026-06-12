@@ -5,7 +5,7 @@ import { getLoginSession } from "@/lib/auth";
 
 export async function POST(req: Request) {
   try {
-    const { couponCode, orderAmount, cartItems } = await req.json();
+    const { couponCode, orderAmount, cartItems, isExpress } = await req.json();
 
     if (!couponCode || !orderAmount) {
       return NextResponse.json(
@@ -28,7 +28,7 @@ export async function POST(req: Request) {
     }
 
     try {
-      const { coupon, discountAmount, finalAmount } = await validateCoupon(couponCode, orderAmount, cartItems, userId);
+      const { coupon, discountAmount, finalAmount } = await validateCoupon(couponCode, orderAmount, cartItems, userId, isExpress);
 
       return NextResponse.json({
         success: true,

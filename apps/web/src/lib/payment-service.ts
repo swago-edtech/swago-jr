@@ -43,7 +43,9 @@ export async function finalizeOrder({ orderIdOrMongoId, razorpayPaymentId, sourc
   order.razorpay_payment_id = razorpayPaymentId;
   order.paymentAttempts = (order.paymentAttempts || 0) + 1;
   order.lastPaymentAttempt = new Date();
-  order.createdVia = source;
+  if (order.createdVia !== 'express') {
+    order.createdVia = source;
+  }
   
   if (source === 'webhook') {
     order.webhookProcessed = true;
