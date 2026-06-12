@@ -287,8 +287,8 @@ export async function POST(req: Request) {
 
     // Shipping / COD fee calculation
     let shippingFee = 0;
-    if (paymentMethod === "cod") {
-      shippingFee = 50; // Flat COD fee
+    if (paymentMethod === "razorpay") {
+      shippingFee = 0;
     } else {
       const shippingThreshold = activePromotion?.shippingThreshold || 1450;
       shippingFee = calculatedAmountAfterCoupon >= shippingThreshold ? 0 : 50;

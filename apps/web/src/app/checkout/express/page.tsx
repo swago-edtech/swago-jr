@@ -204,7 +204,7 @@ function ExpressCheckoutContent() {
   const subtotal = useMemo(() => cart.reduce((s, i) => s + i.price * i.quantity, 0), [cart]);
   const discount = useMemo(() => (couponData?.valid ? couponData.discount : 0), [couponData]);
   const shippingFee = useMemo(() => {
-    if (paymentMethod === "cod") return 50;
+    if (paymentMethod === "razorpay") return 0;
     const threshold = promotion?.shippingThreshold || 1450;
     return subtotal >= threshold ? 0 : 50;
   }, [paymentMethod, subtotal, promotion]);
