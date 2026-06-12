@@ -14,7 +14,7 @@ import { cleanupExpiredOrders } from "@/lib/cleanupExpiredOrders";
 import { validateCoupon } from "@/lib/coupon";
 import { sendOrderConfirmationEmail } from "@/lib/msg91-email";
 import { invalidateProductCache } from "@/lib/productCache";
-import { formatPhoneForStorage } from "@/lib/msg91";
+import { formatPhoneForStorage, verifyAccessToken } from "@/lib/msg91";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -62,6 +62,8 @@ const expressOrderSchema = z.object({
   }),
   couponCode: z.string().optional(),
   paymentMethod: z.enum(["razorpay", "cod"]),
+  otp: z.string().optional(),
+  accessToken: z.string().optional(),
   utm: z.object({
     source: z.string().optional(),
     medium: z.string().optional(),
@@ -109,7 +111,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const { items, customer, couponCode, paymentMethod, utm } = validation.data;
+    const { items, customer, couponCode, paymentMethod, utm, otp, accessToken } = validation.data;
     const formattedPhone = formatPhoneForStorage(customer.phone);
 
     // ✅ COD India-only check
@@ -118,6 +120,24 @@ export async function POST(req: Request) {
         { success: false, error: "COD is only available for Indian phone numbers (+91)" },
         { status: 400 }
       );
+    }
+
+    // ✅ COD OTP Verification
+    if (paymentMethod === "cod") {
+      if (!accessToken) {
+        return NextResponse.json(
+          { success: false, error: "OTP verification required for COD orders" },
+          { status: 400 }
+        );
+      }
+
+      const verifyResult = await verifyAccessToken(accessToken);
+      if (!verifyResult.success) {
+        return NextResponse.json(
+          { success: false, error: verifyResult.error || "Invalid Access Token" },
+          { status: 400 }
+        );
+      }
     }
 
     // ========================================

@@ -6,6 +6,7 @@ import Script from "next/script";
 import Image from "next/image";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
+import { USER_EVENTS } from "@/context/SharedContext";
 import CartProgress from "@/components/CartProgress";
 import ExpressOrderSummary from "@/components/ExpressOrderSummary";
 import ExpressCrossSell from "@/components/ExpressCrossSell";
@@ -61,6 +62,46 @@ function ExpressCheckoutContent() {
   const [paymentMethod, setPaymentMethod] = useState<"razorpay" | "cod">("razorpay");
   const [couponCode, setCouponCode] = useState(couponParam);
   const [showCouponModal, setShowCouponModal] = useState(false);
+  const [showOtpModal, setShowOtpModal] = useState(false);
+  const [otpValue, setOtpValue] = useState("");
+  const [otpError, setOtpError] = useState("");
+
+  // MSG91 Widget State
+  const [scriptLoaded, setScriptLoaded] = useState(false);
+  const [widgetReady, setWidgetReady] = useState(false);
+  
+  useEffect(() => {
+    if (!scriptLoaded) return;
+    let checkCount = 0;
+    const maxChecks = 10;
+    let isInitialized = false;
+
+    const initWidget = () => {
+      if (isInitialized) return;
+      if (typeof window.initSendOTP === "function") {
+        try {
+          window.initSendOTP({
+            widgetId: process.env.NEXT_PUBLIC_MSG91_WIDGET_ID!,
+            tokenAuth: process.env.NEXT_PUBLIC_MSG91_TOKEN_AUTH!,
+            exposeMethods: true,
+            success: () => { isInitialized = true; setWidgetReady(true); },
+            failure: (err: any) => console.error("Widget init error:", err),
+          });
+
+          const checkMethods = () => {
+            checkCount++;
+            if (window.sendOtp && window.verifyOtp) {
+              isInitialized = true; setWidgetReady(true);
+            } else if (checkCount < maxChecks) setTimeout(checkMethods, 500);
+          };
+          setTimeout(checkMethods, 1000);
+        } catch (error) {}
+      } else {
+        if (checkCount < 3) { checkCount++; setTimeout(initWidget, 1000); }
+      }
+    };
+    setTimeout(initWidget, 500);
+  }, [scriptLoaded]);
 
   // ========================================
   // INIT: Fetch product data on mount
@@ -192,7 +233,37 @@ function ExpressCheckoutContent() {
   const handlePayNow = async () => {
     if (!validateForm()) return;
     if (cart.length === 0) { setMessage("Your cart is empty."); return; }
-    setProcessing(true); setMessage("Processing your order...");
+
+    if (paymentMethod === "cod") {
+      if (!window.sendOtp) {
+        setMessage("❌ OTP Service not loaded. Please refresh.");
+        return;
+      }
+      setProcessing(true); setMessage("Sending OTP...");
+      
+      const formattedPhone = "91" + phone;
+      window.sendOtp(
+        formattedPhone,
+        (data: any) => {
+          setShowOtpModal(true);
+          setMessage("");
+          setProcessing(false);
+        },
+        (error: any) => {
+          setMessage(`❌ ${error.message || "Failed to send OTP"}`);
+          setProcessing(false);
+        }
+      );
+      return;
+    }
+
+    await submitOrder();
+  };
+
+  const submitOrder = async (accessToken?: string) => {
+    setProcessing(true); 
+    if (!accessToken) setMessage("Processing your order...");
+    else { setOtpError(""); setMessage("Verifying & placing order..."); }
 
     try {
       const payload = {
@@ -200,6 +271,7 @@ function ExpressCheckoutContent() {
         customer: { phone, email, name: `${firstName} ${lastName}`.trim(), address, city, state, pincode },
         paymentMethod,
         ...(couponData?.valid && { couponCode: couponData.code }),
+        ...(accessToken && { accessToken }),
         utm: { source: utmSource || undefined, medium: utmMedium || undefined, campaign: utmCampaign || undefined },
       };
 
@@ -210,6 +282,8 @@ function ExpressCheckoutContent() {
       if (!data.success) throw new Error(data.error || data.details || "Order creation failed");
 
       if (paymentMethod === "cod") {
+        setShowOtpModal(false);
+        window.dispatchEvent(new Event(USER_EVENTS.LOGIN));
         router.push(`/checkout/express/thank-you?orderId=${data.order.orderId}&method=cod`);
         return;
       }
@@ -227,6 +301,7 @@ function ExpressCheckoutContent() {
             });
             const verifyData = await verifyRes.json();
             if (verifyData.success) {
+              window.dispatchEvent(new Event(USER_EVENTS.LOGIN));
               router.push(`/checkout/express/thank-you?orderId=${verifyData.orderId}&method=razorpay`);
             } else { setMessage("Payment verification failed. Please contact support."); setProcessing(false); }
           } catch { setMessage("Verification error. Your payment is safe — please contact support."); setProcessing(false); }
@@ -238,7 +313,38 @@ function ExpressCheckoutContent() {
       const rzp = new (window as any).Razorpay(options);
       rzp.on("payment.failed", () => { setMessage("Payment failed. Please try again."); setProcessing(false); });
       rzp.open();
-    } catch (err: any) { setMessage(`❌ ${err.message}`); setProcessing(false); }
+    } catch (err: any) { 
+        if (accessToken) setOtpError(err.message);
+        else setMessage(`❌ ${err.message}`); 
+        setProcessing(false); 
+    }
+  };
+
+  const verifyOtpAndSubmit = async () => {
+    if (!otpValue || otpValue.length < 6) { setOtpError("Please enter a valid 6-digit OTP"); return; }
+    
+    setProcessing(true);
+    setOtpError("");
+    setMessage("Verifying OTP...");
+
+    if (!window.verifyOtp) {
+      setOtpError("OTP Service not loaded. Please refresh.");
+      setProcessing(false);
+      return;
+    }
+
+    window.verifyOtp(
+      otpValue,
+      async (data: any) => {
+        const accessToken = data.message || data.token || data.access_token;
+        if (!accessToken) { setOtpError("Verification failed."); setProcessing(false); return; }
+        await submitOrder(accessToken);
+      },
+      (error: any) => {
+        setOtpError(error.message || "Invalid OTP");
+        setProcessing(false);
+      }
+    );
   };
 
   const cartProductIds = cart.map(i => i._id.toString());
@@ -303,8 +409,12 @@ function ExpressCheckoutContent() {
   );
 
   return (
-    <div className="min-h-screen bg-white flex flex-col font-sans text-[#0f172a]">
+    <div className="min-h-screen bg-white flex flex-col font-sans text-[#0f172a] relative">
+      {processing && (
+        <div className="fixed inset-0 z-[100] bg-white/40 backdrop-blur-[1px] cursor-not-allowed" />
+      )}
       <Script src="https://checkout.razorpay.com/v1/checkout.js" />
+      <Script src="https://verify.msg91.com/otp-provider.js" onLoad={() => setScriptLoaded(true)} />
 
       {/* Top Banner (Timer or Static text) */}
       <div className="bg-[hsl(var(--swago-purple))] py-2.5 text-center px-4">
@@ -500,6 +610,47 @@ function ExpressCheckoutContent() {
                 ) : (
                   <p className="text-sm text-slate-500 font-medium">No offers available right now.</p>
                 )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* OTP Verification Modal */}
+      <AnimatePresence>
+        {showOtpModal && (
+          <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+            <motion.div initial={{ opacity: 0, y: 100 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 100 }}
+              className="bg-white w-full max-w-sm rounded-3xl p-6 shadow-xl relative"
+            >
+              <button onClick={() => setShowOtpModal(false)} className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center bg-slate-100 hover:bg-slate-200 transition-colors rounded-full text-slate-500 font-bold">✕</button>
+              <h3 className="text-xl font-black text-[#0f172a] mb-2 text-center">Verify Your Number</h3>
+              <p className="text-sm text-slate-500 font-medium mb-6 text-center">
+                We sent a 6-digit code to <br/><span className="text-slate-800 font-bold">{phone}</span>
+              </p>
+              
+              {otpError && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-xs font-bold text-center">
+                  {otpError}
+                </div>
+              )}
+              
+              <div className="space-y-4">
+                <input 
+                  type="text" 
+                  value={otpValue} 
+                  onChange={(e) => setOtpValue(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  placeholder="000000" 
+                  disabled={processing}
+                  className="w-full h-14 bg-[#f8fafc] border border-[#e2e8f0] rounded-xl text-center text-2xl font-mono tracking-[0.5em] text-[#0f172a] placeholder-[#94a3b8] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--swago-purple))] transition shadow-inner disabled:opacity-50" 
+                />
+                <button 
+                  onClick={verifyOtpAndSubmit} 
+                  disabled={processing || otpValue.length !== 6}
+                  className="w-full py-4 bg-[hsl(var(--swago-purple))] hover:opacity-90 text-white shadow-sm shadow-[hsl(var(--swago-purple))] hover:shadow-md hover:shadow-[hsl(var(--swago-purple))] text-sm font-bold rounded-xl transition flex justify-center items-center tracking-widest disabled:opacity-50"
+                >
+                  {processing ? "VERIFYING..." : "VERIFY & PLACE ORDER"}
+                </button>
               </div>
             </motion.div>
           </div>
