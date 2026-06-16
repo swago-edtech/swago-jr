@@ -38,6 +38,8 @@ export async function POST(req: Request) {
           type: coupon.type,
           value: coupon.value,
           maxDiscount: coupon.maxDiscount || null,
+          minAmount: coupon.minAmount || 0,
+          applicableProducts: coupon.applicableProducts || [],
         },
         discount: {
           amount: discountAmount,

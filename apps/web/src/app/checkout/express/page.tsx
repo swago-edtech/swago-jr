@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo, Suspense } from "react";
+import { useEffect, useState, useMemo, Suspense, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Script from "next/script";
 import Image from "next/image";
@@ -189,7 +189,7 @@ function ExpressCheckoutContent() {
       });
       const data = await res.json();
       if (data.success) {
-        setCouponData({ valid: true, code: data.coupon.code, discount: data.discount.amount, type: data.coupon.type, value: data.coupon.value });
+        setCouponData({ valid: true, code: data.coupon.code, discount: data.discount.amount, type: data.coupon.type, value: data.coupon.value, maxDiscount: data.coupon.maxDiscount, minAmount: data.coupon.minAmount, applicableProducts: data.coupon.applicableProducts });
       } else {
         setCouponData({ valid: false, code: couponCode, error: data.error });
       }
@@ -202,7 +202,43 @@ function ExpressCheckoutContent() {
   // PRICE CALCULATIONS
   // ========================================
   const subtotal = useMemo(() => cart.reduce((s, i) => s + i.price * i.quantity, 0), [cart]);
-  const discount = useMemo(() => (couponData?.valid ? couponData.discount : 0), [couponData]);
+
+  const dynamicCoupon = useMemo(() => {
+    if (!couponData?.valid) return { valid: false, discount: 0, error: couponData?.error };
+
+    let applicableAmount = 0;
+    const isRestricted = couponData.applicableProducts?.length > 0;
+
+    if (isRestricted) {
+      const applicableItems = cart.filter((item: any) =>
+        couponData.applicableProducts.some((apId: any) => apId.toString() === item._id.toString())
+      );
+      if (applicableItems.length === 0) {
+        return { valid: false, discount: 0, error: "Not applicable to any products in cart" };
+      }
+      applicableAmount = applicableItems.reduce((s: number, i: any) => s + i.price * i.quantity, 0);
+    } else {
+      applicableAmount = subtotal;
+    }
+
+    if (applicableAmount < (couponData.minAmount || 0)) {
+       return { valid: false, discount: 0, error: `Minimum amount of ₹${couponData.minAmount} required` };
+    }
+
+    let discountAmount = 0;
+    if (couponData.type === "percentage") {
+      discountAmount = Math.round((applicableAmount * couponData.value) / 100);
+      if (couponData.maxDiscount && discountAmount > couponData.maxDiscount) {
+        discountAmount = couponData.maxDiscount;
+      }
+    } else if (couponData.type === "fixed") {
+      discountAmount = couponData.value;
+    }
+
+    return { valid: true, discount: discountAmount, error: null };
+  }, [cart, couponData, subtotal]);
+
+  const discount = dynamicCoupon.discount;
   const shippingFee = useMemo(() => {
     if (paymentMethod === "razorpay") return 0;
     const threshold = promotion?.shippingThreshold || 1450;
@@ -387,7 +423,14 @@ function ExpressCheckoutContent() {
     <div className="space-y-2">
       {couponData?.valid ? (
         <div className="flex items-center justify-between bg-[#10b981]/10 border border-[#10b981]/20 rounded-xl px-4 py-3">
-          <div><p className="text-[13px] font-black text-[#10b981]">{couponData.code}</p><p className="text-[11px] font-bold text-[#10b981]/80">−₹{couponData.discount} off</p></div>
+          <div>
+            <p className="text-[13px] font-black text-[#10b981]">{couponData.code}</p>
+            {dynamicCoupon.valid ? (
+              <p className="text-[11px] font-bold text-[#10b981]/80">−₹{dynamicCoupon.discount} off</p>
+            ) : (
+              <p className="text-[11px] font-bold text-[#ef4444]">{dynamicCoupon.error}</p>
+            )}
+          </div>
           <button onClick={removeCoupon} className="text-[10px] font-bold text-[#ef4444] hover:text-[#dc2626] uppercase tracking-widest">Remove</button>
         </div>
       ) : (
@@ -445,7 +488,7 @@ function ExpressCheckoutContent() {
               <div className="md:hidden space-y-4 pb-2 border-b border-[#e2e8f0]/80">
                 <section>
                   <h2 className="text-[11px] font-bold text-[#64748b] mb-3 uppercase tracking-tight">Your Order</h2>
-                  <ExpressOrderSummary items={cart} subtotal={subtotal} discount={discount} couponCode={couponData?.valid ? couponData.code : null} shippingFee={shippingFee} total={finalTotal} onIncreaseQty={increaseQty} onDecreaseQty={decreaseQty} onRemoveItem={removeItem} paymentMethod={paymentMethod} hideBreakdown={true} />
+                  <ExpressOrderSummary items={cart} subtotal={subtotal} discount={discount} couponCode={dynamicCoupon.valid ? couponData.code : null} shippingFee={shippingFee} total={finalTotal} onIncreaseQty={increaseQty} onDecreaseQty={decreaseQty} onRemoveItem={removeItem} paymentMethod={paymentMethod} hideBreakdown={true} />
                 </section>
 
                 {crossSells.length > 0 && (
@@ -553,7 +596,7 @@ function ExpressCheckoutContent() {
 
               {/* Mobile: Order Summary Breakdown */}
               <div className="md:hidden pt-4 border-t border-[#e2e8f0]/80">
-                <ExpressOrderSummary items={cart} subtotal={subtotal} discount={discount} couponCode={couponData?.valid ? couponData.code : null} shippingFee={shippingFee} total={finalTotal} onIncreaseQty={increaseQty} onDecreaseQty={decreaseQty} onRemoveItem={removeItem} paymentMethod={paymentMethod} hideItems={true} />
+                <ExpressOrderSummary items={cart} subtotal={subtotal} discount={discount} couponCode={dynamicCoupon.valid ? couponData.code : null} shippingFee={shippingFee} total={finalTotal} onIncreaseQty={increaseQty} onDecreaseQty={decreaseQty} onRemoveItem={removeItem} paymentMethod={paymentMethod} hideItems={true} />
               </div>
 
               {/* Pay Button */}
@@ -576,7 +619,7 @@ function ExpressCheckoutContent() {
           <div className="max-w-[400px] space-y-6">
             {promotion && <CartProgress total={subtotal} promotionData={promotion} />}
 
-            <ExpressOrderSummary items={cart} subtotal={subtotal} discount={discount} couponCode={couponData?.valid ? couponData.code : null} shippingFee={shippingFee} total={finalTotal} onIncreaseQty={increaseQty} onDecreaseQty={decreaseQty} onRemoveItem={removeItem} paymentMethod={paymentMethod} />
+            <ExpressOrderSummary items={cart} subtotal={subtotal} discount={discount} couponCode={dynamicCoupon.valid ? couponData.code : null} shippingFee={shippingFee} total={finalTotal} onIncreaseQty={increaseQty} onDecreaseQty={decreaseQty} onRemoveItem={removeItem} paymentMethod={paymentMethod} />
 
             {/* Coupon Input */}
             {couponSection}

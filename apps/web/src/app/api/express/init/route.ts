@@ -112,6 +112,8 @@ export async function GET(request: NextRequest) {
           type: coupon.type,
           value: coupon.value,
           maxDiscount: coupon.maxDiscount || null,
+          minAmount: coupon.minAmount || 0,
+          applicableProducts: coupon.applicableProducts || [],
           discount: discountAmount,
         };
       } catch (couponError: any) {
