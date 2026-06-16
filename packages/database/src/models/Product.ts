@@ -75,7 +75,7 @@ const ProductSchema = new mongoose.Schema(
 
     lowStockThreshold: {
       type: Number,
-      default: 10,
+      default: 50,
       min: [0, "Low stock threshold cannot be negative"]
     },
 

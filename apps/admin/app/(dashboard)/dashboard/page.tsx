@@ -1,6 +1,7 @@
 import { connectDB, Order, User, ContactSubmission } from '@swago/database';
 import { formatPrice } from '@swago/utils';
-import { ShoppingBag, Users, TrendingUp, CheckCircle, AlertCircle } from 'lucide-react';
+import { ShoppingBag, Users, TrendingUp, CheckCircle, AlertCircle, CreditCard, Truck, XCircle, RotateCcw, IndianRupee, PackageCheck, ArrowLeftRight } from 'lucide-react';
+import AnalyticsCard from '@/components/AnalyticsCard';
 import DashboardDateCell from './DashboardDateCell';
 import Link from 'next/link';
 import { cleanupExpiredOrders } from '@/lib/cleanupExpiredOrders';
@@ -11,88 +12,91 @@ async function getDashboardStats() {
   // ✅ Clean up expired prepaid orders before calculating stats
   await cleanupExpiredOrders();
 
-  const [totalOrders, totalCustomers, orders, allOrders, pendingContactCount] = await Promise.all([
-    Order.countDocuments(),
+  const [orders, users, pendingContactCount] = await Promise.all([
+    Order.find().select('total status createdAt items paymentMethod discount shippingFee refundAmount codCollected swagoMoneyRedeemed name phone').lean(),
     User.countDocuments({ isAdmin: false }),
-    Order.find()
-      .sort({ createdAt: -1 })
-      .limit(10)
-      .select('name phone total status createdAt')
-      .lean(),
-    Order.find().select('total status').lean(), // Get all orders for calculations
-    ContactSubmission.countDocuments({ status: 'pending' }), // NEW: Get pending contact queries
+    ContactSubmission.countDocuments({ status: 'pending' }),
   ]);
 
-  // Calculate confirmed revenue (actual money received)
-  const paidOrders = allOrders.filter(order =>
-    ['Paid', 'confirmed', 'delivered', 'shipped'].includes(order.status)
-  );
-  const confirmedRevenue = paidOrders.reduce((sum, order) => sum + (order.total || 0), 0);
+  // ── Time Boundaries ──
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
-  // Calculate pending revenue (potential money)
-  const pendingOrders = allOrders.filter(order =>
-    ['Pending', 'pending'].includes(order.status)
-  );
-  const pendingRevenue = pendingOrders.reduce((sum, order) => sum + (order.total || 0), 0);
+  // ── Status Groups ──
+  const confirmedStatuses = ['Paid', 'Packed', 'Shipped', 'Out for Delivery', 'Delivered'];
+  const deliveredOrders = orders.filter(o => o.status === 'Delivered');
+  const cancelledOrders = orders.filter(o => o.status === 'Cancelled');
+  const rtoOrders = orders.filter(o => o.status === 'RTO');
+  const confirmedOrders = orders.filter(o => confirmedStatuses.includes(o.status));
+  const pendingOrders = orders.filter(o => ['Pending'].includes(o.status));
 
-  // Total potential revenue (all orders)
-  const totalPotentialRevenue = allOrders.reduce((sum, order) => sum + (order.total || 0), 0);
+  // ── Today's Orders ──
+  const todayOrders = orders.filter(o => new Date(o.createdAt) >= today);
+  const todayPaidOrders = todayOrders.filter(o => o.paymentMethod === 'razorpay');
+  const todayCodOrders = todayOrders.filter(o => o.paymentMethod === 'cod');
+  const todayConfirmed = todayOrders.filter(o => confirmedStatuses.includes(o.status) || o.status === 'Delivered');
 
-  // Average order value (based on paid orders only)
-  const avgOrderValue = paidOrders.length > 0
-    ? confirmedRevenue / paidOrders.length
-    : 0;
+  // ── Revenue Calculations ──
+  const todayRevenue = todayConfirmed.reduce((sum, o) => sum + (o.total || 0), 0);
+  const todayPaidRevenue = todayPaidOrders.filter(o => [...confirmedStatuses, 'Delivered'].includes(o.status)).reduce((sum, o) => sum + (o.total || 0), 0);
+  const todayCodRevenue = todayCodOrders.filter(o => [...confirmedStatuses, 'Delivered'].includes(o.status)).reduce((sum, o) => sum + (o.total || 0), 0);
+
+  const deliveredRevenue = deliveredOrders.reduce((sum, o) => sum + (o.total || 0), 0);
+  const cancelledRevenue = cancelledOrders.reduce((sum, o) => sum + (o.total || 0), 0);
+  const rtoRevenueLoss = rtoOrders.reduce((sum, o) => sum + (o.total || 0), 0);
+  const totalRefundAmount = orders.reduce((sum, o) => sum + (o.refundAmount || 0), 0);
+  const netRevenue = deliveredRevenue - totalRefundAmount - rtoRevenueLoss;
+  const aov = deliveredOrders.length > 0 ? deliveredRevenue / deliveredOrders.length : 0;
+
+  // Confirmed (total actual revenue received or expected)
+  const confirmedRevenue = confirmedOrders.reduce((sum, o) => sum + (o.total || 0), 0) +
+    deliveredOrders.reduce((sum, o) => sum + (o.total || 0), 0);
+  const pendingRevenue = pendingOrders.reduce((sum, o) => sum + (o.total || 0), 0);
+  const totalPotentialRevenue = orders.reduce((sum, o) => sum + (o.total || 0), 0);
+
+  // ── Recent Orders ──
+  const recentOrders = orders
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 10);
 
   return {
-    totalOrders,
-    totalCustomers,
+    // Today's Snapshot
+    todayTotalOrders: todayOrders.length,
+    todayPaidOrders: todayPaidOrders.length,
+    todayCodOrders: todayCodOrders.length,
+    todayRevenue,
+    todayPaidRevenue,
+    todayCodRevenue,
+    // Lifetime Metrics
+    deliveredRevenue,
+    cancelledRevenue,
+    rtoRevenueLoss,
+    totalRefundAmount,
+    netRevenue,
+    aov,
+    // Overview
+    totalOrders: orders.length,
     confirmedRevenue,
     pendingRevenue,
     totalPotentialRevenue,
-    avgOrderValue,
-    paidOrdersCount: paidOrders.length,
+    paidOrdersCount: orders.filter(o => [...confirmedStatuses, 'Delivered'].includes(o.status) && o.paymentMethod === 'razorpay').length,
+    codOrdersCount: orders.filter(o => o.paymentMethod === 'cod').length,
     pendingOrdersCount: pendingOrders.length,
-    pendingContactCount, // NEW: Add to return
-    recentOrders: JSON.parse(JSON.stringify(orders)),
+    totalCustomers: users,
+    pendingContactCount,
+    recentOrders: JSON.parse(JSON.stringify(recentOrders)),
   };
 }
 
 export default async function DashboardPage() {
   const stats = await getDashboardStats();
 
-  const cards = [
-    {
-      title: 'Total Orders',
-      value: stats.totalOrders,
-      subtitle: `${stats.paidOrdersCount} paid, ${stats.pendingOrdersCount} pending`,
-      icon: ShoppingBag,
-      color: 'bg-blue-500',
-    },
-    {
-      title: 'Total Customers',
-      value: stats.totalCustomers,
-      icon: Users,
-      color: 'bg-green-500',
-    },
-    {
-      title: 'Confirmed Revenue',
-      value: formatPrice(stats.confirmedRevenue),
-      subtitle: `Pending: ${formatPrice(stats.pendingRevenue)}`,
-      icon: CheckCircle,
-      color: 'bg-purple-500',
-    },
-    {
-      title: 'Avg Order Value',
-      value: formatPrice(stats.avgOrderValue),
-      subtitle: 'Based on paid orders',
-      icon: TrendingUp,
-      color: 'bg-orange-500',
-    },
-  ];
-
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+      <div>
+        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+        <p className="text-gray-500 mt-1">Business overview &amp; key performance metrics</p>
+      </div>
 
       {/* Alert Banner for Pending Contact Queries */}
       {stats.pendingContactCount > 0 && (
@@ -121,49 +125,180 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {cards.map((card) => {
-          const Icon = card.icon;
-          return (
-            <div key={card.title} className="bg-white rounded-lg shadow p-6">
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <p className="text-sm text-gray-600">{card.title}</p>
-                  <p className="text-2xl font-bold text-gray-900 mt-2">
-                    {card.value}
-                  </p>
-                  {card.subtitle && (
-                    <p className="text-xs text-gray-500 mt-1">{card.subtitle}</p>
-                  )}
-                </div>
-                <div className={`${card.color} p-3 rounded-lg flex-shrink-0`}>
-                  <Icon className="w-6 h-6 text-white" />
-                </div>
-              </div>
-            </div>
-          );
-        })}
+      {/* ── Today's Snapshot ── */}
+      <div>
+        <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Today&apos;s Snapshot</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+          <AnalyticsCard
+            title="Total Orders"
+            value={stats.todayTotalOrders}
+            icon={ShoppingBag}
+            color="bg-blue-500"
+          />
+          <AnalyticsCard
+            title="Paid Orders"
+            value={stats.todayPaidOrders}
+            icon={CreditCard}
+            color="bg-green-500"
+          />
+          <AnalyticsCard
+            title="COD Orders"
+            value={stats.todayCodOrders}
+            icon={Truck}
+            color="bg-amber-500"
+          />
+          <AnalyticsCard
+            title="Today's Revenue"
+            value={formatPrice(stats.todayRevenue)}
+            icon={IndianRupee}
+            color="bg-indigo-500"
+          />
+          <AnalyticsCard
+            title="Paid Revenue"
+            value={formatPrice(stats.todayPaidRevenue)}
+            subtitle="Online payments"
+            icon={CheckCircle}
+            color="bg-emerald-500"
+            textColor="text-emerald-700"
+          />
+          <AnalyticsCard
+            title="COD Revenue"
+            value={formatPrice(stats.todayCodRevenue)}
+            subtitle="Expected from COD"
+            icon={ArrowLeftRight}
+            color="bg-orange-500"
+            textColor="text-orange-700"
+          />
+        </div>
+      </div>
+
+      {/* ── Lifetime Metrics ── */}
+      <div>
+        <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Lifetime Metrics</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+          <AnalyticsCard
+            title="Delivered Revenue"
+            value={formatPrice(stats.deliveredRevenue)}
+            subtitle={`${stats.totalOrders} total orders`}
+            icon={PackageCheck}
+            color="bg-green-600"
+            textColor="text-green-700"
+          />
+          <AnalyticsCard
+            title="Cancelled Revenue"
+            value={formatPrice(stats.cancelledRevenue)}
+            subtitle="Revenue lost"
+            icon={XCircle}
+            color="bg-red-500"
+            textColor="text-red-600"
+          />
+          <AnalyticsCard
+            title="RTO Loss"
+            value={formatPrice(stats.rtoRevenueLoss)}
+            subtitle="COD returned/rejected"
+            icon={RotateCcw}
+            color="bg-rose-500"
+            textColor="text-rose-600"
+          />
+          <AnalyticsCard
+            title="Refund Amount"
+            value={formatPrice(stats.totalRefundAmount)}
+            subtitle="Amount refunded"
+            icon={ArrowLeftRight}
+            color="bg-purple-500"
+            textColor="text-purple-600"
+          />
+          <AnalyticsCard
+            title="Net Revenue"
+            value={formatPrice(stats.netRevenue)}
+            subtitle="Delivered − refunds − RTO"
+            icon={TrendingUp}
+            color="bg-teal-600"
+            textColor="text-teal-700"
+          />
+          <AnalyticsCard
+            title="AOV"
+            value={formatPrice(stats.aov)}
+            subtitle="Avg order value (delivered)"
+            icon={IndianRupee}
+            color="bg-violet-500"
+          />
+        </div>
+      </div>
+
+      {/* ── Quick Stats Row ── */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <AnalyticsCard
+          title="Total Orders"
+          value={stats.totalOrders}
+          subtitle={`${stats.paidOrdersCount} paid, ${stats.codOrdersCount} COD`}
+          icon={ShoppingBag}
+          color="bg-blue-500"
+        />
+        <AnalyticsCard
+          title="Total Customers"
+          value={stats.totalCustomers}
+          icon={Users}
+          color="bg-green-500"
+        />
+        <AnalyticsCard
+          title="Confirmed Revenue"
+          value={formatPrice(stats.confirmedRevenue)}
+          subtitle={`Pending: ${formatPrice(stats.pendingRevenue)}`}
+          icon={CheckCircle}
+          color="bg-purple-500"
+        />
+        <AnalyticsCard
+          title="Pending Orders"
+          value={stats.pendingOrdersCount}
+          subtitle={`₹${Math.round(stats.pendingRevenue).toLocaleString('en-IN')} at risk`}
+          icon={AlertCircle}
+          color="bg-yellow-500"
+        />
       </div>
 
       {/* Revenue Breakdown */}
-      <div className="bg-white rounded-lg shadow p-6">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Revenue Breakdown</h3>
         <div className="space-y-3">
           <div className="flex justify-between items-center">
-            <span className="text-sm font-medium text-gray-900">Confirmed Revenue</span>
+            <span className="text-sm font-medium text-gray-600">Confirmed Revenue</span>
             <span className="text-lg font-semibold text-green-600">
               {formatPrice(stats.confirmedRevenue)}
             </span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-sm font-medium text-gray-900">Pending Revenue</span>
+            <span className="text-sm font-medium text-gray-600">Pending Revenue</span>
             <span className="text-lg font-semibold text-yellow-600">
               {formatPrice(stats.pendingRevenue)}
             </span>
           </div>
+          <div className="flex justify-between items-center">
+            <span className="text-sm font-medium text-gray-600">Delivered Revenue</span>
+            <span className="text-lg font-semibold text-emerald-600">
+              {formatPrice(stats.deliveredRevenue)}
+            </span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-sm font-medium text-gray-600">Cancelled + RTO Loss</span>
+            <span className="text-lg font-semibold text-red-500">
+              −{formatPrice(stats.cancelledRevenue + stats.rtoRevenueLoss)}
+            </span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-sm font-medium text-gray-600">Refunds</span>
+            <span className="text-lg font-semibold text-purple-500">
+              −{formatPrice(stats.totalRefundAmount)}
+            </span>
+          </div>
           <div className="border-t pt-3 flex justify-between items-center">
-            <span className="text-sm font-semibold text-gray-900">Total Potential</span>
+            <span className="text-sm font-bold text-gray-900">Net Revenue</span>
+            <span className="text-xl font-bold text-teal-700">
+              {formatPrice(stats.netRevenue)}
+            </span>
+          </div>
+          <div className="border-t pt-3 flex justify-between items-center">
+            <span className="text-sm font-semibold text-gray-500">Total Potential</span>
             <span className="text-lg font-bold text-gray-900">
               {formatPrice(stats.totalPotentialRevenue)}
             </span>
@@ -172,9 +307,14 @@ export default async function DashboardPage() {
       </div>
 
       {/* Recent Orders Table */}
-      <div className="bg-white rounded-lg shadow">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">Recent Orders</h2>
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+        <div className="px-6 py-4 border-b border-gray-100">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-gray-900">Recent Orders</h2>
+            <Link href="/orders" className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+              View all →
+            </Link>
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -190,6 +330,9 @@ export default async function DashboardPage() {
                   Amount
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Payment
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Status
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -200,7 +343,7 @@ export default async function DashboardPage() {
             <tbody className="bg-white divide-y divide-gray-200">
               {stats.recentOrders.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
                     No orders yet
                   </td>
                 </tr>
@@ -220,16 +363,34 @@ export default async function DashboardPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
-                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${order.status === 'delivered'
+                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                          order.paymentMethod === 'cod'
+                            ? 'bg-amber-100 text-amber-800'
+                            : 'bg-blue-100 text-blue-800'
+                        }`}
+                      >
+                        {order.paymentMethod === 'cod' ? 'COD' : 'Prepaid'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span
+                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                          order.status === 'Delivered'
                             ? 'bg-green-100 text-green-800'
-                            : order.status === 'shipped'
+                            : order.status === 'Shipped' || order.status === 'Out for Delivery'
                               ? 'bg-purple-100 text-purple-800'
-                              : order.status === 'confirmed' || order.status === 'Paid'
+                              : order.status === 'Paid' || order.status === 'Packed'
                                 ? 'bg-blue-100 text-blue-800'
-                                : order.status === 'pending' || order.status === 'Pending'
+                                : order.status === 'Pending'
                                   ? 'bg-yellow-100 text-yellow-800'
-                                  : 'bg-gray-100 text-gray-800'
-                          }`}
+                                  : order.status === 'Cancelled'
+                                    ? 'bg-red-100 text-red-800'
+                                    : order.status === 'RTO'
+                                      ? 'bg-rose-100 text-rose-800'
+                                      : order.status === 'Refunded'
+                                        ? 'bg-indigo-100 text-indigo-800'
+                                        : 'bg-gray-100 text-gray-800'
+                        }`}
                       >
                         {order.status}
                       </span>

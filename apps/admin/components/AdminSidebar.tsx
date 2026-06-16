@@ -5,11 +5,26 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { LayoutDashboard, ShoppingBag, Package, Users, MessageSquare, X, Menu, HelpCircle, TrendingUp, Award, ChevronDown, ChevronRight, Mail, Ticket, Megaphone, Trophy, Gift, Target, GraduationCap } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, Package, Users, MessageSquare, X, Menu, HelpCircle, TrendingUp, Award, ChevronDown, ChevronRight, Mail, Ticket, Megaphone, Trophy, Gift, Target, GraduationCap, BarChart3 } from 'lucide-react';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Analytics', href: '/analytics', icon: TrendingUp },
+  {
+    name: 'Analytics',
+    icon: BarChart3,
+    submenu: [
+      { name: 'Overview', href: '/analytics' },
+      { name: 'Orders', href: '/analytics/orders' },
+      { name: 'Products', href: '/analytics/products' },
+      { name: 'Revenue', href: '/analytics/revenue' },
+      { name: 'Payments', href: '/analytics/payments' },
+      { name: 'Customers', href: '/analytics/customers' },
+      { name: 'Locations', href: '/analytics/locations' },
+      { name: 'Coupons', href: '/analytics/coupons' },
+      { name: 'Inventory', href: '/analytics/inventory' },
+      { name: 'Marketing', href: '/analytics/marketing' },
+    ]
+  },
   {
     name: 'Marketing & Comm.',
     icon: Megaphone,
@@ -198,8 +213,8 @@ export default function AdminSidebar() {
                   {isExpanded && (
                     <div className="ml-4 mt-1 space-y-1">
                       {item.submenu.map((subItem) => {
-                        // If it's a base path like /masterclass, only match exactly to avoid highlighting everything in the submenu
-                        const isBasePath = subItem.href === '/masterclass' || subItem.href === '/lottery' || subItem.href === '/ambassadors';
+                        // If it's a base path like /masterclass or /analytics, only match exactly to avoid highlighting everything in the submenu
+                        const isBasePath = subItem.href === '/masterclass' || subItem.href === '/lottery' || subItem.href === '/ambassadors' || subItem.href === '/analytics';
                         const isSubActive = isBasePath 
                           ? pathname === subItem.href 
                           : (pathname === subItem.href || pathname.startsWith(subItem.href + '/'));
