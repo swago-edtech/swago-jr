@@ -31,10 +31,10 @@ const OrderSchema = new mongoose.Schema(
     city: { type: String, required: true },
     state: { type: String, required: true },
     pincode: { type: String, required: true },
-    // ✅ UPDATED: Expanded status enum
+    // ✅ UPDATED: Full lifecycle status enum
     status: {
       type: String,
-      enum: ['Pending', 'Paid', 'Shipped', 'Delivered', 'Cancelled', 'Failed', 'Abandoned'],
+      enum: ['Pending', 'Paid', 'Packed', 'Shipped', 'Out for Delivery', 'Delivered', 'Cancelled', 'Failed', 'Abandoned', 'RTO', 'Returned', 'Refunded'],
       default: "Pending"
     },
     // ✅ NEW: Payment method for COD support
@@ -96,7 +96,13 @@ const OrderSchema = new mongoose.Schema(
     // ✅ NEW: UTM Tracking for Performance Marketing
     utm_source: { type: String },
     utm_medium: { type: String },
-    utm_campaign: { type: String }
+    utm_campaign: { type: String },
+    // ✅ NEW: Refund & COD Collection Tracking (Analytics Phase 1)
+    refundAmount: { type: Number, default: 0 },
+    codCollected: { type: Boolean, default: false },
+    codCollectedAt: { type: Date },
+    // ✅ NEW: GST Tracking
+    taxCollected: { type: Number, default: 0 }
   },
   { timestamps: true }
 );
