@@ -7,6 +7,7 @@ import AnalyticsCard from '@/components/AnalyticsCard';
 import { getProductAnalytics, ProductAnalyticsData, ProductSalesRow } from './actions';
 import { exportToCSV } from '@/lib/exportCsv';
 import { Package, ShoppingBag, CreditCard, Truck, IndianRupee, TrendingUp, RotateCcw, Download } from 'lucide-react';
+import ProductAnalyticsCharts from './ProductAnalyticsCharts';
 
 export default function ProductAnalyticsClient() {
   const [dateRange, setDateRange] = useState<DateRange>(getDefaultDateRange());
@@ -100,7 +101,10 @@ export default function ProductAnalyticsClient() {
             <AnalyticsCard title="Net Revenue" value={formatPrice(data.totals.netRevenue)} icon={TrendingUp} color="bg-teal-600" textColor="text-teal-700" />
           </div>
 
-          {/* Product Table */}
+          {/* Product Analytics Charts (Categories, Bestsellers, Alerts) */}
+          <ProductAnalyticsCharts products={data.products} categoryData={data.categoryData} />
+
+          {/* Product Breakdown Table */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-100">
               <h2 className="text-base font-semibold text-gray-900">

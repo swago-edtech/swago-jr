@@ -12,6 +12,10 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
+  AreaChart,
+  Area,
+  LineChart,
+  Line,
 } from 'recharts';
 
 interface DaySummary {
@@ -24,10 +28,27 @@ interface DaySummary {
   delivered: number;
   rto: number;
   revenue: number;
+  aov: number;
+  rtoRate: number;
+  cancellationRate: number;
+}
+
+interface HourlySummary {
+  hour: string;
+  orders: number;
+  revenue: number;
+}
+
+interface DayOfWeekSummary {
+  day: string;
+  orders: number;
+  revenue: number;
 }
 
 interface OrderAnalyticsChartsProps {
   dailyData: DaySummary[];
+  hourlyDistribution: HourlySummary[];
+  dayOfWeekDistribution: DayOfWeekSummary[];
   totals: {
     totalOrders: number;
     paidOrders: number;
@@ -72,7 +93,7 @@ const PAYMENT_COLORS = {
   cod: '#f59e0b',
 };
 
-export default function OrderAnalyticsCharts({ dailyData, totals }: OrderAnalyticsChartsProps) {
+export default function OrderAnalyticsCharts({ dailyData, hourlyDistribution, dayOfWeekDistribution, totals }: OrderAnalyticsChartsProps) {
   // ── Paid vs COD Pie Data ──
   const paymentSplitData = [
     { name: 'Prepaid', value: totals.paidOrders, color: PAYMENT_COLORS.paid },
@@ -275,6 +296,76 @@ export default function OrderAnalyticsCharts({ dailyData, totals }: OrderAnalyti
               <div className="text-xs text-gray-500">{item.name}</div>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* Funnel Health (Rates) & AOV Trend */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 lg:col-span-2">
+        <h3 className="text-base font-semibold text-gray-900 mb-4">Funnel Health & AOV Trends</h3>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="h-[300px]">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">RTO & Cancellation Rates (%)</p>
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={dailyData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#6b7280' }} interval={Math.max(0, Math.floor(dailyData.length / 8) - 1)} />
+                <YAxis tick={{ fontSize: 11, fill: '#6b7280' }} />
+                <Tooltip contentStyle={tooltipStyle.contentStyle} labelStyle={tooltipStyle.labelStyle} itemStyle={tooltipStyle.itemStyle} />
+                <Legend />
+                <Line type="monotone" dataKey="rtoRate" name="RTO Rate (%)" stroke="#f43f5e" strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="cancellationRate" name="Cancel Rate (%)" stroke="#ef4444" strokeWidth={2} dot={false} strokeDasharray="5 5" />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="h-[300px]">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Average Order Value (₹)</p>
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={dailyData}>
+                <defs>
+                  <linearGradient id="colorAov" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#6b7280' }} interval={Math.max(0, Math.floor(dailyData.length / 8) - 1)} />
+                <YAxis tick={{ fontSize: 11, fill: '#6b7280' }} tickFormatter={formatRevenue} />
+                <Tooltip contentStyle={tooltipStyle.contentStyle} labelStyle={tooltipStyle.labelStyle} itemStyle={tooltipStyle.itemStyle} formatter={(value: number | undefined) => [`₹${value ?? 0}`, 'AOV']} />
+                <Area type="monotone" dataKey="aov" stroke="#10b981" fillOpacity={1} fill="url(#colorAov)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </div>
+
+      {/* Purchasing Behavior (Time & Day) */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 lg:col-span-2">
+        <h3 className="text-base font-semibold text-gray-900 mb-4">Purchasing Behavior Trends</h3>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="h-[300px]">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Orders by Hour of Day</p>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={hourlyDistribution}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                <XAxis dataKey="hour" tick={{ fontSize: 11, fill: '#6b7280' }} interval="preserveStartEnd" />
+                <YAxis tick={{ fontSize: 11, fill: '#6b7280' }} allowDecimals={false} />
+                <Tooltip contentStyle={tooltipStyle.contentStyle} labelStyle={tooltipStyle.labelStyle} itemStyle={tooltipStyle.itemStyle} cursor={{ fill: '#f3f4f6' }} />
+                <Bar dataKey="orders" name="Orders" fill="#6366f1" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="h-[300px]">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Orders by Day of Week</p>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={dayOfWeekDistribution}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                <XAxis dataKey="day" tick={{ fontSize: 11, fill: '#6b7280' }} />
+                <YAxis tick={{ fontSize: 11, fill: '#6b7280' }} allowDecimals={false} />
+                <Tooltip contentStyle={tooltipStyle.contentStyle} labelStyle={tooltipStyle.labelStyle} itemStyle={tooltipStyle.itemStyle} cursor={{ fill: '#f3f4f6' }} />
+                <Bar dataKey="orders" name="Orders" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       </div>
     </div>

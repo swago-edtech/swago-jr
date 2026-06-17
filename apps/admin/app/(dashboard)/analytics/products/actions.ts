@@ -1,6 +1,6 @@
 'use server';
 
-import { connectDB, Order } from '@swago/database';
+import { connectDB, Order, Product } from '@swago/database';
 
 export interface ProductSalesRow {
   productId: string;
@@ -12,10 +12,18 @@ export interface ProductSalesRow {
   revenue: number;
   refunds: number;
   netRevenue: number;
+  rtoCount: number;
+  category: string;
+}
+
+export interface CategoryRevenue {
+  name: string;
+  revenue: number;
 }
 
 export interface ProductAnalyticsData {
   products: ProductSalesRow[];
+  categoryData: CategoryRevenue[];
   totals: {
     totalOrders: number;
     totalQty: number;
@@ -61,8 +69,16 @@ export async function getProductAnalytics(
 
   const confirmedStatuses = ['Paid', 'Packed', 'Shipped', 'Out for Delivery', 'Delivered'];
 
+  // Fetch product categories
+  const allProducts = await Product.find().select('_id category').lean();
+  const categoryMap: Record<string, string> = {};
+  for (const p of allProducts as any[]) {
+    categoryMap[String(p._id)] = p.category || 'Uncategorized';
+  }
+
   // ── Aggregate by product ──
   const productMap: Record<string, ProductSalesRow> = {};
+  const catRevMap: Record<string, number> = {};
 
   for (const order of orders) {
     if (!order.items || !Array.isArray(order.items)) continue;
@@ -93,12 +109,18 @@ export async function getProductAnalytics(
           revenue: 0,
           refunds: 0,
           netRevenue: 0,
+          rtoCount: 0,
+          category: categoryMap[pid] || 'Uncategorized',
         };
       }
 
       const p = productMap[pid];
       p.orders++;
       p.qtySold += qty;
+      
+      if (order.status === 'RTO') {
+        p.rtoCount++;
+      }
 
       if (isPaid) p.paidOrders++;
       if (isCod) p.codOrders++;
@@ -107,12 +129,19 @@ export async function getProductAnalytics(
         p.revenue += itemRevenue;
         p.refunds += itemRefund;
         p.netRevenue += itemRevenue - itemRefund;
+        
+        const cat = p.category;
+        catRevMap[cat] = (catRevMap[cat] || 0) + itemRevenue;
       }
     }
   }
 
   // ── Sort by qty sold descending ──
   const products = Object.values(productMap).sort((a, b) => b.qtySold - a.qtySold);
+  
+  const categoryData = Object.entries(catRevMap)
+    .map(([name, revenue]) => ({ name, revenue }))
+    .sort((a, b) => b.revenue - a.revenue);
 
   // ── Totals ──
   const totals = products.reduce(
@@ -128,5 +157,5 @@ export async function getProductAnalytics(
     { totalOrders: 0, totalQty: 0, paidOrders: 0, codOrders: 0, totalRevenue: 0, totalRefunds: 0, netRevenue: 0 }
   );
 
-  return JSON.parse(JSON.stringify({ products, totals }));
+  return JSON.parse(JSON.stringify({ products, categoryData, totals }));
 }

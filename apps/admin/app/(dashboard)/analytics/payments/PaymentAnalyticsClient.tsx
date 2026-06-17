@@ -7,6 +7,7 @@ import AnalyticsCard from '@/components/AnalyticsCard';
 import { getPaymentAnalytics, PaymentAnalyticsData } from './actions';
 import { exportToCSV } from '@/lib/exportCsv';
 import { CreditCard, Truck, ShoppingBag, IndianRupee, CheckCircle, XCircle, RotateCcw, ArrowRight, Download } from 'lucide-react';
+import PaymentAnalyticsCharts from './PaymentAnalyticsCharts';
 
 export default function PaymentAnalyticsClient() {
   const [dateRange, setDateRange] = useState<DateRange>(getDefaultDateRange());
@@ -78,6 +79,9 @@ export default function PaymentAnalyticsClient() {
               textColor="text-rose-600"
             />
           </div>
+
+          {/* Payment Trends & AOV Charts */}
+          <PaymentAnalyticsCharts dailyTrends={data.dailyTrends} methods={data.methods} />
 
           {/* Payment Method Table */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
