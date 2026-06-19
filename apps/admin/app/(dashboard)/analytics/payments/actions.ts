@@ -11,6 +11,13 @@ export interface PaymentMethodRow {
   cancelled: number;
   rto: number;
   successRate: number;
+  aov: number;
+}
+
+export interface PaymentDailyTrend {
+  date: string;
+  razorpayOrders: number;
+  codOrders: number;
 }
 
 export interface CodFunnelData {
@@ -26,6 +33,7 @@ export interface CodFunnelData {
 export interface PaymentAnalyticsData {
   methods: PaymentMethodRow[];
   codFunnel: CodFunnelData;
+  dailyTrends: PaymentDailyTrend[];
   totals: {
     totalOrders: number;
     totalRevenue: number;
@@ -62,6 +70,15 @@ export async function getPaymentAnalytics(from: string, to: string): Promise<Pay
     rto: 0,
     loss: 0,
   };
+
+  const dayMap: Record<string, PaymentDailyTrend> = {};
+  
+  const current = new Date(fromDate);
+  while (current <= toDate) {
+    const key = current.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
+    dayMap[key] = { date: key, razorpayOrders: 0, codOrders: 0 };
+    current.setDate(current.getDate() + 1);
+  }
 
   const confirmedStatuses = ['Paid', 'Packed', 'Shipped', 'Out for Delivery', 'Delivered'];
 
@@ -114,6 +131,16 @@ export async function getPaymentAnalytics(from: string, to: string): Promise<Pay
         codFunnel.loss += total;
       }
     }
+
+    const orderDate = new Date(order.createdAt);
+    const dayKey = orderDate.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
+    if (dayMap[dayKey]) {
+      if (method === 'cod') {
+        dayMap[dayKey].codOrders++;
+      } else {
+        dayMap[dayKey].razorpayOrders++;
+      }
+    }
   }
 
   // ── Build output ──
@@ -132,13 +159,16 @@ export async function getPaymentAnalytics(from: string, to: string): Promise<Pay
       cancelled: data.cancelled,
       rto: data.rto,
       successRate,
+      aov: data.orders > 0 ? Math.round(data.revenue / data.orders) : 0,
     };
   });
+
+  const dailyTrends = Object.values(dayMap);
 
   const totals = {
     totalOrders: orders.length,
     totalRevenue: methods.reduce((sum, m) => sum + m.revenue, 0),
   };
 
-  return JSON.parse(JSON.stringify({ methods, codFunnel, totals }));
+  return JSON.parse(JSON.stringify({ methods, codFunnel, dailyTrends, totals }));
 }

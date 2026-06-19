@@ -149,7 +149,7 @@ export async function GET(request: NextRequest) {
     // ========================================
     // 4. Fetch active promotion config
     // ========================================
-    const promotion = await Promotion.findOne({ isActive: true }).lean();
+    const promotion = await Promotion.findOne().lean();
 
     // ========================================
     // 5. Fetch Express Config
@@ -208,8 +208,10 @@ export async function GET(request: NextRequest) {
       promotion: promotion
         ? {
             shippingThreshold: (promotion as any).shippingThreshold || 1450,
-            bonusItems: (promotion as any).bonusItems || [],
-            redemptionTiers: (promotion as any).redemptionTiers || [],
+            bonusItems: (promotion as any).isActive ? (promotion as any).bonusItems || [] : [],
+            redemptionTiers: (promotion as any).isActive ? (promotion as any).redemptionTiers || [] : [],
+            blockedCodStates: (promotion as any).blockedCodStates || [],
+            blockedCodPincodes: (promotion as any).blockedCodPincodes || [],
           }
         : null,
       expressConfig,

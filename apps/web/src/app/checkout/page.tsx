@@ -56,6 +56,41 @@ export default function CheckoutPage() {
   const [message, setMessage] = useState("");
   const [errors, setErrors] = useState<string[]>([]);
   const [priceChangeModal, setPriceChangeModal] = useState<CartPriceChange[] | null>(null);
+  const [fetchingPincode, setFetchingPincode] = useState(false);
+
+  // Auto-fetch City and State from Pincode
+  useEffect(() => {
+    if (pincode && pincode.length === 6) {
+      const fetchPincodeData = async () => {
+        setFetchingPincode(true);
+        try {
+          const res = await fetch(`https://api.postalpincode.in/pincode/${pincode}`);
+          const data = await res.json();
+          if (data && data[0] && data[0].Status === "Success") {
+            const postOffice = data[0].PostOffice[0];
+            if (postOffice) {
+              if (postOffice.State) {
+                const matchedState = INDIAN_STATES.find(s => s.toLowerCase() === postOffice.State.toLowerCase());
+                setState(matchedState || postOffice.State);
+              }
+              let cityVal = "";
+              if (postOffice.Block && postOffice.Block !== "NA") cityVal = postOffice.Block;
+              else if (postOffice.District && postOffice.District !== "NA") cityVal = postOffice.District;
+              else if (postOffice.Region && postOffice.Region !== "NA") cityVal = postOffice.Region;
+              else if (postOffice.Name && postOffice.Name !== "NA") cityVal = postOffice.Name;
+              if (cityVal) setCity(cityVal);
+              setErrors((prev) => prev.filter(e => e !== 'city' && e !== 'state' && e !== 'pincode'));
+            }
+          }
+        } catch (err) {
+          console.error("Failed to fetch pincode details:", err);
+        } finally {
+          setFetchingPincode(false);
+        }
+      };
+      fetchPincodeData();
+    }
+  }, [pincode]);
 
   // Redirect if not logged in
   useEffect(() => {
@@ -277,6 +312,18 @@ export default function CheckoutPage() {
     });
   }, []);
 
+  const isCodBlocked = useMemo(() => {
+    const stateBlocked = promotion?.blockedCodStates?.some((blockedState: string) => blockedState.toLowerCase() === state.toLowerCase()) || false;
+    const pincodeBlocked = promotion?.blockedCodPincodes?.includes(pincode) || false;
+    return stateBlocked || pincodeBlocked;
+  }, [promotion, state, pincode]);
+
+  useEffect(() => {
+    if (isCodBlocked && paymentMethod === 'cod') {
+      setPaymentMethod('razorpay');
+    }
+  }, [isCodBlocked, paymentMethod]);
+
   const shippingFee = useMemo(() => {
     if (paymentMethod === 'razorpay') return 0;
     const threshold = promotion?.shippingThreshold || 1450;
@@ -453,6 +500,21 @@ export default function CheckoutPage() {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="flex flex-col gap-1 relative">
+                    <input
+                      placeholder="PIN code"
+                      value={pincode}
+                      maxLength={6}
+                      onChange={(e) => { const val = e.target.value.replace(/\D/g, '').slice(0, 6); setPincode(val); if (errors.includes("pincode")) { setErrors(errors.filter(f => f !== "pincode")); setMessage(""); } }}
+                      className={`w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-[hsl(var(--swago-purple))] outline-none text-sm shadow-sm ${errors.includes("pincode") ? 'border-red-500 bg-red-50 placeholder-red-300' : 'border-slate-200'} ${fetchingPincode ? 'pr-10' : ''}`}
+                    />
+                    {fetchingPincode && (
+                      <div className="absolute right-4 top-[24px] -translate-y-1/2">
+                        <div className="w-4 h-4 border-2 border-[hsl(var(--swago-purple))] border-t-transparent rounded-full animate-spin" />
+                      </div>
+                    )}
+                    {errors.includes("pincode") && <p className="text-[10px] text-red-500 font-bold">PIN code is needed</p>}
+                  </div>
                   <div className="flex flex-col gap-1">
                     <input
                       placeholder="City"
@@ -465,19 +527,11 @@ export default function CheckoutPage() {
                   <select
                     value={state}
                     onChange={(e) => setState(e.target.value)}
-                    className="w-full h-12 px-4 border rounded-md border-slate-200 focus:ring-1 focus:ring-[hsl(var(--swago-purple))] outline-none text-sm bg-white shadow-sm"
+                    disabled={true}
+                    className="w-full h-12 px-4 border rounded-md outline-none text-sm shadow-sm appearance-none bg-slate-100 opacity-70 cursor-not-allowed border-slate-300 text-slate-500"
                   >
                     {INDIAN_STATES.map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
-                  <div className="flex flex-col gap-1">
-                    <input
-                      placeholder="PIN code"
-                      value={pincode}
-                      onChange={(e) => { setPincode(e.target.value); if (errors.includes("pincode")) { setErrors(errors.filter(f => f !== "pincode")); setMessage(""); } }}
-                      className={`w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-[hsl(var(--swago-purple))] outline-none text-sm shadow-sm ${errors.includes("pincode") ? 'border-red-500 bg-red-50 placeholder-red-300' : 'border-slate-200'}`}
-                    />
-                    {errors.includes("pincode") && <p className="text-[10px] text-red-500 font-bold">PIN code is needed</p>}
-                  </div>
                 </div>
 
                 <div className="relative flex flex-col gap-1">
@@ -569,12 +623,13 @@ export default function CheckoutPage() {
                 </div>
 
                 {/* COD Option */}
-                <div className={`p-4 border-t flex items-start gap-4 cursor-pointer transition-colors ${paymentMethod === 'cod' ? 'bg-[hsl(var(--swago-purple))/0.1]' : 'bg-white hover:bg-slate-50'}`} onClick={() => setPaymentMethod('cod')}>
-                  <div className={`w-5 h-5 rounded-full border-2 mt-0.5 flex items-center justify-center transition-all ${paymentMethod === 'cod' ? 'border-[hsl(var(--swago-purple))]' : 'border-slate-300'}`}>
-                    {paymentMethod === 'cod' && <div className="w-2.5 h-2.5 bg-[hsl(var(--swago-purple))] rounded-full" />}
+                <div className={`p-4 border-t flex items-start gap-4 transition-colors ${isCodBlocked ? 'bg-slate-50 opacity-60 cursor-not-allowed' : paymentMethod === 'cod' ? 'bg-[hsl(var(--swago-purple))/0.1] cursor-pointer' : 'bg-white hover:bg-slate-50 cursor-pointer'}`} onClick={() => !isCodBlocked && setPaymentMethod('cod')}>
+                  <div className={`w-5 h-5 rounded-full border-2 mt-0.5 flex items-center justify-center transition-all ${paymentMethod === 'cod' && !isCodBlocked ? 'border-[hsl(var(--swago-purple))]' : 'border-slate-300'}`}>
+                    {paymentMethod === 'cod' && !isCodBlocked && <div className="w-2.5 h-2.5 bg-[hsl(var(--swago-purple))] rounded-full" />}
                   </div>
                   <div className="flex-1">
                     <span className="text-sm font-bold text-slate-900">Cash on Delivery (COD)</span>
+                    {isCodBlocked && <p className="text-[11px] text-red-500 font-bold mt-1">COD is not available for your location</p>}
                   </div>
                 </div>
               </div>

@@ -119,6 +119,8 @@ export default function OrderAnalyticsClient() {
           {/* Charts */}
           <OrderAnalyticsCharts
             dailyData={data.dailyData}
+            hourlyDistribution={data.hourlyDistribution}
+            dayOfWeekDistribution={data.dayOfWeekDistribution}
             totals={data.totals}
           />
 

@@ -3,7 +3,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Trash2, Save, Loader2, Gift, TrendingUp, Info } from "lucide-react";
+import { Plus, Trash2, Save, Loader2, Gift, TrendingUp, Info, ShieldAlert } from "lucide-react";
+
+const INDIAN_STATES = [
+    "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa", "Gujarat", "Haryana",
+    "Himachal Pradesh", "Jharkhand", "Karnataka", "Kerala", "Madhya Pradesh", "Maharashtra", "Manipur",
+    "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana",
+    "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal", "Andaman and Nicobar Islands", "Chandigarh",
+    "Dadra and Nagar Haveli and Daman and Diu", "Delhi", "Lakshadweep", "Puducherry"
+];
 
 interface RedemptionTier {
     target: number;
@@ -30,6 +38,9 @@ export default function PromotionsPage() {
     const [bonusItems, setBonusItems] = useState<BonusItem[]>([]);
     const [products, setProducts] = useState<Product[]>([]);
     const [isActive, setIsActive] = useState(true);
+    const [blockedCodStates, setBlockedCodStates] = useState<string[]>([]);
+    const [blockedCodPincodes, setBlockedCodPincodes] = useState<string[]>([]);
+    const [pincodeInput, setPincodeInput] = useState("");
     const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
@@ -51,6 +62,8 @@ export default function PromotionsPage() {
                     setRedemptionTiers(data.promotion.redemptionTiers || []);
                     setBonusItems(data.promotion.bonusItems || []);
                     setIsActive(data.promotion.isActive ?? true);
+                    setBlockedCodStates(data.promotion.blockedCodStates || []);
+                    setBlockedCodPincodes(data.promotion.blockedCodPincodes || []);
                 }
             }
 
@@ -82,7 +95,7 @@ export default function PromotionsPage() {
             const res = await fetch("/api/promotion", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ redemptionTiers: validTiers, bonusItems: validItems, isActive })
+                body: JSON.stringify({ redemptionTiers: validTiers, bonusItems: validItems, isActive, blockedCodStates, blockedCodPincodes })
             });
 
             if (res.ok) {
@@ -123,6 +136,32 @@ export default function PromotionsPage() {
         }
     };
 
+    const handlePincodeKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter' || e.key === ',') {
+            e.preventDefault();
+            const val = pincodeInput.trim().replace(/,/g, '');
+            if (!val) return;
+
+            if (!/^\d{6}$/.test(val)) {
+                showMessage("error", "Pin code must be exactly 6 digits");
+                return;
+            }
+
+            if (!blockedCodPincodes.includes(val)) {
+                setBlockedCodPincodes([...blockedCodPincodes, val]);
+                setPincodeInput("");
+                setHasUnsavedChanges(true);
+            } else {
+                setPincodeInput("");
+            }
+        }
+    };
+
+    const removePincode = (pincodeToRemove: string) => {
+        setBlockedCodPincodes(blockedCodPincodes.filter(p => p !== pincodeToRemove));
+        setHasUnsavedChanges(true);
+    };
+
     const addTier = () => {
         setRedemptionTiers([...redemptionTiers, { target: 0, off: 0 }]);
     };
@@ -158,6 +197,15 @@ export default function PromotionsPage() {
             newItems[index] = { ...newItems[index], [field]: value };
         }
         setBonusItems(newItems);
+        setHasUnsavedChanges(true);
+    };
+
+    const toggleBlockedState = (state: string) => {
+        setBlockedCodStates(prev => 
+            prev.includes(state) 
+                ? prev.filter(s => s !== state) 
+                : [...prev, state]
+        );
         setHasUnsavedChanges(true);
     };
 
@@ -436,6 +484,101 @@ export default function PromotionsPage() {
                                     </div>
                                 </div>
                             ))}
+                    </div>
+                </div>
+            </div>
+
+            {/* Unified COD Delivery Restrictions Section */}
+            <div className="bg-white rounded-2xl border border-red-100 shadow-xl shadow-red-50 overflow-hidden mb-8">
+                <div className="p-5 bg-gradient-to-r from-red-50 to-white border-b border-red-100 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-red-100 text-red-600 rounded-lg shadow-sm">
+                            <ShieldAlert className="h-5 w-5" />
+                        </div>
+                        <div>
+                            <h2 className="font-black text-gray-900 text-lg">Cash on Delivery (COD) Restrictions</h2>
+                            <p className="text-[11px] text-red-500 font-bold uppercase tracking-widest mt-0.5">Location-based Blocking</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="p-6 lg:p-8 flex flex-col gap-8">
+                    {/* States Block */}
+                    <div>
+                        <div className="flex items-center gap-2 mb-2">
+                            <h3 className="font-bold text-gray-800 text-sm">1. Block by State</h3>
+                            <span className="bg-gray-100 text-gray-500 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Broad Restriction</span>
+                        </div>
+                        <p className="text-xs text-gray-500 mb-4">Select states where COD should be entirely disabled. Customers from these states must prepay.</p>
+                        
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 bg-gray-50/50 p-4 rounded-2xl border border-gray-100">
+                            {INDIAN_STATES.sort().map((state) => {
+                                const isBlocked = blockedCodStates.includes(state);
+                                return (
+                                    <label key={state} className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${isBlocked ? 'bg-red-50 border-red-200 text-red-800 shadow-sm' : 'bg-white border-gray-100 hover:border-gray-300 text-gray-600 hover:shadow-sm'}`}>
+                                        <input 
+                                            type="checkbox" 
+                                            className="w-4 h-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
+                                            checked={isBlocked}
+                                            onChange={() => toggleBlockedState(state)}
+                                        />
+                                        <span className="text-[11px] font-bold whitespace-nowrap overflow-hidden text-ellipsis" title={state}>{state}</span>
+                                    </label>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    <div className="h-px w-full bg-gray-100" />
+
+                    {/* Pin Codes Block */}
+                    <div>
+                        <div className="flex items-center gap-2 mb-2">
+                            <h3 className="font-bold text-gray-800 text-sm">2. Block by Pin Code</h3>
+                            <span className="bg-red-100 text-red-600 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Granular Control</span>
+                        </div>
+                        <p className="text-xs text-gray-500 mb-4">Type a 6-digit Pin Code and press <kbd className="bg-gray-100 border border-gray-200 px-1 rounded text-gray-600 font-mono text-[10px]">Enter</kbd> to add it to the blocked list.</p>
+                        
+                        <div className="relative mb-4">
+                            <input
+                                type="text"
+                                value={pincodeInput}
+                                onChange={(e) => setPincodeInput(e.target.value)}
+                                onKeyDown={handlePincodeKeyDown}
+                                placeholder="Enter 6-digit Pin Code..."
+                                maxLength={6}
+                                className="w-full px-5 py-3 bg-white border-2 border-gray-200 rounded-xl text-[13px] font-medium focus:ring-4 focus:ring-red-500/10 focus:border-red-400 outline-none transition-all placeholder:text-gray-300 text-black shadow-sm"
+                            />
+                        </div>
+
+                        {blockedCodPincodes.length > 0 && (
+                            <div className="bg-gray-50/50 p-4 rounded-2xl border border-gray-100">
+                                <div className="flex flex-wrap gap-2">
+                                    {blockedCodPincodes.map((pincode) => (
+                                        <div key={pincode} className="flex items-center gap-1.5 bg-red-50 text-red-800 px-3 py-1.5 rounded-xl border border-red-100 shadow-sm animate-in zoom-in-95 duration-200">
+                                            <span className="text-xs font-bold font-mono tracking-wide">{pincode}</span>
+                                            <button
+                                                onClick={() => removePincode(pincode)}
+                                                className="text-red-400 hover:text-red-600 hover:bg-red-100 rounded-full p-0.5 transition-colors focus:outline-none"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                        {blockedCodPincodes.length > 0 && (
+                            <div className="mt-3 flex justify-between items-center px-1">
+                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{blockedCodPincodes.length} Pin Codes Blocked</p>
+                                <button 
+                                    onClick={() => { setBlockedCodPincodes([]); setHasUnsavedChanges(true); }}
+                                    className="text-[10px] font-bold text-red-500 hover:text-red-700 uppercase tracking-widest transition-colors"
+                                >
+                                    Clear All
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

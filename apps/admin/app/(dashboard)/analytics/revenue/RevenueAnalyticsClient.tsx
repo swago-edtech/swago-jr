@@ -7,6 +7,7 @@ import { getRevenueAnalytics, RevenueBreakdown } from './actions';
 import { exportToCSV } from '@/lib/exportCsv';
 import { IndianRupee, TrendingUp, ArrowLeftRight, CreditCard, Truck, RotateCcw, XCircle, Gift, Package, Download } from 'lucide-react';
 import AnalyticsCard from '@/components/AnalyticsCard';
+import RevenueAnalyticsCharts from './RevenueAnalyticsCharts';
 
 export default function RevenueAnalyticsClient() {
   const [dateRange, setDateRange] = useState<DateRange>(getDefaultDateRange());
@@ -88,19 +89,16 @@ export default function RevenueAnalyticsClient() {
           <DateRangeFilter value={dateRange} onChange={setDateRange} />
         </div>
       </div>
-
       {/* Top KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <AnalyticsCard title="Gross Revenue" value={formatPrice(data.grossRevenue)} icon={IndianRupee} color="bg-gray-500" />
         <AnalyticsCard title="Delivered Revenue" value={formatPrice(data.deliveredRevenue)} icon={TrendingUp} color="bg-emerald-600" textColor="text-emerald-700" />
         <AnalyticsCard title="Net Revenue" value={formatPrice(data.netRevenue)} icon={TrendingUp} color="bg-teal-600" textColor="text-teal-700" />
-        <AnalyticsCard
-          title="Shipping Collected"
-          value={formatPrice(data.shippingCollected)}
-          icon={Truck}
-          color="bg-violet-500"
-        />
+        <AnalyticsCard title="Shipping Collected" value={formatPrice(data.shippingCollected)} icon={Truck} color="bg-violet-500" />
       </div>
+
+      {/* Revenue Trend & Leakage Charts */}
+      <RevenueAnalyticsCharts dailyTrends={data.dailyTrends} data={data} />
 
       {/* Revenue Breakdown Table */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">

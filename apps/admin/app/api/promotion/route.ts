@@ -29,7 +29,9 @@ export async function GET() {
                 bonusItems: [
                     { threshold: 999, label: "Mini Swago Game Card", slug: "mini-swago-game-card" },
                     { threshold: 1999, label: "Special Edition Item", slug: "special-edition-item" }
-                ]
+                ],
+                blockedCodStates: [],
+                blockedCodPincodes: []
             });
         }
 
@@ -48,7 +50,7 @@ export async function POST(req: Request) {
         }
 
         const body = await req.json();
-        const { redemptionTiers, bonusItems, isActive } = body;
+        const { redemptionTiers, bonusItems, isActive, blockedCodStates, blockedCodPincodes } = body;
 
         await connectDB();
 
@@ -57,13 +59,17 @@ export async function POST(req: Request) {
             if (redemptionTiers !== undefined) promotion.redemptionTiers = redemptionTiers;
             if (bonusItems !== undefined) promotion.bonusItems = bonusItems;
             if (isActive !== undefined) promotion.isActive = isActive;
+            if (blockedCodStates !== undefined) promotion.blockedCodStates = blockedCodStates;
+            if (blockedCodPincodes !== undefined) promotion.blockedCodPincodes = blockedCodPincodes;
             await promotion.save();
         } else {
             promotion = await Promotion.create({
                 name: "Default Promotion",
                 isActive: isActive ?? true,
                 redemptionTiers,
-                bonusItems
+                bonusItems,
+                blockedCodStates: blockedCodStates ?? [],
+                blockedCodPincodes: blockedCodPincodes ?? []
             });
         }
 

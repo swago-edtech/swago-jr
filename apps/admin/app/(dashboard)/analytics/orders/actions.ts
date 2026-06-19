@@ -12,10 +12,27 @@ export interface DaySummary {
   delivered: number;
   rto: number;
   revenue: number;
+  aov: number;
+  rtoRate: number;
+  cancellationRate: number;
+}
+
+export interface HourlySummary {
+  hour: string;
+  orders: number;
+  revenue: number;
+}
+
+export interface DayOfWeekSummary {
+  day: string;
+  orders: number;
+  revenue: number;
 }
 
 export interface OrderAnalyticsData {
   dailyData: DaySummary[];
+  hourlyDistribution: HourlySummary[];
+  dayOfWeekDistribution: DayOfWeekSummary[];
   totals: {
     totalOrders: number;
     paidOrders: number;
@@ -62,6 +79,9 @@ export async function getOrderAnalytics(from: string, to: string): Promise<Order
       delivered: 0,
       rto: 0,
       revenue: 0,
+      aov: 0,
+      rtoRate: 0,
+      cancellationRate: 0,
     };
     current.setDate(current.getDate() + 1);
   }
@@ -82,6 +102,23 @@ export async function getOrderAnalytics(from: string, to: string): Promise<Order
   };
 
   const confirmedStatuses = ['Paid', 'Packed', 'Shipped', 'Out for Delivery', 'Delivered'];
+
+  // ── Advanced Aggregations ──
+  const hours = Array.from({ length: 24 }, (_, i) => ({
+    hour: `${i.toString().padStart(2, '0')}:00`,
+    orders: 0,
+    revenue: 0,
+  }));
+
+  const daysOfWeek = [
+    { day: 'Sun', orders: 0, revenue: 0 },
+    { day: 'Mon', orders: 0, revenue: 0 },
+    { day: 'Tue', orders: 0, revenue: 0 },
+    { day: 'Wed', orders: 0, revenue: 0 },
+    { day: 'Thu', orders: 0, revenue: 0 },
+    { day: 'Fri', orders: 0, revenue: 0 },
+    { day: 'Sat', orders: 0, revenue: 0 },
+  ];
 
   // ── Aggregate ──
   for (const order of orders) {
@@ -139,9 +176,34 @@ export async function getOrderAnalytics(from: string, to: string): Promise<Order
         totals.rto++;
         break;
     }
+
+    // Populate advanced aggregations
+    const hour = orderDate.getHours();
+    const dayOfWeek = orderDate.getDay();
+
+    hours[hour].orders++;
+    daysOfWeek[dayOfWeek].orders++;
+
+    if (isConfirmed) {
+      hours[hour].revenue += total;
+      daysOfWeek[dayOfWeek].revenue += total;
+    }
   }
 
-  const dailyData = Object.values(dayMap);
+  // Calculate Rates & AOV for Daily Data
+  const dailyData = Object.values(dayMap).map(day => {
+    return {
+      ...day,
+      aov: day.totalOrders > 0 ? Math.round(day.revenue / day.totalOrders) : 0,
+      rtoRate: day.totalOrders > 0 ? Number(((day.rto / day.totalOrders) * 100).toFixed(1)) : 0,
+      cancellationRate: day.totalOrders > 0 ? Number(((day.cancelled / day.totalOrders) * 100).toFixed(1)) : 0,
+    };
+  });
 
-  return JSON.parse(JSON.stringify({ dailyData, totals }));
+  return JSON.parse(JSON.stringify({ 
+    dailyData, 
+    hourlyDistribution: hours,
+    dayOfWeekDistribution: daysOfWeek,
+    totals 
+  }));
 }

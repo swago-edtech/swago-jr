@@ -144,6 +144,17 @@ export async function POST(req: Request) {
     // 2. CONNECT DB & CLEANUP
     // ========================================
     await connectDB();
+
+    // ✅ Fetch active promotion for validation and price calculation
+    const activePromotion = await Promotion.findOne().lean() as any;
+    
+    // ✅ Check COD Blocked States & Pincodes
+    const isBlockedState = activePromotion?.blockedCodStates?.some((blockedState: string) => blockedState.toLowerCase() === customer.state.toLowerCase());
+    const isBlockedPincode = activePromotion?.blockedCodPincodes?.includes(customer.pincode);
+    if (paymentMethod === "cod" && (isBlockedState || isBlockedPincode)) {
+      return NextResponse.json({ success: false, error: "COD is not available in your location" }, { status: 400 });
+    }
+
     await cleanupExpiredOrders();
 
     // ========================================
@@ -220,11 +231,10 @@ export async function POST(req: Request) {
     // ========================================
     // 5. SERVER-SIDE PRICE CALCULATION
     // ========================================
-    // ✅ Fetch active promotion for bonus item validation
-    const activePromotion = await Promotion.findOne({ isActive: true }).lean() as any;
+    // ✅ activePromotion is already fetched above
 
     const BONUS_THRESHOLDS: Record<string, number> = {};
-    if (activePromotion?.bonusItems) {
+    if (activePromotion?.isActive && activePromotion?.bonusItems) {
       activePromotion.bonusItems.forEach((item: any) => {
         BONUS_THRESHOLDS[item.slug] = item.threshold;
       });

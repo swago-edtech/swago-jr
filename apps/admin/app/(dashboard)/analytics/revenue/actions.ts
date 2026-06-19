@@ -2,6 +2,12 @@
 
 import { connectDB, Order } from '@swago/database';
 
+export interface DailyRevenue {
+  date: string;
+  gross: number;
+  net: number;
+}
+
 export interface RevenueBreakdown {
   grossRevenue: number;
   paidRevenue: number;
@@ -17,6 +23,7 @@ export interface RevenueBreakdown {
   deliveredRevenue: number;
   cancelledRevenue: number;
   rtoLoss: number;
+  dailyTrends: DailyRevenue[];
 }
 
 export async function getRevenueAnalytics(from: string, to: string): Promise<RevenueBreakdown> {
@@ -48,6 +55,15 @@ export async function getRevenueAnalytics(from: string, to: string): Promise<Rev
   let cancelledRevenue = 0;
   let rtoLoss = 0;
   let gstCollected = 0;
+
+  const dayMap: Record<string, DailyRevenue> = {};
+  
+  const current = new Date(fromDate);
+  while (current <= toDate) {
+    const key = current.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
+    dayMap[key] = { date: key, gross: 0, net: 0 };
+    current.setDate(current.getDate() + 1);
+  }
 
   for (const order of orders) {
     const total = order.total || 0;
@@ -98,9 +114,23 @@ export async function getRevenueAnalytics(from: string, to: string): Promise<Rev
         rtoLoss += total;
         break;
     }
+
+    const orderDate = new Date(order.createdAt);
+    const dayKey = orderDate.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
+    const day = dayMap[dayKey];
+    if (day) {
+      day.gross += total;
+      if (order.status === 'Delivered') {
+        day.net += total;
+      }
+      if (order.refundAmount) {
+        day.net -= order.refundAmount;
+      }
+    }
   }
 
   const netRevenue = deliveredRevenue - refunds - rtoLoss;
+  const dailyTrends = Object.values(dayMap);
 
   return JSON.parse(JSON.stringify({
     grossRevenue,
@@ -117,5 +147,6 @@ export async function getRevenueAnalytics(from: string, to: string): Promise<Rev
     cancelledRevenue,
     rtoLoss,
     gstCollected,
+    dailyTrends,
   }));
 }
