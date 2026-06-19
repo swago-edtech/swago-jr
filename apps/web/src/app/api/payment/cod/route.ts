@@ -98,6 +98,14 @@ export async function POST(req: Request) {
 
         await connectDB();
 
+        // ✅ Check COD Blocked States & Pincodes
+        const activePromotion = await Promotion.findOne().lean() as any;
+        const isBlockedState = activePromotion?.blockedCodStates?.some((blockedState: string) => blockedState.toLowerCase() === orderDetails.state.toLowerCase());
+        const isBlockedPincode = activePromotion?.blockedCodPincodes?.includes(orderDetails.pincode);
+        if (isBlockedState || isBlockedPincode) {
+            return NextResponse.json({ error: "COD is not available in your location" }, { status: 400 });
+        }
+
         // ✅ Clean up expired orders first to release reserved stock
         await cleanupExpiredOrders();
 
@@ -177,10 +185,10 @@ export async function POST(req: Request) {
         const orderId = await generateOrderId();
 
         // ✅ ZEPRO Reference: Server-side Bonus Item Validation
-        const activePromotion = await Promotion.findOne({ isActive: true }).lean() as any;
+        // activePromotion is already fetched above
 
         const BONUS_THRESHOLDS: Record<string, number> = {};
-        if (activePromotion?.bonusItems) {
+        if (activePromotion?.isActive && activePromotion?.bonusItems) {
             activePromotion.bonusItems.forEach((item: any) => {
                 BONUS_THRESHOLDS[item.slug] = item.threshold;
             });

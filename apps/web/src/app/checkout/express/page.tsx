@@ -69,6 +69,41 @@ function ExpressCheckoutContent() {
   // MSG91 Widget State
   const [scriptLoaded, setScriptLoaded] = useState(false);
   const [widgetReady, setWidgetReady] = useState(false);
+  const [fetchingPincode, setFetchingPincode] = useState(false);
+
+  // Auto-fetch City and State from Pincode
+  useEffect(() => {
+    if (pincode && pincode.length === 6) {
+      const fetchPincodeData = async () => {
+        setFetchingPincode(true);
+        try {
+          const res = await fetch(`https://api.postalpincode.in/pincode/${pincode}`);
+          const data = await res.json();
+          if (data && data[0] && data[0].Status === "Success") {
+            const postOffice = data[0].PostOffice[0];
+            if (postOffice) {
+              if (postOffice.State) {
+                const matchedState = INDIAN_STATES.find(s => s.toLowerCase() === postOffice.State.toLowerCase());
+                setState(matchedState || postOffice.State);
+              }
+              let cityVal = "";
+              if (postOffice.Block && postOffice.Block !== "NA") cityVal = postOffice.Block;
+              else if (postOffice.District && postOffice.District !== "NA") cityVal = postOffice.District;
+              else if (postOffice.Region && postOffice.Region !== "NA") cityVal = postOffice.Region;
+              else if (postOffice.Name && postOffice.Name !== "NA") cityVal = postOffice.Name;
+              if (cityVal) setCity(cityVal);
+              setErrors((prev) => prev.filter(e => e !== 'city' && e !== 'state' && e !== 'pincode'));
+            }
+          }
+        } catch (err) {
+          console.error("Failed to fetch pincode details:", err);
+        } finally {
+          setFetchingPincode(false);
+        }
+      };
+      fetchPincodeData();
+    }
+  }, [pincode]);
   
   useEffect(() => {
     if (!scriptLoaded) return;
@@ -239,6 +274,19 @@ function ExpressCheckoutContent() {
   }, [cart, couponData, subtotal]);
 
   const discount = dynamicCoupon.discount;
+  
+  const isCodBlocked = useMemo(() => {
+    const stateBlocked = promotion?.blockedCodStates?.some((blockedState: string) => blockedState.toLowerCase() === state.toLowerCase()) || false;
+    const pincodeBlocked = promotion?.blockedCodPincodes?.includes(pincode) || false;
+    return stateBlocked || pincodeBlocked;
+  }, [promotion, state, pincode]);
+
+  useEffect(() => {
+    if (isCodBlocked && paymentMethod === "cod") {
+      setPaymentMethod("razorpay");
+    }
+  }, [isCodBlocked, paymentMethod]);
+
   const shippingFee = useMemo(() => {
     if (paymentMethod === "razorpay") return 0;
     const threshold = promotion?.shippingThreshold || 1450;
@@ -536,19 +584,24 @@ function ExpressCheckoutContent() {
                     <input value={address} onChange={e => { setAddress(e.target.value); setErrors(p => p.filter(f => f !== "address")); setMessage(""); }} placeholder="Address" autoComplete="street-address" className={inputClass("address")} />
                     {errors.includes("address") && <p className="text-[10px] text-red-500 font-bold mt-1">Required</p>}
                   </div>
+                  <div className="relative">
+                    <input value={pincode} maxLength={6} onChange={e => { const val = e.target.value.replace(/\D/g, '').slice(0, 6); setPincode(val); setErrors(p => p.filter(f => f !== "pincode")); setMessage(""); }} placeholder="PIN code" autoComplete="postal-code" className={`${inputClass("pincode")} ${fetchingPincode ? 'pr-10' : ''}`} />
+                    {fetchingPincode && (
+                      <div className="absolute right-3 top-[20px] -translate-y-1/2">
+                        <div className="w-4 h-4 border-2 border-[hsl(var(--swago-purple))] border-t-transparent rounded-full animate-spin" />
+                      </div>
+                    )}
+                    {errors.includes("pincode") && <p className="text-[10px] text-red-500 font-bold mt-1">Required</p>}
+                  </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
                       <input value={city} onChange={e => { setCity(e.target.value); setErrors(p => p.filter(f => f !== "city")); setMessage(""); }} placeholder="City" autoComplete="address-level2" className={inputClass("city")} />
                       {errors.includes("city") && <p className="text-[10px] text-red-500 font-bold mt-1">Required</p>}
                     </div>
-                    <div>
-                      <input value={pincode} onChange={e => { setPincode(e.target.value); setErrors(p => p.filter(f => f !== "pincode")); setMessage(""); }} placeholder="PIN code" autoComplete="postal-code" className={inputClass("pincode")} />
-                      {errors.includes("pincode") && <p className="text-[10px] text-red-500 font-bold mt-1">Required</p>}
-                    </div>
+                    <select value={state} onChange={e => setState(e.target.value)} disabled={true} autoComplete="address-level1" className="w-full h-10 px-3 border rounded-xl text-[13px] font-medium focus:outline-none transition shadow-inner appearance-none bg-slate-100 opacity-70 cursor-not-allowed border-[#e2e8f0] text-slate-500">
+                      {INDIAN_STATES.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
                   </div>
-                  <select value={state} onChange={e => setState(e.target.value)} autoComplete="address-level1" className="w-full h-10 px-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-xl text-[13px] font-medium text-[#0f172a] focus:outline-none focus:ring-1 focus:ring-[hsl(var(--swago-purple))] transition shadow-inner appearance-none cursor-pointer">
-                    {INDIAN_STATES.map(s => <option key={s} value={s}>{s}</option>)}
-                  </select>
                 </div>
               </section>
 
@@ -569,19 +622,28 @@ function ExpressCheckoutContent() {
                     <div className={`w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${paymentMethod === "razorpay" ? "border-[hsl(var(--swago-purple))]" : "border-[#e2e8f0]"}`}>
                       {paymentMethod === "razorpay" && <div className="w-2 h-2 bg-[hsl(var(--swago-purple))] rounded-full" />}
                     </div>
-                    <span className="text-[13px] font-bold text-[#475569] leading-tight">Online Payment<br /><span className="text-[10px] font-medium">UPI/Cards/Wallets</span></span>
+                    <div className="flex flex-col">
+                      <span className="text-[12px] sm:text-[13px] font-bold text-[#475569] leading-tight">Online Payment</span>
+                      <span className="text-[9px] sm:text-[10px] font-medium text-[#64748b] mt-0.5">UPI/Cards/Wallets</span>
+                    </div>
                   </button>
                   <button
-                    onClick={() => setPaymentMethod("cod")}
-                    className={`relative p-3 rounded-2xl border text-left transition-all duration-200 flex items-center gap-3 ${paymentMethod === "cod"
-                        ? 'bg-[hsl(var(--swago-purple))]/10 border-[hsl(var(--swago-purple))] ring-1 ring-[hsl(var(--swago-purple))]/20'
-                        : 'bg-[#f8fafc] border-[#e2e8f0]'
+                    onClick={() => !isCodBlocked && setPaymentMethod("cod")}
+                    disabled={isCodBlocked}
+                    className={`relative p-3 rounded-2xl border text-left transition-all duration-200 flex items-center gap-3 ${isCodBlocked
+                        ? 'bg-[#f8fafc] border-[#e2e8f0] opacity-60 cursor-not-allowed'
+                        : paymentMethod === "cod"
+                          ? 'bg-[hsl(var(--swago-purple))]/10 border-[hsl(var(--swago-purple))] ring-1 ring-[hsl(var(--swago-purple))]/20'
+                          : 'bg-[#f8fafc] border-[#e2e8f0]'
                       }`}
                   >
-                    <div className={`w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${paymentMethod === "cod" ? "border-[hsl(var(--swago-purple))]" : "border-[#e2e8f0]"}`}>
-                      {paymentMethod === "cod" && <div className="w-2 h-2 bg-[hsl(var(--swago-purple))] rounded-full" />}
+                    <div className={`w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${paymentMethod === "cod" && !isCodBlocked ? "border-[hsl(var(--swago-purple))]" : "border-[#e2e8f0]"}`}>
+                      {paymentMethod === "cod" && !isCodBlocked && <div className="w-2 h-2 bg-[hsl(var(--swago-purple))] rounded-full" />}
                     </div>
-                    <span className="text-[13px] font-bold text-[#475569] leading-tight">Cash on<br />Delivery</span>
+                    <div className="flex flex-col">
+                      <span className="text-[12px] sm:text-[13px] font-bold text-[#475569] leading-tight">Cash on Delivery</span>
+                      {isCodBlocked && <span className="text-[9px] sm:text-[10px] text-red-500 font-bold mt-1 leading-snug">Not available for your location</span>}
+                    </div>
                   </button>
                 </div>
               </section>

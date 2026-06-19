@@ -30,9 +30,20 @@ const PromotionSchema = new mongoose.Schema(
         shippingThreshold: {
             type: Number,
             default: 1450
-        }
+        },
+        blockedCodStates: [{
+            type: String
+        }],
+        blockedCodPincodes: [{
+            type: String
+        }]
     },
     { timestamps: true }
 );
 
-export default mongoose.models.Promotion || mongoose.model("Promotion", PromotionSchema);
+// Ensure model is updated during Next.js hot-reloads
+if (mongoose.models.Promotion) {
+    delete mongoose.models.Promotion;
+}
+
+export default mongoose.model("Promotion", PromotionSchema);
