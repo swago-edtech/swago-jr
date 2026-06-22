@@ -12,11 +12,32 @@ async function getDashboardStats() {
   // ✅ Clean up expired prepaid orders before calculating stats
   await cleanupExpiredOrders();
 
-  const [orders, users, pendingContactCount] = await Promise.all([
+  const [rawOrders, users, pendingContactCount] = await Promise.all([
     Order.find().select('total status createdAt items paymentMethod discount shippingFee refundAmount codCollected swagoMoneyRedeemed name phone userId couponCode').lean(),
     User.countDocuments({ isAdmin: false }),
     ContactSubmission.countDocuments({ status: 'pending' }),
   ]);
+
+  // Normalize order statuses (handle lowercase database variations like 'delivered')
+  const normalizeStatus = (status: string) => {
+    if (!status) return 'Pending';
+    const s = status.toLowerCase();
+    if (s === 'delivered') return 'Delivered';
+    if (s === 'cancelled') return 'Cancelled';
+    if (s === 'shipped') return 'Shipped';
+    if (s === 'paid') return 'Paid';
+    if (s === 'pending') return 'Pending';
+    if (s === 'packed') return 'Packed';
+    if (s === 'failed') return 'Failed';
+    if (s === 'abandoned') return 'Abandoned';
+    if (s === 'rto') return 'RTO';
+    if (s === 'returned') return 'Returned';
+    if (s === 'refunded') return 'Refunded';
+    if (s === 'out for delivery') return 'Out for Delivery';
+    return status.charAt(0).toUpperCase() + status.slice(1);
+  };
+
+  const orders = rawOrders.map((o: any) => ({ ...o, status: normalizeStatus(o.status) }));
 
   // ── Time Boundaries ──
   const today = new Date();
@@ -88,7 +109,7 @@ async function getDashboardStats() {
     return acc;
   }, {} as Record<string, number>);
 
-  const repeatCustomersCount = Object.values(customerOrderCounts).filter(count => count > 1).length;
+  const repeatCustomersCount = Object.values(customerOrderCounts).filter((count: any) => count > 1).length;
   const uniqueCustomersCount = Object.keys(customerOrderCounts).length;
   const repeatCustomerRate = uniqueCustomersCount > 0 ? (repeatCustomersCount / uniqueCustomersCount) * 100 : 0;
 
@@ -122,7 +143,7 @@ async function getDashboardStats() {
     confirmedRevenue,
     pendingRevenue,
     totalPotentialRevenue,
-    paidOrdersCount: orders.filter(o => [...confirmedStatuses, 'Delivered'].includes(o.status) && o.paymentMethod === 'razorpay').length,
+    prepaidOrdersCount: orders.filter(o => o.paymentMethod === 'razorpay').length,
     codOrdersCount: orders.filter(o => o.paymentMethod === 'cod').length,
     pendingOrdersCount: pendingOrders.length,
     totalCustomers: users,
@@ -142,7 +163,7 @@ export default async function DashboardPage() {
   const stats = await getDashboardStats();
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto px-4 sm:px-6">
+    <div className="space-y-6 max-w-8xl mx-auto px-4 sm:px-6">
       {/* Header */}
       <div>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -201,7 +222,7 @@ export default async function DashboardPage() {
               <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Total Orders</span>
               <h3 className="text-2xl font-bold text-gray-900 mt-1">{stats.totalOrders}</h3>
               <p className="text-xs text-gray-600 mt-2 font-medium">
-                <span className="text-blue-600 font-bold">{stats.paidOrdersCount} Prepaid</span> • <span className="text-amber-600 font-bold">{stats.codOrdersCount} COD</span>
+                <span className="text-blue-600 font-bold">{stats.prepaidOrdersCount} Prepaid</span> • <span className="text-amber-600 font-bold">{stats.codOrdersCount} COD</span>
               </p>
             </div>
             <div className="p-2.5 bg-blue-50 text-blue-600 rounded-lg">

@@ -8,34 +8,92 @@ async function getAnalyticsData() {
 
   // Get all data
   const [orders, users, reviews] = await Promise.all([
-    Order.find().select('total status createdAt items').lean(),
+    Order.find().select('total status createdAt items paymentMethod').lean(),
     User.find({ isAdmin: false }).select('createdAt').lean(),
     Review.find().select('rating sentimentLabel status createdAt productId').lean(),
   ]);
 
-  // Calculate revenue metrics
-  const confirmedOrders = orders.filter(o => ['Paid', 'confirmed', 'delivered', 'shipped'].includes(o.status));
+  // ── Normalize Status First ──
+  const normalizeStatus = (status: string) => {
+    if (!status) return 'Pending';
+    const s = status.toLowerCase();
+    if (s === 'delivered') return 'Delivered';
+    if (s === 'cancelled') return 'Cancelled';
+    if (s === 'shipped') return 'Shipped';
+    if (s === 'paid') return 'Paid';
+    if (s === 'pending') return 'Pending';
+    if (s === 'packed') return 'Packed';
+    if (s === 'failed') return 'Failed';
+    if (s === 'abandoned') return 'Abandoned';
+    if (s === 'rto') return 'RTO';
+    if (s === 'returned') return 'Returned';
+    if (s === 'refunded') return 'Refunded';
+    if (s === 'out for delivery') return 'Out for Delivery';
+    return status.charAt(0).toUpperCase() + status.slice(1);
+  };
+
+  const normalizedOrders = orders.map((o: any) => ({ ...o, status: normalizeStatus(o.status) }));
+  
+  // Align valid statuses with the main Dashboard's definition of "valid sales" (includes Pending for COD orders)
+  const confirmedStatuses = ['Pending', 'Paid', 'Packed', 'Shipped', 'Out for Delivery', 'Delivered'];
+  const confirmedOrders = normalizedOrders.filter(o => confirmedStatuses.includes(o.status));
+  
+  // Calculate raw totals
   const totalRevenue = confirmedOrders.reduce((sum, o) => sum + (o.total || 0), 0);
-  const pendingRevenue = orders.filter(o => ['Pending', 'pending'].includes(o.status)).reduce((sum, o) => sum + (o.total || 0), 0);
+  const pendingRevenue = normalizedOrders.filter(o => o.status === 'Pending').reduce((sum, o) => sum + (o.total || 0), 0);
   const avgOrderValue = confirmedOrders.length > 0 ? totalRevenue / confirmedOrders.length : 0;
 
-  // Get today's data
+  // ── Time Boundaries ──
   const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const todayOrders = confirmedOrders.filter(o => new Date(o.createdAt) >= today);
-  const todayRevenue = todayOrders.reduce((sum, o) => sum + (o.total || 0), 0);
+  today.setHours(23, 59, 59, 999);
 
-  // Get this month's data
+  const thirtyDaysAgo = new Date(today);
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  thirtyDaysAgo.setHours(0, 0, 0, 0);
+  
+  const sixtyDaysAgo = new Date(today);
+  sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+  sixtyDaysAgo.setHours(0, 0, 0, 0);
+
+  // ── Current 30 Days Stats ──
+  const current30DaysOrders = confirmedOrders.filter(o => new Date(o.createdAt) >= thirtyDaysAgo);
+  const current30DaysRevenue = current30DaysOrders.reduce((sum, o) => sum + (o.total || 0), 0);
+  const current30DaysUsers = users.filter(u => new Date(u.createdAt) >= thirtyDaysAgo);
+
+  // ── Previous 30 Days Stats ──
+  const prev30DaysOrders = confirmedOrders.filter(o => {
+    const d = new Date(o.createdAt);
+    return d >= sixtyDaysAgo && d < thirtyDaysAgo;
+  });
+  const prev30DaysRevenue = prev30DaysOrders.reduce((sum, o) => sum + (o.total || 0), 0);
+  const prev30DaysUsers = users.filter(u => {
+    const d = new Date(u.createdAt);
+    return d >= sixtyDaysAgo && d < thirtyDaysAgo;
+  });
+
+  const calculateTrend = (current: number, previous: number) => {
+    if (previous === 0) return current > 0 ? 100 : 0;
+    return Number((((current - previous) / previous) * 100).toFixed(1));
+  };
+
+  const trends = {
+    revenue: calculateTrend(current30DaysRevenue, prev30DaysRevenue),
+    orders: calculateTrend(current30DaysOrders.length, prev30DaysOrders.length),
+    customers: calculateTrend(current30DaysUsers.length, prev30DaysUsers.length)
+  };
+
+  // Get today's and month's data
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  const todayRevenue = confirmedOrders.filter(o => new Date(o.createdAt) >= startOfToday).reduce((sum, o) => sum + (o.total || 0), 0);
+
   const thisMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-  const monthOrders = confirmedOrders.filter(o => new Date(o.createdAt) >= thisMonth);
-  const monthRevenue = monthOrders.reduce((sum, o) => sum + (o.total || 0), 0);
+  const monthRevenue = confirmedOrders.filter(o => new Date(o.createdAt) >= thisMonth).reduce((sum, o) => sum + (o.total || 0), 0);
 
   // Revenue by day (last 30 days)
-  const last30Days = new Date(today);
-  last30Days.setDate(last30Days.getDate() - 30);
   const revenueByDay = [];
   for (let i = 29; i >= 0; i--) {
-    const date = new Date(today);
+    const date = new Date();
     date.setDate(date.getDate() - i);
     const dayStart = new Date(date);
     dayStart.setHours(0, 0, 0, 0);
@@ -55,42 +113,47 @@ async function getAnalyticsData() {
     });
   }
 
+  // Normalize product names to fix fragmented product IDs from testing
+  const normalizeProductName = (name: string) => {
+    if (!name) return 'Unknown Product';
+    const lowerName = name.toLowerCase();
+    if (lowerName.includes('seek rush')) return 'Seek Rush';
+    if (lowerName.includes('scarf') || lowerName.includes('charades') || lowerName.includes('chardaes')) return 'Scarf Dumb Charades';
+    return name;
+  };
+
   // Product sales count
-  const productSales: Record<string, { name: string; count: number }> = {};
+  const productSales: Record<string, { name: string; count: number, revenue: number }> = {};
+  
   confirmedOrders.forEach(order => {
     order.items?.forEach((item: any) => {
-      const productId = item.productId?.toString() || 'unknown';
-      if (!productSales[productId]) {
-        productSales[productId] = {
-          name: item.name || `Product #${productId}`,
-          count: 0
+      const normalizedName = normalizeProductName(item.name);
+      if (!productSales[normalizedName]) {
+        productSales[normalizedName] = {
+          name: normalizedName,
+          count: 0,
+          revenue: 0,
         };
       }
-      productSales[productId].count += (item.quantity || 1);
+      productSales[normalizedName].count += (item.quantity || 1);
+      productSales[normalizedName].revenue += ((item.price || 0) * (item.quantity || 1));
     });
   });
 
-  const topProducts = Object.entries(productSales)
-    .map(([id, data]) => {
-      return {
-        id,
-        name: data.name,
-        sales: data.count,
-        revenue: confirmedOrders
-          .filter(o => o.items?.some((i: any) => i.productId?.toString() === id))
-          .reduce((sum, o) => {
-            const item = o.items?.find((i: any) => i.productId?.toString() === id);
-            return sum + ((item as any)?.price || 0) * ((item as any)?.quantity || 0);
-          }, 0),
-      };
-    })
+  const topProducts = Object.values(productSales)
+    .map((data, index) => ({
+      id: index.toString(),
+      name: data.name,
+      sales: data.count,
+      revenue: data.revenue,
+    }))
     .sort((a, b) => b.sales - a.sales)
     .slice(0, 5);
 
   // Customer growth (last 30 days)
   const customerGrowth = [];
   for (let i = 29; i >= 0; i--) {
-    const date = new Date(today);
+    const date = new Date();
     date.setDate(date.getDate() - i);
     const dayStart = new Date(date);
     dayStart.setHours(0, 0, 0, 0);
@@ -123,18 +186,31 @@ async function getAnalyticsData() {
   // Pending reviews
   const pendingReviews = reviews.filter(r => r.status === 'pending').length;
 
+  // ── Operational Metrics ──
+  const abandonedOrders = normalizedOrders.filter(o => o.status === 'Abandoned').length;
+  const rtoOrdersCount = normalizedOrders.filter(o => o.status === 'RTO').length;
+  const totalCodOrders = normalizedOrders.filter(o => o.paymentMethod === 'cod').length;
+  
+  const abandonmentRate = normalizedOrders.length > 0 ? (abandonedOrders / normalizedOrders.length) * 100 : 0;
+  const rtoRate = totalCodOrders > 0 ? (rtoOrdersCount / totalCodOrders) * 100 : 0;
+
+
+
   return {
     totalRevenue,
     pendingRevenue,
     avgOrderValue,
     todayRevenue,
-    monthRevenue,
-    totalOrders: confirmedOrders.length,
-    pendingOrders: orders.filter(o => ['Pending', 'pending'].includes(o.status)).length,
-    totalCustomers: users.length,
+    monthRevenue: current30DaysRevenue,
+    totalOrders: current30DaysOrders.length,
+    pendingOrders: normalizedOrders.filter(o => o.status === 'Pending').length,
+    totalCustomers: current30DaysUsers.length,
     totalReviews: reviews.length,
     avgRating,
     pendingReviews,
+    trends,
+    abandonmentRate,
+    rtoRate,
     revenueByDay: JSON.parse(JSON.stringify(revenueByDay)),
     topProducts: JSON.parse(JSON.stringify(topProducts)),
     customerGrowth: JSON.parse(JSON.stringify(customerGrowth)),
@@ -147,46 +223,46 @@ export default async function AnalyticsPage() {
 
   const statCards = [
     {
-      title: "Today's Revenue",
-      value: formatPrice(data.todayRevenue),
-      icon: DollarSign,
-      color: 'bg-green-500',
-      textColor: 'text-green-600',
-    },
-    {
-      title: "This Month",
+      title: "30-Day Revenue",
       value: formatPrice(data.monthRevenue),
-      icon: TrendingUp,
-      color: 'bg-blue-500',
-      textColor: 'text-blue-600',
+      trend: data.trends.revenue,
+      icon: DollarSign,
+      color: 'from-blue-500 to-indigo-600',
     },
     {
-      title: "Total Customers",
-      value: data.totalCustomers,
-      icon: Users,
-      color: 'bg-purple-500',
-      textColor: 'text-purple-600',
-    },
-    {
-      title: "Total Orders",
+      title: "30-Day Orders",
       value: data.totalOrders,
+      trend: data.trends.orders,
       icon: ShoppingBag,
-      color: 'bg-orange-500',
-      textColor: 'text-orange-600',
+      color: 'from-emerald-400 to-teal-500',
+    },
+    {
+      title: "New Customers",
+      value: data.totalCustomers,
+      trend: data.trends.customers,
+      icon: Users,
+      color: 'from-purple-500 to-fuchsia-600',
     },
     {
       title: "Avg Order Value",
       value: formatPrice(data.avgOrderValue),
+      trend: null,
       icon: TrendingUp,
-      color: 'bg-pink-500',
-      textColor: 'text-pink-600',
+      color: 'from-orange-400 to-amber-500',
     },
     {
-      title: "Pending Reviews",
-      value: data.pendingReviews,
-      icon: MessageSquare,
-      color: 'bg-yellow-500',
-      textColor: 'text-yellow-600',
+      title: "Cart Abandonment",
+      value: `${data.abandonmentRate.toFixed(1)}%`,
+      trend: null,
+      icon: Package,
+      color: 'from-pink-500 to-rose-500',
+    },
+    {
+      title: "RTO Rate (COD)",
+      value: `${data.rtoRate.toFixed(1)}%`,
+      trend: null,
+      icon: TrendingDown,
+      color: 'from-red-500 to-rose-600',
     },
   ];
 
@@ -194,24 +270,43 @@ export default async function AnalyticsPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Analytics</h1>
-        <p className="text-gray-600 mt-1">Business insights and performance metrics</p>
+        <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Analytics Dashboard</h1>
+        <p className="text-gray-500 mt-1">Real-time business insights and operational metrics</p>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {/* Premium Glassmorphic Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {statCards.map((card) => {
           const Icon = card.icon;
+          const isPositive = card.trend !== null && card.trend > 0;
+          const isNegative = card.trend !== null && card.trend < 0;
+          
           return (
-            <div key={card.title} className="bg-white rounded-lg shadow p-6">
-              <div className="flex items-center justify-between">
+            <div 
+              key={card.title} 
+              className="relative overflow-hidden bg-white/80 backdrop-blur-xl border border-gray-100/50 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all duration-300 p-6 group"
+            >
+              {/* Subtle top gradient border */}
+              <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${card.color} opacity-70`} />
+              
+              <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-900">{card.title}</p>
-                  <p className="text-2xl font-bold text-gray-900 mt-2">
+                  <p className="text-sm font-medium text-gray-500">{card.title}</p>
+                  <p className="text-3xl font-bold text-gray-900 mt-2 tracking-tight">
                     {card.value}
                   </p>
+                  
+                  {card.trend !== null && (
+                    <div className="mt-3 flex items-center">
+                      <span className={`inline-flex items-center text-sm font-semibold ${isPositive ? 'text-emerald-600' : isNegative ? 'text-rose-600' : 'text-gray-500'}`}>
+                        {isPositive ? '▲' : isNegative ? '▼' : '−'} {Math.abs(card.trend)}%
+                      </span>
+                      <span className="text-xs text-gray-400 ml-2">vs previous 30 days</span>
+                    </div>
+                  )}
                 </div>
-                <div className={`${card.color} p-3 rounded-lg flex-shrink-0`}>
+                
+                <div className={`p-4 rounded-2xl bg-gradient-to-br ${card.color} shadow-inner flex-shrink-0 group-hover:scale-105 transition-transform duration-300`}>
                   <Icon className="w-6 h-6 text-white" />
                 </div>
               </div>
@@ -229,44 +324,6 @@ export default async function AnalyticsPage() {
         avgRating={data.avgRating}
       />
 
-      {/* Top Products Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">Top Selling Products</h2>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rank</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Product</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Sales</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Revenue</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {data.topProducts.map((product: any, index: number) => (
-                <tr key={product.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-600 font-semibold text-sm">
-                      {index + 1}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="text-sm font-medium text-gray-900">{product.name}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-semibold text-gray-900">{product.sales} units</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-bold text-gray-900">{formatPrice(product.revenue)}</div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
     </div>
   );
 }
