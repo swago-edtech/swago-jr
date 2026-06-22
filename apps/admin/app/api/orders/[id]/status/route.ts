@@ -63,11 +63,28 @@ export async function PATCH(
     const { id } = await params;
     const { status: rawStatus } = await request.json();
 
-    // Normalize to Title Case to match DB enum
-    const status = rawStatus?.charAt(0).toUpperCase() + rawStatus?.slice(1).toLowerCase();
+    const normalizeStatus = (s: string) => {
+      if (!s) return 'Pending';
+      const lower = s.toLowerCase();
+      if (lower === 'delivered') return 'Delivered';
+      if (lower === 'cancelled') return 'Cancelled';
+      if (lower === 'shipped') return 'Shipped';
+      if (lower === 'paid') return 'Paid';
+      if (lower === 'pending') return 'Pending';
+      if (lower === 'packed') return 'Packed';
+      if (lower === 'failed') return 'Failed';
+      if (lower === 'abandoned') return 'Abandoned';
+      if (lower === 'rto') return 'RTO';
+      if (lower === 'returned') return 'Returned';
+      if (lower === 'refunded') return 'Refunded';
+      if (lower === 'out for delivery') return 'Out for Delivery';
+      return s.charAt(0).toUpperCase() + s.slice(1);
+    };
+
+    const status = normalizeStatus(rawStatus);
 
     // Validate status — must match the Order schema enum exactly
-    const validStatuses = ['Pending', 'Paid', 'Shipped', 'Delivered', 'Cancelled', 'Failed', 'Abandoned'];
+    const validStatuses = ['Pending', 'Paid', 'Packed', 'Shipped', 'Out for Delivery', 'Delivered', 'Cancelled', 'Failed', 'Abandoned', 'RTO', 'Returned', 'Refunded'];
     if (!validStatuses.includes(status)) {
       return NextResponse.json(
         { error: 'Invalid status value' },

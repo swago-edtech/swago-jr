@@ -96,7 +96,15 @@ export default function AnalyticsCharts({
         <ResponsiveContainer width="100%" height={300}>
           <BarChart data={topProducts}>
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="name" tick={{ fontSize: 12 }} angle={-45} textAnchor="end" height={100} />
+            <XAxis 
+              dataKey="name" 
+              tick={{ fontSize: 12, fill: '#000000', fontWeight: 500 }} 
+              angle={0} 
+              textAnchor="middle" 
+              height={40} 
+              interval={0}
+              tickFormatter={(value) => value.length > 18 ? `${value.substring(0, 18)}...` : value}
+            />
             <YAxis tick={{ fontSize: 12 }} />
             <Tooltip 
               contentStyle={tooltipStyle.contentStyle}
@@ -107,6 +115,7 @@ export default function AnalyticsCharts({
           </BarChart>
         </ResponsiveContainer>
       </div>
+
 
       {/* Customer Growth Chart */}
       <div className="bg-white rounded-lg shadow p-6">
@@ -137,7 +146,7 @@ export default function AnalyticsCharts({
                 cx="50%"
                 cy="50%"
                 labelLine={false}
-                label={({ name, percent }) => `${name} ${((percent || 0) * 100).toFixed(0)}%`}
+                label={({ name, percent }) => percent > 0 ? `${name} ${((percent || 0) * 100).toFixed(0)}%` : ''}
                 outerRadius={80}
                 fill="#8884d8"
                 dataKey="value"
