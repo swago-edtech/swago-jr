@@ -23,10 +23,8 @@ export interface CouponAnalyticsData {
 export async function getCouponAnalytics(from: string, to: string): Promise<CouponAnalyticsData> {
   await connectDB();
 
-  const fromDate = new Date(from);
-  fromDate.setHours(0, 0, 0, 0);
-  const toDate = new Date(to);
-  toDate.setHours(23, 59, 59, 999);
+  const fromDate = new Date(`${from}T00:00:00+05:30`);
+  const toDate = new Date(`${to}T23:59:59.999+05:30`);
 
   // Get orders that have a coupon applied
   const orders = await Order.find({

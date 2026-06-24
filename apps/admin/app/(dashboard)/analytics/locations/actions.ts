@@ -28,10 +28,8 @@ export interface LocationAnalyticsData {
 export async function getLocationAnalytics(from: string, to: string): Promise<LocationAnalyticsData> {
   await connectDB();
 
-  const fromDate = new Date(from);
-  fromDate.setHours(0, 0, 0, 0);
-  const toDate = new Date(to);
-  toDate.setHours(23, 59, 59, 999);
+  const fromDate = new Date(`${from}T00:00:00+05:30`);
+  const toDate = new Date(`${to}T23:59:59.999+05:30`);
 
   const orders = await Order.find({
     createdAt: { $gte: fromDate, $lte: toDate },

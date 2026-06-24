@@ -35,10 +35,8 @@ export interface CustomerAnalyticsData {
 export async function getCustomerAnalytics(from: string, to: string): Promise<CustomerAnalyticsData> {
   await connectDB();
 
-  const fromDate = new Date(from);
-  fromDate.setHours(0, 0, 0, 0);
-  const toDate = new Date(to);
-  toDate.setHours(23, 59, 59, 999);
+  const fromDate = new Date(`${from}T00:00:00+05:30`);
+  const toDate = new Date(`${to}T23:59:59.999+05:30`);
 
   const confirmedStatuses = ['Paid', 'Packed', 'Shipped', 'Out for Delivery', 'Delivered'];
 
