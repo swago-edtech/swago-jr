@@ -26,9 +26,21 @@ async function getOrders(searchParams: { [key: string]: string | undefined }) {
     });
   }
 
-  if (searchParams.status) {
-    // Case-insensitive exact match
-    query.$and.push({ status: new RegExp(`^${searchParams.status}$`, 'i') });
+  const currentTab = searchParams.tab || 'current';
+
+  if (currentTab === 'abandoned') {
+    if (searchParams.status) {
+       query.$and.push({ status: new RegExp(`^${searchParams.status}$`, 'i') });
+    } else {
+       query.$and.push({ status: { $in: [new RegExp('^abandoned$', 'i'), new RegExp('^failed$', 'i')] } });
+    }
+  } else {
+    if (searchParams.status) {
+       query.$and.push({ status: new RegExp(`^${searchParams.status}$`, 'i') });
+    } else {
+       // Exclude abandoned and failed for current tab
+       query.$and.push({ status: { $nin: [new RegExp('^abandoned$', 'i'), new RegExp('^failed$', 'i')] } });
+    }
   }
 
   if (searchParams.payment) {
@@ -45,6 +57,83 @@ async function getOrders(searchParams: { [key: string]: string | undefined }) {
       });
     } else {
       query.$and.push({ paymentMethod: new RegExp(`^${searchParams.payment}$`, 'i') });
+    }
+  }
+
+  if (searchParams.source) {
+    if (searchParams.source === 'express') {
+      query.$and.push({ createdVia: 'express' });
+    } else if (searchParams.source === 'standard') {
+      query.$and.push({ createdVia: { $in: ['frontend', 'webhook'] } });
+    } else {
+      const sourceRegex = new RegExp(searchParams.source, 'i');
+      query.$and.push({
+        $or: [
+          { utm_source: sourceRegex },
+          { referralSource: sourceRegex }
+        ]
+      });
+    }
+  }
+
+  if (searchParams.dateRange) {
+    const now = new Date();
+    let startDateObj = new Date();
+    let endDateObj = new Date();
+    
+    // Set to end of today for the end boundary
+    endDateObj.setHours(23, 59, 59, 999);
+
+    let applyDateFilter = false;
+
+    switch(searchParams.dateRange) {
+      case 'today':
+        startDateObj.setHours(0, 0, 0, 0);
+        applyDateFilter = true;
+        break;
+      case 'yesterday':
+        startDateObj.setDate(startDateObj.getDate() - 1);
+        startDateObj.setHours(0, 0, 0, 0);
+        endDateObj.setDate(endDateObj.getDate() - 1);
+        endDateObj.setHours(23, 59, 59, 999);
+        applyDateFilter = true;
+        break;
+      case 'last7':
+        startDateObj.setDate(startDateObj.getDate() - 7);
+        startDateObj.setHours(0, 0, 0, 0);
+        applyDateFilter = true;
+        break;
+      case 'last30':
+        startDateObj.setDate(startDateObj.getDate() - 30);
+        startDateObj.setHours(0, 0, 0, 0);
+        applyDateFilter = true;
+        break;
+      case 'custom':
+        if (searchParams.startDate && searchParams.endDate) {
+          startDateObj = new Date(searchParams.startDate);
+          startDateObj.setHours(0, 0, 0, 0);
+          endDateObj = new Date(searchParams.endDate);
+          endDateObj.setHours(23, 59, 59, 999);
+          applyDateFilter = true;
+        } else if (searchParams.startDate) {
+          startDateObj = new Date(searchParams.startDate);
+          startDateObj.setHours(0, 0, 0, 0);
+          query.$and.push({ createdAt: { $gte: startDateObj } });
+        } else if (searchParams.endDate) {
+          endDateObj = new Date(searchParams.endDate);
+          endDateObj.setHours(23, 59, 59, 999);
+          query.$and.push({ createdAt: { $lte: endDateObj } });
+        }
+        break;
+    }
+
+    if (applyDateFilter) {
+      query.$and.push({
+        createdAt: {
+          $gte: startDateObj,
+          $lte: endDateObj
+        }
+      });
     }
   }
 
@@ -107,6 +196,31 @@ export default async function OrdersPage(props: { searchParams?: Promise<{ [key:
           <h1 className="text-3xl font-bold text-gray-900">Orders</h1>
           <p className="text-gray-600 mt-1">Manage all customer orders</p>
         </div>
+        
+        {/* Tabs */}
+        <div className="flex bg-gray-100 p-1 rounded-lg mx-4">
+          <Link 
+            href={{ pathname: '/orders', query: { ...searchParams, tab: 'current', page: '1', status: undefined } }} 
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              (searchParams.tab || 'current') === 'current' 
+                ? 'bg-white text-blue-600 shadow-sm' 
+                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Current Orders
+          </Link>
+          <Link 
+            href={{ pathname: '/orders', query: { ...searchParams, tab: 'abandoned', page: '1', status: undefined } }} 
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              searchParams.tab === 'abandoned' 
+                ? 'bg-white text-blue-600 shadow-sm' 
+                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Abandoned & Failed
+          </Link>
+        </div>
+
         <div className="text-sm text-gray-500">
           Total: {pagination.totalCount} orders
         </div>
@@ -120,34 +234,34 @@ export default async function OrdersPage(props: { searchParams?: Promise<{ [key:
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Order ID
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Customer
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Phone
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Items
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Amount
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Status
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Payment
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Source
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Date
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
@@ -162,7 +276,7 @@ export default async function OrdersPage(props: { searchParams?: Promise<{ [key:
               ) : (
                 orders.map((order: any) => (
                   <tr key={order._id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-3 py-2.5 whitespace-nowrap">
                       <div className="text-sm font-mono text-gray-900">
                         {order.orderId || `#${order._id.slice(-6)}`}
                       </div>
@@ -172,21 +286,38 @@ export default async function OrdersPage(props: { searchParams?: Promise<{ [key:
                         </div>
                       )}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-3 py-2.5">
                       <div className="text-sm font-medium text-gray-900">{order.name}</div>
                       {order.email && (
                         <div className="text-xs text-gray-500">{order.email}</div>
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-3 py-2.5 whitespace-nowrap">
                       <div className="text-sm text-gray-900">{order.phone}</div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
-                        {order.items?.length || 0} items
-                      </div>
+                    <td className="px-3 py-2.5">
+                      {order.items?.length > 0 ? (
+                        <div className="flex flex-col gap-1 max-w-[120px]">
+                          {order.items.map((item: any, idx: number) => {
+                            const name = item.name || 'Item';
+                            const shortName = name.length > 9 ? name.slice(0, 9) + '...' : name;
+                            return (
+                              <div key={idx} className="text-sm text-gray-700 flex gap-1.5 items-center">
+                                <span className="font-semibold whitespace-nowrap bg-gray-100 px-1.5 py-0.5 rounded text-[10px]">
+                                  {item.quantity}x
+                               </span>
+                                <span className="truncate" title={name}>
+                                  {shortName}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="text-sm text-gray-500">0 items</div>
+                      )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-3 py-2.5 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">
                         {order.total ? formatPrice(order.total) : '₹0.00'}
                       </div>
@@ -196,13 +327,13 @@ export default async function OrdersPage(props: { searchParams?: Promise<{ [key:
                         </div>
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-3 py-2.5 whitespace-nowrap">
                       <StatusBadge status={order.status} />
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-3 py-2.5 whitespace-nowrap">
                       <PaymentBadge method={order.paymentMethod} />
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-3 py-2.5 whitespace-nowrap">
                       <div className="flex flex-col gap-1 items-start">
                         {order.createdVia === 'express' ? (
                           <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-800 uppercase tracking-wider">
@@ -221,10 +352,10 @@ export default async function OrdersPage(props: { searchParams?: Promise<{ [key:
                       </div>
                     </td>
                     {/* ✨ UPDATED: Use client component for date */}
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-3 py-2.5 whitespace-nowrap">
                       <OrderDateCell date={order.createdAt} />
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    <td className="px-3 py-2.5 whitespace-nowrap text-sm">
                       <Link
                         href={`/orders/${order._id}`}
                         className="text-blue-600 hover:text-blue-800 font-medium"
