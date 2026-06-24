@@ -45,10 +45,8 @@ export async function getProductAnalytics(
 ): Promise<ProductAnalyticsData> {
   await connectDB();
 
-  const fromDate = new Date(from);
-  fromDate.setHours(0, 0, 0, 0);
-  const toDate = new Date(to);
-  toDate.setHours(23, 59, 59, 999);
+  const fromDate = new Date(`${from}T00:00:00+05:30`);
+  const toDate = new Date(`${to}T23:59:59.999+05:30`);
 
   // Build query
   const query: any = {
@@ -69,11 +67,27 @@ export async function getProductAnalytics(
 
   const confirmedStatuses = ['Paid', 'Packed', 'Shipped', 'Out for Delivery', 'Delivered'];
 
-  // Fetch product categories
-  const allProducts = await Product.find().select('_id category').lean();
-  const categoryMap: Record<string, string> = {};
+  // Fetch product categories and build mapping dictionaries
+  const allProducts = await Product.find().select('_id name ageCategory').lean();
+  
+  // Maps true MongoDB _id to its metadata
+  const productMetaMap: Record<string, { id: string; category: string; name: string }> = {};
+  // Maps product name to its true MongoDB _id (for healing legacy corrupted orders)
+  const nameToIdMap: Record<string, string> = {};
+
   for (const p of allProducts as any[]) {
-    categoryMap[String(p._id)] = p.category || 'Uncategorized';
+    const id = String(p._id);
+    const pName = (p.name || '').trim();
+    
+    productMetaMap[id] = {
+      id,
+      category: p.ageCategory || 'Uncategorized',
+      name: pName
+    };
+
+    if (pName) {
+      nameToIdMap[pName] = id;
+    }
   }
 
   // ── Aggregate by product ──
@@ -93,15 +107,30 @@ export async function getProductAnalytics(
     const refundRatio = orderTotal > 0 ? orderRefund / orderTotal : 0;
 
     for (const item of order.items as any[]) {
-      const pid = item.productId?.toString() || 'unknown';
+      const rawPid = item.productId?.toString() || 'unknown';
+      const rawName = (item.name || `Unknown Product`).trim();
+      
+      // SMART GROUPING: Determine the true Product ID.
+      // 1. If rawPid exists in our meta map, it's a true ID (handles renamed products securely).
+      // 2. Otherwise, fall back to mapping by name (heals legacy corrupted orders with cart IDs).
+      // 3. If even that fails, use rawName as a fallback string.
+      let truePid = rawName;
+      if (productMetaMap[rawPid]) {
+        truePid = rawPid;
+      } else if (nameToIdMap[rawName]) {
+        truePid = nameToIdMap[rawName];
+      }
+
       const qty = item.quantity || 1;
       const itemRevenue = (item.price || 0) * qty;
       const itemRefund = itemRevenue * refundRatio;
 
-      if (!productMap[pid]) {
-        productMap[pid] = {
-          productId: pid,
-          name: item.name || `Product #${pid}`,
+      if (!productMap[truePid]) {
+        const meta = productMetaMap[truePid];
+        
+        productMap[truePid] = {
+          productId: truePid,
+          name: meta ? meta.name : rawName, // Always use latest DB name if available
           orders: 0,
           qtySold: 0,
           paidOrders: 0,
@@ -110,11 +139,11 @@ export async function getProductAnalytics(
           refunds: 0,
           netRevenue: 0,
           rtoCount: 0,
-          category: categoryMap[pid] || 'Uncategorized',
+          category: meta ? meta.category : 'Uncategorized',
         };
       }
 
-      const p = productMap[pid];
+      const p = productMap[truePid];
       p.orders++;
       p.qtySold += qty;
       

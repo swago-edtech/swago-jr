@@ -168,7 +168,7 @@ export async function POST(req: Request) {
     console.log('✅ Stock validation passed. Reserving stock...');
 
     for (const { product, quantity } of reservations) {
-      product.reservedStock = (product.reservedStock || 0) + quantity;
+      product.reservedStock = Math.max(0, product.reservedStock || 0) + quantity;
       await product.save();
       console.log(`🔒 Reserved ${quantity} units of ${product.name} (total reserved: ${product.reservedStock})`);
     }
@@ -242,7 +242,7 @@ export async function POST(req: Request) {
         finalPrice = 1;
       }
       return {
-        productId: item._id || item.id || 0,
+        productId: dbProduct?._id || item._id || item.id || 0,
         name: dbProduct?.name || item.name,
         price: finalPrice,
         quantity: item.quantity,

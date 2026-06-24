@@ -22,10 +22,8 @@ export interface MarketingAnalyticsData {
 export async function getMarketingAnalytics(from: string, to: string): Promise<MarketingAnalyticsData> {
   await connectDB();
 
-  const fromDate = new Date(from);
-  fromDate.setHours(0, 0, 0, 0);
-  const toDate = new Date(to);
-  toDate.setHours(23, 59, 59, 999);
+  const fromDate = new Date(`${from}T00:00:00+05:30`);
+  const toDate = new Date(`${to}T23:59:59.999+05:30`);
 
   // We only track confirmed orders for marketing revenue
   const confirmedStatuses = ['Paid', 'Packed', 'Shipped', 'Out for Delivery', 'Delivered'];

@@ -312,7 +312,7 @@ export async function POST(req: Request) {
     if (paymentMethod === "razorpay") {
       // Reserve stock (will be converted to sold on payment success)
       for (const { product, quantity } of reservations) {
-        product.reservedStock = (product.reservedStock || 0) + quantity;
+        product.reservedStock = Math.max(0, product.reservedStock || 0) + quantity;
         await product.save();
         console.log(`🔒 [Express] Reserved ${quantity} units of ${product.name}`);
       }

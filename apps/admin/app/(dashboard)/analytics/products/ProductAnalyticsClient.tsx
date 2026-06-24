@@ -6,7 +6,7 @@ import DateRangeFilter, { DateRange, getDefaultDateRange } from '@/components/Da
 import AnalyticsCard from '@/components/AnalyticsCard';
 import { getProductAnalytics, ProductAnalyticsData, ProductSalesRow } from './actions';
 import { exportToCSV } from '@/lib/exportCsv';
-import { Package, ShoppingBag, CreditCard, Truck, IndianRupee, TrendingUp, RotateCcw, Download } from 'lucide-react';
+import { Package, ShoppingBag, CreditCard, Truck, IndianRupee, TrendingUp, RotateCcw, Download, AlertTriangle, Layers, BarChart2, Award, ShieldAlert, XOctagon } from 'lucide-react';
 import ProductAnalyticsCharts from './ProductAnalyticsCharts';
 
 export default function ProductAnalyticsClient() {
@@ -90,93 +90,192 @@ export default function ProductAnalyticsClient() {
         </div>
       ) : data ? (
         <>
-          {/* KPI Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-3">
-            <AnalyticsCard title="Products" value={data.products.length} icon={Package} color="bg-indigo-500" />
-            <AnalyticsCard title="Total Orders" value={data.totals.totalOrders} icon={ShoppingBag} color="bg-blue-500" />
-            <AnalyticsCard title="Qty Sold" value={data.totals.totalQty} icon={TrendingUp} color="bg-emerald-500" />
-            <AnalyticsCard title="Paid Orders" value={data.totals.paidOrders} icon={CreditCard} color="bg-green-500" />
-            <AnalyticsCard title="COD Orders" value={data.totals.codOrders} icon={Truck} color="bg-amber-500" />
-            <AnalyticsCard title="Revenue" value={formatPrice(data.totals.totalRevenue)} icon={IndianRupee} color="bg-purple-500" textColor="text-purple-700" />
-            <AnalyticsCard title="Net Revenue" value={formatPrice(data.totals.netRevenue)} icon={TrendingUp} color="bg-teal-600" textColor="text-teal-700" />
+          {/* Product-Specific KPI Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-4 gap-4">
+            <AnalyticsCard 
+              title="Products Sold" 
+              value={data.products.length} 
+              subtitle="Unique items moved"
+              icon={Package} 
+              color="bg-indigo-500" 
+            />
+            <AnalyticsCard 
+              title="Total Units Sold" 
+              value={data.totals.totalQty} 
+              subtitle="Overall sales volume"
+              icon={BarChart2} 
+              color="bg-blue-500" 
+            />
+            <AnalyticsCard 
+              title="Avg Units / Order" 
+              value={data.totals.totalOrders > 0 ? (data.totals.totalQty / data.totals.totalOrders).toFixed(1) : '0'} 
+              subtitle="Product cart density"
+              icon={ShoppingBag} 
+              color="bg-emerald-500" 
+            />
+            <AnalyticsCard 
+              title="Global Refund Rate" 
+              value={`${data.totals.totalRevenue > 0 ? ((data.totals.totalRefunds / data.totals.totalRevenue) * 100).toFixed(1) : 0}%`} 
+              subtitle="Overall revenue loss"
+              icon={ShieldAlert} 
+              color="bg-orange-500" 
+            />
+            <AnalyticsCard 
+              title="Global RTO Rate" 
+              value={`${data.totals.totalOrders > 0 ? ((data.products.reduce((acc, p) => acc + p.rtoCount, 0) / data.totals.totalOrders) * 100).toFixed(1) : 0}%`} 
+              subtitle="Overall return to origin"
+              icon={XOctagon} 
+              color="bg-red-500" 
+            />
+            <AnalyticsCard 
+              title="High-Risk Products" 
+              value={data.products.filter((p: ProductSalesRow) => {
+                const rtoRate = p.orders > 0 ? (p.rtoCount / p.orders) * 100 : 0;
+                const refundRate = p.revenue > 0 ? (p.refunds / p.revenue) * 100 : 0;
+                return rtoRate > 20 || refundRate > 15;
+              }).length} 
+              subtitle=">15% Refund or >20% RTO"
+              icon={AlertTriangle} 
+              color="bg-rose-600" 
+              textColor="text-rose-600"
+            />
           </div>
 
           {/* Product Analytics Charts (Categories, Bestsellers, Alerts) */}
           <ProductAnalyticsCharts products={data.products} categoryData={data.categoryData} />
 
-          {/* Product Breakdown Table */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-100">
-              <h2 className="text-base font-semibold text-gray-900">
-                Product-wise Sales
-                <span className="text-gray-400 font-normal text-sm ml-2">({data.products.length} products)</span>
-              </h2>
+          {/* Unified Product Metrics Heatmap */}
+          <div className="pt-8">
+            <div className="mb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+              <div>
+                <h2 className="text-[18px] font-bold text-[#0f172a]">Product Performance Heatmap</h2>
+                <p className="text-[13px] font-medium text-[#64748b] mt-1">Unified graphical matrix. Color intensity represents metric strength. Red indicates high risk (RTO/Refunds).</p>
+              </div>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    {['#', 'Product', 'Orders', 'Qty Sold', 'Paid', 'COD', 'Revenue', 'Refunds', 'Net Revenue'].map((h) => (
-                      <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {data.products.length === 0 ? (
-                    <tr>
-                      <td colSpan={9} className="px-6 py-8 text-center text-gray-400 text-sm">
-                        No product sales in selected period
-                      </td>
-                    </tr>
-                  ) : (
-                    data.products.map((p: ProductSalesRow, index: number) => (
-                      <tr key={p.productId} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          <div className="flex items-center justify-center w-7 h-7 rounded-full bg-indigo-50 text-indigo-600 font-semibold text-xs">
-                            {index + 1}
+
+            <div className="bg-[#ffffff]/80 shadow-sm backdrop-blur-xl rounded-2xl border border-[#e2e8f0]/80 overflow-hidden">
+              <div className="overflow-x-auto p-4 sm:p-6">
+                <div className="min-w-[800px]">
+                  {/* Header Row */}
+                  <div className="grid grid-cols-12 gap-2 mb-4 px-2 text-[10px] font-black uppercase tracking-wider text-[#94a3b8]">
+                    <div className="col-span-1 text-center">#</div>
+                    <div className="col-span-5">Product Details</div>
+                    <div className="col-span-2 text-center">Volume</div>
+                    <div className="col-span-2 text-center">Net Revenue</div>
+                    <div className="col-span-1 text-center">RTO Rate</div>
+                    <div className="col-span-1 text-center">Refund Rate</div>
+                  </div>
+
+                  {/* Data Rows */}
+                  <div className="flex flex-col gap-1.5">
+                    {(() => {
+                      if (data.products.length === 0) return (
+                        <div className="py-12 text-center text-[13px] font-bold text-[#94a3b8]">No product data available</div>
+                      );
+                      const maxQty = Math.max(...data.products.map((p: ProductSalesRow) => p.qtySold), 1);
+                      const maxRev = Math.max(...data.products.map((p: ProductSalesRow) => p.netRevenue), 1);
+                      
+                      const getVolumeColor = (qty: number, max: number) => {
+                        if (qty === 0) return 'bg-slate-50 text-slate-400';
+                        const pct = qty / max;
+                        if (pct > 0.8) return 'bg-indigo-600 text-white';
+                        if (pct > 0.5) return 'bg-indigo-400 text-white';
+                        if (pct > 0.2) return 'bg-indigo-200 text-indigo-900';
+                        return 'bg-indigo-50 text-indigo-700';
+                      };
+
+                      const getRevenueColor = (rev: number, max: number) => {
+                        if (rev <= 0) return 'bg-slate-50 text-slate-400';
+                        const pct = rev / max;
+                        if (pct > 0.8) return 'bg-emerald-500 text-white';
+                        if (pct > 0.5) return 'bg-emerald-400 text-white';
+                        if (pct > 0.2) return 'bg-emerald-200 text-emerald-900';
+                        return 'bg-emerald-50 text-emerald-700';
+                      };
+
+                      const getRiskColor = (rate: number) => {
+                        if (rate === 0) return 'bg-slate-50 text-slate-400';
+                        if (rate >= 20) return 'bg-rose-600 text-white';
+                        if (rate >= 10) return 'bg-rose-400 text-white';
+                        if (rate >= 5) return 'bg-amber-200 text-amber-900';
+                        return 'bg-slate-50 text-slate-500';
+                      };
+
+                      return data.products.map((p: ProductSalesRow, index: number) => {
+                        const rtoRate = p.orders > 0 ? (p.rtoCount / p.orders) * 100 : 0;
+                        const refundRate = p.revenue > 0 ? (p.refunds / p.revenue) * 100 : 0;
+
+                        return (
+                          <div key={p.productId} className="grid grid-cols-12 gap-2 items-center px-2 py-1.5 rounded-xl hover:bg-[#f8fafc] transition-colors group border border-transparent hover:border-[#e2e8f0]/50">
+                            <div className="col-span-1 text-center text-[12px] font-bold text-[#94a3b8]">{index + 1}</div>
+                            <div className="col-span-5 flex flex-col justify-center min-w-0 pr-4">
+                              <span className="text-[13px] font-black text-[#0f172a] truncate" title={p.name}>{p.name}</span>
+                              <span className="text-[10px] font-bold text-[#64748b] truncate">{p.category}</span>
+                            </div>
+                            
+                            {/* Heatmap Cells */}
+                            <div className="col-span-2 p-1">
+                              <div className={`w-full h-11 rounded-xl flex flex-col items-center justify-center transition-all ${getVolumeColor(p.qtySold, maxQty)}`}>
+                                <span className="text-[14px] font-black leading-none">{p.qtySold}</span>
+                                {p.qtySold > 0 && <span className="text-[8px] font-black opacity-80 mt-0.5 uppercase tracking-widest">Units</span>}
+                              </div>
+                            </div>
+                            
+                            <div className="col-span-2 p-1">
+                              <div className={`w-full h-11 rounded-xl flex flex-col items-center justify-center transition-all ${getRevenueColor(p.netRevenue, maxRev)}`}>
+                                <span className="text-[14px] font-black leading-none">{formatPrice(p.netRevenue)}</span>
+                              </div>
+                            </div>
+                            
+                            <div className="col-span-1 p-1">
+                              <div className={`w-full h-11 rounded-xl flex flex-col items-center justify-center transition-all ${getRiskColor(rtoRate)}`}>
+                                <span className="text-[13px] font-black leading-none">{rtoRate > 0 ? `${rtoRate.toFixed(1)}%` : '-'}</span>
+                              </div>
+                            </div>
+                            
+                            <div className="col-span-1 p-1">
+                              <div className={`w-full h-11 rounded-xl flex flex-col items-center justify-center transition-all ${getRiskColor(refundRate)}`}>
+                                <span className="text-[13px] font-black leading-none">{refundRate > 0 ? `${refundRate.toFixed(1)}%` : '-'}</span>
+                              </div>
+                            </div>
                           </div>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="text-sm font-medium text-gray-900 max-w-[200px] truncate" title={p.name}>
-                            {p.name}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-gray-900">{p.orders}</td>
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          <span className="text-sm font-bold text-indigo-600">{p.qtySold}</span>
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-blue-600">{p.paidOrders}</td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-amber-600">{p.codOrders}</td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">{formatPrice(p.revenue)}</td>
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          {p.refunds > 0 ? (
-                            <span className="text-sm text-red-500">−{formatPrice(p.refunds)}</span>
-                          ) : (
-                            <span className="text-sm text-gray-300">₹0</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm font-bold text-teal-700">{formatPrice(p.netRevenue)}</td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-                {data.products.length > 0 && (
-                  <tfoot className="bg-gray-50 border-t-2 border-gray-200">
-                    <tr className="font-semibold">
-                      <td className="px-4 py-3 text-sm text-gray-900" colSpan={2}>Total</td>
-                      <td className="px-4 py-3 text-sm text-gray-900">{data.totals.totalOrders}</td>
-                      <td className="px-4 py-3 text-sm text-indigo-700">{data.totals.totalQty}</td>
-                      <td className="px-4 py-3 text-sm text-blue-700">{data.totals.paidOrders}</td>
-                      <td className="px-4 py-3 text-sm text-amber-700">{data.totals.codOrders}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900">{formatPrice(data.totals.totalRevenue)}</td>
-                      <td className="px-4 py-3 text-sm text-red-600">−{formatPrice(data.totals.totalRefunds)}</td>
-                      <td className="px-4 py-3 text-sm text-teal-700">{formatPrice(data.totals.netRevenue)}</td>
-                    </tr>
-                  </tfoot>
-                )}
-              </table>
+                        );
+                      });
+                    })()}
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Legend */}
+            <div className="mt-4 bg-[#ffffff]/80 shadow-sm backdrop-blur-xl rounded-2xl border border-[#e2e8f0]/80 p-4 flex flex-wrap gap-x-8 gap-y-3 justify-center text-[11px] font-bold">
+              <div className="flex items-center gap-2">
+                <span className="text-[#64748b] uppercase tracking-wider text-[9px]">Volume:</span>
+                <div className="flex items-center gap-0.5">
+                  <div className="w-5 h-5 rounded flex items-center justify-center text-[8px] bg-indigo-50 text-indigo-400">Low</div>
+                  <div className="w-5 h-5 rounded bg-indigo-200"></div>
+                  <div className="w-5 h-5 rounded bg-indigo-400"></div>
+                  <div className="w-5 h-5 rounded flex items-center justify-center text-[8px] bg-indigo-600 text-white">High</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[#64748b] uppercase tracking-wider text-[9px]">Revenue:</span>
+                <div className="flex items-center gap-0.5">
+                  <div className="w-5 h-5 rounded flex items-center justify-center text-[8px] bg-emerald-50 text-emerald-400">Low</div>
+                  <div className="w-5 h-5 rounded bg-emerald-200"></div>
+                  <div className="w-5 h-5 rounded bg-emerald-400"></div>
+                  <div className="w-5 h-5 rounded flex items-center justify-center text-[8px] bg-emerald-500 text-white">High</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[#64748b] uppercase tracking-wider text-[9px]">Risk (RTO/Refund):</span>
+                <div className="flex items-center gap-0.5">
+                  <div className="w-8 h-5 rounded flex items-center justify-center text-[8px] bg-slate-50 text-slate-400">0%</div>
+                  <div className="w-8 h-5 rounded flex items-center justify-center text-[8px] bg-amber-200 text-amber-900">&gt;5%</div>
+                  <div className="w-8 h-5 rounded flex items-center justify-center text-[8px] bg-rose-400 text-white">&gt;10%</div>
+                  <div className="w-8 h-5 rounded flex items-center justify-center text-[8px] bg-rose-600 text-white">&gt;20%</div>
+                </div>
+              </div>
             </div>
           </div>
         </>

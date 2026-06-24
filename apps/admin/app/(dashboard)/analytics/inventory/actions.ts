@@ -36,9 +36,15 @@ export async function getInventoryAnalytics(): Promise<InventoryAnalyticsData> {
     .select('_id name category price stock reservedStock lowStockThreshold')
     .lean();
 
-  const now = new Date();
-  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  // Get current date in IST
+  const formatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' });
+  const parts = formatter.formatToParts(new Date());
+  const y = parts.find(p => p.type === 'year')?.value;
+  const m = parts.find(p => p.type === 'month')?.value;
+  const d = parts.find(p => p.type === 'day')?.value;
+
+  const startOfDay = new Date(`${y}-${m}-${d}T00:00:00+05:30`);
+  const startOfMonth = new Date(`${y}-${m}-01T00:00:00+05:30`);
 
   const confirmedStatuses = ['Paid', 'Packed', 'Shipped', 'Out for Delivery', 'Delivered'];
 
