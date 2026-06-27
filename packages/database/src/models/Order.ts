@@ -102,7 +102,9 @@ const OrderSchema = new mongoose.Schema(
     codCollected: { type: Boolean, default: false },
     codCollectedAt: { type: Date },
     // ✅ NEW: GST Tracking
-    taxCollected: { type: Number, default: 0 }
+    taxCollected: { type: Number, default: 0 },
+    // ✅ NEW: Invoice Tracking
+    invoiceUrl: { type: String, required: false }
   },
   { timestamps: true }
 );

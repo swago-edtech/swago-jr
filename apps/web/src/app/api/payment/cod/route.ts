@@ -9,6 +9,7 @@ import { sendOrderConfirmationEmail } from "@/lib/msg91-email";
 import { cleanupExpiredOrders } from "@/lib/cleanupExpiredOrders";
 import { invalidateProductCache } from "@/lib/productCache";
 import { validateCoupon } from "@/lib/coupon";
+import { generateAndUploadInvoice } from "@/lib/invoice-service";
 
 // ✅ Type definitions
 interface ProductDocument {
@@ -165,6 +166,9 @@ export async function POST(req: Request) {
         for (const { product, quantity } of reservations) {
             product.stock = Math.max(0, product.stock - quantity);
             product.totalSold = (product.totalSold || 0) + quantity;
+            if (product.reservedStock && product.reservedStock < 0) {
+                product.reservedStock = 0;
+            }
             await product.save();
 
             try {
@@ -379,6 +383,11 @@ export async function POST(req: Request) {
         } catch (emailError) {
             console.error('Email failed:', emailError);
         }
+
+        // ✅ Generate Invoice in background
+        generateAndUploadInvoice(newOrder).catch(err => {
+            console.error('Invoice generation failed:', err);
+        });
 
         return NextResponse.json({
             success: true,

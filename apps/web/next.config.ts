@@ -12,7 +12,7 @@ const nextConfig: NextConfig = {
   outputFileTracingRoot: path.join(__dirname, '../..'),
 
   // Server-side packages
-  serverExternalPackages: ['mongoose'],
+  serverExternalPackages: ['mongoose', 'pdfkit'],
 
   // ✅ Image configuration for external domains
   images: {
