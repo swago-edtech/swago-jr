@@ -31,6 +31,7 @@ type Order = {
   email?: string;
   phone?: string;
   paymentMethod?: 'razorpay' | 'cod';  // ✅ Payment method
+  invoiceUrl?: string; // ✅ Invoice link
 };
 
 // ✅ Payment window expiry time in minutes
@@ -525,12 +526,30 @@ function OrderCard({
         ))}
       </ul>
 
-      {/* Order Total */}
-      <div className="mt-4 pt-4 border-t flex justify-between items-center">
-        <span className="font-semibold">Order Total:</span>
-        <span className="text-xl font-bold">
-          ₹{(order.total || order.items.reduce((total, item) => total + item.price * item.quantity, 0)).toFixed(2)}
-        </span>
+      {/* Order Total & Global Actions */}
+      <div className="mt-4 pt-4 border-t flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        {order.invoiceUrl ? (
+          <a
+            href={order.invoiceUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 text-sm bg-purple-50 text-purple-700 border border-purple-200 px-4 py-2 rounded-lg hover:bg-purple-100 font-medium transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Download Invoice
+          </a>
+        ) : (
+          <div className="w-4 h-4 hidden sm:block" />
+        )}
+        
+        <div className="flex items-center gap-2 self-end sm:self-auto">
+          <span className="font-semibold text-slate-600">Order Total:</span>
+          <span className="text-xl font-bold text-slate-900">
+            ₹{(order.total || order.items.reduce((total, item) => total + item.price * item.quantity, 0)).toFixed(2)}
+          </span>
+        </div>
       </div>
     </div>
   );

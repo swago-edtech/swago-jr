@@ -64,11 +64,12 @@ export async function cleanupExpiredOrders(): Promise<number> {
                 }
 
                 try {
-                    await Product.findByIdAndUpdate(
-                        productIdStr,
-                        { $inc: { reservedStock: -item.quantity } }
-                    );
-                    console.log(`Released ${item.quantity} reserved stock for product ${productIdStr}`);
+                    const prod = await Product.findById(productIdStr);
+                    if (prod) {
+                        prod.reservedStock = Math.max(0, (prod.reservedStock || 0) - item.quantity);
+                        await prod.save();
+                        console.log(`Released ${item.quantity} reserved stock for product ${productIdStr}`);
+                    }
                 } catch (err) {
                     console.error(`Failed to release stock for product ${productIdStr}:`, err);
                 }

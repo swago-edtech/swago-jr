@@ -2,6 +2,7 @@ import { connectDB, Order, User, Product, Coupon } from "@swago/database";
 import { sendOrderConfirmationEmail } from "./msg91-email";
 import { invalidateProductCache } from "./productCache";
 import { isValidObjectId } from "mongoose";
+import { generateAndUploadInvoice } from "./invoice-service";
 
 interface FinalizeOrderOptions {
   orderIdOrMongoId: string;
@@ -164,6 +165,11 @@ export async function finalizeOrder({ orderIdOrMongoId, razorpayPaymentId, sourc
   } catch (error) {
     console.error(`⚠️ Failed to send confirmation email:`, error);
   }
+
+  // 9. Generate Invoice in background
+  generateAndUploadInvoice(order).catch(err => {
+    console.error(`⚠️ Failed to generate invoice in background:`, err);
+  });
 
   return { success: true, orderId: order.orderId };
 }

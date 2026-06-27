@@ -169,7 +169,7 @@ async function getOrders(searchParams: { [key: string]: string | undefined }) {
       .sort(sortConfig)
       .skip(skip)
       .limit(limit)
-      .select('orderId name phone email total status items createdAt razorpay_payment_id paymentMethod couponCode discount referralSource createdVia utm_source utm_medium utm_campaign')
+      .select('orderId name phone email total status items createdAt razorpay_payment_id paymentMethod couponCode discount referralSource createdVia utm_source utm_medium utm_campaign invoiceUrl')
       .lean(),
     Order.countDocuments(query)
   ]);
@@ -356,12 +356,27 @@ export default async function OrdersPage(props: { searchParams?: Promise<{ [key:
                       <OrderDateCell date={order.createdAt} />
                     </td>
                     <td className="px-3 py-2.5 whitespace-nowrap text-sm">
-                      <Link
-                        href={`/orders/${order._id}`}
-                        className="text-blue-600 hover:text-blue-800 font-medium"
-                      >
-                        View Details
-                      </Link>
+                      <div className="flex flex-col gap-2">
+                        <Link
+                          href={`/orders/${order._id}`}
+                          className="text-blue-600 hover:text-blue-800 font-medium"
+                        >
+                          View Details
+                        </Link>
+                        {order.invoiceUrl && (
+                          <a
+                            href={order.invoiceUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-purple-600 hover:text-purple-800 font-medium inline-flex items-center gap-1"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            Invoice
+                          </a>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))

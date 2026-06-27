@@ -7,15 +7,39 @@ import Pagination from '@/components/Pagination';
 async function getUsers(searchParams: { [key: string]: string | undefined }) {
   await connectDB();
   
-  const query: any = { isAdmin: false };
+  const query: any = { $and: [{ isAdmin: false }] };
 
   if (searchParams.q) {
     const searchRegex = new RegExp(searchParams.q, 'i');
-    query.$or = [
-      { name: searchRegex },
-      { phone: searchRegex },
-      { email: searchRegex },
-    ];
+    query.$and.push({
+      $or: [
+        { name: searchRegex },
+        { phone: searchRegex },
+        { email: searchRegex },
+      ]
+    });
+  }
+
+  const currentTab = searchParams.tab || 'normal';
+
+  if (currentTab === 'potential') {
+    // Potential clients: have items in cart but no orders
+    query.$and.push({ cart: { $exists: true, $type: 'array', $not: { $size: 0 } } });
+    query.$and.push({
+      $or: [
+        { orders: { $exists: false } },
+        { orders: { $size: 0 } }
+      ]
+    });
+  } else {
+    // Normal users: either have orders or empty cart
+    query.$and.push({
+      $or: [
+        { orders: { $exists: true, $type: 'array', $not: { $size: 0 } } },
+        { cart: { $exists: false } },
+        { cart: { $size: 0 } }
+      ]
+    });
   }
 
   let sortConfig: any = { createdAt: -1 };
@@ -86,6 +110,31 @@ export default async function UsersPage(props: { searchParams?: Promise<{ [key: 
           <h1 className="text-3xl font-bold text-gray-900">Users</h1>
           <p className="text-gray-600 mt-1">Manage customer accounts</p>
         </div>
+
+        {/* Tabs */}
+        <div className="flex bg-gray-100 p-1 rounded-lg mx-4">
+          <Link 
+            href={{ pathname: '/users', query: { ...searchParams, tab: 'normal', page: '1' } }} 
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              (searchParams.tab || 'normal') === 'normal' 
+                ? 'bg-white text-blue-600 shadow-sm' 
+                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Normal Users
+          </Link>
+          <Link 
+            href={{ pathname: '/users', query: { ...searchParams, tab: 'potential', page: '1' } }} 
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              searchParams.tab === 'potential' 
+                ? 'bg-white text-blue-600 shadow-sm' 
+                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Potential Clients
+          </Link>
+        </div>
+
         <div className="text-sm text-gray-500">
           Total: {pagination.totalCount} customers
         </div>
