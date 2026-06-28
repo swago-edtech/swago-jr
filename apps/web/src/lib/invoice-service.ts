@@ -140,7 +140,7 @@ export async function generateAndUploadInvoice(order: any): Promise<void> {
     doc.font('Helvetica-Bold').text('Email: ', 218, detailsY + 80);
     doc.font('Helvetica').text(order.email || 'N/A', 253, detailsY + 80, { width: 120 });
     
-    doc.font('Helvetica-Bold').text('Adi Anant Swati Goyal', 396, detailsY, { width: 158 });
+    doc.font('Helvetica-Bold').text('Brand: SWAGO', 396, detailsY, { width: 158 });
     doc.font('Helvetica').text('3, Basant Avenue Near BCM School dugri Ludhiana\nLUDHIANA, Pin: 141013, Punjab, India', 396, detailsY + 15, { width: 158 });
     doc.font('Helvetica-Bold').text('Tel: ', 396, detailsY + 65, { continued: true }).font('Helvetica').text('+91 62838 83397');
     doc.font('Helvetica-Bold').text('Email: ', 396, detailsY + 80);
