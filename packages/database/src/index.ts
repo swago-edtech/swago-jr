@@ -24,6 +24,7 @@ export { default as Masterclass } from './models/Masterclass';
 export { default as MasterclassBooking } from './models/MasterclassBooking';
 export { default as PopupConfig } from './models/PopupConfig';
 export { default as ExpressConfig } from './models/ExpressConfig';
+export { default as InvoiceCounter } from './models/InvoiceCounter';
 
 // Export database connection
 export { default as connectDB } from './connection';
