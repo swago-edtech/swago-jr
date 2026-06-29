@@ -1,5 +1,5 @@
 import PDFDocument from 'pdfkit';
-import { Order } from '@swago/database';
+import { Order, InvoiceCounter } from '@swago/database';
 import { PassThrough } from 'stream';
 import fs from 'fs';
 import path from 'path';
@@ -22,6 +22,25 @@ function numberToWords(num: number): string {
 export async function generateAndUploadInvoice(order: any): Promise<void> {
   console.log(`[InvoiceService] Generating invoice for order ${order.orderId || order._id}...`);
   try {
+    let invoiceNumber = `Swg-${String(Date.now()).slice(-7)}`;
+    try {
+      let counter = await InvoiceCounter.findOneAndUpdate(
+        { key: 'invoice' },
+        { $inc: { sequence: 1 } },
+        { new: true, upsert: true }
+      );
+      if (counter && counter.sequence < 2600183) {
+        counter = await InvoiceCounter.findOneAndUpdate(
+          { key: 'invoice' },
+          { $set: { sequence: 2600183 } },
+          { new: true }
+        );
+      }
+      invoiceNumber = `Swg-${counter.sequence}`;
+    } catch (err) {
+      console.error('[InvoiceService] Error generating sequence:', err);
+    }
+
     const doc = new PDFDocument({ margin: 30, size: 'A4' });
     const pass = new PassThrough();
     const chunks: Buffer[] = [];
@@ -96,8 +115,9 @@ export async function generateAndUploadInvoice(order: any): Promise<void> {
     
     // Details
     const infoY = yAfterLogo + 10;
-    const invNo = `SWG-${String(Date.now()).slice(-7)}`;
-    const invDate = new Date(order.createdAt || new Date()).toLocaleString('en-US', { month: 'long', year: 'numeric' });
+    const invNo = invoiceNumber;
+    const invDate = new Date().toLocaleString('en-US', { day: '2-digit', month: 'short', year: 'numeric' });
+    const orderDateFormatted = new Date(order.createdAt || new Date()).toLocaleString('en-US', { day: '2-digit', month: 'short', year: 'numeric' });
     const paymentStr = order.paymentMethod === 'cod' ? 'Cash on Delivery' : 'Prepaid (Razorpay)';
     
     doc.fontSize(9).font('Helvetica-Bold');
@@ -109,6 +129,7 @@ export async function generateAndUploadInvoice(order: any): Promise<void> {
     doc.font('Helvetica-Bold').text('Place of Supply', 300, infoY);
     doc.text(`City: `, 300, infoY + 15, { continued: true }).font('Helvetica').text(`${order.city || 'N/A'}, `, { continued: true }).font('Helvetica-Bold').text('State: ', { continued: true }).font('Helvetica').text(order.state || 'N/A');
     doc.font('Helvetica-Bold').text(`Pincode: `, 300, infoY + 30, { continued: true }).font('Helvetica').text(order.pincode || 'N/A');
+    doc.font('Helvetica-Bold').text(`Order Date: `, 300, infoY + 45, { continued: true }).font('Helvetica').text(orderDateFormatted);
     
     // Grid
     const gridY = infoY + 65;

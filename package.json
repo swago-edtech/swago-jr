@@ -8,14 +8,15 @@
     "pnpm": ">=8.0.0"
   },
   "scripts": {
-    "dev:web": "pnpm --filter web dev",
-    "dev:admin": "pnpm --filter admin dev",
+    "preinstall": "npx only-allow pnpm",
+    "dev:web": "TZ=Asia/Kolkata pnpm --filter web dev",
+    "dev:admin": "TZ=Asia/Kolkata pnpm --filter admin dev",
     "dev": "concurrently \"pnpm dev:web\" \"pnpm dev:admin\"",
     "build": "pnpm build:web && pnpm build:admin",
     "build:web": "pnpm --filter web build",
     "build:admin": "pnpm --filter admin build",
-    "start:web": "pnpm --filter web start",
-    "start:admin": "pnpm --filter admin start",
+    "start:web": "TZ=Asia/Kolkata pnpm --filter web start",
+    "start:admin": "TZ=Asia/Kolkata pnpm --filter admin start",
     "lint": "pnpm --recursive run lint",
     "clean": "pnpm --recursive run clean && rm -rf node_modules",
     "type-check": "pnpm --recursive run type-check"
