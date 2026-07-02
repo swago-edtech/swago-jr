@@ -156,7 +156,7 @@ export async function GET(request: NextRequest) {
     // ========================================
     let expressConfig: any = await ExpressConfig.findOne({ isSingleton: true }).lean();
     if (!expressConfig) {
-      expressConfig = { isTimerEnabled: false, timerText: "⚡ EXPRESS CHECKOUT — FREE SHIPPING ON ONLINE ORDERS", timerMinutes: 10, allowPublicCoupons: false };
+      expressConfig = { isTimerEnabled: false, timerText: "⚡ Express Checkout — Free Shipping on Online Orders", timerMinutes: 10, allowPublicCoupons: false };
     }
 
     // ========================================

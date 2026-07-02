@@ -10,7 +10,7 @@ export async function GET() {
       config = await ExpressConfig.create({
         isSingleton: true,
         isTimerEnabled: false,
-        timerText: "⚡ EXPRESS CHECKOUT — FREE SHIPPING ON ONLINE ORDERS",
+        timerText: "⚡ Express Checkout — Free Shipping on Online Orders",
         timerMinutes: 10,
         allowPublicCoupons: false,
       });

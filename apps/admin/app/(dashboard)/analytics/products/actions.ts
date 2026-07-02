@@ -188,3 +188,118 @@ export async function getProductAnalytics(
 
   return JSON.parse(JSON.stringify({ products, categoryData, totals }));
 }
+
+export async function getSingleProductAnalytics(
+  productId: string,
+  productName: string,
+  from: string,
+  to: string
+): Promise<any> {
+  await connectDB();
+
+  const fromDate = new Date(`${from}T00:00:00+05:30`);
+  const toDate = new Date(`${to}T23:59:59.999+05:30`);
+
+  const query: any = {
+    createdAt: { $gte: fromDate, $lte: toDate },
+  };
+
+  const orders = await Order.find(query)
+    .select('createdAt items total status paymentMethod refundAmount')
+    .lean();
+
+  const confirmedStatuses = ['Paid', 'Packed', 'Shipped', 'Out for Delivery', 'Delivered'];
+  
+  const result = {
+    totals: { qtySold: 0, revenue: 0, netRevenue: 0, rtoCount: 0, refunds: 0, totalOrders: 0 },
+    dailyMap: {} as Record<string, { qty: number; revenue: number }>,
+    breakdown: {
+      codOrders: 0,
+      paidOrders: 0,
+      status: {} as Record<string, number>
+    }
+  };
+
+  for (const order of orders) {
+    if (!order.items || !Array.isArray(order.items)) continue;
+
+    const orderTotal = order.total || 0;
+    const orderRefund = order.refundAmount || 0;
+    const refundRatio = orderTotal > 0 ? orderRefund / orderTotal : 0;
+    
+    let hasProduct = false;
+    let qtyInOrder = 0;
+    let revInOrder = 0;
+
+    for (const item of order.items as any[]) {
+      const rawPid = item.productId?.toString() || '';
+      const rawName = (item.name || '').trim();
+      
+      // Match by exact ID or exact Name (to heal legacy orders)
+      if (rawPid === productId || rawName === productName || rawName === productId) {
+        hasProduct = true;
+        const qty = item.quantity || 1;
+        const itemRevenue = (item.price || 0) * qty;
+        qtyInOrder += qty;
+        revInOrder += itemRevenue;
+      }
+    }
+
+    if (hasProduct) {
+      result.totals.totalOrders++;
+      
+      const dateObj = order.createdAt as Date;
+      let dateStr = '';
+      if (dateObj && typeof dateObj.toISOString === 'function') {
+        dateStr = dateObj.toISOString().split('T')[0];
+      } else if (dateObj && typeof dateObj === 'string') {
+        dateStr = (dateObj as string).split('T')[0];
+      } else {
+        continue;
+      }
+
+      if (!result.dailyMap[dateStr]) result.dailyMap[dateStr] = { qty: 0, revenue: 0 };
+      
+      if (order.status === 'RTO') {
+        result.totals.rtoCount++;
+      }
+
+      const isPaid = order.paymentMethod === 'razorpay';
+      const isCod = order.paymentMethod === 'cod';
+      if (isPaid) result.breakdown.paidOrders++;
+      if (isCod) result.breakdown.codOrders++;
+
+      result.breakdown.status[order.status] = (result.breakdown.status[order.status] || 0) + 1;
+
+      const isConfirmed = confirmedStatuses.includes(order.status);
+      if (isConfirmed) {
+        const itemRefund = revInOrder * refundRatio;
+        result.totals.revenue += revInOrder;
+        result.totals.refunds += itemRefund;
+        result.totals.netRevenue += (revInOrder - itemRefund);
+        
+        result.dailyMap[dateStr].qty += qtyInOrder;
+        result.dailyMap[dateStr].revenue += (revInOrder - itemRefund);
+        result.totals.qtySold += qtyInOrder;
+      }
+    }
+  }
+
+  const daily = [];
+  let curr = new Date(fromDate);
+  while (curr <= toDate) {
+    const dStr = curr.toISOString().split('T')[0];
+    daily.push({
+      date: dStr,
+      qty: result.dailyMap[dStr]?.qty || 0,
+      revenue: result.dailyMap[dStr]?.revenue || 0
+    });
+    curr.setDate(curr.getDate() + 1);
+  }
+
+  return JSON.parse(JSON.stringify({ 
+    totals: result.totals, 
+    daily, 
+    breakdown: result.breakdown 
+  }));
+}
