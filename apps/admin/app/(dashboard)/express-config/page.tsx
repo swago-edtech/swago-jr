@@ -8,7 +8,7 @@ export default function ExpressConfigPage() {
   const [message, setMessage] = useState({ type: "", text: "" });
   const [config, setConfig] = useState({
     isTimerEnabled: false,
-    timerText: "⚡ EXPRESS CHECKOUT — FREE SHIPPING ON ONLINE ORDERS",
+    timerText: "⚡ Express Checkout — Free Shipping on Online Orders",
     timerMinutes: 10,
     allowPublicCoupons: false,
   });
@@ -113,12 +113,12 @@ export default function ExpressConfigPage() {
                 value={config.timerText}
                 onChange={(e) => setConfig({ ...config, timerText: e.target.value })}
                 className="block w-full text-gray-900 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm h-10 px-3 border"
-                placeholder={config.isTimerEnabled ? "🔥 FLASH SALE ENDS IN" : "⚡ EXPRESS CHECKOUT — FREE SHIPPING ON ONLINE ORDERS"}
+                placeholder={config.isTimerEnabled ? "🔥 Flash Sale Ends In" : "⚡ Express Checkout — Free Shipping on Online Orders"}
               />
             </div>
             <p className="mt-2 text-xs text-gray-500">
               {config.isTimerEnabled 
-                ? "This text appears right before the countdown (e.g., '🔥 FLASH SALE ENDS IN 10:00')" 
+                ? "This text appears right before the countdown (e.g., '🔥 Flash Sale Ends In 10:00')" 
                 : "This text displays statically across the top bar."}
             </p>
           </div>

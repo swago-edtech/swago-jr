@@ -26,6 +26,9 @@ export interface CustomerAnalyticsData {
   newCustomers: number;
   repeatCustomers: number;
   repeatRate: number;
+  totalRevenue: number;
+  aov: number;
+  ltv: number;
   topCustomers: TopCustomer[];
   cityBreakdown: CityCustomerRow[];
   ageDistribution: { label: string; count: number }[];
@@ -125,6 +128,11 @@ export async function getCustomerAnalytics(from: string, to: string): Promise<Cu
   const newCustomers = allCustomers.filter(c => c.orderCount === 1).length;
   const repeatCustomers = allCustomers.filter(c => c.orderCount >= 2).length;
   const repeatRate = totalCustomers > 0 ? Math.round((repeatCustomers / totalCustomers) * 100) : 0;
+  
+  const totalRevenue = allCustomers.reduce((acc, c) => acc + c.totalSpend, 0);
+  const totalOrderCount = allCustomers.reduce((acc, c) => acc + c.orderCount, 0);
+  const aov = totalOrderCount > 0 ? Math.round(totalRevenue / totalOrderCount) : 0;
+  const ltv = totalCustomers > 0 ? Math.round(totalRevenue / totalCustomers) : 0;
 
   // Top 10 customers by spend
   const topCustomers: TopCustomer[] = allCustomers
@@ -176,6 +184,9 @@ export async function getCustomerAnalytics(from: string, to: string): Promise<Cu
     newCustomers,
     repeatCustomers,
     repeatRate,
+    totalRevenue,
+    aov,
+    ltv,
     topCustomers,
     cityBreakdown,
     ageDistribution,

@@ -6,8 +6,9 @@ import DateRangeFilter, { DateRange, getDefaultDateRange } from '@/components/Da
 import AnalyticsCard from '@/components/AnalyticsCard';
 import { getProductAnalytics, ProductAnalyticsData, ProductSalesRow } from './actions';
 import { exportToCSV } from '@/lib/exportCsv';
-import { Package, ShoppingBag, CreditCard, Truck, IndianRupee, TrendingUp, RotateCcw, Download, AlertTriangle, Layers, BarChart2, Award, ShieldAlert, XOctagon } from 'lucide-react';
+import { Package, ShoppingBag, CreditCard, Truck, IndianRupee, TrendingUp, RotateCcw, Download, AlertTriangle, Layers, BarChart2, Award, ShieldAlert, XOctagon, Search, ArrowUpDown } from 'lucide-react';
 import ProductAnalyticsCharts from './ProductAnalyticsCharts';
+import SingleProductInsight from './SingleProductInsight';
 
 export default function ProductAnalyticsClient() {
   const [dateRange, setDateRange] = useState<DateRange>(getDefaultDateRange());
@@ -15,6 +16,9 @@ export default function ProductAnalyticsClient() {
   const [loading, setLoading] = useState(true);
   const [paymentFilter, setPaymentFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<'qtySold' | 'netRevenue' | 'rtoRate' | 'refundRate'>('qtySold');
+  const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
 
   const fetchData = useCallback(async (range: DateRange, payment: string, status: string) => {
     setLoading(true);
@@ -144,12 +148,27 @@ export default function ProductAnalyticsClient() {
           {/* Product Analytics Charts (Categories, Bestsellers, Alerts) */}
           <ProductAnalyticsCharts products={data.products} categoryData={data.categoryData} />
 
+          {/* Individual Product Insight (Quick View / Deep Dive) */}
+          <SingleProductInsight productsList={data.products} />
+
           {/* Unified Product Metrics Heatmap */}
           <div className="pt-8">
             <div className="mb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
               <div>
                 <h2 className="text-[18px] font-bold text-[#0f172a]">Product Performance Heatmap</h2>
                 <p className="text-[13px] font-medium text-[#64748b] mt-1">Unified graphical matrix. Color intensity represents metric strength. Red indicates high risk (RTO/Refunds).</p>
+              </div>
+              <div className="relative w-full sm:w-72">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Search className="h-4 w-4 text-gray-400" />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Search products..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="block w-full pl-10 pr-3 py-2 border border-gray-200 text-black rounded-lg text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                />
               </div>
             </div>
 
@@ -160,20 +179,62 @@ export default function ProductAnalyticsClient() {
                   <div className="grid grid-cols-12 gap-2 mb-4 px-2 text-[10px] font-black uppercase tracking-wider text-[#94a3b8]">
                     <div className="col-span-1 text-center">#</div>
                     <div className="col-span-5">Product Details</div>
-                    <div className="col-span-2 text-center">Volume</div>
-                    <div className="col-span-2 text-center">Net Revenue</div>
-                    <div className="col-span-1 text-center">RTO Rate</div>
-                    <div className="col-span-1 text-center">Refund Rate</div>
+                    <div 
+                      className="col-span-2 text-center cursor-pointer hover:text-[#0f172a] transition-colors flex items-center justify-center gap-1"
+                      onClick={() => { setSortBy('qtySold'); setSortOrder(sortBy === 'qtySold' && sortOrder === 'desc' ? 'asc' : 'desc'); }}
+                    >
+                      Volume <ArrowUpDown className="w-3 h-3" />
+                    </div>
+                    <div 
+                      className="col-span-2 text-center cursor-pointer hover:text-[#0f172a] transition-colors flex items-center justify-center gap-1"
+                      onClick={() => { setSortBy('netRevenue'); setSortOrder(sortBy === 'netRevenue' && sortOrder === 'desc' ? 'asc' : 'desc'); }}
+                    >
+                      Net Revenue <ArrowUpDown className="w-3 h-3" />
+                    </div>
+                    <div 
+                      className="col-span-1 text-center cursor-pointer hover:text-[#0f172a] transition-colors flex items-center justify-center gap-1"
+                      onClick={() => { setSortBy('rtoRate'); setSortOrder(sortBy === 'rtoRate' && sortOrder === 'desc' ? 'asc' : 'desc'); }}
+                    >
+                      RTO Rate <ArrowUpDown className="w-3 h-3" />
+                    </div>
+                    <div 
+                      className="col-span-1 text-center cursor-pointer hover:text-[#0f172a] transition-colors flex items-center justify-center gap-1"
+                      onClick={() => { setSortBy('refundRate'); setSortOrder(sortBy === 'refundRate' && sortOrder === 'desc' ? 'asc' : 'desc'); }}
+                    >
+                      Refund Rate <ArrowUpDown className="w-3 h-3" />
+                    </div>
                   </div>
 
                   {/* Data Rows */}
                   <div className="flex flex-col gap-1.5">
                     {(() => {
-                      if (data.products.length === 0) return (
+                      const filteredProducts = data.products.filter((p: ProductSalesRow) => 
+                        p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                        p.category.toLowerCase().includes(searchQuery.toLowerCase())
+                      );
+
+                      const sortedProducts = [...filteredProducts].sort((a, b) => {
+                        const aRto = a.orders > 0 ? (a.rtoCount / a.orders) * 100 : 0;
+                        const bRto = b.orders > 0 ? (b.rtoCount / b.orders) * 100 : 0;
+                        const aRefund = a.revenue > 0 ? (a.refunds / a.revenue) * 100 : 0;
+                        const bRefund = b.revenue > 0 ? (b.refunds / b.revenue) * 100 : 0;
+
+                        let valA = 0;
+                        let valB = 0;
+                        
+                        if (sortBy === 'qtySold') { valA = a.qtySold; valB = b.qtySold; }
+                        else if (sortBy === 'netRevenue') { valA = a.netRevenue; valB = b.netRevenue; }
+                        else if (sortBy === 'rtoRate') { valA = aRto; valB = bRto; }
+                        else if (sortBy === 'refundRate') { valA = aRefund; valB = bRefund; }
+
+                        return sortOrder === 'desc' ? valB - valA : valA - valB;
+                      });
+
+                      if (sortedProducts.length === 0) return (
                         <div className="py-12 text-center text-[13px] font-bold text-[#94a3b8]">No product data available</div>
                       );
-                      const maxQty = Math.max(...data.products.map((p: ProductSalesRow) => p.qtySold), 1);
-                      const maxRev = Math.max(...data.products.map((p: ProductSalesRow) => p.netRevenue), 1);
+                      const maxQty = Math.max(...sortedProducts.map((p: ProductSalesRow) => p.qtySold), 1);
+                      const maxRev = Math.max(...sortedProducts.map((p: ProductSalesRow) => p.netRevenue), 1);
                       
                       const getVolumeColor = (qty: number, max: number) => {
                         if (qty === 0) return 'bg-slate-50 text-slate-400';
@@ -201,7 +262,7 @@ export default function ProductAnalyticsClient() {
                         return 'bg-slate-50 text-slate-500';
                       };
 
-                      return data.products.map((p: ProductSalesRow, index: number) => {
+                      return sortedProducts.map((p: ProductSalesRow, index: number) => {
                         const rtoRate = p.orders > 0 ? (p.rtoCount / p.orders) * 100 : 0;
                         const refundRate = p.revenue > 0 ? (p.refunds / p.revenue) * 100 : 0;
 

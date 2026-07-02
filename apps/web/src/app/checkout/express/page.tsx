@@ -479,7 +479,7 @@ function ExpressCheckoutContent() {
               <p className="text-[11px] font-bold text-[#ef4444]">{dynamicCoupon.error}</p>
             )}
           </div>
-          <button onClick={removeCoupon} className="text-[10px] font-bold text-[#ef4444] hover:text-[#dc2626] uppercase tracking-widest">Remove</button>
+          <button onClick={removeCoupon} className="text-[10px] font-bold text-[#ef4444] hover:text-[#dc2626] tracking-widest">Remove</button>
         </div>
       ) : (
         <div className="space-y-2">
@@ -511,16 +511,16 @@ function ExpressCheckoutContent() {
       <div className="bg-[hsl(var(--swago-purple))] py-2.5 text-center px-4">
         {expressConfig?.isTimerEnabled && timeLeft > 0 ? (
           <div className="flex items-center justify-center gap-2">
-            <span className="text-white text-[10px] sm:text-xs font-[1000] tracking-widest uppercase">
-              {expressConfig.timerText || "🔥 FLASH SALE ENDS IN"}
+            <span className="text-white text-[10px] sm:text-xs font-[1000] tracking-widest">
+              {expressConfig.timerText || "🔥 Flash Sale Ends In"}
             </span>
             <span className="bg-white text-[hsl(var(--swago-purple))] px-2 py-0.5 rounded text-xs font-black tabular-nums tracking-widest">
               {formatTime(timeLeft)}
             </span>
           </div>
         ) : (
-          <p className="text-white text-[10px] font-[1000] tracking-widest uppercase">
-            {expressConfig?.timerText || "⚡ EXPRESS CHECKOUT — FREE SHIPPING ON ONLINE ORDERS"}
+          <p className="text-white text-[10px] font-[1000] tracking-widest">
+            {expressConfig?.timerText || "⚡ Express Checkout — Free Shipping on Online Orders"}
           </p>
         )}
       </div>
@@ -535,7 +535,7 @@ function ExpressCheckoutContent() {
               {/* Mobile: Order Flow Top Sections */}
               <div className="md:hidden space-y-4 pb-2 border-b border-[#e2e8f0]/80">
                 <section>
-                  <h2 className="text-[11px] font-bold text-[#64748b] mb-3 uppercase tracking-tight">Your Order</h2>
+                  <h2 className="text-[11px] font-bold text-[#64748b] mb-3 tracking-tight">Your Order</h2>
                   <ExpressOrderSummary items={cart} subtotal={subtotal} discount={discount} couponCode={dynamicCoupon.valid ? couponData.code : null} shippingFee={shippingFee} total={finalTotal} onIncreaseQty={increaseQty} onDecreaseQty={decreaseQty} onRemoveItem={removeItem} paymentMethod={paymentMethod} hideBreakdown={true} />
                 </section>
 
@@ -546,14 +546,14 @@ function ExpressCheckoutContent() {
                 )}
 
                 <section>
-                  <h2 className="text-[11px] font-bold text-[#64748b] mb-2 uppercase tracking-tight">Promotions</h2>
+                  <h2 className="text-[11px] font-bold text-[#64748b] mb-2 tracking-tight">Promotions</h2>
                   {couponSection}
                 </section>
               </div>
 
               {/* Contact */}
               <section>
-                <h2 className="text-[11px] font-bold text-[#64748b] mb-3 uppercase tracking-tight">Contact Information</h2>
+                <h2 className="text-[11px] font-bold text-[#64748b] mb-3 tracking-tight">Contact Information</h2>
                 <div className="space-y-2">
                   <div>
                     <input value={phone} onChange={e => { setPhone(e.target.value); setErrors(p => p.filter(f => f !== "phone")); setMessage(""); }} placeholder="Phone number" autoComplete="tel" className={inputClass("phone")} />
@@ -568,7 +568,7 @@ function ExpressCheckoutContent() {
 
               {/* Delivery */}
               <section>
-                <h2 className="text-[11px] font-bold text-[#64748b] mb-3 uppercase tracking-tight">Delivery Address</h2>
+                <h2 className="text-[11px] font-bold text-[#64748b] mb-3 tracking-tight">Delivery Address</h2>
                 <div className="space-y-2">
                   <div className="grid grid-cols-2 gap-2">
                     <div>
@@ -608,8 +608,8 @@ function ExpressCheckoutContent() {
               {/* Payment Method */}
               <section className="space-y-3">
                 <div>
-                  <h2 className="text-[11px] font-bold text-[#64748b] uppercase tracking-tight">Payment Method</h2>
-                  <p className="text-[10px] text-[#94a3b8] mt-0.5 tracking-widest font-bold">ALL TRANSACTIONS ARE SECURE AND ENCRYPTED</p>
+                  <h2 className="text-[11px] font-bold text-[#64748b] tracking-tight">Payment Method</h2>
+                  <p className="text-[10px] text-[#94a3b8] mt-0.5 tracking-widest font-bold">All transactions are secure and encrypted</p>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <button
@@ -664,7 +664,7 @@ function ExpressCheckoutContent() {
               {/* Pay Button */}
               <button onClick={handlePayNow} disabled={processing}
                 className="w-full py-3.5 bg-[hsl(var(--swago-purple))] hover:opacity-90 text-white shadow-sm shadow-[hsl(var(--swago-purple))] hover:shadow-md hover:shadow-[hsl(var(--swago-purple))] text-[13px] font-bold rounded-xl transition flex justify-center items-center tracking-widest disabled:opacity-50">
-                {processing ? "PROCESSING..." : paymentMethod === "cod" ? `PLACE ORDER — ₹${finalTotal.toLocaleString()}` : `PAY ₹${finalTotal.toLocaleString()}`}
+                {processing ? "Processing..." : paymentMethod === "cod" ? `Place Order — ₹${finalTotal.toLocaleString()}` : `Pay ₹${finalTotal.toLocaleString()}`}
               </button>
 
               <footer className="pt-5 border-t border-[#e2e8f0]/80 flex flex-wrap justify-center gap-x-6 gap-y-2 text-[10px] text-[#94a3b8] tracking-widest font-bold">
@@ -707,7 +707,7 @@ function ExpressCheckoutContent() {
                     <div key={c.code} className="border border-dashed border-[#cbd5e1] rounded-xl p-4 bg-[#f8fafc]">
                       <div className="flex justify-between items-start mb-1">
                         <span className="font-black text-[hsl(var(--swago-purple))] text-[13px]">{c.code}</span>
-                        <button onClick={() => { setCouponCode(c.code); setShowCouponModal(false); setTimeout(applyCoupon, 100); }} className="text-[10px] uppercase font-bold tracking-widest text-[hsl(var(--swago-purple))] hover:underline">Apply</button>
+                        <button onClick={() => { setCouponCode(c.code); setShowCouponModal(false); setTimeout(applyCoupon, 100); }} className="text-[10px] font-bold tracking-widest text-[hsl(var(--swago-purple))] hover:underline">Apply</button>
                       </div>
                       <p className="text-[11px] text-[#64748b] font-medium">{c.description}</p>
                     </div>
@@ -754,7 +754,7 @@ function ExpressCheckoutContent() {
                   disabled={processing || otpValue.length !== 6}
                   className="w-full py-4 bg-[hsl(var(--swago-purple))] hover:opacity-90 text-white shadow-sm shadow-[hsl(var(--swago-purple))] hover:shadow-md hover:shadow-[hsl(var(--swago-purple))] text-sm font-bold rounded-xl transition flex justify-center items-center tracking-widest disabled:opacity-50"
                 >
-                  {processing ? "VERIFYING..." : "VERIFY & PLACE ORDER"}
+                  {processing ? "Verifying..." : "Verify & Place Order"}
                 </button>
               </div>
             </motion.div>
