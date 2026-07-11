@@ -49,7 +49,7 @@ export default function CartProgress({
   return (
     <div className="bg-white rounded-[1.5rem] px-4 pt-3 pb-4 border border-slate-100 shadow-sm mb-4">
       {/* 🚀 Header Message */}
-      <p className={`text-[11px] font-[1000] text-center mb-4 uppercase tracking-[0.15em] ${total >= shippingThreshold ? 'text-[#8a59ed]' : 'text-slate-600'}`}>
+      <p className={`text-[11px] font-[1000] text-center mb-4 tracking-[0.15em] ${total >= shippingThreshold ? 'text-[#8a59ed]' : 'text-slate-600'}`}>
         {total >= maxThreshold
           ? "🎉 All rewards unlocked!"
           : total >= shippingThreshold
@@ -123,14 +123,14 @@ export default function CartProgress({
       <div className="mt-10 text-center px-2">
         {nextReward ? (
           <div className="bg-slate-50 py-2.5 px-5 rounded-[1rem] border border-slate-100 inline-block shadow-inner">
-            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-none">
-              Add <span className="text-[#8a59ed] font-black text-xs mx-0.5 tabular-nums">₹{(nextReward.value - total).toFixed(0)}</span> more for <span className="text-slate-900 font-black">{nextReward.type === 'shipping' ? 'FREE COD Shipping' : nextReward.rewardType === 'coupon' ? `Unlock ${nextReward.label}` : `FREE ${nextReward.label}`}! {nextReward.type === 'shipping' ? '🚚' : nextReward.rewardType === 'coupon' ? '🎟️' : '🎁'}</span>
+            <p className="text-[10px] font-bold text-slate-500  tracking-widest leading-none">
+              Add <span className="text-[#8a59ed] font-black text-xs mx-0.5 tabular-nums">₹{(nextReward.value - total).toFixed(0)}</span> more for <span className="text-slate-900 font-black">{nextReward.type === 'shipping' ? 'Free COD Shipping' : nextReward.rewardType === 'coupon' ? `Unlock ${nextReward.label}` : `FREE ${nextReward.label}`}! {nextReward.type === 'shipping' ? '🚚' : nextReward.rewardType === 'coupon' ? '🎟️' : '🎁'}</span>
             </p>
           </div>
         ) : (
           <div className="bg-emerald-50 text-[#1E8B4F] py-2 px-4 rounded-xl border border-emerald-100 flex items-center justify-center gap-2 group transition-colors">
             <span className="text-xl group-hover:scale-110 transition-transform">🎉</span>
-            <p className="text-[10px] font-black uppercase tracking-[0.1em] mt-0.5">All possible rewards unlocked!</p>
+            <p className="text-[10px] font-black  tracking-[0.1em] mt-0.5">All possible rewards unlocked!</p>
           </div>
         )}
       </div>
