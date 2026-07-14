@@ -37,7 +37,8 @@ async function getDashboardStats() {
     return status.charAt(0).toUpperCase() + status.slice(1);
   };
 
-  const orders = rawOrders.map((o: any) => ({ ...o, status: normalizeStatus(o.status) }));
+  const orders = rawOrders.map((o: any) => ({ ...o, status: normalizeStatus(o.status) }))
+    .filter((o: any) => !['Abandoned', 'Failed'].includes(o.status));
 
   // ── Time Boundaries ──
   const today = new Date();
@@ -45,7 +46,7 @@ async function getDashboardStats() {
 
   // ── Status Groups ──
   const confirmedStatuses = ['Paid', 'Packed', 'Shipped', 'Out for Delivery', 'Delivered'];
-  const validSalesStatuses = ['Pending', 'Paid', 'Packed', 'Shipped', 'Out for Delivery', 'Delivered'];
+  const validSalesStatuses = ['Paid', 'Packed', 'Shipped', 'Out for Delivery', 'Delivered'];
   const deliveredOrders = orders.filter(o => o.status === 'Delivered');
   const cancelledOrders = orders.filter(o => o.status === 'Cancelled');
   const rtoOrders = orders.filter(o => o.status === 'RTO');

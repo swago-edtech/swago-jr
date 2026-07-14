@@ -48,9 +48,13 @@ export async function getProductAnalytics(
   const fromDate = new Date(`${from}T00:00:00+05:30`);
   const toDate = new Date(`${to}T23:59:59.999+05:30`);
 
+  // Exclude non-business orders (Abandoned/Failed/Pending) from all analytics
+  const EXCLUDED_STATUSES = ['Abandoned', 'Failed', 'Pending'];
+
   // Build query
   const query: any = {
     createdAt: { $gte: fromDate, $lte: toDate },
+    status: { $nin: EXCLUDED_STATUSES },
   };
 
   // Apply optional filters
@@ -200,8 +204,12 @@ export async function getSingleProductAnalytics(
   const fromDate = new Date(`${from}T00:00:00+05:30`);
   const toDate = new Date(`${to}T23:59:59.999+05:30`);
 
+  // Exclude non-business orders (Abandoned/Failed/Pending) from all analytics
+  const EXCLUDED_STATUSES = ['Abandoned', 'Failed', 'Pending'];
+
   const query: any = {
     createdAt: { $gte: fromDate, $lte: toDate },
+    status: { $nin: EXCLUDED_STATUSES },
   };
 
   const orders = await Order.find(query)

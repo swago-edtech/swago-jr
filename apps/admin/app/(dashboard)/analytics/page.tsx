@@ -33,14 +33,17 @@ async function getAnalyticsData() {
   };
 
   const normalizedOrders = orders.map((o: any) => ({ ...o, status: normalizeStatus(o.status) }));
+
+  // Filter out non-business orders for all revenue/order calculations
+  const validOrders = normalizedOrders.filter(o => !['Abandoned', 'Failed'].includes(o.status));
   
-  // Align valid statuses with the main Dashboard's definition of "valid sales" (includes Pending for COD orders)
-  const confirmedStatuses = ['Pending', 'Paid', 'Packed', 'Shipped', 'Out for Delivery', 'Delivered'];
-  const confirmedOrders = normalizedOrders.filter(o => confirmedStatuses.includes(o.status));
+  // Confirmed statuses for revenue calculations (Pending excluded — payment not yet completed)
+  const confirmedStatuses = ['Paid', 'Packed', 'Shipped', 'Out for Delivery', 'Delivered'];
+  const confirmedOrders = validOrders.filter(o => confirmedStatuses.includes(o.status));
   
   // Calculate raw totals
   const totalRevenue = confirmedOrders.reduce((sum, o) => sum + (o.total || 0), 0);
-  const pendingRevenue = normalizedOrders.filter(o => o.status === 'Pending').reduce((sum, o) => sum + (o.total || 0), 0);
+  const pendingRevenue = validOrders.filter(o => o.status === 'Pending').reduce((sum, o) => sum + (o.total || 0), 0);
   const avgOrderValue = confirmedOrders.length > 0 ? totalRevenue / confirmedOrders.length : 0;
 
   // ── Time Boundaries ──
@@ -187,9 +190,10 @@ async function getAnalyticsData() {
   const pendingReviews = reviews.filter(r => r.status === 'pending').length;
 
   // ── Operational Metrics ──
+  // Use normalizedOrders (full set) for abandonment rate — it needs total orders as denominator
   const abandonedOrders = normalizedOrders.filter(o => o.status === 'Abandoned').length;
-  const rtoOrdersCount = normalizedOrders.filter(o => o.status === 'RTO').length;
-  const totalCodOrders = normalizedOrders.filter(o => o.paymentMethod === 'cod').length;
+  const rtoOrdersCount = validOrders.filter(o => o.status === 'RTO').length;
+  const totalCodOrders = validOrders.filter(o => o.paymentMethod === 'cod').length;
   
   const abandonmentRate = normalizedOrders.length > 0 ? (abandonedOrders / normalizedOrders.length) * 100 : 0;
   const rtoRate = totalCodOrders > 0 ? (rtoOrdersCount / totalCodOrders) * 100 : 0;
@@ -203,7 +207,7 @@ async function getAnalyticsData() {
     todayRevenue,
     monthRevenue: current30DaysRevenue,
     totalOrders: current30DaysOrders.length,
-    pendingOrders: normalizedOrders.filter(o => o.status === 'Pending').length,
+    pendingOrders: validOrders.filter(o => o.status === 'Pending').length,
     totalCustomers: current30DaysUsers.length,
     totalReviews: reviews.length,
     avgRating,

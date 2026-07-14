@@ -46,10 +46,14 @@ export async function getPaymentAnalytics(from: string, to: string): Promise<Pay
   const fromDate = new Date(`${from}T00:00:00+05:30`);
   const toDate = new Date(`${to}T23:59:59.999+05:30`);
 
+  // Exclude non-business orders (Abandoned/Failed/Pending) from all analytics
+  const EXCLUDED_STATUSES = ['Abandoned', 'Failed', 'Pending'];
+
   const orders = await Order.find({
     createdAt: { $gte: fromDate, $lte: toDate },
+    status: { $nin: EXCLUDED_STATUSES },
   })
-    .select('total status paymentMethod codCollected')
+    .select('total status paymentMethod codCollected createdAt')
     .lean();
 
   // ── Payment method aggregation ──
@@ -98,7 +102,8 @@ export async function getPaymentAnalytics(from: string, to: string): Promise<Pay
     switch (order.status) {
       case 'Delivered':
         m.delivered++;
-        m.revenue += total;
+        // Note: Revenue for delivered orders is already counted in the
+        // confirmedStatuses block above (Delivered is in confirmedStatuses).
         break;
       case 'Cancelled':
         m.cancelled++;
