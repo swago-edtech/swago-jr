@@ -54,8 +54,12 @@ export async function getOrderAnalytics(from: string, to: string): Promise<Order
   const fromDate = new Date(`${from}T00:00:00+05:30`);
   const toDate = new Date(`${to}T23:59:59.999+05:30`);
 
+  // Exclude non-business orders (Abandoned/Failed/Pending) from all analytics
+  const EXCLUDED_STATUSES = ['Abandoned', 'Failed', 'Pending'];
+
   const orders = await Order.find({
     createdAt: { $gte: fromDate, $lte: toDate },
+    status: { $nin: EXCLUDED_STATUSES },
   })
     .select('total status paymentMethod createdAt')
     .lean();
