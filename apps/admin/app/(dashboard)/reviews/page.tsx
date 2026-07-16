@@ -1,4 +1,4 @@
-import { connectDB, Review, Order } from '@swago/database';
+import { connectDB, Review, Order, Product } from '@swago/database';
 import Link from 'next/link';
 import ReviewsTable from '@/components/ReviewsTable';
 
@@ -11,9 +11,19 @@ async function getReviews() {
     .sort({ createdAt: -1 })
     .lean();
 
-  // Backfill user names from orders if missing
+  // Fetch products to map names
+  const products = await Product.find({}, '_id name').lean();
+  const productMap = products.reduce((acc: any, p: any) => {
+    acc[p._id.toString()] = p.name;
+    return acc;
+  }, {});
+
+  // Backfill user names from orders if missing and attach product name
   const enrichedReviews = await Promise.all(
     reviews.map(async (review: any) => {
+      // Attach product name
+      review.productName = productMap[review.productId?.toString()] || `Product #${review.productId?.toString().slice(-6)}`;
+
       if (!review.userId?.name && review.userId?.phone) {
         // Find most recent order by this user's phone
         const recentOrder = await Order.findOne({ phone: review.userId.phone })

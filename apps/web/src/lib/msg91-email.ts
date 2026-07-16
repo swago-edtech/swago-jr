@@ -114,3 +114,65 @@ export async function sendOrderConfirmationEmail(
     return { success: false, error: errorMessage };
   }
 }
+
+export async function sendNotificationEmail(
+  toEmail: string,
+  toName: string,
+  subject: string,
+  htmlContent: string
+): Promise<{ success: boolean; error?: string; response?: MSG91Response }> {
+  if (!MSG91_AUTH_KEY) {
+    return { success: false, error: 'MSG91_AUTH_KEY not configured' };
+  }
+
+  try {
+    const payload = {
+      recipients: [
+        {
+          to: [
+            {
+              email: toEmail,
+              name: toName || 'Swago Fam',
+            }
+          ],
+          variables: {
+            // Using html_body for the template placeholder, if applicable
+            html_body: htmlContent,
+            items: htmlContent // Fallback in case template requires items
+          }
+        }
+      ],
+      from: {
+        email: "no-reply@support.swagojr.com",
+        name: "Swago"
+      },
+      domain: "support.swagojr.com",
+      template_id: "swagojr_order_confirmation2" // Reusing the known working template
+    };
+
+    console.log('📧 Sending notification email via MSG91 to:', toEmail);
+
+    const response = await fetch(MSG91_EMAIL_API, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'authkey': MSG91_AUTH_KEY,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const result = await response.json() as MSG91Response;
+
+    if (response.ok) {
+      console.log('✅ Notification email sent via MSG91');
+      return { success: true, response: result };
+    } else {
+      console.error('❌ MSG91 notification email failed:', result);
+      return { success: false, error: result.message || 'Failed to send email', response: result };
+    }
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('❌ MSG91 notification email error:', errorMessage);
+    return { success: false, error: errorMessage };
+  }
+}

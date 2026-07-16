@@ -41,7 +41,7 @@ const LotteryDrawSchema = new mongoose.Schema(
             default: 0,
         },
 
-        // Winner details (populated when drawn)
+        // Winner details (legacy, kept for fallback)
         winner: {
             kidProfileId: {
                 type: mongoose.Schema.Types.ObjectId,
@@ -55,6 +55,22 @@ const LotteryDrawSchema = new mongoose.Schema(
             announcedAt: Date,
             announcedBy: String,
         },
+
+        // Multiple winners details
+        winners: [{
+            kidProfileId: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "User",
+            },
+            kidName: String,
+            ticketCode: String,
+            ticketProductName: String,
+            parentPhone: String,
+            parentEmail: String,
+            announcedAt: Date,
+            announcedBy: String,
+            rewardAmount: Number,
+        }],
 
         // Admin notes
         notes: {

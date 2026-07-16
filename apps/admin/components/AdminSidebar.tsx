@@ -58,6 +58,7 @@ const navigation = [
       { name: 'Code Batches', href: '/lottery-batches' },
       { name: 'Lottery Tickets', href: '/lottery-tickets' },
       { name: 'Weekly Winners', href: '/lottery-draws' },
+      { name: 'Manual Deposits', href: '/users/manual-deposits' },
     ]
   },
   { name: 'FAQs', href: '/faqs', icon: HelpCircle },
@@ -214,7 +215,7 @@ export default function AdminSidebar() {
                     <div className="ml-4 mt-1 space-y-1">
                       {item.submenu.map((subItem) => {
                         // If it's a base path like /masterclass or /analytics, only match exactly to avoid highlighting everything in the submenu
-                        const isBasePath = subItem.href === '/masterclass' || subItem.href === '/lottery' || subItem.href === '/ambassadors' || subItem.href === '/analytics';
+                        const isBasePath = subItem.href === '/masterclass' || subItem.href === '/lottery' || subItem.href === '/ambassadors' || subItem.href === '/analytics' || subItem.href === '/users';
                         const isSubActive = isBasePath 
                           ? pathname === subItem.href 
                           : (pathname === subItem.href || pathname.startsWith(subItem.href + '/'));
@@ -239,7 +240,10 @@ export default function AdminSidebar() {
             }
 
             // Regular menu item without submenu
-            const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+            const isManualDepositConflict = item.href === '/users' && pathname.startsWith('/users/manual-deposits');
+            const isActive = isManualDepositConflict 
+              ? false 
+              : pathname === item.href || pathname.startsWith(item.href + '/');
 
             return (
               <Link

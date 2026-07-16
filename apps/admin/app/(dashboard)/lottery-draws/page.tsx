@@ -19,6 +19,10 @@ type Draw = {
         parentEmail: string;
         announcedAt: string;
     };
+    winners?: Array<{
+        kidName: string;
+        ticketCode: string;
+    }>;
     createdAt: string;
 };
 
@@ -254,10 +258,15 @@ export default function LotteryDrawsPage() {
                                             </span>
                                         </td>
                                         <td className="px-6 py-4">
-                                            {draw.winner ? (
+                                            {(draw.winners?.length ? draw.winners : (draw.winner ? [draw.winner] : [])).length > 0 ? (
                                                 <div className="text-sm">
-                                                    <p className="font-semibold text-green-700">🏆 {draw.winner.kidName}</p>
-                                                    <p className="text-gray-500 text-xs">{draw.winner.ticketCode}</p>
+                                                    <p className="font-semibold text-green-700">
+                                                        🏆 {(draw.winners?.length ? draw.winners : [draw.winner]).length} Winner(s)
+                                                    </p>
+                                                    <p className="text-gray-500 text-xs">
+                                                        {(draw.winners?.length ? draw.winners : [draw.winner])[0].kidName}
+                                                        {(draw.winners?.length ? draw.winners : [draw.winner]).length > 1 ? ` +${(draw.winners?.length ? draw.winners : [draw.winner]).length - 1} more` : ""}
+                                                    </p>
                                                 </div>
                                             ) : (
                                                 <span className="text-gray-400 text-sm">-</span>

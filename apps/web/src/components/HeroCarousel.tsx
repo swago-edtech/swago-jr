@@ -93,15 +93,15 @@ export default function HeroCarousel() {
 
   if (loading && banners.length === 0) {
     return (
-      <div className="container mx-auto px-4 md:px-6 mt-4 md:mt-8">
-        <div className="h-[250px] md:h-[400px] w-full bg-gray-100 animate-pulse rounded-2xl" />
+      <div className="w-full">
+        <div className="h-[400px] sm:h-[50vh] md:h-[70vh] lg:h-[73vh] w-full bg-gray-100 animate-pulse" />
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 md:px-6 mt-4 md:mt-8">
-      <div className="relative group overflow-hidden rounded-2xl">
+    <div className="w-full">
+      <div className="relative group overflow-hidden">
 
         {/* Main Viewport */}
         <div className="overflow-hidden" ref={emblaRef}>
@@ -110,7 +110,7 @@ export default function HeroCarousel() {
               <Link
                 href={slide.link || "/products"}
                 key={slide._id || index}
-                className="flex-shrink-0 flex-grow-0 w-full min-w-0 h-[350px] md:h-[400px] relative block"
+                className="flex-shrink-0 flex-grow-0 w-full min-w-0 h-[400px] sm:h-[50vh] md:h-[70vh] lg:h-[73vh] relative block"
               >
                 <Image
                   src={slide.imageUrl}
@@ -126,31 +126,31 @@ export default function HeroCarousel() {
 
         {/* --- LEFT ARROW --- */}
         <button
-          className="absolute top-1/2 left-4 -translate-y-1/2 bg-white/30 hover:bg-white/80 backdrop-blur-sm p-2 rounded-full text-black transition-all opacity-0 group-hover:opacity-100 focus:opacity-100 hidden md:block z-10"
+          className="absolute top-1/2 left-4 md:left-8 -translate-y-1/2 bg-white/40 hover:bg-white/80 backdrop-blur-md border border-white/50 p-3 rounded-full text-black/80 shadow-lg transition-all opacity-0 group-hover:opacity-100 focus:opacity-100 hidden md:block z-10"
           onClick={scrollPrev}
           aria-label="Previous slide"
         >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
         </button>
 
         {/* --- RIGHT ARROW --- */}
         <button
-          className="absolute top-1/2 right-4 -translate-y-1/2 bg-white/30 hover:bg-white/80 backdrop-blur-sm p-2 rounded-full text-black transition-all opacity-0 group-hover:opacity-100 focus:opacity-100 hidden md:block z-10"
+          className="absolute top-1/2 right-4 md:right-8 -translate-y-1/2 bg-white/40 hover:bg-white/80 backdrop-blur-md border border-white/50 p-3 rounded-full text-black/80 shadow-lg transition-all opacity-0 group-hover:opacity-100 focus:opacity-100 hidden md:block z-10"
           onClick={scrollNext}
           aria-label="Next slide"
         >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>
         </button>
 
         {/* --- DOTS --- */}
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2.5 z-10 bg-black/20 backdrop-blur-md px-4 py-2 rounded-full border border-white/20">
           {slides.map((_, index) => (
             <button
               key={index}
               onClick={() => scrollTo(index)}
-              className={`w-3 h-3 rounded-full transition-all duration-300 shadow-sm ${index === selectedIndex
-                ? "bg-[hsl(var(--swago-purple))] w-6"
-                : "bg-purple-200 hover:bg-purple-400"
+              className={`h-2.5 rounded-full transition-all duration-500 shadow-sm ${index === selectedIndex
+                ? "bg-white w-8"
+                : "bg-white/60 hover:bg-white w-2.5"
                 }`}
               aria-label={`Go to slide ${index + 1}`}
             />

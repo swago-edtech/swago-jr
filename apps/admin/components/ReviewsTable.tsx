@@ -5,7 +5,8 @@ import Link from 'next/link';
 
 interface Review {
   _id: string;
-  productId: number;
+  productId: string | number;
+  productName?: string;
   rating: number;
   title: string;
   comment: string;
@@ -30,12 +31,23 @@ export default function ReviewsTable({ initialReviews }: ReviewsTableProps) {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [sentimentFilter, setSentimentFilter] = useState<string>('all');
   const [ratingFilter, setRatingFilter] = useState<string>('all');
+  const [productFilter, setProductFilter] = useState<string>('all');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
 
+  // Extract unique product IDs for the filter dropdown
+  const uniqueProductsMap = new Map<string, string>();
+  reviews.forEach(r => {
+    if (r.productId && !uniqueProductsMap.has(r.productId.toString())) {
+      uniqueProductsMap.set(r.productId.toString(), r.productName || `Product #${r.productId.toString().slice(-6)}`);
+    }
+  });
+  const uniqueProducts = Array.from(uniqueProductsMap.entries()).map(([id, name]) => ({ id, name }));
+
 
   // Get user display name
-  const getUserDisplayName = (user: Review['userId']) => {
+  const getUserDisplayName = (user: Review['userId'] | null | undefined) => {
+    if (!user) return 'Anonymous';
     if (user.name) return user.name;
     if (user.phone) return `Customer ${user.phone.slice(-4)}`;
     return 'Anonymous';
@@ -46,6 +58,7 @@ export default function ReviewsTable({ initialReviews }: ReviewsTableProps) {
     if (statusFilter !== 'all' && review.status !== statusFilter) return false;
     if (sentimentFilter !== 'all' && review.sentimentLabel !== sentimentFilter) return false;
     if (ratingFilter !== 'all' && review.rating !== parseInt(ratingFilter)) return false;
+    if (productFilter !== 'all' && review.productId.toString() !== productFilter) return false;
     return true;
   });
 
@@ -174,6 +187,26 @@ export default function ReviewsTable({ initialReviews }: ReviewsTableProps) {
             </select>
           </div>
 
+          {/* Product Filter */}
+          <div>
+            <label htmlFor="product-filter" className="block text-sm font-medium text-gray-700 mb-1">
+              Product
+            </label>
+            <select
+              id="product-filter"
+              value={productFilter}
+              onChange={(e) => setProductFilter(e.target.value)}
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="all">All Products</option>
+              {uniqueProducts.map((p) => (
+                <option key={p.id} value={p.id} title={p.name}>
+                  {p.name.length > 25 ? `${p.name.substring(0, 25)}...` : p.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
           {/* Sentiment Filter */}
           <div>
             <label htmlFor="sentiment-filter" className="block text-sm font-medium text-gray-700 mb-1">
@@ -251,13 +284,13 @@ export default function ReviewsTable({ initialReviews }: ReviewsTableProps) {
                   />
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Review ID
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   User
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Product
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Comment
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Rating
@@ -296,19 +329,21 @@ export default function ReviewsTable({ initialReviews }: ReviewsTableProps) {
                         aria-label={`Select review ${review._id.slice(-6)}`}
                       />
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-mono text-gray-900">
-                        #{review._id.slice(-6)}
-                      </div>
-                    </td>
                     <td className="px-6 py-4">
                       <div className="text-sm font-medium text-gray-900">
                         {getUserDisplayName(review.userId)}
                       </div>
-                      <div className="text-xs text-gray-500">{review.userId.phone}</div>
+                      <div className="text-xs text-gray-500">{review.userId?.phone || 'N/A'}</div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900">Product #{review.productId}</div>
+                      <div className="text-sm text-gray-900 line-clamp-2 max-w-[150px]" title={review.productName}>
+                        {review.productName}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm text-gray-600 line-clamp-2 max-w-[200px]" title={review.comment}>
+                        {review.comment}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
