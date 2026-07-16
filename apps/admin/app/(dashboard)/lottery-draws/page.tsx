@@ -235,7 +235,9 @@ export default function LotteryDrawsPage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-200">
-                                {draws.map((draw) => (
+                                {draws.map((draw) => {
+                                    const winnersList = draw.winners?.length ? draw.winners : (draw.winner ? [draw.winner] : []);
+                                    return (
                                     <tr key={draw._id} className="hover:bg-gray-50">
                                         <td className="px-6 py-4">
                                             <span className="font-mono text-sm font-semibold text-blue-600">
@@ -258,14 +260,14 @@ export default function LotteryDrawsPage() {
                                             </span>
                                         </td>
                                         <td className="px-6 py-4">
-                                            {(draw.winners?.length ? draw.winners : (draw.winner ? [draw.winner] : [])).length > 0 ? (
+                                            {winnersList.length > 0 ? (
                                                 <div className="text-sm">
                                                     <p className="font-semibold text-green-700">
-                                                        🏆 {(draw.winners?.length ? draw.winners : [draw.winner]).length} Winner(s)
+                                                        🏆 {winnersList.length} Winner(s)
                                                     </p>
                                                     <p className="text-gray-500 text-xs">
-                                                        {(draw.winners?.length ? draw.winners : [draw.winner])[0].kidName}
-                                                        {(draw.winners?.length ? draw.winners : [draw.winner]).length > 1 ? ` +${(draw.winners?.length ? draw.winners : [draw.winner]).length - 1} more` : ""}
+                                                        {winnersList[0].kidName}
+                                                        {winnersList.length > 1 ? ` +${winnersList.length - 1} more` : ""}
                                                     </p>
                                                 </div>
                                             ) : (
@@ -281,7 +283,8 @@ export default function LotteryDrawsPage() {
                                             </button>
                                         </td>
                                     </tr>
-                                ))}
+                                    );
+                                })}
                             </tbody>
                         </table>
                     </div>
