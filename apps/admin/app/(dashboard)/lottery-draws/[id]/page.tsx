@@ -37,6 +37,16 @@ type Draw = {
         announcedAt: string;
         announcedBy: string;
     };
+    winners?: Array<{
+        kidName: string;
+        ticketCode: string;
+        ticketProductName: string;
+        parentPhone: string;
+        parentEmail: string;
+        announcedAt: string;
+        announcedBy: string;
+        rewardAmount?: number;
+    }>;
 };
 
 export default function LotteryDrawDetailPage({
@@ -50,7 +60,8 @@ export default function LotteryDrawDetailPage({
     const [tickets, setTickets] = useState<Ticket[]>([]);
     const [loading, setLoading] = useState(true);
     const [selecting, setSelecting] = useState(false);
-    const [selectedTicket, setSelectedTicket] = useState<string>("");
+    const [selectedTickets, setSelectedTickets] = useState<string[]>([]);
+    const [rewardAmount, setRewardAmount] = useState<number | "">(20);
 
     // Fetch draw details
     const fetchDraw = async () => {
@@ -74,21 +85,21 @@ export default function LotteryDrawDetailPage({
         fetchDraw();
     }, [id]);
 
-    // Select winner
-    const handleSelectWinner = async (ticketCode: string) => {
-        if (!confirm(`Are you sure you want to select ticket ${ticketCode} as the winner?`)) {
+    // Select and Credit Winners
+    const handleCreditAndSelectWinners = async () => {
+        if (selectedTickets.length === 0) return;
+        if (!confirm(`Are you sure you want to select ${selectedTickets.length} ticket(s) as winners and credit $${rewardAmount || 0} to each?`)) {
             return;
         }
 
         try {
             setSelecting(true);
-            setSelectedTicket(ticketCode);
-
             const res = await fetch(`/api/lottery-draws/${id}`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    ticketCode,
+                    ticketCodes: selectedTickets,
+                    rewardAmount: Number(rewardAmount) || 0,
                     adminEmail: "admin@swagojr.com", // TODO: Get from session
                 }),
             });
@@ -96,17 +107,17 @@ export default function LotteryDrawDetailPage({
             const data = await res.json();
 
             if (data.success) {
-                alert("🎉 Winner selected successfully!");
+                alert("🎉 Winners selected and credited successfully!");
+                setSelectedTickets([]);
                 fetchDraw();
             } else {
                 alert("Error: " + data.error);
             }
         } catch (error) {
-            console.error("Error selecting winner:", error);
-            alert("Failed to select winner");
+            console.error("Error selecting winners:", error);
+            alert("Failed to select winners");
         } finally {
             setSelecting(false);
-            setSelectedTicket("");
         }
     };
 
@@ -178,26 +189,33 @@ export default function LotteryDrawDetailPage({
                 </div>
             </div>
 
-            {/* Winner Card (if drawn) */}
-            {draw.winner && (
-                <div className="bg-gradient-to-r from-yellow-400 to-orange-500 rounded-xl shadow-lg p-6 text-white">
-                    <div className="flex items-center gap-4">
-                        <div className="text-6xl">🏆</div>
-                        <div>
-                            <h2 className="text-2xl font-bold">Winner: {draw.winner.kidName}</h2>
-                            <p className="text-white/90 mt-1">
-                                Ticket: <span className="font-mono">{draw.winner.ticketCode}</span>
-                            </p>
-                            <p className="text-white/80 text-sm mt-1">
-                                Product: {draw.winner.ticketProductName}
-                            </p>
-                            <p className="text-white/80 text-sm">
-                                Parent: {draw.winner.parentPhone || draw.winner.parentEmail}
-                            </p>
-                            <p className="text-white/60 text-xs mt-2">
-                                Announced: {formatDate(draw.winner.announcedAt)} by {draw.winner.announcedBy}
-                            </p>
-                        </div>
+            {/* Winner Cards */}
+            {(draw.winners?.length ? draw.winners : (draw.winner ? [draw.winner] : [])).length > 0 && (
+                <div className="space-y-4">
+                    <h2 className="text-xl font-bold text-gray-900">🎉 Winners Selected</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {(draw.winners?.length ? draw.winners : (draw.winner ? [draw.winner] : [])).map((w: any, idx: number) => (
+                            <div key={idx} className="bg-gradient-to-r from-yellow-400 to-orange-500 rounded-xl shadow-lg p-6 text-white">
+                                <div className="flex items-center gap-4">
+                                    <div className="text-5xl">🏆</div>
+                                    <div>
+                                        <h3 className="text-xl font-bold">{w.kidName}</h3>
+                                        <p className="text-white/90 mt-1">
+                                            Ticket: <span className="font-mono">{w.ticketCode}</span>
+                                        </p>
+                                        <p className="text-white/80 text-sm">Product: {w.ticketProductName}</p>
+                                        {w.rewardAmount !== undefined && (
+                                            <p className="text-white font-semibold mt-1">
+                                                Credited: ${w.rewardAmount} Swago Money
+                                            </p>
+                                        )}
+                                        <p className="text-white/60 text-xs mt-2">
+                                            Announced {formatDate(w.announcedAt)}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 </div>
             )}
@@ -220,15 +238,35 @@ export default function LotteryDrawDetailPage({
 
             {/* Eligible Tickets Table */}
             <div className="bg-white rounded-lg shadow overflow-hidden">
-                <div className="px-6 py-4 border-b bg-gray-50">
-                    <h2 className="text-lg font-semibold text-gray-900">
-                        Eligible Tickets ({tickets.length})
-                    </h2>
-                    <p className="text-sm text-gray-600">
-                        {draw.status === "drawn"
-                            ? "The winner has been selected from these tickets"
-                            : "Click 'Select as Winner' to choose the winning ticket"}
-                    </p>
+                <div className="px-6 py-4 border-b bg-gray-50 flex justify-between items-center">
+                    <div>
+                        <h2 className="text-lg font-semibold text-gray-900">
+                            Eligible Tickets ({tickets.length})
+                        </h2>
+                        <p className="text-sm text-gray-600">
+                            Select tickets to credit Swago Money and mark as winners
+                        </p>
+                    </div>
+                    {/* Action Bar */}
+                    <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                            <label className="text-sm font-medium text-gray-700">Reward ($):</label>
+                            <input
+                                type="number"
+                                min="0"
+                                value={rewardAmount}
+                                onChange={(e) => setRewardAmount(e.target.value === "" ? "" : Number(e.target.value))}
+                                className="border border-gray-300 rounded px-2 py-1 w-20 focus:ring-2 focus:ring-blue-500 text-gray-900"
+                            />
+                        </div>
+                        <button
+                            onClick={handleCreditAndSelectWinners}
+                            disabled={selecting || selectedTickets.length === 0}
+                            className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-green-700 disabled:opacity-50 transition shadow"
+                        >
+                            {selecting ? "Processing..." : `Credit & Select ${selectedTickets.length > 0 ? `(${selectedTickets.length})` : ""} Winner(s)`}
+                        </button>
+                    </div>
                 </div>
 
                 {tickets.length === 0 ? (
@@ -240,6 +278,19 @@ export default function LotteryDrawDetailPage({
                         <table className="w-full">
                             <thead className="bg-gray-50 border-b">
                                 <tr>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase">
+                                        <input
+                                            type="checkbox"
+                                            onChange={(e) => {
+                                                if (e.target.checked) {
+                                                    setSelectedTickets(tickets.map(t => t.code));
+                                                } else {
+                                                    setSelectedTickets([]);
+                                                }
+                                            }}
+                                            checked={selectedTickets.length === tickets.length && tickets.length > 0}
+                                        />
+                                    </th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase">
                                         Ticket Code
                                     </th>
@@ -255,27 +306,34 @@ export default function LotteryDrawDetailPage({
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase">
                                         Redeemed At
                                     </th>
-                                    {draw.status !== "drawn" && (
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase">
-                                            Action
-                                        </th>
-                                    )}
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-200">
-                                {tickets.map((ticket) => (
+                                {tickets.map((ticket) => {
+                                    const isWinner = draw.winners?.some(w => w.ticketCode === ticket.code) || draw.winner?.ticketCode === ticket.code;
+                                    return (
                                     <tr
                                         key={ticket._id}
-                                        className={`hover:bg-gray-50 ${draw.winner?.ticketCode === ticket.code
-                                            ? "bg-yellow-50"
-                                            : ""
-                                            }`}
+                                        className={`hover:bg-gray-50 ${isWinner ? "bg-yellow-50" : ""}`}
                                     >
                                         <td className="px-6 py-4">
-                                            <span className="font-mono text-sm font-semibold">
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedTickets.includes(ticket.code)}
+                                                onChange={(e) => {
+                                                    if (e.target.checked) {
+                                                        setSelectedTickets([...selectedTickets, ticket.code]);
+                                                    } else {
+                                                        setSelectedTickets(selectedTickets.filter(c => c !== ticket.code));
+                                                    }
+                                                }}
+                                            />
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className="font-mono text-sm text-black font-semibold">
                                                 {ticket.code}
                                             </span>
-                                            {draw.winner?.ticketCode === ticket.code && (
+                                            {isWinner && (
                                                 <span className="ml-2 text-yellow-600">🏆</span>
                                             )}
                                         </td>
@@ -292,21 +350,8 @@ export default function LotteryDrawDetailPage({
                                         <td className="px-6 py-4 text-sm text-gray-600">
                                             {formatDate(ticket.redeemedAt)}
                                         </td>
-                                        {draw.status !== "drawn" && (
-                                            <td className="px-6 py-4">
-                                                <button
-                                                    onClick={() => handleSelectWinner(ticket.code)}
-                                                    disabled={selecting}
-                                                    className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50 transition"
-                                                >
-                                                    {selecting && selectedTicket === ticket.code
-                                                        ? "Selecting..."
-                                                        : "Select as Winner"}
-                                                </button>
-                                            </td>
-                                        )}
                                     </tr>
-                                ))}
+                                )})}
                             </tbody>
                         </table>
                     </div>
