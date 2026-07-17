@@ -10,6 +10,7 @@ import { USER_EVENTS } from "@/context/SharedContext";
 import CartProgress from "@/components/CartProgress";
 import ExpressOrderSummary from "@/components/ExpressOrderSummary";
 import ExpressCrossSell from "@/components/ExpressCrossSell";
+import { Feedback } from "@/lib/feedback";
 
 const INDIAN_STATES = [
   "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa", "Gujarat", "Haryana",
@@ -224,11 +225,16 @@ function ExpressCheckoutContent() {
       });
       const data = await res.json();
       if (data.success) {
+        Feedback.playPop();
         setCouponData({ valid: true, code: data.coupon.code, discount: data.discount.amount, type: data.coupon.type, value: data.coupon.value, maxDiscount: data.coupon.maxDiscount, minAmount: data.coupon.minAmount, applicableProducts: data.coupon.applicableProducts });
       } else {
+        Feedback.playError();
         setCouponData({ valid: false, code: couponCode, error: data.error });
       }
-    } catch { setCouponData({ valid: false, code: couponCode, error: "Failed to validate coupon" }); }
+    } catch {
+      Feedback.playError();
+      setCouponData({ valid: false, code: couponCode, error: "Failed to validate coupon" });
+    }
   };
 
   const removeCoupon = () => { setCouponData(null); setCouponCode(""); };

@@ -34,9 +34,9 @@ type Summary = {
 };
 
 const STATUS_COLORS = {
-    open: "bg-green-100 text-green-800 border-green-300",
-    closed: "bg-yellow-100 text-yellow-800 border-yellow-300",
-    drawn: "bg-blue-100 text-blue-800 border-blue-300",
+    open: "text-[#10b981] border-[#10b981]/20 bg-[#10b981]/5",
+    closed: "text-[#f59e0b] border-[#f59e0b]/20 bg-[#f59e0b]/5",
+    drawn: "text-[#6366f1] border-[#6366f1]/20 bg-[#6366f1]/5",
 };
 
 const STATUS_LABELS = {
@@ -57,6 +57,13 @@ export default function LotteryDrawsPage() {
     const [loading, setLoading] = useState(true);
     const [statusFilter, setStatusFilter] = useState("");
     const [creatingDraw, setCreatingDraw] = useState(false);
+    
+    // Custom Draw State
+    const [showCustomDraw, setShowCustomDraw] = useState(false);
+    const [customStartDate, setCustomStartDate] = useState("");
+    const [customEndDate, setCustomEndDate] = useState("");
+    const [customWinnerCount, setCustomWinnerCount] = useState<number | "">(3);
+    const [creatingCustomDraw, setCreatingCustomDraw] = useState(false);
 
     // Fetch draws
     const fetchDraws = async () => {
@@ -105,6 +112,51 @@ export default function LotteryDrawsPage() {
         }
     };
 
+    // Create Custom Draw
+    const handleCreateCustomDraw = async () => {
+        if (!customStartDate || !customEndDate || !customWinnerCount) {
+            alert("Please fill all custom draw fields.");
+            return;
+        }
+
+        const start = new Date(customStartDate);
+        start.setHours(0, 0, 0, 0);
+        
+        const end = new Date(customEndDate);
+        end.setHours(23, 59, 59, 999);
+        
+        if (start >= end) {
+            alert("Start Date must be before End Date.");
+            return;
+        }
+
+        try {
+            setCreatingCustomDraw(true);
+            const res = await fetch("/api/lottery-draws/custom", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    startDate: start.toISOString(),
+                    endDate: end.toISOString(),
+                    winnerCount: Number(customWinnerCount)
+                })
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                alert(`Custom draw created! Automatically selected ${data.selectedTicketCodes.length} winners. You will now be redirected to credit them.`);
+                router.push(`/lottery-draws/${data.draw._id}?preselect=${data.selectedTicketCodes.join(',')}`);
+            } else {
+                alert("Error: " + data.error);
+            }
+        } catch (error) {
+            console.error("Error creating custom draw:", error);
+            alert("Failed to create custom draw");
+        } finally {
+            setCreatingCustomDraw(false);
+        }
+    };
+
     // Format date
     const formatDate = (dateString: string) => {
         return new Date(dateString).toLocaleString("en-IN", {
@@ -119,176 +171,217 @@ export default function LotteryDrawsPage() {
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900">Lottery Weekly Winners</h1>
-                    <p className="text-gray-600 mt-1">
-                        Manage weekly lottery draws (Wednesday 8:00 PM → Wednesday 8:00 PM)
+                    <h3 className="text-xl font-bold text-[#0f172a]">Lottery Winners</h3>
+                    <p className="text-sm font-medium text-[#64748b] mt-1">
+                        Manage weekly lottery draws or run <span className="text-[#6366f1] font-bold">custom draws</span>.
                     </p>
                 </div>
-                <button
-                    onClick={handleCreateDraw}
-                    disabled={creatingDraw}
-                    className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-semibold shadow-lg disabled:opacity-50"
-                >
-                    {creatingDraw ? "Creating..." : "+ Setup New Weekly Draw"}
-                </button>
+                <div className="flex gap-4">
+                    <button
+                        onClick={() => setShowCustomDraw(!showCustomDraw)}
+                        className="bg-emerald-600 text-white px-6 py-3 rounded-xl hover:bg-emerald-700 transition font-semibold shadow-sm text-sm"
+                    >
+                        {showCustomDraw ? "Cancel Custom Draw" : "Run Custom Draw"}
+                    </button>
+                    <button
+                        onClick={handleCreateDraw}
+                        disabled={creatingDraw}
+                        className="px-6 py-3 bg-[#6366f1] hover:bg-[#4f46e5] text-white shadow-sm shadow-[#6366f1]/20 hover:shadow-md hover:shadow-[#6366f1]/30 text-sm font-semibold rounded-xl transition flex items-center gap-2 disabled:opacity-50"
+                    >
+                        {creatingDraw ? "Creating..." : "+ Setup Weekly Draw"}
+                    </button>
+                </div>
             </div>
 
-            {/* Info Banner */}
-            <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                <p className="text-purple-900 text-sm">
-                    <span className="font-semibold">🎟️ Draw Window:</span> Wednesday 8:00 PM IST → Next Wednesday 8:00 PM IST
-                    <br />
-                    <span className="font-semibold">🏆 Winner Selection:</span> Friday 7:00 PM IST (Manual by Admin)
-                </p>
-            </div>
+            {/* Custom Draw Panel */}
+            {showCustomDraw && (
+                <div className="bg-[#ffffff]/60 shadow-sm backdrop-blur-xl rounded-2xl border border-[#e2e8f0]/80 p-6 transition-all duration-300">
+                    <h2 className="text-[17px] font-bold text-[#0f172a] mb-4">✨ Run a Custom Lottery Draw</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div>
+                            <label className="block text-[11px] font-bold text-[#64748b] uppercase tracking-tight mb-2">Start Date</label>
+                            <input
+                                type="date"
+                                value={customStartDate}
+                                max={customEndDate || undefined}
+                                onChange={(e) => setCustomStartDate(e.target.value)}
+                                className="w-full px-4 py-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-xl text-[15px] font-medium text-[#0f172a] focus:outline-none focus:ring-1 focus:ring-[#6366f1] transition shadow-inner"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-[11px] font-bold text-[#64748b] uppercase tracking-tight mb-2">End Date</label>
+                            <input
+                                type="date"
+                                value={customEndDate}
+                                min={customStartDate || undefined}
+                                onChange={(e) => setCustomEndDate(e.target.value)}
+                                className="w-full px-4 py-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-xl text-[15px] font-medium text-[#0f172a] focus:outline-none focus:ring-1 focus:ring-[#6366f1] transition shadow-inner"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-[11px] font-bold text-[#64748b] uppercase tracking-tight mb-2">Number of Winners</label>
+                            <input
+                                type="number"
+                                min="1"
+                                value={customWinnerCount}
+                                onChange={(e) => setCustomWinnerCount(e.target.value === "" ? "" : Number(e.target.value))}
+                                className="w-full px-4 py-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-xl text-[15px] font-medium text-[#0f172a] focus:outline-none focus:ring-1 focus:ring-[#6366f1] transition shadow-inner"
+                            />
+                        </div>
+                    </div>
+                    <div className="mt-6 flex justify-end">
+                        <button
+                            onClick={handleCreateCustomDraw}
+                            disabled={creatingCustomDraw}
+                            className="px-6 py-3 bg-[#6366f1] hover:bg-[#4f46e5] text-white shadow-sm shadow-[#6366f1]/20 hover:shadow-md text-sm font-semibold rounded-xl transition flex items-center gap-2 disabled:opacity-50"
+                        >
+                            {creatingCustomDraw ? "Generating..." : "Generate Winners →"}
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {/* Summary Cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-white rounded-lg shadow p-4 border-t-4 border-gray-400">
-                    <p className="text-sm text-gray-600">Total Draws</p>
-                    <p className="text-3xl font-bold text-gray-900">{summary.total}</p>
-                </div>
-                <div className="bg-white rounded-lg shadow p-4 border-t-4 border-green-400">
-                    <p className="text-sm text-gray-600">Open</p>
-                    <p className="text-3xl font-bold text-green-600">{summary.open}</p>
-                </div>
-                <div className="bg-white rounded-lg shadow p-4 border-t-4 border-yellow-400">
-                    <p className="text-sm text-gray-600">Closed</p>
-                    <p className="text-3xl font-bold text-yellow-600">{summary.closed}</p>
-                </div>
-                <div className="bg-white rounded-lg shadow p-4 border-t-4 border-blue-400">
-                    <p className="text-sm text-gray-600">Winners Selected</p>
-                    <p className="text-3xl font-bold text-blue-600">{summary.drawn}</p>
-                </div>
-            </div>
-
-            {/* Filters */}
-            <div className="bg-white rounded-lg shadow p-4">
-                <div className="flex items-center gap-4">
-                    <label className="text-sm font-medium text-gray-700">Filter by Status:</label>
-                    <select
-                        value={statusFilter}
-                        onChange={(e) => setStatusFilter(e.target.value)}
-                        className="border border-gray-300 rounded-md px-3 py-2 text-black focus:ring-2 focus:ring-blue-500"
-                    >
-                        <option value="">All Statuses</option>
-                        <option value="open">Open</option>
-                        <option value="closed">Closed</option>
-                        <option value="drawn">Winner Selected</option>
-                    </select>
-                    {statusFilter && (
-                        <button
-                            onClick={() => setStatusFilter("")}
-                            className="text-sm text-blue-600 hover:underline"
-                        >
-                            Clear Filter
-                        </button>
-                    )}
-                </div>
-            </div>
-
-            {/* Draws Table */}
-            <div className="bg-white rounded-lg shadow overflow-hidden">
-                {loading ? (
-                    <div className="p-8 text-center">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-                        <p className="text-gray-600 mt-4">Loading draws...</p>
+                {[
+                    { label: "Total Draws", value: summary.total },
+                    { label: "Open", value: summary.open },
+                    { label: "Closed", value: summary.closed },
+                    { label: "Winners Selected", value: summary.drawn },
+                ].map((stat, i) => (
+                    <div key={i} className="bg-[#ffffff]/60 shadow-sm backdrop-blur-xl rounded-2xl border border-[#e2e8f0]/80 p-5">
+                        <p className="text-[11px] font-bold text-[#64748b] uppercase tracking-tight mb-1">{stat.label}</p>
+                        <p className="text-3xl font-black text-[#0f172a]">{stat.value}</p>
                     </div>
-                ) : draws.length === 0 ? (
-                    <div className="p-8 text-center">
-                        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <span className="text-3xl">🎟️</span>
-                        </div>
-                        <p className="text-gray-600 font-medium">No draws found</p>
-                        <p className="text-gray-500 text-sm mt-1">
-                            Create a draw to get started
+                ))}
+            </div>
+
+            {/* Main Content Area */}
+            <div className="bg-[#ffffff]/60 shadow-sm backdrop-blur-xl rounded-2xl border border-[#e2e8f0]/80 p-5 lg:p-6 transition-all duration-300">
+                {/* Filters */}
+                <div className="flex flex-col md:flex-row items-center justify-between mb-6 gap-4">
+                    <div className="bg-[#f8fafc] border border-[#e2e8f0] rounded-xl p-3 inline-flex items-center">
+                        <p className="text-[#64748b] text-[13px] font-medium">
+                            <span className="font-bold text-[#6366f1]">🎟️ Draw Window:</span> Wed 8:00 PM → Next Wed 8:00 PM
+                            <span className="mx-3 opacity-30">|</span>
+                            <span className="font-bold text-[#6366f1]">🏆 Winner Selection:</span> Fri 7:00 PM (Manual)
                         </p>
                     </div>
-                ) : (
-                    <div className="overflow-x-auto">
-                        <table className="w-full">
-                            <thead className="bg-gray-50 border-b">
-                                <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase">
-                                        Draw #
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase">
-                                        Period
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase">
-                                        Draw Date
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase">
-                                        Tickets
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase">
-                                        Status
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase">
-                                        Winner
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase">
-                                        Actions
-                                    </th>
+                    
+                    <div className="flex items-center gap-3">
+                        <div className="relative">
+                            <select
+                                value={statusFilter}
+                                onChange={(e) => setStatusFilter(e.target.value)}
+                                className="pl-4 pr-10 py-2.5 bg-[#f8fafc] border border-[#e2e8f0] rounded-xl text-[13px] font-semibold text-[#0f172a] focus:outline-none focus:ring-1 focus:ring-[#6366f1] transition appearance-none cursor-pointer"
+                            >
+                                <option value="">All Statuses</option>
+                                <option value="open">Open</option>
+                                <option value="closed">Closed</option>
+                                <option value="drawn">Winner Selected</option>
+                            </select>
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[#64748b]">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                            </div>
+                        </div>
+                        {statusFilter && (
+                            <button
+                                onClick={() => setStatusFilter("")}
+                                className="text-[13px] font-semibold text-[#64748b] hover:text-[#0f172a] transition"
+                            >
+                                Clear
+                            </button>
+                        )}
+                    </div>
+                </div>
+
+                {/* Draws Table */}
+                <div className="overflow-x-auto rounded-xl border border-[#e2e8f0]">
+                    {loading ? (
+                        <div className="p-12 text-center">
+                            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#6366f1] mx-auto"></div>
+                            <p className="text-[#64748b] text-sm mt-4 font-medium">Loading draws...</p>
+                        </div>
+                    ) : draws.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-24 text-center">
+                            <div className="w-16 h-16 rounded-2xl bg-[#f8fafc] border border-[#e2e8f0] flex items-center justify-center mb-5 text-2xl">
+                                🎟️
+                            </div>
+                            <h3 className="text-[17px] font-semibold text-[#0f172a] mb-2.5">No draws found</h3>
+                            <p className="text-sm font-medium text-[#64748b] mb-8 max-w-md leading-relaxed">
+                                Get started by creating a weekly or custom lottery draw above.
+                            </p>
+                        </div>
+                    ) : (
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="border-b border-[#e2e8f0] bg-[#f8fafc]">
+                                    <th className="px-5 py-4 text-[11px] font-black text-[#64748b] uppercase tracking-widest">Draw #</th>
+                                    <th className="px-5 py-4 text-[11px] font-black text-[#64748b] uppercase tracking-widest">Period</th>
+                                    <th className="px-5 py-4 text-[11px] font-black text-[#64748b] uppercase tracking-widest">Draw Date</th>
+                                    <th className="px-5 py-4 text-[11px] font-black text-[#64748b] uppercase tracking-widest">Tickets</th>
+                                    <th className="px-5 py-4 text-[11px] font-black text-[#64748b] uppercase tracking-widest">Status</th>
+                                    <th className="px-5 py-4 text-[11px] font-black text-[#64748b] uppercase tracking-widest">Winner</th>
+                                    <th className="px-5 py-4 text-[11px] font-black text-[#64748b] uppercase tracking-widest text-right">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-200">
+                            <tbody className="divide-y divide-[#e2e8f0]">
                                 {draws.map((draw) => {
                                     const winnersList = draw.winners?.length ? draw.winners : (draw.winner ? [draw.winner] : []);
                                     return (
-                                    <tr key={draw._id} className="hover:bg-gray-50">
-                                        <td className="px-6 py-4">
-                                            <span className="font-mono text-sm font-semibold text-blue-600">
-                                                {draw.drawNumber}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 text-sm text-gray-600">
-                                            <div>{formatDate(draw.startDate)}</div>
-                                            <div className="text-gray-400">→ {formatDate(draw.endDate)}</div>
-                                        </td>
-                                        <td className="px-6 py-4 text-sm text-gray-900">
-                                            {formatDate(draw.drawDate)}
-                                        </td>
-                                        <td className="px-6 py-4 text-sm text-gray-900 font-semibold">
-                                            {draw.totalTickets}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold border ${STATUS_COLORS[draw.status]}`}>
-                                                {STATUS_LABELS[draw.status]}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            {winnersList.length > 0 ? (
-                                                <div className="text-sm">
-                                                    <p className="font-semibold text-green-700">
-                                                        🏆 {winnersList.length} Winner(s)
-                                                    </p>
-                                                    <p className="text-gray-500 text-xs">
-                                                        {winnersList[0].kidName}
-                                                        {winnersList.length > 1 ? ` +${winnersList.length - 1} more` : ""}
-                                                    </p>
-                                                </div>
-                                            ) : (
-                                                <span className="text-gray-400 text-sm">-</span>
-                                            )}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <button
-                                                onClick={() => router.push(`/lottery-draws/${draw._id}`)}
-                                                className="text-blue-600 hover:text-blue-800 font-medium text-sm"
-                                            >
-                                                {draw.status === "drawn" ? "View Details" : "Select Winner"}
-                                            </button>
-                                        </td>
-                                    </tr>
+                                        <tr key={draw._id} className="hover:bg-[#f8fafc]/50 transition-colors group">
+                                            <td className="px-5 py-4">
+                                                <span className="text-[13px] font-bold text-[#0f172a]">
+                                                    {draw.drawNumber}
+                                                </span>
+                                            </td>
+                                            <td className="px-5 py-4">
+                                                <div className="text-[13px] font-semibold text-[#475569]">{formatDate(draw.startDate)}</div>
+                                                <div className="text-[11px] font-medium text-[#94a3b8] mt-0.5">→ {formatDate(draw.endDate)}</div>
+                                            </td>
+                                            <td className="px-5 py-4 text-[13px] font-semibold text-[#475569]">
+                                                {formatDate(draw.drawDate)}
+                                            </td>
+                                            <td className="px-5 py-4 text-[13px] font-black text-[#0f172a]">
+                                                {draw.totalTickets}
+                                            </td>
+                                            <td className="px-5 py-4">
+                                                <span className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg border shadow-sm ${STATUS_COLORS[draw.status]}`}>
+                                                    {STATUS_LABELS[draw.status]}
+                                                </span>
+                                            </td>
+                                            <td className="px-5 py-4">
+                                                {winnersList.length > 0 ? (
+                                                    <div>
+                                                        <p className="text-[13px] font-bold text-[#10b981]">
+                                                            🏆 {winnersList.length} Winner(s)
+                                                        </p>
+                                                        <p className="text-[11px] font-medium text-[#64748b] mt-0.5">
+                                                            {winnersList[0].kidName}
+                                                            {winnersList.length > 1 ? ` +${winnersList.length - 1} more` : ""}
+                                                        </p>
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-[13px] text-[#94a3b8]">-</span>
+                                                )}
+                                            </td>
+                                            <td className="px-5 py-4 text-right">
+                                                <button
+                                                    onClick={() => router.push(`/lottery-draws/${draw._id}`)}
+                                                    className="text-[13px] font-bold text-[#6366f1] hover:text-[#4f46e5] transition"
+                                                >
+                                                    {draw.status === "drawn" ? "View Details" : "Select Winner"} →
+                                                </button>
+                                            </td>
+                                        </tr>
                                     );
                                 })}
                             </tbody>
                         </table>
-                    </div>
-                )}
+                    )}
+                </div>
             </div>
         </div>
     );

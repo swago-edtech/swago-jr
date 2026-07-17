@@ -2,6 +2,7 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from "react";
+import { Feedback } from "../lib/feedback";
 
 type PopulatedOrder = {
   _id: string;
@@ -576,6 +577,7 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
         return prev;
       }
 
+      Feedback.playPop();
       return [...prev, productId];
     });
 
@@ -615,6 +617,8 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
     if (!user) return;
 
     console.log('💔 Removing from wishlist:', productId, 'Type:', typeof productId);
+    
+    Feedback.playRemove();
 
     setWishlist((prev) => prev.filter(id => {
       if (typeof id === typeof productId) return id !== productId;
@@ -691,12 +695,15 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
         return prev;
       }
 
+      Feedback.playPop();
       return [...prev, { ...product, quantity }];
     });
   };
 
-  const removeFromCart = (id: number | string) =>
+  const removeFromCart = (id: number | string) => {
+    Feedback.playRemove();
     setCart((prev) => prev.filter((p) => getProductId(p) !== id.toString()));
+  };
 
   const clearCart = () => setCart([]);
 
@@ -711,10 +718,12 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
         return p;
       }
 
+      Feedback.playPop();
       return { ...p, quantity: newQuantity };
     }));
 
-  const decreaseQty = (id: number | string) =>
+  const decreaseQty = (id: number | string) => {
+    Feedback.playRemove();
     setCart((prev) =>
       prev.map((p) =>
         getProductId(p) === id.toString()
@@ -722,6 +731,7 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
           : p
       ).filter((p) => p.quantity > 0)
     );
+  };
 
   const total = cart.reduce((s, it) => s + it.price * it.quantity, 0);
 

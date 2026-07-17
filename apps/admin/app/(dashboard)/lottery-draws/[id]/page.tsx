@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, use } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, use, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 
 type Ticket = {
     _id: string;
@@ -54,8 +54,22 @@ export default function LotteryDrawDetailPage({
 }: {
     params: Promise<{ id: string }>;
 }) {
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+            <LotteryDrawDetailContent params={params} />
+        </Suspense>
+    );
+}
+
+function LotteryDrawDetailContent({
+    params,
+}: {
+    params: Promise<{ id: string }>;
+}) {
     const { id } = use(params);
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const preselect = searchParams.get("preselect");
     const [draw, setDraw] = useState<Draw | null>(null);
     const [tickets, setTickets] = useState<Ticket[]>([]);
     const [loading, setLoading] = useState(true);
@@ -73,6 +87,9 @@ export default function LotteryDrawDetailPage({
             if (data.success) {
                 setDraw(data.draw);
                 setTickets(data.tickets);
+                if (preselect) {
+                    setSelectedTickets(preselect.split(","));
+                }
             }
         } catch (error) {
             console.error("Error fetching draw:", error);

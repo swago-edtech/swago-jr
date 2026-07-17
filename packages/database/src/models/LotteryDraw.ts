@@ -28,6 +28,13 @@ const LotteryDrawSchema = new mongoose.Schema(
             required: true,
         },
 
+        // Draw type
+        drawType: {
+            type: String,
+            enum: ["weekly", "custom"],
+            default: "weekly",
+        },
+
         // Draw status
         status: {
             type: String,
