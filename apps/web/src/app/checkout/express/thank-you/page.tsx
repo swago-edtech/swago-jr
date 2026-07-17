@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Suspense } from "react";
+import { Feedback } from "@/lib/feedback";
 
 function ThankYouContent() {
   const searchParams = useSearchParams();
@@ -14,6 +15,7 @@ function ThankYouContent() {
 
   useEffect(() => {
     const timer = setTimeout(() => setShowConfetti(false), 4000);
+    Feedback.playSuccess();
     return () => clearTimeout(timer);
   }, []);
 

@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { useSharedContext, USER_EVENTS } from "@/context/SharedContext";
+import { Feedback } from "@/lib/feedback";
 import {
   Plus,
   Target,
@@ -458,7 +459,7 @@ function ProfileContent() {
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md">
             <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="w-full max-w-lg bg-white rounded-[3rem] shadow-2xl relative">
               <button onClick={() => setShowReelForm(false)} className="absolute top-6 right-6 font-bold text-slate-400 hover:text-slate-800">✕</button>
-              <div className="p-10"><ReelUploadForm onSuccess={() => { setShowReelForm(false); }} /></div>
+              <div className="p-10"><ReelUploadForm onSuccess={() => { Feedback.playSuccess(); setShowReelForm(false); }} /></div>
             </motion.div>
           </div>
         )}
@@ -470,7 +471,7 @@ function ProfileContent() {
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md">
             <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="w-full max-w-lg bg-white rounded-[3rem] shadow-2xl relative">
               <button onClick={() => setShowBrainGymForm(false)} className="absolute top-6 right-6 font-bold text-slate-400 hover:text-slate-800">✕</button>
-              <div className="p-10"><BrainGymUploadForm onSuccess={() => { setShowBrainGymForm(false); }} /></div>
+              <div className="p-10"><BrainGymUploadForm onSuccess={() => { Feedback.playSuccess(); setShowBrainGymForm(false); }} /></div>
             </motion.div>
           </div>
         )}
@@ -481,6 +482,7 @@ function ProfileContent() {
         isOpen={showProfileModal} 
         onClose={() => setShowProfileModal(false)}
         onSuccess={() => {
+          Feedback.playSuccess();
           setShowProfileModal(false);
           // Reward logic is handled by API, and User Context is updated.
         }}

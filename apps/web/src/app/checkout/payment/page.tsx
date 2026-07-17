@@ -7,6 +7,7 @@ import Script from "next/script";
 import Link from "next/link";
 import { formatPrice } from "@swago/utils";
 import { RazorpayOptions, RazorpaySuccessResponse, RazorpayInstance, RazorpayFailedEvent } from "@swago/types";
+import { Feedback } from "@/lib/feedback";
 
 
 
@@ -226,6 +227,7 @@ export default function PaymentMethodPage() {
                     if (verificationRes.ok) {
                         const result = await verificationRes.json();
                         setMessage(`✅ Payment successful! Order ${result.orderId} confirmed.`);
+                        Feedback.playSuccess();
                         clearCart();
                         sessionStorage.removeItem("checkout_data");
                         sessionStorage.setItem("order_completed", "true");
@@ -365,6 +367,7 @@ export default function PaymentMethodPage() {
 
             const result = await res.json();
             setMessage(`✅ Order ${result.orderId} placed successfully!`);
+            Feedback.playSuccess();
             clearCart();
             sessionStorage.removeItem("checkout_data");
             sessionStorage.setItem("order_completed", "true");

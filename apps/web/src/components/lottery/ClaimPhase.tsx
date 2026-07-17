@@ -5,6 +5,7 @@
 import { motion } from "framer-motion";
 import { useState, useRef, KeyboardEvent } from "react";
 import { FiArrowLeft } from "react-icons/fi";
+import { Feedback } from "@/lib/feedback";
 
 interface SuccessData {
   ticket: {
@@ -140,11 +141,14 @@ export default function ClaimPhase({
       const data = await res.json();
 
       if (res.ok && data.success) {
+        Feedback.playCoin();
         onSuccess(data);
       } else {
+        Feedback.playError();
         setError(data.error || 'Failed to redeem code');
       }
     } catch (error) {
+      Feedback.playError();
       console.error('Error redeeming code:', error);
       setError('Network error. Please check your connection.');
     } finally {

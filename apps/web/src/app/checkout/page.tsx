@@ -9,6 +9,7 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { RiInformationLine, RiSearchLine, RiShoppingBag3Line } from "react-icons/ri";
 import CartProgress from "@/components/CartProgress";
+import { Feedback } from "@/lib/feedback";
 
 // ✅ States List for Dropdown
 const INDIAN_STATES = [
@@ -227,6 +228,7 @@ export default function CheckoutPage() {
             body: JSON.stringify({ ...response, orderId: data.orderId })
           });
           if (verifyRes.ok) {
+            Feedback.playSuccess();
             clearCart();
             router.push("/orders");
           }
@@ -274,6 +276,7 @@ export default function CheckoutPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed");
+      Feedback.playSuccess();
       clearCart();
       router.push("/orders");
     } catch (err: any) {
@@ -293,11 +296,14 @@ export default function CheckoutPage() {
       });
       const data = await res.json();
       if (data.success) {
+        Feedback.playPop(); // Add to cart sound for coupon
         setAppliedCoupon({ code: data.coupon.code, discount: data.discount.amount });
       } else {
+        Feedback.playError();
         alert(data.error);
       }
     } catch (err) {
+      Feedback.playError();
       console.error(err);
     }
   };
