@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { useCountry } from "@/context/CountryContext";
 
 interface CrossSellProduct {
   _id: string;
@@ -21,6 +22,7 @@ interface ExpressCrossSellProps {
 }
 
 export default function ExpressCrossSell({ products, onAddProduct, cartProductIds }: ExpressCrossSellProps) {
+  const { formatPrice } = useCountry();
   if (!products || products.length === 0) return null;
 
   return (
@@ -62,10 +64,10 @@ export default function ExpressCrossSell({ products, onAddProduct, cartProductId
                   {product.name}
                 </h4>
                 <div className="flex flex-wrap items-baseline justify-center md:justify-start gap-1">
-                  <span className="text-[11px] md:text-sm font-black text-[#0f172a]">₹{product.price}</span>
+                  <span className="text-[11px] md:text-sm font-black text-[#0f172a]">{formatPrice(product.price)}</span>
                   {product.originalPrice && product.originalPrice > product.price && (
                     <>
-                      <span className="hidden md:inline-block text-[9px] text-[#94a3b8] line-through">₹{product.originalPrice}</span>
+                      <span className="hidden md:inline-block text-[9px] text-[#94a3b8] line-through">{formatPrice(product.originalPrice)}</span>
                       <span className="text-[9px] font-black text-[#10b981]">{discount}% off</span>
                     </>
                   )}

@@ -11,6 +11,7 @@ import CartProgress from "@/components/CartProgress";
 import ExpressOrderSummary from "@/components/ExpressOrderSummary";
 import ExpressCrossSell from "@/components/ExpressCrossSell";
 import { Feedback } from "@/lib/feedback";
+import { useCountry } from "@/context/CountryContext";
 
 const INDIAN_STATES = [
   "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa", "Gujarat", "Haryana",
@@ -34,6 +35,7 @@ function ExpressCheckoutContent() {
   const utmSource = searchParams.get("utm_source") || "";
   const utmMedium = searchParams.get("utm_medium") || "";
   const utmCampaign = searchParams.get("utm_campaign") || "";
+  const { formatPrice, country, isInternational } = useCountry();
 
   // Page state
   const [loading, setLoading] = useState(true);
@@ -263,7 +265,7 @@ function ExpressCheckoutContent() {
     }
 
     if (applicableAmount < (couponData.minAmount || 0)) {
-       return { valid: false, discount: 0, error: `Minimum amount of ₹${couponData.minAmount} required` };
+       return { valid: false, discount: 0, error: `Minimum amount of ${formatPrice(couponData.minAmount)} required` };
     }
 
     let discountAmount = 0;
@@ -480,7 +482,7 @@ function ExpressCheckoutContent() {
           <div>
             <p className="text-[13px] font-black text-[#10b981]">{couponData.code}</p>
             {dynamicCoupon.valid ? (
-              <p className="text-[11px] font-bold text-[#10b981]/80">−₹{dynamicCoupon.discount} off</p>
+              <p className="text-[11px] font-bold text-[#10b981]/80">−{formatPrice(dynamicCoupon.discount)} off</p>
             ) : (
               <p className="text-[11px] font-bold text-[#ef4444]">{dynamicCoupon.error}</p>
             )}
@@ -670,7 +672,7 @@ function ExpressCheckoutContent() {
               {/* Pay Button */}
               <button onClick={handlePayNow} disabled={processing}
                 className="w-full py-3.5 bg-[hsl(var(--swago-purple))] hover:opacity-90 text-white shadow-sm shadow-[hsl(var(--swago-purple))] hover:shadow-md hover:shadow-[hsl(var(--swago-purple))] text-[13px] font-bold rounded-xl transition flex justify-center items-center tracking-widest disabled:opacity-50">
-                {processing ? "Processing..." : paymentMethod === "cod" ? `Place Order — ₹${finalTotal.toLocaleString()}` : `Pay ₹${finalTotal.toLocaleString()}`}
+                {processing ? "Processing..." : paymentMethod === "cod" ? `Place Order — ${formatPrice(finalTotal)}` : `Pay ${formatPrice(finalTotal)}`}
               </button>
 
               <footer className="pt-5 border-t border-[#e2e8f0]/80 flex flex-wrap justify-center gap-x-6 gap-y-2 text-[10px] text-[#94a3b8] tracking-widest font-bold">

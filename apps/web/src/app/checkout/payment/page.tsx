@@ -5,9 +5,9 @@ import { useSharedContext } from "@/context/SharedContext";
 import { useRouter } from "next/navigation";
 import Script from "next/script";
 import Link from "next/link";
-import { formatPrice } from "@swago/utils";
 import { RazorpayOptions, RazorpaySuccessResponse, RazorpayInstance, RazorpayFailedEvent } from "@swago/types";
 import { Feedback } from "@/lib/feedback";
+import { useCountry } from "@/context/CountryContext";
 
 
 
@@ -46,6 +46,7 @@ type CheckoutData = {
 
 export default function PaymentMethodPage() {
     const { cart, clearCart, total, refreshCartPrices } = useSharedContext();
+    const { formatPrice } = useCountry();
     const router = useRouter();
     const [processing, setProcessing] = useState(false);
     const [message, setMessage] = useState("");
@@ -454,7 +455,7 @@ export default function PaymentMethodPage() {
                                     <span>Shipping</span>
                                     <span className="text-green-600 font-medium">FREE*</span>
                                 </div>
-                                <p className="text-[10px] text-slate-400 text-right font-bold tracking-tight">*Free on Online Pay / COD above ₹1450</p>
+                                <p className="text-[10px] text-slate-400 text-right font-bold tracking-tight">*Free on Online Pay / COD above {formatPrice(1450)}</p>
 
                                 <div className="border-t pt-3 flex justify-between text-xl font-bold">
                                     <span>Total</span>

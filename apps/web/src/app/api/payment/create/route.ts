@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import Razorpay from "razorpay";
 import mongoose from "mongoose";
 import { getLoginSession } from "@/lib/auth";
-import { connectDB, Product, Order, User, Coupon as CouponModel, Promotion } from "@swago/database";
+import { connectDB, Product, Order, User, Coupon as CouponModel, Promotion, InternationalConfig } from "@swago/database";
 import { isValidObjectId } from "mongoose";
 import { generateOrderId } from "@/lib/generateOrderId";
 import { cleanupExpiredOrders } from "@/lib/cleanupExpiredOrders";
@@ -300,8 +300,21 @@ export async function POST(req: Request) {
       }
     }
 
-    // Online payments always have free shipping
-    const shippingFee = 0;
+    const countryCode = orderDetails.country || 'IN';
+    const currency = orderDetails.currency || 'INR';
+    const exchangeRateUsed = orderDetails.exchangeRate || 1;
+
+    let shippingFee = 0;
+    if (countryCode !== 'IN') {
+      const config = await InternationalConfig.findOne({ isSingleton: true }).lean() as any;
+      if (config && config.supportedCountries) {
+        const countryConfig = config.supportedCountries.find((c: any) => c.code === countryCode);
+        if (countryConfig) {
+          shippingFee = countryConfig.shippingFee || 0;
+        }
+      }
+    }
+
     const calculatedTotal = Math.max(0, calculatedAmountAfterCoupon - swagoMoneyRedeemed + shippingFee);
 
     // Verify if calculated total matches what frontend sent (optional safety check)
@@ -328,12 +341,17 @@ export async function POST(req: Request) {
       items: orderItems,
       subtotal: subtotal,
       discount: discountAmount,
-      shippingFee: shippingFee,
+      shippingFee: countryCode === 'IN' ? shippingFee : 0,
+      internationalShippingFee: countryCode !== 'IN' ? shippingFee : 0,
       total: calculatedTotal,
       swagoMoneyRedeemed: swagoMoneyRedeemed,
       swagoMoneyKidId: user._id,
       stockReservedAt: new Date(),
       paymentAttempts: 0,
+      country: countryCode,
+      currency: currency,
+      exchangeRateUsed: exchangeRateUsed,
+      displayTotal: calculatedTotal * exchangeRateUsed,
       ...(validatedCoupon && {
         couponCode: validatedCoupon.code,
         couponDetails: validatedCoupon,

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { useSharedContext, type CartItem, type Product, type CartPriceChange } from "@/context/SharedContext";
+import { useCountry } from "@/context/CountryContext";
 import { useRouter } from "next/navigation";
 import Script from "next/script";
 import Image from "next/image";
@@ -38,6 +39,8 @@ const REFERRAL_OPTIONS = [
 
 export default function CheckoutPage() {
   const { cart, total, user, isLoadingUser, clearCart, addToCart, appliedCoupon, setAppliedCoupon, appliedSwagoMoney, refreshCartPrices, isRefreshingCart } = useSharedContext();
+  const { country, formatPrice, isInternational, shippingFee: intlShippingFee, shippingFeeLocal: intlShippingFeeLocal } = useCountry();
+  const COUNTRY_FLAGS: Record<string, string> = { IN: '🇮🇳', US: '🇺🇸', CA: '🇨🇦', AE: '🇦🇪' };
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [processing, setProcessing] = useState(false);
@@ -59,9 +62,9 @@ export default function CheckoutPage() {
   const [priceChangeModal, setPriceChangeModal] = useState<CartPriceChange[] | null>(null);
   const [fetchingPincode, setFetchingPincode] = useState(false);
 
-  // Auto-fetch City and State from Pincode
+  // Auto-fetch City and State from Pincode (India only)
   useEffect(() => {
-    if (pincode && pincode.length === 6) {
+    if (!isInternational && pincode && pincode.length === 6) {
       const fetchPincodeData = async () => {
         setFetchingPincode(true);
         try {
@@ -91,7 +94,7 @@ export default function CheckoutPage() {
       };
       fetchPincodeData();
     }
-  }, [pincode]);
+  }, [pincode, isInternational]);
 
   // Redirect if not logged in
   useEffect(() => {
@@ -206,7 +209,10 @@ export default function CheckoutPage() {
             referralSource,
             coupon: appliedCoupon,
             finalAmount: finalAmount,
-            swagoMoneyRedeemed: appliedSwagoMoney || 0
+            swagoMoneyRedeemed: appliedSwagoMoney || 0,
+            country: country.code,
+            currency: country.currency,
+            exchangeRate: country.exchangeRate
           }
         })
       });
@@ -270,7 +276,10 @@ export default function CheckoutPage() {
             referralSource,
             coupon: appliedCoupon,
             finalAmount: finalAmount,
-            swagoMoneyRedeemed: appliedSwagoMoney || 0
+            swagoMoneyRedeemed: appliedSwagoMoney || 0,
+            country: country.code,
+            currency: country.currency,
+            exchangeRate: country.exchangeRate
           }
         })
       });
@@ -319,10 +328,11 @@ export default function CheckoutPage() {
   }, []);
 
   const isCodBlocked = useMemo(() => {
+    if (isInternational) return true;
     const stateBlocked = promotion?.blockedCodStates?.some((blockedState: string) => blockedState.toLowerCase() === state.toLowerCase()) || false;
     const pincodeBlocked = promotion?.blockedCodPincodes?.includes(pincode) || false;
     return stateBlocked || pincodeBlocked;
-  }, [promotion, state, pincode]);
+  }, [promotion, state, pincode, isInternational]);
 
   useEffect(() => {
     if (isCodBlocked && paymentMethod === 'cod') {
@@ -331,10 +341,11 @@ export default function CheckoutPage() {
   }, [isCodBlocked, paymentMethod]);
 
   const shippingFee = useMemo(() => {
+    if (isInternational) return intlShippingFee;
     if (paymentMethod === 'razorpay') return 0;
     const threshold = promotion?.shippingThreshold || 1450;
     return total >= threshold ? 0 : 50;
-  }, [paymentMethod, total, promotion]);
+  }, [paymentMethod, total, promotion, isInternational, intlShippingFee]);
 
   const finalTotal = useMemo(() => {
     const discountedTotal = appliedCoupon ? total - appliedCoupon.discount : total;
@@ -381,7 +392,10 @@ export default function CheckoutPage() {
 
       <div className="bg-[hsl(var(--swago-purple))] py-3 text-center">
         <p className="text-white text-[10px] font-[1000] tracking-widest leading-tight">
-          Enjoy Free Shipping, on orders above ₹1450
+          {isInternational
+            ? `International Shipping to ${country.name} — ${formatPrice(country.shippingFee)} flat rate`
+            : 'Enjoy Free Shipping, on orders above ₹1450'
+          }
         </p>
       </div>
 
@@ -400,7 +414,7 @@ export default function CheckoutPage() {
             </svg>
           </div>
           <div className="text-lg font-black text-slate-900">
-            ₹{finalTotal.toFixed(0)}
+            {formatPrice(finalTotal)}
           </div>
         </button>
 
@@ -455,9 +469,9 @@ export default function CheckoutPage() {
             <section>
               <h2 className="text-lg font-semibold text-slate-800 mb-4">Delivery</h2>
               <div className="space-y-3">
-                <select className="w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-[hsl(var(--swago-purple))] outline-none text-sm bg-slate-50 shadow-sm appearance-none">
-                  <option>India</option>
-                </select>
+                <div className="w-full h-12 px-4 border rounded-md bg-slate-100/70 shadow-sm flex items-center text-sm text-slate-500 font-medium cursor-not-allowed">
+                  {COUNTRY_FLAGS[country.code] || '🌐'} {country.name || country.code}
+                </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex flex-col gap-1">
@@ -508,18 +522,18 @@ export default function CheckoutPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div className="flex flex-col gap-1 relative">
                     <input
-                      placeholder="PIN code"
+                      placeholder={isInternational ? 'Postal / ZIP code' : 'PIN code'}
                       value={pincode}
-                      maxLength={6}
-                      onChange={(e) => { const val = e.target.value.replace(/\D/g, '').slice(0, 6); setPincode(val); if (errors.includes("pincode")) { setErrors(errors.filter(f => f !== "pincode")); setMessage(""); } }}
+                      maxLength={isInternational ? 10 : 6}
+                      onChange={(e) => { const val = isInternational ? e.target.value.slice(0, 10) : e.target.value.replace(/\D/g, '').slice(0, 6); setPincode(val); if (errors.includes("pincode")) { setErrors(errors.filter(f => f !== "pincode")); setMessage(""); } }}
                       className={`w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-[hsl(var(--swago-purple))] outline-none text-sm shadow-sm ${errors.includes("pincode") ? 'border-red-500 bg-red-50 placeholder-red-300' : 'border-slate-200'} ${fetchingPincode ? 'pr-10' : ''}`}
                     />
-                    {fetchingPincode && (
+                    {fetchingPincode && !isInternational && (
                       <div className="absolute right-4 top-[24px] -translate-y-1/2">
                         <div className="w-4 h-4 border-2 border-[hsl(var(--swago-purple))] border-t-transparent rounded-full animate-spin" />
                       </div>
                     )}
-                    {errors.includes("pincode") && <p className="text-[10px] text-red-500 font-bold">PIN code is needed</p>}
+                    {errors.includes("pincode") && <p className="text-[10px] text-red-500 font-bold">{isInternational ? 'Postal / ZIP code is needed' : 'PIN code is needed'}</p>}
                   </div>
                   <div className="flex flex-col gap-1">
                     <input
@@ -530,14 +544,25 @@ export default function CheckoutPage() {
                     />
                     {errors.includes("city") && <p className="text-[10px] text-red-500 font-bold">City is needed</p>}
                   </div>
-                  <select
-                    value={state}
-                    onChange={(e) => setState(e.target.value)}
-                    disabled={true}
-                    className="w-full h-12 px-4 border rounded-md outline-none text-sm shadow-sm appearance-none bg-slate-100 opacity-70 cursor-not-allowed border-slate-300 text-slate-500"
-                  >
-                    {INDIAN_STATES.map(s => <option key={s} value={s}>{s}</option>)}
-                  </select>
+                  {isInternational ? (
+                    <div className="flex flex-col gap-1">
+                      <input
+                        placeholder="State / Province"
+                        value={state}
+                        onChange={(e) => setState(e.target.value)}
+                        className="w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-[hsl(var(--swago-purple))] outline-none text-sm shadow-sm border-slate-200"
+                      />
+                    </div>
+                  ) : (
+                    <select
+                      value={state}
+                      onChange={(e) => setState(e.target.value)}
+                      disabled={true}
+                      className="w-full h-12 px-4 border rounded-md outline-none text-sm shadow-sm appearance-none bg-slate-100 opacity-70 cursor-not-allowed border-slate-300 text-slate-500"
+                    >
+                      {INDIAN_STATES.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  )}
                 </div>
 
                 <div className="relative flex flex-col gap-1">
@@ -585,14 +610,26 @@ export default function CheckoutPage() {
             <section>
               <h2 className="text-lg font-semibold text-slate-800 mb-4">Shipping method</h2>
               <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 flex flex-col gap-2">
-                <div className="flex justify-between items-center">
-                   <p className="text-xs font-bold text-slate-700 uppercase tracking-wider">Online Payment</p>
-                   <p className="text-xs font-black text-emerald-600">ALWAYS FREE</p>
-                </div>
-                <div className="flex justify-between items-center">
-                   <p className="text-xs font-bold text-slate-700 uppercase tracking-wider">Cash on Delivery</p>
-                   <p className="text-xs font-black text-slate-500">FREE ABOVE ₹1450 (ELSE ₹50)</p>
-                </div>
+                {isInternational ? (
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="text-xs font-bold text-slate-700 uppercase tracking-wider">International Shipping</p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">via India Post (EMS/Speed Post)</p>
+                    </div>
+                    <p className="text-xs font-black text-slate-800">{formatPrice(country.shippingFee)}</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex justify-between items-center">
+                      <p className="text-xs font-bold text-slate-700 uppercase tracking-wider">Online Payment</p>
+                      <p className="text-xs font-black text-emerald-600">ALWAYS FREE</p>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <p className="text-xs font-bold text-slate-700 uppercase tracking-wider">Cash on Delivery</p>
+                      <p className="text-xs font-black text-slate-500">FREE ABOVE ₹1450 (ELSE ₹50)</p>
+                    </div>
+                  </>
+                )}
               </div>
             </section>
 
@@ -635,7 +672,7 @@ export default function CheckoutPage() {
                   </div>
                   <div className="flex-1">
                     <span className="text-sm font-bold text-slate-900">Cash on Delivery (COD)</span>
-                    {isCodBlocked && <p className="text-[11px] text-red-500 font-bold mt-1">COD is not available for your location</p>}
+                    {isCodBlocked && <p className="text-[11px] text-red-500 font-bold mt-1">{isInternational ? 'COD is not available for international orders' : 'COD is not available for your location'}</p>}
                   </div>
                 </div>
               </div>
@@ -771,6 +808,7 @@ function OrderSummary({
   cart, total, appliedCoupon, couponCode, setCouponCode, applyCoupon,
   promotion, progressPercent, nextTier, addToCart, appliedSwagoMoney, paymentMethod, finalTotal, shippingFee
 }: any) {
+  const { formatPrice, country, isInternational, shippingFeeLocal } = useCountry();
   const isAlreadyAdded = (slug: string) => cart.some((item: any) => (item.slug === slug || item._id === slug) && item.price === 1);
 
   return (
@@ -792,7 +830,7 @@ function OrderSummary({
               <h3 className="text-xs font-bold text-slate-800 leading-snug line-clamp-2">{item.name}</h3>
             </div>
             <div className="text-sm font-bold text-slate-900">
-              ₹{(item.price || 0) * item.quantity}
+              {formatPrice((item.price || 0) * item.quantity)}
             </div>
           </div>
         ))}
@@ -802,36 +840,36 @@ function OrderSummary({
       <div className="space-y-3 text-sm">
         <div className="flex justify-between text-slate-600">
           <span>Subtotal</span>
-          <span className="font-bold text-slate-900">₹{total.toFixed(2)}</span>
+          <span className="font-bold text-slate-900">{formatPrice(total)}</span>
         </div>
         <div className="flex justify-between text-slate-600">
-          <span>Shipping {paymentMethod === 'cod' ? '(COD)' : '(Online)'}</span>
+          <span>Shipping {isInternational ? '(International)' : paymentMethod === 'cod' ? '(COD)' : '(Online)'}</span>
           {shippingFee === 0 ? (
             <span className="text-xs font-black text-emerald-600 tracking-widest uppercase">FREE</span>
           ) : (
-            <span className="font-bold text-slate-900">₹{shippingFee}</span>
+            <span className="font-bold text-slate-900">{formatPrice(shippingFee)}</span>
           )}
         </div>
         {appliedCoupon && (
           <div className="flex justify-between text-emerald-600 font-bold">
             <span>Discount ({appliedCoupon.code})</span>
-            <span>-₹{appliedCoupon.discount.toFixed(2)}</span>
+            <span>-{formatPrice(appliedCoupon.discount)}</span>
           </div>
         )}
 
         {appliedSwagoMoney > 0 && (
           <div className="flex justify-between text-[hsl(var(--swago-purple))] font-bold">
             <span>Swago Dollars</span>
-            <span>-₹{appliedSwagoMoney.toFixed(2)}</span>
+            <span>-{formatPrice(appliedSwagoMoney)}</span>
           </div>
         )}
 
         <div className="pt-4 border-t mt-4 flex justify-between items-baseline">
           <h3 className="text-lg font-black text-slate-900">Total</h3>
           <div className="flex items-baseline gap-2">
-            <span className="text-[10px] text-slate-500 uppercase font-black">INR</span>
+            <span className="text-[10px] text-slate-500 uppercase font-black">{country.currency}</span>
             <span className="text-2xl font-black text-slate-900">
-              ₹{finalTotal.toFixed(0)}
+              {formatPrice(finalTotal)}
             </span>
           </div>
         </div>

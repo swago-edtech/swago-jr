@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import mongoose from "mongoose";
 import { getLoginSession } from "@/lib/auth";
-import { connectDB, Product, Order, User, Coupon as CouponModel, Promotion } from "@swago/database";
+import { connectDB, Product, Order, User, Coupon as CouponModel, Promotion, InternationalConfig } from "@swago/database";
 import { isValidObjectId } from "mongoose";
 import { generateOrderId } from "@/lib/generateOrderId";
 import { sendOrderConfirmationEmail } from "@/lib/msg91-email";
@@ -81,6 +81,14 @@ export async function POST(req: Request) {
 
         if (!orderDetails?.cart || !Array.isArray(orderDetails.cart) || orderDetails.cart.length === 0) {
             return NextResponse.json({ error: "Cart is required" }, { status: 400 });
+        }
+
+        const countryCode = orderDetails.country || 'IN';
+        if (countryCode !== 'IN') {
+            return NextResponse.json({
+                error: "COD is only available in India",
+                code: "INDIA_ONLY"
+            }, { status: 400 });
         }
 
         // ✅ India-only check
@@ -323,11 +331,16 @@ export async function POST(req: Request) {
             subtotal: subtotal,
             discount: discountAmount,
             shippingFee: shippingFee,
+            internationalShippingFee: 0,
             total: calculatedTotal,
             swagoMoneyRedeemed: swagoMoneyRedeemed,
             swagoMoneyKidId: user._id, // ✅ Now references User directly
             stockReservedAt: new Date(),
             createdVia: 'frontend',
+            country: countryCode,
+            currency: 'INR',
+            exchangeRateUsed: 1,
+            displayTotal: calculatedTotal,
             ...(validatedCoupon && {
                 couponCode: validatedCoupon.code,
                 couponDetails: validatedCoupon,

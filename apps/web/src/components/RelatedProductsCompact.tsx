@@ -5,6 +5,7 @@ import { Product, useSharedContext } from "@/context/SharedContext";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
+import { useCountry } from "@/context/CountryContext";
 
 interface RelatedProductsCompactProps {
   currentProductId: string;
@@ -14,6 +15,7 @@ export default function RelatedProductsCompact({ currentProductId }: RelatedProd
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const { addToCart } = useSharedContext();
+  const { formatPrice } = useCountry();
 
   useEffect(() => {
     const fetchRelatedProducts = async () => {
@@ -56,7 +58,7 @@ export default function RelatedProductsCompact({ currentProductId }: RelatedProd
           <div className="space-y-0.5">
             <h4 className="text-[10px] font-black text-slate-900 leading-tight tracking-tighter line-clamp-2" title={product.name}>{product.name}</h4>
             <div className="flex items-center justify-between">
-              <span className="text-[8px] font-black text-[#61498C]">₹{product.price}</span>
+              <span className="text-[8px] font-black text-[#61498C]">{formatPrice(product.price)}</span>
               <button
                 onClick={(e) => {
                   e.stopPropagation();

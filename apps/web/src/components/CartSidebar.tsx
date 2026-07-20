@@ -1,6 +1,7 @@
 "use client";
 
 import { useSharedContext, type CartItem, type Product, type CartPriceChange } from "@/context/SharedContext";
+import { useCountry } from "@/context/CountryContext";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
@@ -49,6 +50,7 @@ export default function CartSidebar() {
     isRefreshingCart
   } = useSharedContext();
 
+  const { formatPrice, country, isInternational } = useCountry();
   const router = useRouter();
   const [stockInfo, setStockInfo] = useState<StockInfo>({});
   const [loading, setLoading] = useState(false);
@@ -72,7 +74,7 @@ export default function CartSidebar() {
         if (data.success) {
           const formatted = data.coupons.map((c: any) => ({
             code: c.code,
-            label: c.type === 'percentage' ? `${c.value}% Off` : `Flat ₹${c.value}`,
+            label: c.type === 'percentage' ? `${c.value}% Off` : `Flat ${formatPrice(c.value)}`,
             description: c.description,
             minOrder: c.minAmount || 0,
             color: 'bg-indigo-50',
@@ -214,7 +216,10 @@ export default function CartSidebar() {
                 <CartProgress total={total} promotionData={promotion} />
                 <div className="bg-[hsl(var(--swago-purple))] py-3 text-center">
                   <p className="text-white text-[10px] font-[1000] tracking-widest leading-tight">
-                    Enjoy Free Shipping, on orders above ₹1450
+                    {isInternational
+                      ? `International Shipping to ${country.name} — ${formatPrice(country.shippingFee)} flat rate`
+                      : 'Enjoy Free Shipping, on orders above ₹1450'
+                    }
                   </p>
                 </div>
 
@@ -259,8 +264,8 @@ export default function CartSidebar() {
                           <div className="flex justify-between items-start mb-2">
                             <h3 className="text-sm font-bold text-slate-800 leading-tight pr-4">{item.name}</h3>
                             <div className="text-right">
-                              <p className="text-sm font-black text-slate-900">₹{price}</p>
-                              <p className="text-[11px] text-slate-400 line-through opacity-60 font-bold">₹{originalPrice.toFixed(0)}</p>
+                              <p className="text-sm font-black text-slate-900">{formatPrice(price)}</p>
+                              <p className="text-[11px] text-slate-400 line-through opacity-60 font-bold">{formatPrice(originalPrice)}</p>
                             </div>
                           </div>
 
@@ -292,7 +297,7 @@ export default function CartSidebar() {
                       <div>
                         <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest leading-none mb-1">Coupon Applied</p>
                         <p className="text-sm font-black text-emerald-800">{appliedCoupon.code}</p>
-                        <p className="text-[10px] font-bold text-emerald-600 mt-0.5">You saved ₹{appliedCoupon.discount}!</p>
+                        <p className="text-[10px] font-bold text-emerald-600 mt-0.5">You saved {formatPrice(appliedCoupon.discount)}!</p>
                       </div>
                       <button onClick={() => setAppliedCoupon(null)} className="text-[10px] font-black text-rose-500 uppercase tracking-widest px-3 py-1.5 border border-rose-100 rounded-lg hover:bg-rose-50 transition-colors">
                         Remove
@@ -336,7 +341,7 @@ export default function CartSidebar() {
                         onClick={() => setActiveTab('Under299')}
                         className={`pb-3 text-sm font-black tracking-tight transition-all relative ${activeTab === 'Under299' ? 'text-[#1EAA5F]' : 'text-slate-400'}`}
                       >
-                        Under ₹299
+                        {isInternational ? 'Gifts & Add-ons' : 'Under ₹299'}
                         {activeTab === 'Under299' && <div className="absolute bottom-0 left-0 w-full h-[3px] bg-[#1EAA5F] rounded-full" />}
                       </button>
                     </div>
@@ -350,7 +355,7 @@ export default function CartSidebar() {
                           </div>
                           <h4 className="text-xs font-bold text-slate-800 line-clamp-1 mb-1">{p.name}</h4>
                           <div className="flex items-center gap-2 flex-wrap my-1.5">
-                            <span className="text-sm font-black text-slate-900 tracking-tight">₹{p.price}</span>
+                            <span className="text-sm font-black text-slate-900 tracking-tight">{formatPrice(p.price)}</span>
                           </div>
                           <button
                             onClick={() => addToCart(p, 1)}
@@ -396,7 +401,7 @@ export default function CartSidebar() {
                       <div>
                         <p className="text-xs font-black text-slate-800 leading-tight">Gift Wrap (Purple/yellow)</p>
                         <p className="text-[10px] font-bold text-slate-400 mt-0.5">(one per item)</p>
-                        <p className="text-[11px] font-black text-slate-900 mt-1">₹0</p>
+                        <p className="text-[11px] font-black text-slate-900 mt-1">{formatPrice(0)}</p>
                       </div>
                     </div>
                     <button className="text-[#61498C] text-xs font-black tracking-widest uppercase py-2 px-4 hover:bg-purple-50 rounded-lg transition-colors">
@@ -413,8 +418,8 @@ export default function CartSidebar() {
                     <span className="text-sm font-black text-slate-700 tracking-tight">Estimated total</span>
                   </div>
                   <div className="text-right">
-                    <p className="text-xl font-black text-slate-900 tracking-tight leading-none mb-1">₹{((appliedCoupon ? total - appliedCoupon.discount : total) - (appliedSwagoMoney || 0)).toFixed(0)}</p>
-                    {((appliedCoupon?.discount || 0) + (appliedSwagoMoney || 0)) > 0 && <p className="text-[10px] font-black text-[#1EAA5F] uppercase tracking-wide">You saved ₹{((appliedCoupon?.discount || 0) + (appliedSwagoMoney || 0)).toFixed(0)}!</p>}
+                    <p className="text-xl font-black text-slate-900 tracking-tight leading-none mb-1">{formatPrice(((appliedCoupon ? total - appliedCoupon.discount : total) - (appliedSwagoMoney || 0)))}</p>
+                    {((appliedCoupon?.discount || 0) + (appliedSwagoMoney || 0)) > 0 && <p className="text-[10px] font-black text-[#1EAA5F] uppercase tracking-wide">You saved {formatPrice(((appliedCoupon?.discount || 0) + (appliedSwagoMoney || 0)))}!</p>}
                   </div>
                 </div>
 

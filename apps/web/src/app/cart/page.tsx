@@ -8,6 +8,7 @@ import { useState, useEffect } from "react";
 import RelatedProductsCompact from "@/components/RelatedProductsCompact";
 import CouponSheet from "@/components/CouponSheet";
 import CartProgress from "@/components/CartProgress";
+import { useCountry } from "@/context/CountryContext";
 
 interface StockInfo {
   [key: string]: {
@@ -19,6 +20,7 @@ interface StockInfo {
 
 export default function CartPage() {
   const { cart, total, removeFromCart, increaseQty, decreaseQty, appliedCoupon, setAppliedCoupon, appliedSwagoMoney, setAppliedSwagoMoney, walletBalance, refreshCartPrices, isRefreshingCart } = useSharedContext();
+  const { formatPrice, country, isInternational } = useCountry();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [stockInfo, setStockInfo] = useState<StockInfo>({});
@@ -60,7 +62,7 @@ export default function CartPage() {
         if (data.success) {
           const formatted = data.coupons.map((c: any) => ({
             code: c.code,
-            label: c.type === 'percentage' ? `${c.value}% Off` : `Flat ₹${c.value}`,
+            label: c.type === 'percentage' ? `${c.value}% Off` : `Flat ${formatPrice(c.value)}`,
             description: c.description,
             minOrder: c.minAmount || 0,
             color: 'bg-indigo-50',
@@ -196,7 +198,9 @@ export default function CartPage() {
 
       <div className="bg-[hsl(var(--swago-purple))] py-3 text-center">
         <p className="text-white text-[10px] font-[1000] tracking-widest leading-tight">
-          Enjoy Free Shipping, on orders above ₹1450
+          {isInternational 
+            ? `International Shipping to ${country.name} — ${formatPrice(country.shippingFee)} flat rate`
+            : 'Enjoy Free Shipping, on orders above ₹1450'}
         </p>
       </div>
 
@@ -269,8 +273,8 @@ export default function CartPage() {
                           </span>
                         </div>
                         <div className="flex flex-row sm:flex-col items-baseline sm:items-end gap-2 sm:gap-0 mt-1 sm:mt-0 w-full sm:w-auto">
-                          <span className="text-sm sm:text-lg font-black text-slate-900 tabular-nums leading-none">₹{price}</span>
-                          <span className="text-xs text-slate-400 line-through font-bold tabular-nums sm:mt-0.5">₹{originalPrice.toFixed(0)}</span>
+                          <span className="text-sm sm:text-lg font-black text-slate-900 tabular-nums leading-none">{formatPrice(price)}</span>
+                          <span className="text-xs text-slate-400 line-through font-bold tabular-nums sm:mt-0.5">{formatPrice(originalPrice)}</span>
                         </div>
                       </div>
 
@@ -294,7 +298,7 @@ export default function CartPage() {
 
                         <div className="flex flex-col items-end whitespace-nowrap">
                           <span className="hidden sm:block text-[9px] font-bold text-slate-400 tracking-widest mb-0.5">Subtotal</span>
-                          <span className="text-sm sm:text-base font-black text-slate-900 tabular-nums">₹{(price * item.quantity).toFixed(0)}</span>
+                          <span className="text-sm sm:text-base font-black text-slate-900 tabular-nums">{formatPrice(price * item.quantity)}</span>
                         </div>
                       </div>
                     </div>
@@ -327,7 +331,7 @@ export default function CartPage() {
                 <div className="flex items-center justify-between bg-emerald-50 border border-emerald-100 rounded-xl p-3">
                   <div>
                     <span className="text-xs font-black text-emerald-800 tracking-wide">{appliedCoupon.code}</span>
-                    <p className="text-xs text-emerald-600 font-bold m-0 mt-0.5">Saved ₹{appliedCoupon.discount.toFixed(0)}!</p>
+                    <p className="text-xs text-emerald-600 font-bold m-0 mt-0.5">Saved {formatPrice(appliedCoupon.discount)}!</p>
                   </div>
                   <button onClick={removeCoupon} className="text-xs font-bold text-rose-600 tracking-widest border border-rose-200 px-3 py-1.5 rounded-lg hover:bg-rose-100/50 transition-colors bg-white">Remove</button>
                 </div>
@@ -390,7 +394,7 @@ export default function CartPage() {
 
                     {!canUseSwagoDollars ? (
                       <p className="text-xs text-slate-500 font-bold mt-1 leading-tight">
-                        Add ₹{(799 - amountAfterCoupon).toFixed(0)} more to unlock max 5% Swago Dollars savings!
+                        Add {formatPrice(799 - amountAfterCoupon)} more to unlock max 5% Swago Dollars savings!
                       </p>
                     ) : applicableSwagoDollars > 0 ? (
                       <p className="text-xs text-[hsl(var(--swago-purple))] font-bold mt-1 leading-tight">
@@ -424,7 +428,7 @@ export default function CartPage() {
               <div className="space-y-2.5">
                 <div className="flex justify-between text-slate-500 text-xs sm:text-xs font-bold tracking-widest">
                   <span>Cart Total</span>
-                  <span className="text-slate-900 tabular-nums font-black">₹{total.toFixed(0)}</span>
+                  <span className="text-slate-900 tabular-nums font-black">{formatPrice(total)}</span>
                 </div>
                 <div className="flex flex-col text-right">
                   <div className="flex justify-between text-slate-500 text-xs sm:text-xs font-bold tracking-widest gap-8">
@@ -436,13 +440,13 @@ export default function CartPage() {
                 {savings > 0 && (
                   <div className="flex justify-between text-slate-500 text-xs sm:text-xs font-bold tracking-widest">
                     <span>Savings</span>
-                    <span className="text-[#1EAA5F] font-black tabular-nums">-₹{savings.toFixed(0)}</span>
+                    <span className="text-[#1EAA5F] font-black tabular-nums">-{formatPrice(savings)}</span>
                   </div>
                 )}
                 {appliedSwagoMoney > 0 && (
                   <div className="flex justify-between text-slate-500 text-xs sm:text-xs font-bold tracking-widest">
                     <span>Swago Dollars</span>
-                    <span className="text-[hsl(var(--swago-purple))] font-black tabular-nums">-₹{appliedSwagoMoney}</span>
+                    <span className="text-[hsl(var(--swago-purple))] font-black tabular-nums">-{formatPrice(appliedSwagoMoney)}</span>
                   </div>
                 )}
 
@@ -451,8 +455,8 @@ export default function CartPage() {
                 <div className="flex justify-between items-start pt-1">
                   <span className="text-xs sm:text-sm font-black text-slate-700 tracking-tight mt-1">Estimated total</span>
                   <div className="text-right">
-                    <span className="text-xl sm:text-2xl font-black text-slate-900 tracking-tighter tabular-nums leading-none block">₹{(amountAfterCoupon - appliedSwagoMoney).toFixed(0)}</span>
-                    {(savings + appliedSwagoMoney) > 0 && <span className="text-[9px] sm:text-xs font-black text-[#1EAA5F] tracking-wider mt-1 block">You saved ₹{(savings + appliedSwagoMoney).toFixed(0)}!</span>}
+                    <span className="text-xl sm:text-2xl font-black text-slate-900 tracking-tighter tabular-nums leading-none block">{formatPrice(amountAfterCoupon - appliedSwagoMoney)}</span>
+                    {(savings + appliedSwagoMoney) > 0 && <span className="text-[9px] sm:text-xs font-black text-[#1EAA5F] tracking-wider mt-1 block">You saved {formatPrice(savings + appliedSwagoMoney)}!</span>}
                   </div>
                 </div>
               </div>
@@ -491,8 +495,8 @@ export default function CartPage() {
           <div className="flex flex-col">
             <span className="text-xs font-bold text-slate-500 tracking-tight mb-1 leading-none">Estimated total</span>
             <div className="flex flex-col items-start gap-1">
-              <span className="text-xl font-black text-slate-900 tracking-tighter tabular-nums leading-none">₹{(amountAfterCoupon - appliedSwagoMoney).toFixed(0)}</span>
-              {(savings + appliedSwagoMoney) > 0 && <span className="text-[9px] font-black text-[#1EAA5F] tracking-wider leading-none">You saved ₹{(savings + appliedSwagoMoney).toFixed(0)}!</span>}
+              <span className="text-xl font-black text-slate-900 tracking-tighter tabular-nums leading-none">{formatPrice(amountAfterCoupon - appliedSwagoMoney)}</span>
+              {(savings + appliedSwagoMoney) > 0 && <span className="text-[9px] font-black text-[#1EAA5F] tracking-wider leading-none">You saved {formatPrice(savings + appliedSwagoMoney)}!</span>}
             </div>
           </div>
           <button
