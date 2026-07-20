@@ -31,7 +31,6 @@ export default function Navbar() {
   const elementDropdownRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
-  // ✅ UPDATED: Dispatch logout event to clear context
   const handleLogout = async () => {
     window.dispatchEvent(new CustomEvent(USER_EVENTS.LOGOUT));
     await fetch("/api/logout", { method: "POST" });

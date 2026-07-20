@@ -60,12 +60,10 @@ export function CountryProvider({ children }: { children: React.ReactNode }) {
           } catch (e) {}
         }
 
-        // 1. Fetch available countries config from backend
         const res = await fetch("/api/geo");
         const data = await res.json();
         const countries: CountryConfig[] = data.countries || [];
 
-        // 2. Fetch user's country directly from browser
         let detectedCode = "IN";
         try {
           const geoRes = await fetch("https://ipwho.is/");
@@ -77,7 +75,6 @@ export function CountryProvider({ children }: { children: React.ReactNode }) {
           console.warn("Browser geo detection failed, defaulting to IN");
         }
 
-        // 3. Match detected country with our backend config
         const detected =
           countries.find((c) => c.code === detectedCode) ||
           countries.find((c) => c.isDefault) ||
