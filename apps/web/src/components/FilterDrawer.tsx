@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { HiChevronUp, HiChevronDown } from "react-icons/hi";
 import { Filters } from "./FilterSidebar";
+import { useCountry } from "@/context/CountryContext";
+import { motion, AnimatePresence } from "framer-motion";
 
 type FilterDrawerProps = {
   isOpen: boolean;
@@ -153,6 +154,7 @@ const pricePoints = [0, 499, 899, 999, 1500, 3000];
 
 function PriceSlider({ min, max, onChange }: { min: number, max: number, onChange: (min: number, max: number) => void }) {
   const trackRef = useRef<HTMLDivElement>(null);
+  const { formatPrice } = useCountry();
 
   const minIdx = pricePoints.findIndex(p => p === min);
   const maxIdx = pricePoints.findIndex(p => p === max);
@@ -222,22 +224,20 @@ function PriceSlider({ min, max, onChange }: { min: number, max: number, onChang
       {/* Input Fields */}
       <div className="flex items-center gap-4">
         <div className="flex-1 flex items-center border border-slate-200 rounded-md px-3 py-2.5 bg-white">
-          <span className="text-slate-500 mr-2 text-lg">₹</span>
           <input
             type="text"
-            value={pricePoints[safeMinIdx]}
+            value={formatPrice(pricePoints[safeMinIdx])}
             readOnly
-            className="w-full text-right outline-none text-slate-400 font-medium bg-transparent"
+            className="w-full text-center outline-none text-slate-500 font-bold bg-transparent"
           />
         </div>
         <span className="text-slate-500 font-medium">To</span>
         <div className="flex-1 flex items-center border border-slate-200 rounded-md px-3 py-2.5 bg-white">
-          <span className="text-slate-500 mr-2 text-lg">₹</span>
           <input
             type="text"
-            value={pricePoints[safeMaxIdx].toFixed(1)}
+            value={formatPrice(pricePoints[safeMaxIdx])}
             readOnly
-            className="w-full text-right outline-none text-slate-400 font-medium bg-transparent"
+            className="w-full text-center outline-none text-slate-500 font-bold bg-transparent"
           />
         </div>
       </div>

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Star, ChevronRight } from 'lucide-react';
+import { useCountry } from "@/context/CountryContext";
 
 interface PriceRange {
     _id: string;
@@ -13,14 +14,15 @@ interface PriceRange {
 }
 
 export default function ShopByPrice() {
+    const { formatPrice } = useCountry();
     const [priceRanges, setPriceRanges] = useState<PriceRange[]>([]);
     const [loading, setLoading] = useState(true);
 
     const defaultRanges: PriceRange[] = [
-        { _id: '1', label: 'Under ₹499', value: 499, type: 'under' },
-        { _id: '2', label: 'Under ₹999', value: 999, type: 'under' },
-        { _id: '3', label: 'Under ₹1500', value: 1500, type: 'under' },
-        { _id: '4', label: 'Under ₹2000', value: 2000, type: 'under', isPopular: true },
+        { _id: '1', label: 'Under 499', value: 499, type: 'under' },
+        { _id: '2', label: 'Under 999', value: 999, type: 'under' },
+        { _id: '3', label: 'Under 1500', value: 1500, type: 'under' },
+        { _id: '4', label: 'Under 2000', value: 2000, type: 'under', isPopular: true },
     ];
 
     useEffect(() => {
@@ -61,9 +63,6 @@ export default function ShopByPrice() {
                 {/* Pricing Grid - 4x1 Desktop, 2x2 Mobile */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-8">
                     {priceRanges.map((range) => {
-                        const amountMatch = range.label.match(/₹?(\d+)/);
-                        const amount = amountMatch ? amountMatch[1] : `${range.value}`;
-                        
                         return (
                             <Link
                                 key={range._id}
@@ -89,8 +88,8 @@ export default function ShopByPrice() {
                                             <span className="text-[1.2rem] md:text-[2.6rem] font-semibold text-[#F37321] leading-[0.8] tracking-tight mb-1 md:mb-2">
                                                 Under
                                             </span>
-                                            <span className="text-[2.2rem] md:text-[5.5rem] font-bold text-[#F37321] leading-none tracking-tighter">
-                                                ₹{amount}
+                                            <span className="text-[2.2rem] md:text-[4rem] lg:text-[4.5rem] font-bold text-[#F37321] leading-none tracking-tighter">
+                                                {formatPrice(range.value)}
                                             </span>
                                         </div>
                                     </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { useCountry } from "@/context/CountryContext";
 
 interface ExpressCartItem {
   _id: string;
@@ -41,6 +42,8 @@ export default function ExpressOrderSummary({
   hideItems,
   hideBreakdown,
 }: ExpressOrderSummaryProps) {
+  const { formatPrice, country } = useCountry();
+  const currency = country?.currency || 'INR';
   return (
     <div className="space-y-3">
       {/* Cart Items */}
@@ -92,7 +95,7 @@ export default function ExpressOrderSummary({
 
             {/* Price */}
             <div className="text-sm font-bold text-[#0f172a] flex-shrink-0">
-              ₹{(item.price * item.quantity).toLocaleString()}
+              {formatPrice(item.price * item.quantity)}
             </div>
           </div>
         ))}
@@ -109,13 +112,13 @@ export default function ExpressOrderSummary({
         <div className="space-y-2 text-[13px]">
         <div className="flex justify-between text-[#64748b]">
           <span className="font-medium">Subtotal</span>
-          <span className="font-bold text-[#0f172a]">₹{subtotal.toLocaleString()}</span>
+          <span className="font-bold text-[#0f172a]">{formatPrice(subtotal)}</span>
         </div>
 
         {discount > 0 && (
           <div className="flex justify-between text-[#10b981] font-bold">
             <span>Discount {couponCode && `(${couponCode})`}</span>
-            <span>−₹{discount.toLocaleString()}</span>
+            <span>−{formatPrice(discount)}</span>
           </div>
         )}
 
@@ -126,7 +129,7 @@ export default function ExpressOrderSummary({
               FREE
             </span>
           ) : (
-            <span className="font-bold text-[#0f172a]">₹{shippingFee}</span>
+            <span className="font-bold text-[#0f172a]">{formatPrice(shippingFee)}</span>
           )}
         </div>
 
@@ -134,9 +137,9 @@ export default function ExpressOrderSummary({
         <div className="pt-3 border-t border-[#e2e8f0] flex justify-between items-baseline">
           <h3 className="text-[15px] font-black text-[#0f172a] uppercase tracking-tight">Total</h3>
           <div className="flex items-baseline gap-1.5">
-            <span className="text-[10px] text-[#94a3b8] uppercase font-black tracking-widest">INR</span>
+            <span className="text-[10px] text-[#94a3b8] uppercase font-black tracking-widest">{currency}</span>
             <span className="text-2xl font-black text-[#0f172a]">
-              ₹{total.toLocaleString()}
+              {formatPrice(total)}
             </span>
           </div>
         </div>

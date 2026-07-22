@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useSharedContext } from "@/context/SharedContext";
+import { useCountry } from "@/context/CountryContext";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import ReviewForm from "@/components/ReviewForm";
@@ -360,6 +361,7 @@ function OrderCard({
   const { canPay, reason, minutesLeft } = canRetryPayment(order);
   const isPendingOrFailed = ['pending', 'failed'].includes(order.status?.toLowerCase() || '');
   const isCOD = order.paymentMethod === 'cod';  // ✅ Check if COD order
+  const { formatPrice } = useCountry();
 
   return (
     <div className="bg-white p-6 rounded-xl shadow-sm border">
@@ -380,11 +382,11 @@ function OrderCard({
         <div className="mb-4 p-4 rounded-lg bg-purple-50 border border-purple-200">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-              <span className="text-lg font-bold text-purple-700">₹</span>
+              <span className="text-lg font-bold text-purple-700">🚚</span>
             </div>
             <div>
               <p className="font-medium text-purple-800">Cash on Delivery</p>
-              <p className="text-sm text-purple-600">Pay ₹{(order.total || 0).toFixed(0)} when your order arrives</p>
+              <p className="text-sm text-purple-600">Pay {formatPrice(order.total || 0)} when your order arrives</p>
             </div>
           </div>
         </div>
@@ -468,7 +470,7 @@ function OrderCard({
                 <p className="font-medium text-slate-900 leading-snug line-clamp-2 pr-2 text-sm sm:text-base">{item.name}</p>
                 <div className="flex justify-between items-center mt-1">
                   <p className="text-xs sm:text-sm text-slate-500 font-medium">Qty: {item.quantity}</p>
-                  <p className="font-bold text-slate-900 text-sm sm:text-base">₹{item.price.toFixed(2)}</p>
+                  <p className="font-bold text-slate-900 text-sm sm:text-base">{formatPrice(item.price)}</p>
                 </div>
               </div>
             </div>
@@ -547,7 +549,7 @@ function OrderCard({
         <div className="flex items-center gap-2 self-end sm:self-auto">
           <span className="font-semibold text-slate-600">Order Total:</span>
           <span className="text-xl font-bold text-slate-900">
-            ₹{(order.total || order.items.reduce((total, item) => total + item.price * item.quantity, 0)).toFixed(2)}
+            {formatPrice(order.total || order.items.reduce((total, item) => total + item.price * item.quantity, 0))}
           </span>
         </div>
       </div>

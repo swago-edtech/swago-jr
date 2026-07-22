@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { useCountry } from '@/context/CountryContext';
 
 interface BonusItem {
   threshold: number;
@@ -16,8 +17,10 @@ interface CartProgressProps {
 
 export default function CartProgress({
   total,
-  promotionData: promotion
-}: CartProgressProps) {  const shippingThreshold = promotion?.shippingThreshold || 1450;
+  promotionData: promotion,
+}: CartProgressProps) {
+  const { isInternational } = useCountry();
+  const shippingThreshold = promotion?.shippingThreshold || 1450;
   
   // Sort bonus items by threshold to ensure correct progress display
   const bonusItems = useMemo(() => {
@@ -45,6 +48,7 @@ export default function CartProgress({
 
   if (!promotion) return null;
   if (promotion.isActive === false) return null;
+  if (isInternational) return null;
 
   return (
     <div className="bg-white rounded-[1.5rem] px-4 pt-3 pb-4 border border-slate-100 shadow-sm mb-4">

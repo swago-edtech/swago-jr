@@ -22,8 +22,8 @@ export default function Navbar() {
   const [isElementDropdownOpen, setElementDropdownOpen] = useState(false);
   const [isUserMenuOpen, setUserMenuOpen] = useState(false);
   const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
 
   const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
@@ -31,7 +31,6 @@ export default function Navbar() {
   const elementDropdownRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
-  // ✅ UPDATED: Dispatch logout event to clear context
   const handleLogout = async () => {
     window.dispatchEvent(new CustomEvent(USER_EVENTS.LOGOUT));
     await fetch("/api/logout", { method: "POST" });
@@ -114,6 +113,8 @@ export default function Navbar() {
       <div className="flex-initial md:flex-1 flex justify-end items-center gap-1 md:gap-4">
         {process.env.NEXT_PUBLIC_BLOG_ONLY_MODE !== "true" && (
           <>
+
+
             {/* Swago Dollars Button */}
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <Link href={mounted && user ? "/profile" : "/login?redirect=/profile"} className="relative p-1 sm:p-2 flex items-center gap-1 sm:gap-1.5 group transition-colors bg-purple-50 hover:bg-purple-100 rounded-lg sm:rounded-full md:rounded-lg" aria-label="Swago Dollars">

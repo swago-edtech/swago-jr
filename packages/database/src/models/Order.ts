@@ -104,7 +104,13 @@ const OrderSchema = new mongoose.Schema(
     // ✅ NEW: GST Tracking
     taxCollected: { type: Number, default: 0 },
     // ✅ NEW: Invoice Tracking
-    invoiceUrl: { type: String, required: false }
+    invoiceUrl: { type: String, required: false },
+    // International order tracking
+    country: { type: String, default: "IN", uppercase: true },
+    currency: { type: String, default: "INR", uppercase: true },
+    displayTotal: { type: Number },
+    exchangeRateUsed: { type: Number, default: 1 },
+    internationalShippingFee: { type: Number, default: 0 }
   },
   { timestamps: true }
 );

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useSharedContext, Product, CartItem } from "@/context/SharedContext";
+import { useCountry } from "@/context/CountryContext";
 import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
@@ -224,6 +225,7 @@ export default function ProductPageClient({ product }: { product: Product }) {
   const [quantity, setQuantity] = useState(1);
   const [openAccordion, setOpenAccordion] = useState<string | null>("description");
   const { cart, addToCart, isWishlisted, addToWishlist, removeFromWishlist, user, openCartSidebar, increaseQty, decreaseQty } = useSharedContext();
+  const { formatPrice, country } = useCountry();
   const [showStickyBar, setShowStickyBar] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
 
@@ -642,12 +644,12 @@ export default function ProductPageClient({ product }: { product: Product }) {
 
             <div className="flex items-center gap-2 md:gap-3 flex-wrap my-1.5">
               <p className="text-2xl md:text-3xl font-black text-slate-900 text-pop-bounce">
-                ₹{product.price}
+                {formatPrice(product.price)}
               </p>
               {originalPrice && (
                 <div className="flex items-center gap-2">
                   <span className="text-base md:text-xl text-slate-400 line-through">
-                    ₹{originalPrice}
+                    {formatPrice(originalPrice)}
                   </span>
                   <span className="inline-block bg-[hsl(var(--swago-orange))] text-white text-[10px] md:text-sm font-bold px-1.5 md:px-3 py-0.5 md:py-1 rounded">
                     {percentOff}% OFF
@@ -822,9 +824,9 @@ export default function ProductPageClient({ product }: { product: Product }) {
                     {product.name}
                   </h4>
                   <div className="flex items-center gap-2">
-                    <span className="font-black text-[hsl(var(--swago-purple))] text-sm sm:text-base">₹{product.price}</span>
+                    <span className="font-black text-[hsl(var(--swago-purple))] text-sm sm:text-base">{formatPrice(product.price)}</span>
                     {originalPrice && (
-                      <span className="text-[10px] sm:text-xs text-slate-400 line-through">₹{originalPrice}</span>
+                      <span className="text-[10px] sm:text-xs text-slate-400 line-through">{formatPrice(originalPrice)}</span>
                     )}
                   </div>
                 </div>

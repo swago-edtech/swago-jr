@@ -337,4 +337,22 @@ export interface WaitlistInput {
 }
 
 
+// International / Multi-Currency Types
+export interface CountryConfig {
+  code: string;
+  name: string;
+  currency: string;
+  currencySymbol: string;
+  phonePrefix: string;
+  shippingFee: number;
+  isDefault: boolean;
+  isActive: boolean;
+  exchangeRate: number;
+}
+
+export interface InternationalPricing {
+  price: number;
+  originalPrice?: number;
+}
+
 export { };

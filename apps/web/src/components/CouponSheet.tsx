@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
+import { useCountry } from "@/context/CountryContext";
 
 interface Coupon {
   code: string;
@@ -32,6 +33,7 @@ export default function CouponSheet({
   error
 }: CouponSheetProps) {
   const [couponInput, setCouponInput] = useState('');
+  const { formatPrice } = useCountry();
 
   const handleApplyClick = () => {
     if (couponInput.trim()) {
@@ -69,7 +71,7 @@ export default function CouponSheet({
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-white rounded-t-[2.5rem]">
               <div>
                 <h3 className="text-base font-black text-slate-900 tracking-tight">Coupons & Offers</h3>
-                <p className="text-[10px] text-slate-400 font-bold mt-0.5">Cart value · ₹{total.toFixed(0)}</p>
+                <p className="text-[10px] text-slate-400 font-bold mt-0.5">Cart value · {formatPrice(total)}</p>
               </div>
               <button onClick={onClose} className="w-9 h-9 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
@@ -145,7 +147,7 @@ export default function CouponSheet({
                             </div>
                           ) : (
                             <p className="text-[9px] text-slate-400 font-bold tracking-tight">
-                              Add ₹{(coupon.minOrder - total).toFixed(0)} more to unlock
+                              Add {formatPrice(coupon.minOrder - total)} more to unlock
                             </p>
                           )}
                         </div>

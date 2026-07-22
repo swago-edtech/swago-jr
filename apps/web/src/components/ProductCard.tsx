@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Product, CartItem, useSharedContext } from "@/context/SharedContext";
+import { useCountry } from "@/context/CountryContext";
 import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
@@ -12,6 +13,7 @@ import { RiShareForwardFill } from "react-icons/ri";
 export default function ProductCard({ product }: { product: Product }) {
   const router = useRouter();
   const { cart, addToCart, addToWishlist, removeFromWishlist, isWishlisted, openCartSidebar, increaseQty, decreaseQty } = useSharedContext();
+  const { getLocalPrice, formatPrice } = useCountry();
 
   // Use MongoDB _id or slug for routing
   const productIdentifier = product._id || product.slug || '';
@@ -124,11 +126,12 @@ export default function ProductCard({ product }: { product: Product }) {
 
   // Support both naming conventions
   const ageCategory = product.ageCategory || product.age_category || '';
-  const originalPrice = product.originalPrice || product.original_price;
+  const localPricing = getLocalPrice(product as any);
+  const localPrice = localPricing.price;
+  const localOriginalPrice = localPricing.originalPrice;
 
-  // Calculate percentage off
-  const percentOff = originalPrice
-    ? Math.round(((originalPrice - product.price) / originalPrice) * 100)
+  const percentOff = localOriginalPrice
+    ? Math.round(((localOriginalPrice - localPrice) / localOriginalPrice) * 100)
     : 0;
 
   const displayName = product.name;
@@ -228,9 +231,9 @@ export default function ProductCard({ product }: { product: Product }) {
                       -{percentOff}%
                     </span>
                   )}
-                  <span className="text-base sm:text-lg font-black text-slate-900">₹{product.price}</span>
-                  {originalPrice && (
-                    <span className="text-[10px] sm:text-xs text-slate-400 line-through font-medium">₹{originalPrice}</span>
+                  <span className="text-base sm:text-lg font-black text-slate-900">{formatPrice(product.price)}</span>
+                  {localOriginalPrice && (
+                    <span className="text-[10px] sm:text-xs text-slate-400 line-through font-medium">{formatPrice(product.originalPrice || 0)}</span>
                   )}
                 </div>
                 {ageCategory && (

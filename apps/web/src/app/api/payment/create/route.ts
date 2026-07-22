@@ -2,14 +2,13 @@ import { NextResponse } from "next/server";
 import Razorpay from "razorpay";
 import mongoose from "mongoose";
 import { getLoginSession } from "@/lib/auth";
-import { connectDB, Product, Order, User, Coupon as CouponModel, Promotion } from "@swago/database";
+import { connectDB, Product, Order, User, Coupon as CouponModel, Promotion, InternationalConfig } from "@swago/database";
 import { isValidObjectId } from "mongoose";
 import { generateOrderId } from "@/lib/generateOrderId";
 import { cleanupExpiredOrders } from "@/lib/cleanupExpiredOrders";
 import { validateCoupon } from "@/lib/coupon";
 
 
-// ✅ Type definitions
 interface ProductDocument {
   _id: string;
   name: string;
@@ -44,7 +43,6 @@ interface OrderItem {
 }
 
 
-// Helper to get product by ID or slug
 async function getProductById(id: string): Promise<ProductDocument | null> {
   try {
     // Try slug first
@@ -84,13 +82,13 @@ export async function POST(req: Request) {
 
 
     // ========================================
-    // ✅ STOCK VALIDATION & RESERVATION
+    // STOCK VALIDATION & RESERVATION
     // ========================================
-    console.log('🔍 Starting stock validation for', orderDetails.cart.length, 'items');
+    console.log('Starting stock validation for', orderDetails.cart.length, 'items');
 
     await connectDB();
 
-    // ✅ Clean up expired orders first to release reserved stock
+    // Clean up expired orders first to release reserved stock
     await cleanupExpiredOrders();
 
     // Find the user first
@@ -111,13 +109,13 @@ export async function POST(req: Request) {
 
     // Step 1: Validate all items have sufficient stock
     for (const item of orderDetails.cart) {
-      // ✅ FIXED: Check numeric id FIRST (for hardcoded products), then productId, then _id
+      // Check numeric id FIRST (for hardcoded products), then productId, then _id
       // MongoDB embeds add _id to subdocuments, so we need to prioritize the product's actual ID
       const productId = item.id?.toString() || item.productId?.toString() || item._id;
 
-      // ✅ DEBUG LOGGING
+      // DEBUG LOGGING
       console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-      console.log('🔍 Item:', item.name);
+      console.log('Item:', item.name);
       console.log('   item.id:', item.id, 'item.productId:', item.productId, 'item._id:', item._id);
       console.log('   Final productId:', productId);
       console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
@@ -165,7 +163,7 @@ export async function POST(req: Request) {
 
 
     // Step 2: Reserve stock for all items (only DB products)
-    console.log('✅ Stock validation passed. Reserving stock...');
+    console.log('Stock validation passed. Reserving stock...');
 
     for (const { product, quantity } of reservations) {
       product.reservedStock = Math.max(0, product.reservedStock || 0) + quantity;
@@ -174,19 +172,19 @@ export async function POST(req: Request) {
     }
 
 
-    console.log('✅ Stock reserved successfully for all items');
+    console.log('Stock reserved successfully for all items');
     // ========================================
 
 
     // ========================================
-    // ✅ NEW: CREATE ORDER BEFORE PAYMENT
+    // NEW: CREATE ORDER BEFORE PAYMENT
     // ========================================
-    console.log('📝 Creating order before payment...');
+    console.log('Creating order before payment...');
 
     const orderId = await generateOrderId();
-    console.log('✅ Generated Order ID:', orderId);
+    console.log('Generated Order ID:', orderId);
 
-    // ✅ ZEPRO Reference: Server-side Bonus Item Validation
+    // ZEPRO Reference: Server-side Bonus Item Validation
     const activePromotion = await Promotion.findOne({ isActive: true }).lean() as any;
 
     const BONUS_THRESHOLDS: Record<string, number> = {};
@@ -279,7 +277,7 @@ export async function POST(req: Request) {
 
     const calculatedAmountAfterCoupon = Math.max(0, subtotal - discountAmount);
 
-    // ✅ NEW: Handle Swago Money Redemption
+    // NEW: Handle Swago Money Redemption
     const swagoMoneyRedeemed = orderDetails.swagoMoneyRedeemed || 0;
 
     if (swagoMoneyRedeemed > 0) {
@@ -292,7 +290,7 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: `You can only use up to 5% (₹${maxAllowed}) of your order amount in Swago Dollars` }, { status: 400 });
       }
 
-      // ✅ Verify User has enough — check directly on User
+      // Verify User has enough — check directly on User
       const totalAvailable = user.ambassador?.swagoMoney || user.swagoMoney || 0;
 
       if (totalAvailable < swagoMoneyRedeemed) {
@@ -300,8 +298,21 @@ export async function POST(req: Request) {
       }
     }
 
-    // Online payments always have free shipping
-    const shippingFee = 0;
+    const countryCode = orderDetails.country || 'IN';
+    const currency = orderDetails.currency || 'INR';
+    const exchangeRateUsed = orderDetails.exchangeRate || 1;
+
+    let shippingFee = 0;
+    if (countryCode !== 'IN') {
+      const config = await InternationalConfig.findOne({ isSingleton: true }).lean() as any;
+      if (config && config.supportedCountries) {
+        const countryConfig = config.supportedCountries.find((c: any) => c.code === countryCode);
+        if (countryConfig) {
+          shippingFee = countryConfig.shippingFee || 0;
+        }
+      }
+    }
+
     const calculatedTotal = Math.max(0, calculatedAmountAfterCoupon - swagoMoneyRedeemed + shippingFee);
 
     // Verify if calculated total matches what frontend sent (optional safety check)
@@ -314,7 +325,7 @@ export async function POST(req: Request) {
     const newOrder = await Order.create({
       orderId: orderId,
       userId: new mongoose.Types.ObjectId(user._id),
-      paymentMethod: 'razorpay',  // ✅ Explicit payment method
+      paymentMethod: 'razorpay',  // Explicit payment method
       phone: orderDetails.phone,
       email: orderDetails.email,
       name: orderDetails.name,
@@ -328,12 +339,17 @@ export async function POST(req: Request) {
       items: orderItems,
       subtotal: subtotal,
       discount: discountAmount,
-      shippingFee: shippingFee,
+      shippingFee: countryCode === 'IN' ? shippingFee : 0,
+      internationalShippingFee: countryCode !== 'IN' ? shippingFee : 0,
       total: calculatedTotal,
       swagoMoneyRedeemed: swagoMoneyRedeemed,
       swagoMoneyKidId: user._id,
       stockReservedAt: new Date(),
       paymentAttempts: 0,
+      country: countryCode,
+      currency: currency,
+      exchangeRateUsed: exchangeRateUsed,
+      displayTotal: calculatedTotal * exchangeRateUsed,
       ...(validatedCoupon && {
         couponCode: validatedCoupon.code,
         couponDetails: validatedCoupon,
@@ -398,11 +414,11 @@ export async function POST(req: Request) {
 
 
     const options = {
-      amount: Math.round(calculatedTotal * 100),
-      currency: "INR",
-      receipt: orderId,  // ✅ Use our orderId as receipt
+      amount: Math.round((currency === "INR" ? calculatedTotal : calculatedTotal * exchangeRateUsed) * 100),
+      currency: currency,
+      receipt: orderId,  // Use our orderId as receipt
       notes: {
-        // ✅ NEW: Our order reference
+        // NEW: Our order reference
         orderId: orderId,
         mongoOrderId: newOrder._id.toString(),
 
@@ -446,12 +462,12 @@ export async function POST(req: Request) {
       const razorpayOrder = await razorpay.orders.create(options);
       console.log("✅ Razorpay order created:", razorpayOrder.id);
 
-      // ✅ Update our order with Razorpay reference
+      // Update our order with Razorpay reference
       newOrder.razorpay_order_id = razorpayOrder.id;
       await newOrder.save();
       console.log("✅ Order updated with Razorpay order ID");
 
-      // ✅ Return both our orderId and Razorpay data
+      // Return both our orderId and Razorpay data
       return NextResponse.json({
         ...razorpayOrder,
         key: process.env.RAZORPAY_KEY_ID, // Add key for frontend

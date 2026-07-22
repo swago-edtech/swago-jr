@@ -135,6 +135,15 @@ const ProductSchema = new mongoose.Schema(
       // ❌ REMOVED: unique: true,
       trim: true,
       lowercase: true
+    },
+
+    internationalPricing: {
+      type: Map,
+      of: new mongoose.Schema({
+        price: { type: Number, min: 0, required: true },
+        originalPrice: { type: Number, min: 0 },
+      }, { _id: false }),
+      default: new Map(),
     }
 
   },

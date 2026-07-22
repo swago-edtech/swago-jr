@@ -3,6 +3,7 @@
 import { useState, FormEvent } from 'react';
 import { FiPhone, FiMail, FiMapPin, FiX } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useCountry } from '@/context/CountryContext';
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
@@ -13,6 +14,8 @@ export default function ContactPage() {
     subject: '',
     message: '',
   });
+
+  const { country } = useCountry();
 
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -287,7 +290,7 @@ export default function ContactPage() {
                   value={formData.phone}
                   onChange={handleChange}
                   className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[hsl(var(--swago-purple))] focus:border-transparent"
-                  placeholder="+91 XXXXX XXXXX"
+                  placeholder={`${country?.phonePrefix || '+91'} XXXXX XXXXX`}
                   disabled={loading}
                 />
               </div>

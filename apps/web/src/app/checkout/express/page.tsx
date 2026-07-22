@@ -11,6 +11,7 @@ import CartProgress from "@/components/CartProgress";
 import ExpressOrderSummary from "@/components/ExpressOrderSummary";
 import ExpressCrossSell from "@/components/ExpressCrossSell";
 import { Feedback } from "@/lib/feedback";
+import { useCountry } from "@/context/CountryContext";
 
 const INDIAN_STATES = [
   "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa", "Gujarat", "Haryana",
@@ -34,6 +35,7 @@ function ExpressCheckoutContent() {
   const utmSource = searchParams.get("utm_source") || "";
   const utmMedium = searchParams.get("utm_medium") || "";
   const utmCampaign = searchParams.get("utm_campaign") || "";
+  const { formatPrice, country, isInternational } = useCountry();
 
   // Page state
   const [loading, setLoading] = useState(true);
@@ -263,7 +265,7 @@ function ExpressCheckoutContent() {
     }
 
     if (applicableAmount < (couponData.minAmount || 0)) {
-       return { valid: false, discount: 0, error: `Minimum amount of ₹${couponData.minAmount} required` };
+       return { valid: false, discount: 0, error: `Minimum amount of ${formatPrice(couponData.minAmount)} required` };
     }
 
     let discountAmount = 0;
@@ -282,10 +284,11 @@ function ExpressCheckoutContent() {
   const discount = dynamicCoupon.discount;
   
   const isCodBlocked = useMemo(() => {
+    if (isInternational) return true;
     const stateBlocked = promotion?.blockedCodStates?.some((blockedState: string) => blockedState.toLowerCase() === state.toLowerCase()) || false;
     const pincodeBlocked = promotion?.blockedCodPincodes?.includes(pincode) || false;
     return stateBlocked || pincodeBlocked;
-  }, [promotion, state, pincode]);
+  }, [promotion, state, pincode, isInternational]);
 
   useEffect(() => {
     if (isCodBlocked && paymentMethod === "cod") {
@@ -294,10 +297,11 @@ function ExpressCheckoutContent() {
   }, [isCodBlocked, paymentMethod]);
 
   const shippingFee = useMemo(() => {
+    if (isInternational) return country?.shippingFee || 0;
     if (paymentMethod === "razorpay") return 0;
     const threshold = promotion?.shippingThreshold || 1450;
     return subtotal >= threshold ? 0 : 50;
-  }, [paymentMethod, subtotal, promotion]);
+  }, [paymentMethod, subtotal, promotion, isInternational, country]);
   const finalTotal = useMemo(() => Math.max(0, subtotal - discount + shippingFee), [subtotal, discount, shippingFee]);
 
   // ========================================
@@ -305,7 +309,7 @@ function ExpressCheckoutContent() {
   // ========================================
   const validateForm = () => {
     const errs: string[] = [];
-    if (!phone || phone.length < 10) errs.push("phone");
+    if (!phone || phone.length < 7 || phone.length > 15) errs.push("phone");
     if (!email || !email.includes("@")) errs.push("email");
     if (!firstName) errs.push("firstName");
     if (!lastName) errs.push("lastName");
@@ -331,15 +335,18 @@ function ExpressCheckoutContent() {
       }
       setProcessing(true); setMessage("Sending OTP...");
       
-      const formattedPhone = "91" + phone;
+      const phonePrefixNoPlus = country?.phonePrefix?.replace('+', '') || '91';
+      const formattedPhone = phonePrefixNoPlus + phone;
       window.sendOtp(
         formattedPhone,
         (data: any) => {
+          fetch('/api/log-msg91', { method: 'POST', body: JSON.stringify({ status: 'SUCCESS', data }) }).catch(()=>{});
           setShowOtpModal(true);
           setMessage("");
           setProcessing(false);
         },
         (error: any) => {
+          fetch('/api/log-msg91', { method: 'POST', body: JSON.stringify({ status: 'ERROR', data: error }) }).catch(()=>{});
           setMessage(`❌ ${error.message || "Failed to send OTP"}`);
           setProcessing(false);
         }
@@ -360,6 +367,9 @@ function ExpressCheckoutContent() {
         items: cart.map(i => ({ productId: i._id, quantity: i.quantity })),
         customer: { phone, email, name: `${firstName} ${lastName}`.trim(), address, city, state, pincode },
         paymentMethod,
+        country: country?.code || "IN",
+        currency: country?.currency || "INR",
+        exchangeRate: country?.exchangeRate || 1,
         ...(couponData?.valid && { couponCode: couponData.code }),
         ...(accessToken && { accessToken }),
         utm: { source: utmSource || undefined, medium: utmMedium || undefined, campaign: utmCampaign || undefined },
@@ -480,7 +490,7 @@ function ExpressCheckoutContent() {
           <div>
             <p className="text-[13px] font-black text-[#10b981]">{couponData.code}</p>
             {dynamicCoupon.valid ? (
-              <p className="text-[11px] font-bold text-[#10b981]/80">−₹{dynamicCoupon.discount} off</p>
+              <p className="text-[11px] font-bold text-[#10b981]/80">−{formatPrice(dynamicCoupon.discount)} off</p>
             ) : (
               <p className="text-[11px] font-bold text-[#ef4444]">{dynamicCoupon.error}</p>
             )}
@@ -670,7 +680,7 @@ function ExpressCheckoutContent() {
               {/* Pay Button */}
               <button onClick={handlePayNow} disabled={processing}
                 className="w-full py-3.5 bg-[hsl(var(--swago-purple))] hover:opacity-90 text-white shadow-sm shadow-[hsl(var(--swago-purple))] hover:shadow-md hover:shadow-[hsl(var(--swago-purple))] text-[13px] font-bold rounded-xl transition flex justify-center items-center tracking-widest disabled:opacity-50">
-                {processing ? "Processing..." : paymentMethod === "cod" ? `Place Order — ₹${finalTotal.toLocaleString()}` : `Pay ₹${finalTotal.toLocaleString()}`}
+                {processing ? "Processing..." : paymentMethod === "cod" ? `Place Order — ${formatPrice(finalTotal)}` : `Pay ${formatPrice(finalTotal)}`}
               </button>
 
               <footer className="pt-5 border-t border-[#e2e8f0]/80 flex flex-wrap justify-center gap-x-6 gap-y-2 text-[10px] text-[#94a3b8] tracking-widest font-bold">

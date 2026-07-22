@@ -3,6 +3,7 @@
 import "./globals.css";
 import { GoogleAnalytics } from '@next/third-parties/google';
 import { SharedProvider } from "@/context/SharedContext";
+import { CountryProvider } from "@/context/CountryContext";
 import { Poppins } from "next/font/google";
 
 const poppins = Poppins({
@@ -28,11 +29,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="en" className={poppins.variable}>
       <body className="flex flex-col min-h-screen bg-gray-50 font-poppins">
         <SharedProvider>
-          <Suspense fallback={<div className="flex-grow" />}>
-            <LayoutUI isBlogOnly={isBlogOnly}>
-              {children}
-            </LayoutUI>
-          </Suspense>
+          <CountryProvider>
+            <Suspense fallback={<div className="flex-grow" />}>
+              <LayoutUI isBlogOnly={isBlogOnly}>
+                {children}
+              </LayoutUI>
+            </Suspense>
+          </CountryProvider>
         </SharedProvider>
 
         {/* Google Analytics Component */}

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import mongoose from "mongoose";
 import { getLoginSession } from "@/lib/auth";
-import { connectDB, Product, Order, User, Coupon as CouponModel, Promotion } from "@swago/database";
+import { connectDB, Product, Order, User, Coupon as CouponModel, Promotion, InternationalConfig } from "@swago/database";
 import { isValidObjectId } from "mongoose";
 import { generateOrderId } from "@/lib/generateOrderId";
 import { sendOrderConfirmationEmail } from "@/lib/msg91-email";
@@ -11,7 +11,7 @@ import { invalidateProductCache } from "@/lib/productCache";
 import { validateCoupon } from "@/lib/coupon";
 import { generateAndUploadInvoice } from "@/lib/invoice-service";
 
-// ✅ Type definitions
+
 interface ProductDocument {
     _id: string;
     name: string;
@@ -59,7 +59,7 @@ async function getProductById(id: string): Promise<ProductDocument | null> {
     }
 }
 
-// ✅ Check if phone is Indian (+91)
+// Check if phone is Indian (+91)
 function isIndianPhone(phone: string): boolean {
     if (!phone) return false;
     // Check for +91 prefix (with or without space/dash)
@@ -83,7 +83,15 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Cart is required" }, { status: 400 });
         }
 
-        // ✅ India-only check
+        const countryCode = orderDetails.country || 'IN';
+        if (countryCode !== 'IN') {
+            return NextResponse.json({
+                error: "COD is only available in India",
+                code: "INDIA_ONLY"
+            }, { status: 400 });
+        }
+
+        
         const phone = orderDetails.phone || session.phone;
         if (!phone || !isIndianPhone(phone)) {
             return NextResponse.json({
@@ -93,13 +101,13 @@ export async function POST(req: Request) {
         }
 
         // ========================================
-        // ✅ STOCK VALIDATION & RESERVATION
+        
         // ========================================
         console.log('🔍 [COD] Starting stock validation for', orderDetails.cart.length, 'items');
 
         await connectDB();
 
-        // ✅ Check COD Blocked States & Pincodes
+        
         const activePromotion = await Promotion.findOne().lean() as any;
         const isBlockedState = activePromotion?.blockedCodStates?.some((blockedState: string) => blockedState.toLowerCase() === orderDetails.state.toLowerCase());
         const isBlockedPincode = activePromotion?.blockedCodPincodes?.includes(orderDetails.pincode);
@@ -107,7 +115,7 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "COD is not available in your location" }, { status: 400 });
         }
 
-        // ✅ Clean up expired orders first to release reserved stock
+        // Clean up expired orders first to release reserved stock
         await cleanupExpiredOrders();
 
         // Find the user
@@ -184,11 +192,11 @@ export async function POST(req: Request) {
         }
 
         // ========================================
-        // ✅ CREATE COD ORDER
+        // CALCULATE FINAL TOTAL ORDER
         // ========================================
         const orderId = await generateOrderId();
 
-        // ✅ ZEPRO Reference: Server-side Bonus Item Validation
+        // ZEPRO Reference: Server-side Bonus Item Validation
         // activePromotion is already fetched above
 
         const BONUS_THRESHOLDS: Record<string, number> = {};
@@ -202,7 +210,7 @@ export async function POST(req: Request) {
             BONUS_THRESHOLDS['special-edition-item'] = 1999;
         }
 
-        // ✅ SECURITY FIX: Calculate non-bonus subtotal using DB prices, NOT frontend prices
+        // SECURITY FIX: Calculate non-bonus subtotal using DB prices, NOT frontend prices
         const nonBonusSubtotal = orderDetails.cart.reduce((sum: number, item: any) => {
             const productId = item.id?.toString() || item.productId?.toString() || item._id;
             const reservation = reservations.find(r =>
@@ -227,7 +235,7 @@ export async function POST(req: Request) {
             }
         }
 
-        // ✅ SECURITY FIX: Build order items using DB-verified prices (not frontend prices)
+        // SECURITY FIX: Build order items using DB-verified prices (not frontend prices)
         const orderItems: OrderItem[] = orderDetails.cart.map((item: CartItem) => {
             const productId = item.id?.toString() || (item as any).productId?.toString() || item._id;
             const reservation = reservations.find(r =>
@@ -253,7 +261,7 @@ export async function POST(req: Request) {
             };
         });
 
-        // ✅ Subtotal from DB-verified order items (source of truth)
+        // Subtotal from DB-verified order items (source of truth)
         const subtotal = orderItems.reduce(
             (sum: number, item: OrderItem) => sum + (item.price * item.quantity),
             0
@@ -279,7 +287,7 @@ export async function POST(req: Request) {
 
         const calculatedAmountAfterCoupon = Math.max(0, subtotal - discountAmount);
 
-        // ✅ NEW: Handle Swago Money Redemption
+        // NEW: Handle Swago Money Redemption
         const swagoMoneyRedeemed = orderDetails.swagoMoneyRedeemed || 0;
 
         if (swagoMoneyRedeemed > 0) {
@@ -292,7 +300,7 @@ export async function POST(req: Request) {
                 return NextResponse.json({ error: `You can only use up to 5% (₹${maxAllowed}) of your order amount in Swago Dollars` }, { status: 400 });
             }
 
-            // ✅ Verify User has enough — check directly on User
+            // Verify User has enough — check directly on User
             const totalAvailable = user.ambassador?.swagoMoney || user.swagoMoney || 0;
 
             if (totalAvailable < swagoMoneyRedeemed) {
@@ -323,11 +331,16 @@ export async function POST(req: Request) {
             subtotal: subtotal,
             discount: discountAmount,
             shippingFee: shippingFee,
+            internationalShippingFee: 0,
             total: calculatedTotal,
             swagoMoneyRedeemed: swagoMoneyRedeemed,
-            swagoMoneyKidId: user._id, // ✅ Now references User directly
+            swagoMoneyKidId: user._id, // Now references User directly
             stockReservedAt: new Date(),
             createdVia: 'frontend',
+            country: countryCode,
+            currency: 'INR',
+            exchangeRateUsed: 1,
+            displayTotal: calculatedTotal,
             ...(validatedCoupon && {
                 couponCode: validatedCoupon.code,
                 couponDetails: validatedCoupon,
@@ -347,7 +360,7 @@ export async function POST(req: Request) {
             user.orders.push(newOrder._id);
             await user.save();
 
-            // ✅ Deduct Swago Money from User directly
+            // Deduct Swago Money from User directly
             if (swagoMoneyRedeemed > 0) {
                 await User.updateOne(
                     { _id: user._id },
@@ -384,7 +397,7 @@ export async function POST(req: Request) {
             console.error('Email failed:', emailError);
         }
 
-        // ✅ Generate Invoice in background
+        // Generate Invoice in background
         generateAndUploadInvoice(newOrder).catch(err => {
             console.error('Invoice generation failed:', err);
         });
