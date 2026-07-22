@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Script from 'next/script';
 import { useSharedContext, USER_EVENTS } from '@/context/SharedContext';
+import { useCountry } from '@/context/CountryContext';
 import type { MSG91WidgetSuccessData, MSG91WidgetError } from '@swago/types'; // ✅ NEW
 
 type FormMode = 'register' | 'login';
@@ -14,6 +15,7 @@ type FormMode = 'register' | 'login';
 export default function ApplicationForm() {
   const router = useRouter();
   const { setUser, user, isLoadingUser } = useSharedContext();
+  const { country } = useCountry();
 
   const [mode, setMode] = useState<FormMode>('register');
   const [step, setStep] = useState<'form' | 'otp' | 'success'>('form');
@@ -380,7 +382,7 @@ export default function ApplicationForm() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          identifier: "+91" + formData.parentPhone.trim(),
+          identifier: (country?.phonePrefix || '+91') + formData.parentPhone.trim(),
           authMethod: "phone"
         }),
       });
@@ -503,7 +505,7 @@ export default function ApplicationForm() {
               accessToken,
               parentName: formData.parentName.trim(),
               parentEmail: formData.parentEmail.toLowerCase().trim(),
-              parentPhone: "+91" + formData.parentPhone.trim(),
+              parentPhone: (country?.phonePrefix || '+91') + formData.parentPhone.trim(),
               city: formData.city.trim(),
               childName: formData.childName.trim(),
               childAge: parseInt(formData.childAge),
@@ -827,7 +829,7 @@ export default function ApplicationForm() {
                             <div className="w-20">
                               <input
                                 type="text"
-                                value="+91"
+                                value={country?.phonePrefix || '+91'}
                                 disabled
                                 aria-label="Country code"
                                 title="India country code"

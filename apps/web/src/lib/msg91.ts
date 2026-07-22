@@ -21,6 +21,11 @@ export function formatPhoneForMSG91(phone: string): string {
  */
 export function formatPhoneForStorage(phone: string): string {
   if (!phone) return "";
+  
+  if (phone.startsWith('+')) {
+    return '+' + phone.replace(/[^\d]/g, '');
+  }
+  
   const cleanPhone = phone.replace(/[^\d]/g, '');
   
   if (cleanPhone.length === 10) return `+91${cleanPhone}`;

@@ -32,6 +32,7 @@ const navigation = [
       { name: 'Announcement Banner', href: '/announcement' },
       { name: 'Home Pop-up', href: '/home-popup' },
       { name: 'Rush Timer Countdown', href: '/express-config' },
+      { name: 'International Config', href: '/international-config' },
     ]
   },
   { name: 'Orders', href: '/orders', icon: ShoppingBag },

@@ -284,10 +284,11 @@ function ExpressCheckoutContent() {
   const discount = dynamicCoupon.discount;
   
   const isCodBlocked = useMemo(() => {
+    if (isInternational) return true;
     const stateBlocked = promotion?.blockedCodStates?.some((blockedState: string) => blockedState.toLowerCase() === state.toLowerCase()) || false;
     const pincodeBlocked = promotion?.blockedCodPincodes?.includes(pincode) || false;
     return stateBlocked || pincodeBlocked;
-  }, [promotion, state, pincode]);
+  }, [promotion, state, pincode, isInternational]);
 
   useEffect(() => {
     if (isCodBlocked && paymentMethod === "cod") {
@@ -296,10 +297,11 @@ function ExpressCheckoutContent() {
   }, [isCodBlocked, paymentMethod]);
 
   const shippingFee = useMemo(() => {
+    if (isInternational) return country?.shippingFee || 0;
     if (paymentMethod === "razorpay") return 0;
     const threshold = promotion?.shippingThreshold || 1450;
     return subtotal >= threshold ? 0 : 50;
-  }, [paymentMethod, subtotal, promotion]);
+  }, [paymentMethod, subtotal, promotion, isInternational, country]);
   const finalTotal = useMemo(() => Math.max(0, subtotal - discount + shippingFee), [subtotal, discount, shippingFee]);
 
   // ========================================
@@ -307,7 +309,7 @@ function ExpressCheckoutContent() {
   // ========================================
   const validateForm = () => {
     const errs: string[] = [];
-    if (!phone || phone.length < 10) errs.push("phone");
+    if (!phone || phone.length < 7 || phone.length > 15) errs.push("phone");
     if (!email || !email.includes("@")) errs.push("email");
     if (!firstName) errs.push("firstName");
     if (!lastName) errs.push("lastName");
@@ -333,15 +335,18 @@ function ExpressCheckoutContent() {
       }
       setProcessing(true); setMessage("Sending OTP...");
       
-      const formattedPhone = "91" + phone;
+      const phonePrefixNoPlus = country?.phonePrefix?.replace('+', '') || '91';
+      const formattedPhone = phonePrefixNoPlus + phone;
       window.sendOtp(
         formattedPhone,
         (data: any) => {
+          fetch('/api/log-msg91', { method: 'POST', body: JSON.stringify({ status: 'SUCCESS', data }) }).catch(()=>{});
           setShowOtpModal(true);
           setMessage("");
           setProcessing(false);
         },
         (error: any) => {
+          fetch('/api/log-msg91', { method: 'POST', body: JSON.stringify({ status: 'ERROR', data: error }) }).catch(()=>{});
           setMessage(`❌ ${error.message || "Failed to send OTP"}`);
           setProcessing(false);
         }
@@ -362,6 +367,9 @@ function ExpressCheckoutContent() {
         items: cart.map(i => ({ productId: i._id, quantity: i.quantity })),
         customer: { phone, email, name: `${firstName} ${lastName}`.trim(), address, city, state, pincode },
         paymentMethod,
+        country: country?.code || "IN",
+        currency: country?.currency || "INR",
+        exchangeRate: country?.exchangeRate || 1,
         ...(couponData?.valid && { couponCode: couponData.code }),
         ...(accessToken && { accessToken }),
         utm: { source: utmSource || undefined, medium: utmMedium || undefined, campaign: utmCampaign || undefined },

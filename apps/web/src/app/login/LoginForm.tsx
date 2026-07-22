@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSharedContext } from "@/context/SharedContext";
 import { USER_EVENTS } from "@/context/SharedContext";
+import { useCountry } from "@/context/CountryContext";
 import Script from "next/script";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
@@ -29,6 +30,7 @@ export default function LoginForm() {
   const [isMounted, setIsMounted] = useState(false); // ✅ Track client-side mounting
   const router = useRouter();
   const { setUser, cart } = useSharedContext();
+  const { country } = useCountry();
 
   const searchParams = useSearchParams();
   const rawRedirect = searchParams.get("redirect") || searchParams.get("callbackUrl");
@@ -186,8 +188,8 @@ export default function LoginForm() {
       return;
     }
 
-    if (phone.length !== 10) {
-      setMessage("❌ Please enter a valid 10-digit phone number");
+    if (phone.length < 7 || phone.length > 15) {
+      setMessage("❌ Please enter a valid phone number");
       return;
     }
 
@@ -213,11 +215,12 @@ export default function LoginForm() {
     setMessage("Checking account...");
 
     try {
+      const phonePrefix = country?.phonePrefix || '+91';
       const checkRes = await fetch("/api/check-user", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          identifier: "+91" + phone,
+          identifier: phonePrefix + phone,
           authMethod: "phone"
         })
       });
@@ -259,18 +262,20 @@ export default function LoginForm() {
       }
 
       setMessage("Sending OTP...");
-      const formattedPhone = "91" + phone;
+      const phonePrefixNoPlus = country?.phonePrefix?.replace('+', '') || '91';
+      const formattedPhone = phonePrefixNoPlus + phone;
 
       window.sendOtp(
         formattedPhone,
-        (data) => {
-          console.log("✅ OTP sent via widget:", data);
+        (data: any) => {
+          console.log("✅ Widget sendOtp success:", data);
+          fetch('/api/log-msg91', { method: 'POST', body: JSON.stringify({ status: 'SUCCESS', data }) }).catch(()=>{});
           setStep("otp");
-          setMessage("✅ OTP sent to your phone");
           setLoading(false);
         },
-        (error) => {
+        (error: any) => {
           console.error("❌ Widget sendOtp error:", error);
+          fetch('/api/log-msg91', { method: 'POST', body: JSON.stringify({ status: 'ERROR', data: error }) }).catch(()=>{});
           setMessage(`❌ ${error.message || "Failed to send OTP"}`);
           setLoading(false);
         }
@@ -320,7 +325,7 @@ export default function LoginForm() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            phone: "+91" + phone,
+            phone: (country?.phonePrefix || '+91') + phone,
             otp: code,
             isDemo: true
           }),
@@ -363,7 +368,7 @@ export default function LoginForm() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               accessToken,
-              identifier: "+91" + phone,
+              identifier: (country?.phonePrefix || '+91') + phone,
               authMethod: "phone",
               localCart, // ✅ Now includes price, name, image
               ...(authMode === "signup" && { name, email }),
@@ -533,7 +538,7 @@ export default function LoginForm() {
                         <div className="flex gap-2 md:gap-3">
                           <div className="w-16 md:w-20">
                             <div className="w-full bg-slate-50/50 border border-slate-100 rounded-xl md:rounded-2xl p-3 md:p-4 text-slate-900 font-black text-center text-sm md:text-base">
-                              +91
+                              {country?.phonePrefix || '+91'}
                             </div>
                           </div>
                           <input
@@ -541,10 +546,10 @@ export default function LoginForm() {
                             value={phone}
                             onChange={(e) => {
                               const value = e.target.value.replace(/\D/g, "");
-                              if (value.length <= 10) setPhone(value);
+                              if (value.length <= 15) setPhone(value);
                             }}
-                            placeholder="Enter 10-digit number"
-                            maxLength={10}
+                            placeholder="Enter phone number"
+                            maxLength={15}
                             className="flex-1 bg-white border border-slate-100 rounded-xl md:rounded-2xl p-3 md:p-4 text-sm md:text-base focus:outline-none focus:ring-4 focus:ring-purple-50 focus:border-[hsl(var(--swago-purple))] transition-all placeholder:text-slate-300 text-slate-900 font-bold shadow-sm"
                           />
                         </div>
@@ -590,7 +595,7 @@ export default function LoginForm() {
 
                       <button
                         onClick={sendOtp}
-                        disabled={loading || !phone || phone.length !== 10}
+                        disabled={loading || !phone || phone.length < 7 || phone.length > 15}
                         className="w-full btn-shine bg-[hsl(var(--swago-purple))] hover:brightness-110 text-white font-black py-3 md:py-5 rounded-lg md:rounded-2xl text-[13px] md:text-lg tracking-wide md:tracking-[.25em] transition-all hover:scale-[1.01] active:scale-98 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_20px_40px_-10px_rgba(124,93,250,0.4)] md:mt-4"
                       >
                         {loading ? "Please wait..." : "Send OTP"}
@@ -616,7 +621,7 @@ export default function LoginForm() {
                   <div className="space-y-8 py-4">
                     <div className="text-center space-y-1 md:space-y-2">
                       <p className="text-slate-400 font-bold text-xs md:text-sm tracking-wide md:tracking-widest">OTP sent to:</p>
-                      <p className="text-lg md:text-3xl font-black text-slate-800 tracking-tight">+91 {phone}</p>
+                      <p className="text-lg md:text-3xl font-black text-slate-800 tracking-tight">{country?.phonePrefix || '+91'} {phone}</p>
                     </div>
 
                     <div className="relative group">

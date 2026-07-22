@@ -414,8 +414,8 @@ export async function POST(req: Request) {
 
 
     const options = {
-      amount: Math.round(calculatedTotal * 100),
-      currency: "INR",
+      amount: Math.round((currency === "INR" ? calculatedTotal : calculatedTotal * exchangeRateUsed) * 100),
+      currency: currency,
       receipt: orderId,  // Use our orderId as receipt
       notes: {
         // NEW: Our order reference

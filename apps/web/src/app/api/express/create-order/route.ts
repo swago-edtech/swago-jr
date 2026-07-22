@@ -7,7 +7,7 @@ import { NextResponse } from "next/server";
 import Razorpay from "razorpay";
 import mongoose from "mongoose";
 import { SignJWT } from "jose";
-import { connectDB, Product, Order, User, Coupon as CouponModel, Promotion } from "@swago/database";
+import { connectDB, Product, Order, User, Coupon as CouponModel, Promotion, InternationalConfig } from "@swago/database";
 import { isValidObjectId } from "mongoose";
 import { generateOrderId } from "@/lib/generateOrderId";
 import { cleanupExpiredOrders } from "@/lib/cleanupExpiredOrders";
@@ -62,6 +62,9 @@ const expressOrderSchema = z.object({
   }),
   couponCode: z.string().optional(),
   paymentMethod: z.enum(["razorpay", "cod"]),
+  country: z.string().optional(),
+  currency: z.string().optional(),
+  exchangeRate: z.number().optional(),
   otp: z.string().optional(),
   accessToken: z.string().optional(),
   utm: z.object({
@@ -111,13 +114,17 @@ export async function POST(req: Request) {
       );
     }
 
-    const { items, customer, couponCode, paymentMethod, utm, otp, accessToken } = validation.data;
+    const { items, customer, couponCode, paymentMethod, country, currency, exchangeRate, utm, otp, accessToken } = validation.data;
     const formattedPhone = formatPhoneForStorage(customer.phone);
 
+    const countryCode = country || 'IN';
+    const finalCurrency = currency || 'INR';
+    const exchangeRateUsed = exchangeRate || 1;
+
     // ✅ COD India-only check
-    if (paymentMethod === "cod" && !isIndianPhone(formattedPhone)) {
+    if (paymentMethod === "cod" && (countryCode !== 'IN' || !isIndianPhone(formattedPhone))) {
       return NextResponse.json(
-        { success: false, error: "COD is only available for Indian phone numbers (+91)" },
+        { success: false, error: "COD is only available for India and Indian phone numbers (+91)" },
         { status: 400 }
       );
     }
@@ -297,11 +304,21 @@ export async function POST(req: Request) {
 
     // Shipping / COD fee calculation
     let shippingFee = 0;
-    if (paymentMethod === "razorpay") {
-      shippingFee = 0;
+    if (countryCode !== 'IN') {
+      const config = await InternationalConfig.findOne({ isSingleton: true }).lean() as any;
+      if (config && config.supportedCountries) {
+        const countryConfig = config.supportedCountries.find((c: any) => c.code === countryCode);
+        if (countryConfig) {
+          shippingFee = countryConfig.shippingFee || 0;
+        }
+      }
     } else {
-      const shippingThreshold = activePromotion?.shippingThreshold || 1450;
-      shippingFee = calculatedAmountAfterCoupon >= shippingThreshold ? 0 : 50;
+      if (paymentMethod === "razorpay") {
+        shippingFee = 0;
+      } else {
+        const shippingThreshold = activePromotion?.shippingThreshold || 1450;
+        shippingFee = calculatedAmountAfterCoupon >= shippingThreshold ? 0 : 50;
+      }
     }
 
     const calculatedTotal = Math.max(0, calculatedAmountAfterCoupon + shippingFee);
@@ -358,8 +375,13 @@ export async function POST(req: Request) {
       items: orderItems,
       subtotal,
       discount: discountAmount,
-      shippingFee,
+      shippingFee: countryCode === 'IN' ? shippingFee : 0,
+      internationalShippingFee: countryCode !== 'IN' ? shippingFee : 0,
       total: calculatedTotal,
+      country: countryCode,
+      currency: finalCurrency,
+      exchangeRateUsed: exchangeRateUsed,
+      displayTotal: calculatedTotal * exchangeRateUsed,
       stockReservedAt: new Date(),
       createdVia: "express",
       // ✅ UTM Tracking
@@ -409,8 +431,8 @@ export async function POST(req: Request) {
       });
 
       const razorpayOptions = {
-        amount: Math.round(calculatedTotal * 100),
-        currency: "INR",
+        amount: Math.round((finalCurrency === "INR" ? calculatedTotal : calculatedTotal * exchangeRateUsed) * 100),
+        currency: finalCurrency,
         receipt: orderId,
         notes: {
           orderId,
@@ -439,7 +461,7 @@ export async function POST(req: Request) {
             key: process.env.RAZORPAY_KEY_ID,
             orderId: razorpayOrder.id,
             amount: razorpayOrder.amount,
-            currency: "INR",
+            currency: finalCurrency,
           },
           order: {
             orderId,
