@@ -37,6 +37,8 @@ export type Product = {
   label?: string;
   rating?: number;
   numReviews?: number;
+  showPromotionalMessage?: boolean;
+  promotionalMessage?: string;
   skills?: { title: string; image: string }[];
   createdAt?: string;
   updatedAt?: string;

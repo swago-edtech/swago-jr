@@ -144,6 +144,18 @@ const ProductSchema = new mongoose.Schema(
         originalPrice: { type: Number, min: 0 },
       }, { _id: false }),
       default: new Map(),
+    },
+
+    // 🆕 NEW: Promotional Message
+    showPromotionalMessage: {
+      type: Boolean,
+      default: false
+    },
+
+    promotionalMessage: {
+      type: String,
+      trim: true,
+      default: ""
     }
 
   },

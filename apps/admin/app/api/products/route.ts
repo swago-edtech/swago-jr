@@ -145,6 +145,8 @@ export async function POST(request: NextRequest) {
       label: body.label || "",
       rating: body.rating || 0,
       numReviews: body.numReviews || 0,
+      showPromotionalMessage: body.showPromotionalMessage || false,
+      promotionalMessage: body.promotionalMessage || "",
     });
 
     return NextResponse.json({

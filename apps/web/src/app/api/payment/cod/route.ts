@@ -5,7 +5,7 @@ import { getLoginSession } from "@/lib/auth";
 import { connectDB, Product, Order, User, Coupon as CouponModel, Promotion, InternationalConfig } from "@swago/database";
 import { isValidObjectId } from "mongoose";
 import { generateOrderId } from "@/lib/generateOrderId";
-import { sendOrderConfirmationEmail } from "@/lib/msg91-email";
+import { sendOrderConfirmationEmail, sendAdminOrderNotificationEmail } from "@/lib/msg91-email";
 import { cleanupExpiredOrders } from "@/lib/cleanupExpiredOrders";
 import { invalidateProductCache } from "@/lib/productCache";
 import { validateCoupon } from "@/lib/coupon";
@@ -393,6 +393,32 @@ export async function POST(req: Request) {
                 state: orderObject.state,
                 pincode: orderObject.pincode,
             });
+
+            // ✅ Fire Admin Email Asynchronously
+            const adminItems = orderObject.items.map((item: any) => ({
+                name: item.name,
+                quantity: item.quantity,
+                price: item.price.toFixed(2),
+            }));
+
+            sendAdminOrderNotificationEmail({
+                orderNumber: orderId,
+                orderDate: new Date().toLocaleString('en-IN'),
+                customerName: orderObject.name,
+                customerEmail: orderObject.email,
+                customerPhone: orderObject.phone,
+                shippingMethod: "Standard Shipping",
+                paymentMethod: "Cash on Delivery",
+                totalAmount: orderObject.total.toFixed(2),
+                subtotal: orderObject.subtotal.toFixed(2),
+                discount: orderObject.discount.toFixed(2),
+                couponCode: orderObject.couponCode,
+                swagoMoneyRedeemed: (orderObject.swagoMoneyRedeemed || 0).toFixed(2),
+                shippingFee: (orderObject.shippingFee || 0).toFixed(2),
+                items: adminItems,
+                adminUrl: `https://admin.swagojr.com/orders/${orderObject._id}`
+            }).catch(console.error);
+
         } catch (emailError) {
             console.error('Email failed:', emailError);
         }
