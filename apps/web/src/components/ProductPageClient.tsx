@@ -660,8 +660,8 @@ export default function ProductPageClient({ product }: { product: Product }) {
 
             {/* Promotional Message */}
             {product.showPromotionalMessage && product.promotionalMessage && (
-              <div className="mb-4 mt-2 px-4 py-2.5 bg-gradient-to-r from-pink-50 to-pink-100 border border-pink-200 rounded-xl shadow-sm">
-                <p className="text-sm md:text-base font-bold text-[hsl(var(--swago-pink))] flex items-center gap-2">
+              <div className="mb-4 mt-2 px-4 py-2.5 bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 rounded-xl shadow-sm">
+                <p className="text-sm md:text-base font-bold text-blue-800 flex items-center gap-2">
                   <span className="animate-pulse">✨</span> {product.promotionalMessage}
                 </p>
               </div>
