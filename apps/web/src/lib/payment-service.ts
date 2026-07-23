@@ -1,5 +1,5 @@
 import { connectDB, Order, User, Product, Coupon } from "@swago/database";
-import { sendOrderConfirmationEmail } from "./msg91-email";
+import { sendOrderConfirmationEmail, sendAdminOrderNotificationEmail } from "./msg91-email";
 import { invalidateProductCache } from "./productCache";
 import { isValidObjectId } from "mongoose";
 import { generateAndUploadInvoice } from "./invoice-service";
@@ -162,6 +162,32 @@ export async function finalizeOrder({ orderIdOrMongoId, razorpayPaymentId, sourc
       pincode: orderObject.pincode,
     });
     console.log(`📧 Confirmation email sent.`);
+
+    // ✅ Fire Admin Email Asynchronously
+    const adminItems = orderObject.items.map((item: any) => ({
+        name: item.name,
+        quantity: item.quantity,
+        price: item.price.toFixed(2),
+    }));
+
+    sendAdminOrderNotificationEmail({
+        orderNumber: orderObject.orderId || orderObject._id.toString().slice(-6),
+        orderDate: new Date(orderObject.createdAt).toLocaleString('en-IN'),
+        customerName: orderObject.name,
+        customerEmail: orderObject.email,
+        customerPhone: orderObject.phone || "N/A",
+        shippingMethod: "Standard Shipping",
+        paymentMethod: "Online (Razorpay)",
+        totalAmount: orderObject.total.toFixed(2),
+        subtotal: orderObject.subtotal.toFixed(2),
+        discount: orderObject.discount.toFixed(2),
+        couponCode: orderObject.couponCode,
+        swagoMoneyRedeemed: (orderObject.swagoMoneyRedeemed || 0).toFixed(2),
+        shippingFee: (orderObject.shippingFee || 0).toFixed(2),
+        items: adminItems,
+        adminUrl: `https://admin.swagojr.com/orders/${orderObject._id}`
+    }).catch(console.error);
+
   } catch (error) {
     console.error(`⚠️ Failed to send confirmation email:`, error);
   }

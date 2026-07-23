@@ -240,6 +240,15 @@ export default function ProductCard({ product }: { product: Product }) {
                 )}
               </div>
 
+              {/* Promotional Message */}
+              {product.showPromotionalMessage && product.promotionalMessage && (
+                <div className="mb-3 px-2 py-1.5 bg-gradient-to-r from-pink-50 to-pink-100 border border-pink-200 rounded-lg text-center shadow-sm">
+                  <span className="text-[10px] sm:text-xs font-bold text-[hsl(var(--swago-pink))] block">
+                    {product.promotionalMessage}
+                  </span>
+                </div>
+              )}
+
               {/* Show Add to Cart OR Quantity Controls */}
               {!isInCart ? (
                 // Show "Add to Cart" button when item is NOT in cart

@@ -135,6 +135,18 @@ const ProductSchema = new mongoose.Schema(
       // ❌ REMOVED: unique: true,
       trim: true,
       lowercase: true
+    },
+
+    // 🆕 NEW: Promotional Message
+    showPromotionalMessage: {
+      type: Boolean,
+      default: false
+    },
+
+    promotionalMessage: {
+      type: String,
+      trim: true,
+      default: ""
     }
 
   },

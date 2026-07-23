@@ -24,6 +24,8 @@ type Product = {
   label?: string;
   rating?: number;
   numReviews?: number;
+  showPromotionalMessage?: boolean;
+  promotionalMessage?: string;
   skills?: { title: string; image: string }[];
 };
 
@@ -54,6 +56,8 @@ export default function EditProductPage() {
     label: "",
     rating: "0",
     numReviews: "0",
+    showPromotionalMessage: false,
+    promotionalMessage: "",
   });
 
   const [images, setImages] = useState<string[]>([]);
@@ -87,6 +91,8 @@ export default function EditProductPage() {
             label: prod.label || "",
             rating: (prod.rating || 0).toString(),
             numReviews: (prod.numReviews || 0).toString(),
+            showPromotionalMessage: prod.showPromotionalMessage || false,
+            promotionalMessage: prod.promotionalMessage || "",
           });
           setImages(prod.images || []);
           setVideos(prod.videos || []);
@@ -330,6 +336,8 @@ export default function EditProductPage() {
           label: form.label,
           rating: parseFloat(form.rating) || 0,
           numReviews: parseInt(form.numReviews) || 0,
+          showPromotionalMessage: form.showPromotionalMessage,
+          promotionalMessage: form.promotionalMessage,
           skills: skills.filter(s => s.title && s.image),
         }),
       });
@@ -848,6 +856,43 @@ export default function EditProductPage() {
                 className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
+          </div>
+        </div>
+
+        {/* Promotional Message */}
+        <div className="space-y-4">
+          <h2 className="text-xl font-semibold text-gray-900 border-b pb-2">
+            Promotional Message
+          </h2>
+          <div className="space-y-3">
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                name="showPromotionalMessage"
+                checked={form.showPromotionalMessage}
+                onChange={handleChange}
+                className="w-4 h-4"
+              />
+              <span className="text-sm text-gray-700">
+                Show promotional message on product cards and details
+              </span>
+            </label>
+
+            {form.showPromotionalMessage && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Message Text
+                </label>
+                <input
+                  type="text"
+                  name="promotionalMessage"
+                  value={form.promotionalMessage}
+                  onChange={handleChange}
+                  placeholder="e.g., Buy any 2 | Get FLAT 10% OFF Use Code: BYOB10"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+            )}
           </div>
         </div>
 
