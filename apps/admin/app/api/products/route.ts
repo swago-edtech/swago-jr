@@ -140,6 +140,7 @@ export async function POST(request: NextRequest) {
       benefits: body.benefits,
       stock: body.stock || 0,
       lowStockThreshold: body.lowStockThreshold || 10,
+      weight: body.weight || 0,
       isFeatured: body.isFeatured || false,
       isActive: body.isActive !== undefined ? body.isActive : true,
       label: body.label || "",

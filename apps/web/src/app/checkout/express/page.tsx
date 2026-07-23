@@ -25,6 +25,7 @@ const INDIAN_STATES = [
 interface ExpressCartItem {
   _id: string; name: string; price: number; originalPrice?: number;
   images: string[]; slug?: string; quantity: number; availableStock: number;
+  weight?: number;
 }
 
 function ExpressCheckoutContent() {
@@ -35,7 +36,7 @@ function ExpressCheckoutContent() {
   const utmSource = searchParams.get("utm_source") || "";
   const utmMedium = searchParams.get("utm_medium") || "";
   const utmCampaign = searchParams.get("utm_campaign") || "";
-  const { formatPrice, country, isInternational } = useCountry();
+  const { formatPrice, country, isInternational, calculateShippingFee } = useCountry();
 
   // Page state
   const [loading, setLoading] = useState(true);
@@ -296,12 +297,14 @@ function ExpressCheckoutContent() {
     }
   }, [isCodBlocked, paymentMethod]);
 
+  const totalWeight = useMemo(() => cart.reduce((sum, item) => sum + ((item.weight || 0) * item.quantity), 0), [cart]);
+
   const shippingFee = useMemo(() => {
-    if (isInternational) return country?.shippingFee || 0;
+    if (isInternational) return calculateShippingFee(totalWeight);
     if (paymentMethod === "razorpay") return 0;
     const threshold = promotion?.shippingThreshold || 1450;
     return subtotal >= threshold ? 0 : 50;
-  }, [paymentMethod, subtotal, promotion, isInternational, country]);
+  }, [paymentMethod, subtotal, promotion, isInternational, calculateShippingFee, totalWeight]);
   const finalTotal = useMemo(() => Math.max(0, subtotal - discount + shippingFee), [subtotal, discount, shippingFee]);
 
   // ========================================

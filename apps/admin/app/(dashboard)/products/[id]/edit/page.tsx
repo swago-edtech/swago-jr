@@ -19,6 +19,7 @@ type Product = {
   benefits: string;
   stock: number;
   lowStockThreshold: number;
+  weight: number;
   isFeatured: boolean;
   isActive: boolean;
   label?: string;
@@ -49,6 +50,7 @@ export default function EditProductPage() {
     benefits: "",
     stock: "0",
     lowStockThreshold: "10",
+    weight: "0",
     isFeatured: false,
     isActive: true,
     label: "",
@@ -82,6 +84,7 @@ export default function EditProductPage() {
             benefits: prod.benefits,
             stock: (prod.stock || 0).toString(),
             lowStockThreshold: (prod.lowStockThreshold || 0).toString(),
+            weight: (prod.weight || 0).toString(),
             isFeatured: prod.isFeatured,
             isActive: prod.isActive,
             label: prod.label || "",
@@ -292,6 +295,7 @@ export default function EditProductPage() {
     if (!form.benefits.trim()) newErrors.benefits = "Benefits are required";
     if (images.length === 0) newErrors.images = "At least one image is required";
     if (form.stock === "" || parseInt(form.stock) < 0) newErrors.stock = "Valid stock quantity is required";
+    if (form.weight === "" || parseInt(form.weight) < 0) newErrors.weight = "Valid weight in grams is required";
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -325,6 +329,7 @@ export default function EditProductPage() {
           benefits: form.benefits,
           stock: parseInt(form.stock),
           lowStockThreshold: parseInt(form.lowStockThreshold),
+          weight: parseInt(form.weight) || 0,
           isFeatured: form.isFeatured,
           isActive: form.isActive,
           label: form.label,
@@ -847,6 +852,23 @@ export default function EditProductPage() {
                 min="0"
                 className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
+            </div>
+
+            {/* Weight */}
+            <div className="col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Product Weight (grams) * <span className="text-gray-500 font-normal">Used for international shipping calculation</span>
+              </label>
+              <input
+                type="number"
+                name="weight"
+                value={form.weight}
+                onChange={handleChange}
+                placeholder="e.g. 500"
+                min="0"
+                className={`w-full border rounded-md px-3 py-2 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.weight ? "border-red-500" : "border-gray-300"}`}
+              />
+              {errors.weight && <p className="text-red-500 text-xs mt-1">{errors.weight}</p>}
             </div>
           </div>
         </div>

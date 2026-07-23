@@ -59,6 +59,13 @@ const ProductSchema = new mongoose.Schema(
       required: [true, "Benefits are required"]
     },
 
+    // 🆕 NEW: Product Weight for Shipping
+    weight: {
+      type: Number,
+      default: 0,
+      min: [0, "Weight cannot be negative"]
+    },
+
     // Inventory Management
     stock: {
       type: Number,

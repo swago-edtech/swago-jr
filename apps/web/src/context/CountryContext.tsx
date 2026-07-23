@@ -27,6 +27,8 @@ type CountryContextType = {
   isInternational: boolean;
   shippingFee: number;
   shippingFeeLocal: number;
+  calculateShippingFee: (cartWeight: number) => number;
+  calculateShippingFeeLocal: (cartWeight: number) => number;
   isLoading: boolean;
 };
 
@@ -129,6 +131,24 @@ export function CountryProvider({ children }: { children: React.ReactNode }) {
     [country, shippingFee]
   );
 
+  const calculateShippingFee = useCallback((cartWeight: number) => {
+    if (country.shippingTiers && country.shippingTiers.length > 0) {
+      const tier = country.shippingTiers.find(t => cartWeight >= t.minWeight && cartWeight <= t.maxWeight);
+      if (tier) return tier.fee;
+      
+      const highestTier = [...country.shippingTiers].sort((a, b) => b.maxWeight - a.maxWeight)[0];
+      if (highestTier && cartWeight > highestTier.maxWeight) {
+         return highestTier.fee;
+      }
+    }
+    return country.shippingFee;
+  }, [country]);
+
+  const calculateShippingFeeLocal = useCallback((cartWeight: number) => {
+    const feeInINR = calculateShippingFee(cartWeight);
+    return country.currency === "INR" ? feeInINR : convertToLocal(feeInINR, country.exchangeRate);
+  }, [country, calculateShippingFee]);
+
   return (
     <CountryContext.Provider
       value={{
@@ -138,6 +158,8 @@ export function CountryProvider({ children }: { children: React.ReactNode }) {
         isInternational,
         shippingFee,
         shippingFeeLocal,
+        calculateShippingFee,
+        calculateShippingFeeLocal,
         isLoading,
       }}
     >

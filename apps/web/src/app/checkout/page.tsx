@@ -39,7 +39,7 @@ const REFERRAL_OPTIONS = [
 
 export default function CheckoutPage() {
   const { cart, total, user, isLoadingUser, clearCart, addToCart, appliedCoupon, setAppliedCoupon, appliedSwagoMoney, refreshCartPrices, isRefreshingCart } = useSharedContext();
-  const { country, formatPrice, isInternational, shippingFee: intlShippingFee, shippingFeeLocal: intlShippingFeeLocal } = useCountry();
+  const { country, formatPrice, isInternational, calculateShippingFee, calculateShippingFeeLocal } = useCountry();
   const COUNTRY_FLAGS: Record<string, string> = { IN: '🇮🇳', US: '🇺🇸', CA: '🇨🇦', AE: '🇦🇪' };
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
@@ -340,12 +340,14 @@ export default function CheckoutPage() {
     }
   }, [isCodBlocked, paymentMethod]);
 
+  const totalWeight = useMemo(() => cart.reduce((sum, item) => sum + ((item.weight || 0) * item.quantity), 0), [cart]);
+
   const shippingFee = useMemo(() => {
-    if (isInternational) return intlShippingFee;
+    if (isInternational) return calculateShippingFee(totalWeight);
     if (paymentMethod === 'razorpay') return 0;
     const threshold = promotion?.shippingThreshold || 1450;
     return total >= threshold ? 0 : 50;
-  }, [paymentMethod, total, promotion, isInternational, intlShippingFee]);
+  }, [paymentMethod, total, promotion, isInternational, calculateShippingFee, totalWeight]);
 
   const finalTotal = useMemo(() => {
     const discountedTotal = appliedCoupon ? total - appliedCoupon.discount : total;
@@ -393,7 +395,7 @@ export default function CheckoutPage() {
       <div className="bg-[hsl(var(--swago-purple))] py-3 text-center">
         <p className="text-white text-[10px] font-[1000] tracking-widest leading-tight">
           {isInternational
-            ? `International Shipping to ${country.name} — ${formatPrice(country.shippingFee)} flat rate`
+            ? `International Shipping to ${country.name} — ${formatPrice(calculateShippingFeeLocal(totalWeight))}`
             : 'Enjoy Free Shipping, on orders above ₹1450'
           }
         </p>
@@ -616,7 +618,7 @@ export default function CheckoutPage() {
                       <p className="text-xs font-bold text-slate-700 uppercase tracking-wider">International Shipping</p>
                       <p className="text-[10px] text-slate-400 mt-0.5">via India Post (EMS/Speed Post)</p>
                     </div>
-                    <p className="text-xs font-black text-slate-800">{formatPrice(country.shippingFee)}</p>
+                    <p className="text-xs font-black text-slate-800">{formatPrice(calculateShippingFeeLocal(totalWeight))}</p>
                   </div>
                 ) : (
                   <>
@@ -808,7 +810,8 @@ function OrderSummary({
   cart, total, appliedCoupon, couponCode, setCouponCode, applyCoupon,
   promotion, progressPercent, nextTier, addToCart, appliedSwagoMoney, paymentMethod, finalTotal, shippingFee
 }: any) {
-  const { formatPrice, country, isInternational, shippingFeeLocal } = useCountry();
+  const { formatPrice, country, isInternational, calculateShippingFeeLocal } = useCountry();
+  const totalWeight = useMemo(() => cart.reduce((sum: number, item: any) => sum + ((item.weight || 0) * item.quantity), 0), [cart]);
   const isAlreadyAdded = (slug: string) => cart.some((item: any) => (item.slug === slug || item._id === slug) && item.price === 1);
 
   return (

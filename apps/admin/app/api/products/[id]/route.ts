@@ -86,6 +86,7 @@ export async function PUT(
     if (body.boxContents !== undefined) updateFields.boxContents = body.boxContents;
     if (body.benefits !== undefined) updateFields.benefits = body.benefits;
     if (body.stock !== undefined) updateFields.stock = body.stock;
+    if (body.weight !== undefined) updateFields.weight = body.weight;
     if (body.lowStockThreshold !== undefined) updateFields.lowStockThreshold = body.lowStockThreshold;
     if (body.isFeatured !== undefined) updateFields.isFeatured = body.isFeatured;
     if (body.isActive !== undefined) updateFields.isActive = body.isActive;

@@ -224,6 +224,7 @@ export async function POST(req: Request) {
     }
 
     // Prepare order items SECURELY
+    let totalWeight = 0;
     const orderItems: OrderItem[] = orderDetails.cart.map((item: CartItem) => {
       const productId = item.id?.toString() || item.productId?.toString() || item._id;
       const reservation = reservations.find(r =>
@@ -239,6 +240,8 @@ export async function POST(req: Request) {
       if (item.price === 1 && BONUS_THRESHOLDS[slugValue as string] && nonBonusSubtotal >= BONUS_THRESHOLDS[slugValue as string]) {
         finalPrice = 1;
       }
+      totalWeight += (dbProduct?.weight || 0) * item.quantity;
+      
       return {
         productId: dbProduct?._id || item._id || item.id || 0,
         name: dbProduct?.name || item.name,
@@ -308,7 +311,19 @@ export async function POST(req: Request) {
       if (config && config.supportedCountries) {
         const countryConfig = config.supportedCountries.find((c: any) => c.code === countryCode);
         if (countryConfig) {
-          shippingFee = countryConfig.shippingFee || 0;
+          if (countryConfig.shippingTiers && countryConfig.shippingTiers.length > 0) {
+            const matchedTier = countryConfig.shippingTiers.find(
+              (t: any) => totalWeight >= t.minWeight && totalWeight <= t.maxWeight
+            );
+            if (matchedTier) {
+              shippingFee = matchedTier.fee;
+            } else {
+              const highestTier = [...countryConfig.shippingTiers].sort((a: any, b: any) => b.maxWeight - a.maxWeight)[0];
+              shippingFee = totalWeight > highestTier.maxWeight ? highestTier.fee : countryConfig.shippingFee;
+            }
+          } else {
+            shippingFee = countryConfig.shippingFee || 0;
+          }
         }
       }
     }
