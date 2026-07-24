@@ -85,6 +85,21 @@ export const OrderAdminNotificationEmail = ({
               </Button>
             </Section>
 
+            <Text style={sectionTitle}>Items Ordered</Text>
+            <Hr style={hr} />
+
+            {items.map((item, index) => (
+              <Section key={index} style={itemSection}>
+                <Text style={detailText}>
+                  <strong>Item:</strong> {item.name}
+                  <br />
+                  <strong>Quantity:</strong> {item.quantity}
+                  <br />
+                  <strong>Price:</strong> INR {item.price}
+                </Text>
+              </Section>
+            ))}
+
             <Text style={sectionTitle}>Order Summary</Text>
             <Hr style={hr} />
 
@@ -107,21 +122,6 @@ export const OrderAdminNotificationEmail = ({
               <br />
               <strong>Total Amount:</strong> INR {totalAmount}
             </Text>
-
-            <Text style={sectionTitle}>Items Ordered</Text>
-            <Hr style={hr} />
-
-            {items.map((item, index) => (
-              <Section key={index} style={itemSection}>
-                <Text style={detailText}>
-                  <strong>Item:</strong> {item.name}
-                  <br />
-                  <strong>Quantity:</strong> {item.quantity}
-                  <br />
-                  <strong>Price:</strong> INR {item.price}
-                </Text>
-              </Section>
-            ))}
           </Section>
         </Container>
       </Body>
