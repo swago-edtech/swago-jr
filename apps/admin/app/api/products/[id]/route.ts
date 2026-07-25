@@ -94,6 +94,7 @@ export async function PUT(
     if (body.numReviews !== undefined) updateFields.numReviews = body.numReviews;
     if (body.showPromotionalMessage !== undefined) updateFields.showPromotionalMessage = body.showPromotionalMessage;
     if (body.promotionalMessage !== undefined) updateFields.promotionalMessage = body.promotionalMessage;
+    if (body.skills !== undefined) updateFields.skills = body.skills;
 
     // Update product
     const updatedProduct = await Product.findByIdAndUpdate(

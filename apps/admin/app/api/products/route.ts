@@ -147,6 +147,7 @@ export async function POST(request: NextRequest) {
       numReviews: body.numReviews || 0,
       showPromotionalMessage: body.showPromotionalMessage || false,
       promotionalMessage: body.promotionalMessage || "",
+      skills: body.skills || [],
     });
 
     return NextResponse.json({
