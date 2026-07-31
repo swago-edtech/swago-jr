@@ -3,7 +3,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB, LotteryDraw, LotteryCode, User } from "@swago/database";
 import mongoose from "mongoose";
-import { sendNotificationEmail } from "../../../../../web/src/lib/msg91-email";
+// [TEMPORARILY DISABLED] import { sendNotificationEmail } from "../../../../../web/src/lib/msg91-email";
 
 interface LotteryTicket {
     _id: mongoose.Types.ObjectId;
@@ -135,40 +135,40 @@ export async function POST(
             if (amount > 0) {
                 await user.awardSwagoMoney(amount, "Lottery Draw Winner");
                 
-                // Send email notification for Lottery Win
-                if (user.email) {
-                    const emailHtml = `
-                        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 30px; border-radius: 8px; border: 1px solid #eaeaea;">
-                            <h2 style="color: #1e3a8a; text-align: center;">Congratulations, ${user.name || 'Swago Fam'}! 🏆</h2>
-                            <p style="color: #333; font-size: 16px; line-height: 1.5;">
-                                Amazing news! You have been selected as a winner in this week's Swago Jr. Lottery Draw!
-                            </p>
-                            <div style="background-color: #f3f4f6; padding: 15px; border-radius: 6px; margin: 20px 0;">
-                                <p style="margin: 0; color: #4b5563; font-size: 14px;"><strong>Prize Credited:</strong> $${amount} Swago Money</p>
-                                <p style="margin: 5px 0 0; color: #4b5563; font-size: 14px;"><strong>Winning Ticket:</strong> ${ticket.code}</p>
-                            </div>
-                            <p style="color: #333; font-size: 16px; line-height: 1.5;">
-                                Your reward has already been deposited directly into your account and is ready to use on your next purchase!
-                            </p>
-                            <div style="text-align: center; margin-top: 30px;">
-                                <a href="https://swagojr.com" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
-                                    Shop Now
-                                </a>
-                            </div>
-                            <p style="color: #9ca3af; font-size: 12px; text-align: center; margin-top: 30px;">
-                                If you have any questions, please reply to this email.<br/>
-                                © ${new Date().getFullYear()} Swago Jr. All rights reserved.
-                            </p>
-                        </div>
-                    `;
-
-                    await sendNotificationEmail(
-                        user.email,
-                        user.name || '',
-                        '🏆 You won the Swago Jr. Lottery!',
-                        emailHtml
-                    );
-                }
+                // [TEMPORARILY DISABLED] Send email notification for Lottery Win
+                // if (user.email) {
+                //     const emailHtml = `
+                //         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 30px; border-radius: 8px; border: 1px solid #eaeaea;">
+                //             <h2 style="color: #1e3a8a; text-align: center;">Congratulations, ${user.name || 'Swago Fam'}! 🏆</h2>
+                //             <p style="color: #333; font-size: 16px; line-height: 1.5;">
+                //                 Amazing news! You have been selected as a winner in this week's Swago Jr. Lottery Draw!
+                //             </p>
+                //             <div style="background-color: #f3f4f6; padding: 15px; border-radius: 6px; margin: 20px 0;">
+                //                 <p style="margin: 0; color: #4b5563; font-size: 14px;"><strong>Prize Credited:</strong> $${amount} Swago Money</p>
+                //                 <p style="margin: 5px 0 0; color: #4b5563; font-size: 14px;"><strong>Winning Ticket:</strong> ${ticket.code}</p>
+                //             </div>
+                //             <p style="color: #333; font-size: 16px; line-height: 1.5;">
+                //                 Your reward has already been deposited directly into your account and is ready to use on your next purchase!
+                //             </p>
+                //             <div style="text-align: center; margin-top: 30px;">
+                //                 <a href="https://swagojr.com" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
+                //                     Shop Now
+                //                 </a>
+                //             </div>
+                //             <p style="color: #9ca3af; font-size: 12px; text-align: center; margin-top: 30px;">
+                //                 If you have any questions, please reply to this email.<br/>
+                //                 © ${new Date().getFullYear()} Swago Jr. All rights reserved.
+                //             </p>
+                //         </div>
+                //     `;
+                //
+                //     await sendNotificationEmail(
+                //         user.email,
+                //         user.name || '',
+                //         '🏆 You won the Swago Jr. Lottery!',
+                //         emailHtml
+                //     );
+                // }
             }
 
             const winnerRecord = {
