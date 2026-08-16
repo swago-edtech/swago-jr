@@ -1,10 +1,11 @@
-import { connectDB, Order, User, ContactSubmission } from '@swago/database';
+import { connectDB, Order, User, ContactSubmission, Product } from '@swago/database';
 import { formatPrice } from '@swago/utils';
 import { ShoppingBag, Users, TrendingUp, CheckCircle, AlertCircle, CreditCard, Truck, XCircle, RotateCcw, IndianRupee, PackageCheck, ArrowLeftRight, Percent, Tag, Package, BarChart3 } from 'lucide-react';
 import AnalyticsCard from '@/components/AnalyticsCard';
 import DashboardDateCell from './DashboardDateCell';
 import Link from 'next/link';
 import { cleanupExpiredOrders } from '@/lib/cleanupExpiredOrders';
+import { effectiveUnits } from '@/lib/combo-units';
 
 async function getDashboardStats() {
   await connectDB();
@@ -12,11 +13,20 @@ async function getDashboardStats() {
   // ✅ Clean up expired prepaid orders before calculating stats
   await cleanupExpiredOrders();
 
-  const [rawOrders, users, pendingContactCount] = await Promise.all([
+  const [rawOrders, users, pendingContactCount, products] = await Promise.all([
     Order.find().select('total status createdAt items paymentMethod discount shippingFee refundAmount codCollected swagoMoneyRedeemed name phone userId couponCode').lean(),
     User.countDocuments({ isAdmin: false }),
     ContactSubmission.countDocuments({ status: 'pending' }),
+    Product.find().select('_id isCombo comboUnitCount').lean(),
   ]);
+
+  const comboById: Record<string, { isCombo?: boolean; comboUnitCount?: number }> = {};
+  for (const p of products as any[]) {
+    comboById[String(p._id)] = {
+      isCombo: Boolean(p.isCombo),
+      comboUnitCount: p.comboUnitCount || 1,
+    };
+  }
 
   // Normalize order statuses (handle lowercase database variations like 'delivered')
   const normalizeStatus = (status: string) => {
@@ -97,7 +107,10 @@ async function getDashboardStats() {
   const cancellationRate = orders.length > 0 ? (cancelledOrdersCount / orders.length) * 100 : 0;
 
   const totalItemsSold = orders.reduce((sum, o) => {
-    const itemsCount = o.items?.reduce((acc: number, item: any) => acc + (item.quantity || 0), 0) || 0;
+    const itemsCount = o.items?.reduce((acc: number, item: any) => {
+      const pid = String(item.productId || '');
+      return acc + effectiveUnits(item.quantity || 0, comboById[pid]);
+    }, 0) || 0;
     return sum + itemsCount;
   }, 0);
   const avgItemsPerOrder = orders.length > 0 ? totalItemsSold / orders.length : 0;

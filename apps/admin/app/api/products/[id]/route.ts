@@ -3,6 +3,7 @@ import { requireAdmin } from "@/lib/auth";
 import { Product } from "@swago/database";
 import { connectDB } from "@swago/database";
 import mongoose from "mongoose";
+import { parseComboFields } from "@/lib/combo-units";
 
 // GET /api/products/[id] - Get single product
 export async function GET(
@@ -89,6 +90,29 @@ export async function PUT(
     if (body.lowStockThreshold !== undefined) updateFields.lowStockThreshold = body.lowStockThreshold;
     if (body.isFeatured !== undefined) updateFields.isFeatured = body.isFeatured;
     if (body.isActive !== undefined) updateFields.isActive = body.isActive;
+    if (
+      body.isCombo !== undefined ||
+      body.comboUnitCount !== undefined ||
+      body.comboProductIds !== undefined
+    ) {
+      const combo = parseComboFields({
+        isCombo: body.isCombo !== undefined ? body.isCombo : existingProduct.isCombo,
+        comboUnitCount:
+          body.comboUnitCount !== undefined
+            ? body.comboUnitCount
+            : existingProduct.comboUnitCount,
+        comboProductIds:
+          body.comboProductIds !== undefined
+            ? body.comboProductIds
+            : existingProduct.comboProductIds,
+      });
+      if (!combo.ok) {
+        return NextResponse.json({ error: combo.error }, { status: 400 });
+      }
+      updateFields.isCombo = combo.fields.isCombo;
+      updateFields.comboUnitCount = combo.fields.comboUnitCount;
+      updateFields.comboProductIds = combo.fields.comboProductIds;
+    }
     if (body.label !== undefined) updateFields.label = body.label;
     if (body.rating !== undefined) updateFields.rating = body.rating;
     if (body.numReviews !== undefined) updateFields.numReviews = body.numReviews;

@@ -20,6 +20,9 @@ type Product = {
   lowStockThreshold: number;
   isFeatured: boolean;
   isActive: boolean;
+  isCombo?: boolean;
+  comboUnitCount?: number;
+  comboProductIds?: string[];
   label?: string;
   rating?: number;
   numReviews?: number;
