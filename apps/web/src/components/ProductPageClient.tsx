@@ -6,6 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
+import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 import ReviewList from "./ReviewList";
 import RelatedProducts from "./RelatedProducts";
 import { AiFillHeart, AiOutlineHeart } from "react-icons/ai";
@@ -915,34 +916,55 @@ export default function ProductPageClient({ product }: { product: Product }) {
             </div>
 
             {/* Interactive Image Container */}
-            <motion.div 
-               className="relative w-full h-full flex items-center justify-center p-4 md:p-8"
-               drag
-               dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
-               dragElastic={1}
-               onDragEnd={(e, { offset, velocity }) => {
-                 const swipeX = offset.x;
-                 const swipeY = offset.y;
-                 if (Math.abs(swipeX) > Math.abs(swipeY)) {
-                    if (swipeX < -50) handleNextImage();
-                    else if (swipeX > 50) handlePrevImage();
-                 } else {
-                    if (swipeY > 100 || swipeY < -100) setShowMobileZoomModal(false);
-                 }
-               }}
-            >
-               <div className="relative w-full h-full max-w-5xl max-h-[85vh]">
-                 <Image 
-                   src={mainMedia!} 
-                   alt={product.name} 
-                   fill 
-                   className="object-contain" 
-                   quality={100}
-                   unoptimized={true}
-                   draggable={false}
-                 />
-               </div>
-            </motion.div>
+            <div className="relative w-full h-full flex items-center justify-center p-4 md:p-8">
+              <TransformWrapper
+                initialScale={1}
+                minScale={1}
+                maxScale={4}
+                centerOnInit={true}
+                wheel={{ disabled: false }}
+                doubleClick={{ disabled: false }}
+                panning={{ disabled: false }}
+              >
+                <TransformComponent wrapperStyle={{ width: "100%", height: "100%" }} contentStyle={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <div className="relative w-[100vw] h-[85vh] max-w-5xl">
+                    <Image 
+                      src={mainMedia!} 
+                      alt={product.name} 
+                      fill 
+                      className="object-contain" 
+                      quality={100}
+                      unoptimized={true}
+                      draggable={false}
+                    />
+                  </div>
+                </TransformComponent>
+              </TransformWrapper>
+              
+              {/* Navigation Arrows */}
+              {allMedia.length > 1 && (
+                <>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handlePrevImage(); }}
+                    className="absolute left-2 md:left-6 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/20 p-2 md:p-3 rounded-full text-white backdrop-blur-md border border-white/20 shadow-lg z-[101] transition-colors"
+                    aria-label="Previous image"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5 md:w-6 md:h-6">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleNextImage(); }}
+                    className="absolute right-2 md:right-6 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/20 p-2 md:p-3 rounded-full text-white backdrop-blur-md border border-white/20 shadow-lg z-[101] transition-colors"
+                    aria-label="Next image"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5 md:w-6 md:h-6">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+                    </svg>
+                  </button>
+                </>
+              )}
+            </div>
 
             {/* Navigation Indicators */}
             {allMedia.length > 1 && (
