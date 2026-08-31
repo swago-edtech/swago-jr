@@ -3,6 +3,7 @@ import { sendOrderConfirmationEmail, sendAdminOrderNotificationEmail } from "./m
 import { invalidateProductCache } from "./productCache";
 import { isValidObjectId } from "mongoose";
 import { generateAndUploadInvoice } from "./invoice-service";
+import { deductInventoryForOrder } from "./inventory-service";
 
 interface FinalizeOrderOptions {
   orderIdOrMongoId: string;
@@ -117,6 +118,11 @@ export async function finalizeOrder({ orderIdOrMongoId, razorpayPaymentId, sourc
       console.error(`⚠️ Failed to update stock for item ${item.name}:`, error);
     }
   }
+
+  // Inventory item-level deduction
+  deductInventoryForOrder(order).catch(err => {
+    console.error('⚠️ Inventory deduction failed:', err);
+  });
 
   // 7. Update User Profile
   try {

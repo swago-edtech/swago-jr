@@ -84,6 +84,9 @@ importers:
       react-dom:
         specifier: ^19.1.0
         version: 19.1.0(react@19.1.0)
+      react-icons:
+        specifier: ^5.5.0
+        version: 5.5.0(react@19.1.0)
       recharts:
         specifier: ^3.7.0
         version: 3.7.0(@types/react@19.2.9)(react-dom@19.1.0(react@19.1.0))(react-is@16.13.1)(react@19.1.0)(redux@5.0.1)
@@ -5087,7 +5090,7 @@ snapshots:
       react: 18.3.1
       react-redux: 9.2.0(@types/react@19.2.9)(react@18.3.1)(redux@5.0.1)
 
-  '@reduxjs/toolkit@2.11.2(react-redux@9.2.0(@types/react@19.2.9)(react@18.3.1)(redux@5.0.1))(react@19.1.0)':
+  '@reduxjs/toolkit@2.11.2(react-redux@9.2.0(@types/react@19.2.9)(react@19.1.0)(redux@5.0.1))(react@19.1.0)':
     dependencies:
       '@standard-schema/spec': 1.1.0
       '@standard-schema/utils': 0.3.0
@@ -5097,7 +5100,7 @@ snapshots:
       reselect: 5.1.1
     optionalDependencies:
       react: 19.1.0
-      react-redux: 9.2.0(@types/react@19.2.9)(react@18.3.1)(redux@5.0.1)
+      react-redux: 9.2.0(@types/react@19.2.9)(react@19.1.0)(redux@5.0.1)
 
   '@rtsao/scc@1.1.0': {}
 
@@ -7644,7 +7647,7 @@ snapshots:
 
   recharts@3.7.0(@types/react@19.2.9)(react-dom@19.1.0(react@19.1.0))(react-is@16.13.1)(react@19.1.0)(redux@5.0.1):
     dependencies:
-      '@reduxjs/toolkit': 2.11.2(react-redux@9.2.0(@types/react@19.2.9)(react@18.3.1)(redux@5.0.1))(react@19.1.0)
+      '@reduxjs/toolkit': 2.11.2(react-redux@9.2.0(@types/react@19.2.9)(react@19.1.0)(redux@5.0.1))(react@19.1.0)
       clsx: 2.1.1
       decimal.js-light: 2.5.1
       es-toolkit: 1.44.0

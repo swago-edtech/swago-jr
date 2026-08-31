@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 import {
   ArrowLeft,
+  Settings,
   Package,
   FileText,
   IndianRupee,
@@ -16,6 +18,7 @@ import {
   Globe,
   Box,
   Star,
+  AlertTriangle,
   Megaphone,
   Check,
 } from "lucide-react";
@@ -62,6 +65,34 @@ export default function ProductForm({ mode, initialData, productId }: ProductFor
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [uploading, setUploading] = useState(false);
+
+  const [bomData, setBomData] = useState({ configured: false, stock: 0, limitingComponent: "", loading: mode === "edit" });
+
+  useEffect(() => {
+    if (mode === "edit" && productId) {
+      fetch(`/api/products/${productId}/bom-stock`)
+        .then(res => res.json())
+        .then(data => {
+          setBomData({
+            configured: data.configured || false,
+            stock: data.stock || 0,
+            limitingComponent: data.limitingComponent || "",
+            loading: false
+          });
+          
+          if (data.configured) {
+            setForm(prev => ({ ...prev, stock: data.stock.toString() }));
+          }
+        })
+        .catch(err => {
+          console.error(err);
+          setBomData(prev => ({ ...prev, loading: false }));
+        });
+    } else {
+      setBomData(prev => ({ ...prev, loading: false }));
+    }
+  }, [mode, productId]);
+
 
   const [form, setForm] = useState({
     name: initialData?.name ?? "",
@@ -288,9 +319,11 @@ export default function ProductForm({ mode, initialData, productId }: ProductFor
               {mode === "create"
                 ? "Configure catalog details, pricing, media, and inventory"
                 : "Update existing product specification and attributes"}
+
             </p>
           </div>
         </div>
+        
       </div>
 
       <form onSubmit={handleSubmit}>
@@ -808,27 +841,68 @@ export default function ProductForm({ mode, initialData, productId }: ProductFor
               </div>
             </div>
 
+
             <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
               <div className="flex items-center gap-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
                 <Box className="w-4 h-4 text-amber-600" />
                 <span>Inventory & Stock Alert</span>
               </div>
+              
+              {mode === "edit" && productId && (
+                <div className="bg-indigo-50/50 border border-indigo-100 rounded-xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4 mt-2 mb-4">
+                  <div>
+                    <h4 className="text-sm font-bold text-indigo-900">Inventory Bill of Materials</h4>
+                    <p className="text-xs text-indigo-700/80 mt-1">Configure exactly which raw materials are deducted from inventory when this product is sold.</p>
+                  </div>
+                  <Link
+                    href={`/inventory/config/${productId}`}
+                    className="inline-flex items-center flex-shrink-0 gap-2 px-5 py-2.5 bg-indigo-600 text-white hover:bg-indigo-700 rounded-xl text-sm font-bold transition-all shadow-sm shadow-indigo-200"
+                  >
+                    <Settings className="w-4 h-4" />
+                    Configure Inventory BOM
+                  </Link>
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Stock Quantity *
                   </label>
-                  <input
-                    type="number"
-                    name="stock"
-                    value={form.stock}
-                    onChange={handleChange}
-                    placeholder="50"
-                    min="0"
-                    className={fieldClass("stock")}
-                  />
-                  {errors.stock && (
-                    <p className="text-red-500 text-xs mt-1">{errors.stock}</p>
+                  {bomData.loading ? (
+                    <div className="h-10 bg-gray-100 rounded-lg animate-pulse w-full border border-gray-200" />
+                  ) : bomData.configured ? (
+                    <div className="relative">
+                      <input
+                        type="number"
+                        name="stock"
+                        value={form.stock}
+                        readOnly
+                        className="w-full border rounded-lg px-3.5 py-2.5 text-sm text-gray-500 bg-gray-50 border-gray-200 outline-none cursor-not-allowed"
+                      />
+                      <div className="absolute right-3 top-2.5 text-xs font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">Auto-Synced</div>
+                      {bomData.limitingComponent && (
+                        <p className="text-xs text-amber-600 font-medium mt-1.5 flex items-center gap-1">
+                          <AlertTriangle className="w-3 h-3" />
+                          Limited by: {bomData.limitingComponent}
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <>
+                      <input
+                        type="number"
+                        name="stock"
+                        value={form.stock}
+                        onChange={handleChange}
+                        placeholder="50"
+                        min="0"
+                        className={fieldClass("stock")}
+                      />
+                      {errors.stock && (
+                        <p className="text-red-500 text-xs mt-1">{errors.stock}</p>
+                      )}
+                    </>
                   )}
                 </div>
                 <div>

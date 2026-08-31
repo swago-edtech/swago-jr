@@ -10,6 +10,7 @@ import { cleanupExpiredOrders } from "@/lib/cleanupExpiredOrders";
 import { invalidateProductCache } from "@/lib/productCache";
 import { validateCoupon } from "@/lib/coupon";
 import { generateAndUploadInvoice } from "@/lib/invoice-service";
+import { deductInventoryForOrder } from "@/lib/inventory-service";
 
 // ✅ Type definitions
 interface ProductDocument {
@@ -332,6 +333,10 @@ export async function POST(req: Request) {
                 couponCode: validatedCoupon.code,
                 couponDetails: validatedCoupon,
             }),
+        });
+
+        deductInventoryForOrder(newOrder).catch(err => {
+            console.error('⚠️ Inventory deduction failed:', err);
         });
 
         // Increment coupon usage

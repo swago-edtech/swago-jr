@@ -25,6 +25,10 @@ export { default as MasterclassBooking } from './models/MasterclassBooking';
 export { default as PopupConfig } from './models/PopupConfig';
 export { default as ExpressConfig } from './models/ExpressConfig';
 export { default as InvoiceCounter } from './models/InvoiceCounter';
+export { default as InventoryItem } from './models/InventoryItem';
+export { default as ProductConfig } from './models/ProductConfig';
+export { default as InventoryTransaction } from './models/InventoryTransaction';
 
 // Export database connection
 export { default as connectDB } from './connection';
+export * from './services/inventory-sync';

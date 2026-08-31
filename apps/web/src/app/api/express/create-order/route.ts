@@ -17,6 +17,7 @@ import { invalidateProductCache } from "@/lib/productCache";
 import { formatPhoneForStorage, verifyAccessToken } from "@/lib/msg91";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { deductInventoryForOrder } from "@/lib/inventory-service";
 
 // ✅ JWT secret for session creation
 const secret = new TextEncoder().encode(process.env.JWT_SECRET);
@@ -460,6 +461,10 @@ export async function POST(req: Request) {
       }
     } else {
       // ── COD FLOW ──
+      deductInventoryForOrder(newOrder).catch(err => {
+        console.error('⚠️ Inventory deduction failed:', err);
+      });
+
       // Increment coupon usage
       if (newOrder.couponCode) {
         await (CouponModel as any).updateOne(
