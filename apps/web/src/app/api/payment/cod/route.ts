@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import mongoose from "mongoose";
 import { getLoginSession } from "@/lib/auth";
-import { connectDB, Product, Order, User, Coupon as CouponModel, Promotion } from "@swago/database";
+import { connectDB, Product, Order, User, Coupon as CouponModel, Promotion, hasActiveBomConfig } from "@swago/database";
 import { isValidObjectId } from "mongoose";
 import { generateOrderId } from "@/lib/generateOrderId";
 import { sendOrderConfirmationEmail, sendAdminOrderNotificationEmail } from "@/lib/msg91-email";
@@ -163,9 +163,12 @@ export async function POST(req: Request) {
             }, { status: 400 });
         }
 
-        // Step 2: Reduce stock immediately for COD orders
+        // Step 2: Reduce stock immediately for COD orders (BOM products sync via inventory deduction)
         for (const { product, quantity } of reservations) {
-            product.stock = Math.max(0, product.stock - quantity);
+            const bomManaged = await hasActiveBomConfig(product._id);
+            if (!bomManaged) {
+                product.stock = Math.max(0, product.stock - quantity);
+            }
             product.totalSold = (product.totalSold || 0) + quantity;
             if (product.reservedStock && product.reservedStock < 0) {
                 product.reservedStock = 0;
@@ -335,9 +338,7 @@ export async function POST(req: Request) {
             }),
         });
 
-        deductInventoryForOrder(newOrder).catch(err => {
-            console.error('⚠️ Inventory deduction failed:', err);
-        });
+        await deductInventoryForOrder(newOrder);
 
         // Increment coupon usage
         if (newOrder.couponCode) {

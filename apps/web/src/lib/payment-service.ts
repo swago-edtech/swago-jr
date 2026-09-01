@@ -4,6 +4,7 @@ import { invalidateProductCache } from "./productCache";
 import { isValidObjectId } from "mongoose";
 import { generateAndUploadInvoice } from "./invoice-service";
 import { deductInventoryForOrder } from "./inventory-service";
+import { hasActiveBomConfig } from "@swago/database";
 
 interface FinalizeOrderOptions {
   orderIdOrMongoId: string;
@@ -97,14 +98,16 @@ export async function finalizeOrder({ orderIdOrMongoId, razorpayPaymentId, sourc
 
       if (product) {
         const quantity = item.quantity || 1;
-        
-        // Update stock
-        product.stock = Math.max(0, product.stock - quantity);
-        product.reservedStock = Math.max(0, (product.reservedStock || 0) - quantity);
+        const bomManaged = await hasActiveBomConfig(product._id);
+
         product.totalSold = (product.totalSold || 0) + quantity;
-        
+        if (!bomManaged) {
+          product.stock = Math.max(0, product.stock - quantity);
+        }
+        product.reservedStock = Math.max(0, (product.reservedStock || 0) - quantity);
+
         await product.save();
-        console.log(`✅ Stock updated for ${product.name}: -${quantity}`);
+        console.log(`✅ Stock updated for ${product.name}: -${quantity}${bomManaged ? " (BOM-synced)" : ""}`);
 
         // Invalidate cache
         try {
@@ -120,9 +123,7 @@ export async function finalizeOrder({ orderIdOrMongoId, razorpayPaymentId, sourc
   }
 
   // Inventory item-level deduction
-  deductInventoryForOrder(order).catch(err => {
-    console.error('⚠️ Inventory deduction failed:', err);
-  });
+  await deductInventoryForOrder(order);
 
   // 7. Update User Profile
   try {

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
-import { connectDB, InventoryItem } from "@swago/database";
+import { connectDB, InventoryItem, syncAffectedProducts } from "@swago/database";
 
 export async function GET(
   request: NextRequest,
@@ -46,6 +46,8 @@ export async function PUT(
       return NextResponse.json({ error: "Item not found" }, { status: 404 });
     }
 
+    await syncAffectedProducts([id]);
+
     return NextResponse.json({ success: true, item });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -70,6 +72,8 @@ export async function DELETE(
     if (!item) {
       return NextResponse.json({ error: "Item not found" }, { status: 404 });
     }
+
+    await syncAffectedProducts([id]);
 
     return NextResponse.json({ success: true });
   } catch (error: any) {

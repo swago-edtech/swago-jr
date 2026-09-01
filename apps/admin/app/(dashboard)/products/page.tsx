@@ -12,6 +12,7 @@ type Product = {
   originalPrice?: number;
   stock: number;
   lowStockThreshold: number;
+  hasConfig?: boolean;
   images: string[];
   ageCategory: string;
   coreElements: string[];
@@ -109,7 +110,10 @@ export default function ProductsPage() {
   };
 
   // Stock badge color
-  const getStockBadge = (stock: number, threshold: number) => {
+  const getStockBadge = (stock: number, threshold: number, hasConfig?: boolean) => {
+    if (!hasConfig) {
+      return <span className="px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider rounded-full bg-gray-100 text-gray-600 border border-gray-200">Not Configured</span>;
+    }
     if (stock === 0) {
       return <span className="px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider rounded-full bg-red-100 text-red-800 border border-red-200">Out of Stock</span>;
     } else if (stock <= threshold) {
@@ -311,7 +315,7 @@ export default function ProductsPage() {
 
                   {/* Stock */}
                   <td className="px-6 py-4">
-                    {getStockBadge(product.stock, product.lowStockThreshold)}
+                    {getStockBadge(product.stock, product.lowStockThreshold, product.hasConfig)}
                   </td>
 
                   {/* Age */}

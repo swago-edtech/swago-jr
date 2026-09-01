@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
-import { Product } from "@swago/database";
+import { Product, getConfiguredProductIds, applyEffectiveProductStock } from "@swago/database";
 import { connectDB } from "@swago/database";
 
 // GET /api/products - List all products with filters
@@ -54,15 +54,33 @@ export async function GET(request: NextRequest) {
       filter.isFeatured = true;
     }
 
+    const configuredIds = await getConfiguredProductIds();
+
     // Fetch products
     const products = await Product.find(filter)
       .sort({ createdAt: -1 })
       .lean();
 
+    const staleUnconfiguredIds = products
+      .filter((p: any) => !configuredIds.has(p._id.toString()) && (p.stock ?? 0) > 0)
+      .map((p: any) => p._id);
+
+    if (staleUnconfiguredIds.length > 0) {
+      await Product.updateMany({ _id: { $in: staleUnconfiguredIds } }, { stock: 0 });
+    }
+
+    const productsWithEffectiveStock = products.map((product: any) => {
+      const hasConfig = configuredIds.has(product._id.toString());
+      return {
+        ...applyEffectiveProductStock(product, configuredIds),
+        hasConfig,
+      };
+    });
+
     return NextResponse.json({
       success: true,
-      products,
-      count: products.length,
+      products: productsWithEffectiveStock,
+      count: productsWithEffectiveStock.length,
     });
   } catch (error: any) {
     console.error("Error fetching products:", error);
@@ -138,7 +156,7 @@ export async function POST(request: NextRequest) {
       coreElements: body.coreElements,
       boxContents: body.boxContents,
       benefits: body.benefits,
-      stock: body.stock || 0,
+      stock: 0,
       lowStockThreshold: body.lowStockThreshold || 10,
       isFeatured: body.isFeatured || false,
       isActive: body.isActive !== undefined ? body.isActive : true,

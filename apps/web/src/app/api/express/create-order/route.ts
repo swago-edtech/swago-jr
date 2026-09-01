@@ -7,7 +7,7 @@ import { NextResponse } from "next/server";
 import Razorpay from "razorpay";
 import mongoose from "mongoose";
 import { SignJWT } from "jose";
-import { connectDB, Product, Order, User, Coupon as CouponModel, Promotion } from "@swago/database";
+import { connectDB, Product, Order, User, Coupon as CouponModel, Promotion, hasActiveBomConfig } from "@swago/database";
 import { isValidObjectId } from "mongoose";
 import { generateOrderId } from "@/lib/generateOrderId";
 import { cleanupExpiredOrders } from "@/lib/cleanupExpiredOrders";
@@ -318,9 +318,12 @@ export async function POST(req: Request) {
         console.log(`🔒 [Express] Reserved ${quantity} units of ${product.name}`);
       }
     } else {
-      // COD: Directly deduct stock
+      // COD: Directly deduct stock (BOM products sync via inventory deduction)
       for (const { product, quantity } of reservations) {
-        product.stock = Math.max(0, product.stock - quantity);
+        const bomManaged = await hasActiveBomConfig(product._id);
+        if (!bomManaged) {
+          product.stock = Math.max(0, product.stock - quantity);
+        }
         product.totalSold = (product.totalSold || 0) + quantity;
         await product.save();
         console.log(`📦 [Express COD] Deducted ${quantity} units of ${product.name}`);
@@ -461,9 +464,7 @@ export async function POST(req: Request) {
       }
     } else {
       // ── COD FLOW ──
-      deductInventoryForOrder(newOrder).catch(err => {
-        console.error('⚠️ Inventory deduction failed:', err);
-      });
+      await deductInventoryForOrder(newOrder);
 
       // Increment coupon usage
       if (newOrder.couponCode) {

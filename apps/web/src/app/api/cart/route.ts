@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getLoginSession } from "@/lib/auth";
 import { connectDB, User, Product } from "@swago/database";
 import { isValidObjectId } from "mongoose";
+import { withEffectiveProductStock, getEffectiveAvailableStock } from "@/lib/product-stock";
 
 // ✅ UPDATED: Cart item now includes full product details
 interface CartItem {
@@ -74,7 +75,7 @@ async function getProductById(id: string | number): Promise<ProductDocument | nu
       product = await Product.findOne({ _id: idString, isActive: true });
     }
 
-    return product as ProductDocument | null;
+    return product ? await withEffectiveProductStock(product as ProductDocument) : null;
   } catch (error) {
     console.error('Error fetching product:', error);
     return null;
@@ -171,7 +172,7 @@ export async function POST(req: Request) {
       const product = await getProductById(productId);
 
       if (product) {
-        const availableStock = Math.max(0, product.stock - (product.reservedStock || 0));
+        const availableStock = getEffectiveAvailableStock(product);
 
         if (availableStock === 0) {
           stockErrors.push(`${productDetails.name} is out of stock`);

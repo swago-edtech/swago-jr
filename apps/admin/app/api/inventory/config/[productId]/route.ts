@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
-import { connectDB, Product, ProductConfig, InventoryItem, syncAffectedProducts } from "@swago/database";
+import { connectDB, Product, ProductConfig, InventoryItem, syncProductStock } from "@swago/database";
 
 export async function GET(
   request: NextRequest,
@@ -72,12 +72,15 @@ export async function PUT(
       { upsert: true, new: true, runValidators: true }
     );
 
-    // Trigger a recalculation to sync the product stock immediately upon saving the BOM
-    if (inventoryItemIds.length > 0) {
-      await syncAffectedProducts(inventoryItemIds);
-    }
+    await syncProductStock(productId);
 
-    return NextResponse.json({ success: true, config });
+    const updatedProduct = await Product.findById(productId).select("stock").lean();
+
+    return NextResponse.json({
+      success: true,
+      config,
+      product: updatedProduct,
+    });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

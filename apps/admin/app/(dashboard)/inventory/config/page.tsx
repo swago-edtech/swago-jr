@@ -94,7 +94,11 @@ export default function InventoryConfigList() {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
-                      {product.stock} units
+                      {product.hasConfig ? (
+                        <span>{product.stock} units</span>
+                      ) : (
+                        <span className="text-gray-400">0 units</span>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {product.hasConfig ? (

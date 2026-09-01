@@ -51,7 +51,6 @@ export async function deductInventoryForOrder(order: {
         await invItem.save();
 
         affectedInventoryIds.push(component.inventoryItemId.toString());
-        affectedInventoryIds.push(component.inventoryItemId.toString());
         await InventoryTransaction.create({
           inventoryItemId: component.inventoryItemId,
           inventoryItemName: invItem.name,
@@ -116,6 +115,8 @@ export async function restoreInventoryForOrder(order: {
         const previousStock = invItem.currentStock;
         invItem.currentStock = previousStock + addition;
         await invItem.save();
+
+        affectedInventoryIds.push(component.inventoryItemId.toString());
 
         await InventoryTransaction.create({
           inventoryItemId: component.inventoryItemId,

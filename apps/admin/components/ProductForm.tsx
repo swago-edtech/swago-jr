@@ -82,6 +82,8 @@ export default function ProductForm({ mode, initialData, productId }: ProductFor
           
           if (data.configured) {
             setForm(prev => ({ ...prev, stock: data.stock.toString() }));
+          } else {
+            setForm(prev => ({ ...prev, stock: "0" }));
           }
         })
         .catch(err => {
@@ -225,7 +227,7 @@ export default function ProductForm({ mode, initialData, productId }: ProductFor
     if (!form.boxContents.trim()) e.boxContents = "Box contents are required";
     if (!form.benefits.trim()) e.benefits = "Benefits are required";
     if (images.length === 0) e.images = "At least one image is required";
-    if (form.stock === "" || parseInt(form.stock) < 0)
+    if (!bomData.configured && (form.stock === "" || parseInt(form.stock) < 0))
       e.stock = "Valid stock quantity is required";
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -239,7 +241,7 @@ export default function ProductForm({ mode, initialData, productId }: ProductFor
     }
     try {
       setSubmitting(true);
-      const payload = {
+      const payload: Record<string, unknown> = {
         name: form.name,
         description: form.description,
         price: parseFloat(form.price),
@@ -250,7 +252,6 @@ export default function ProductForm({ mode, initialData, productId }: ProductFor
         coreElements: form.coreElements,
         boxContents: form.boxContents,
         benefits: form.benefits,
-        stock: parseInt(form.stock),
         lowStockThreshold: parseInt(form.lowStockThreshold),
         isFeatured: form.isFeatured,
         isActive: form.isActive,
@@ -261,6 +262,10 @@ export default function ProductForm({ mode, initialData, productId }: ProductFor
         promotionalMessage: form.promotionalMessage,
         skills: skills.filter((s) => s.title && s.image),
       };
+
+      if (!(mode === "edit" && bomData.configured)) {
+        payload.stock = 0;
+      }
 
       const endpoint = mode === "create" ? "/api/products" : `/api/products/${productId}`;
       const res = await fetch(endpoint, {
@@ -889,20 +894,21 @@ export default function ProductForm({ mode, initialData, productId }: ProductFor
                       )}
                     </div>
                   ) : (
-                    <>
+                    <div className="relative">
                       <input
                         type="number"
                         name="stock"
-                        value={form.stock}
-                        onChange={handleChange}
-                        placeholder="50"
-                        min="0"
-                        className={fieldClass("stock")}
+                        value="0"
+                        readOnly
+                        className="w-full border rounded-lg px-3.5 py-2.5 text-sm text-gray-500 bg-gray-50 border-gray-200 outline-none cursor-not-allowed"
                       />
-                      {errors.stock && (
-                        <p className="text-red-500 text-xs mt-1">{errors.stock}</p>
-                      )}
-                    </>
+                      <div className="absolute right-3 top-2.5 text-xs font-semibold text-gray-500 bg-gray-100 px-2 py-0.5 rounded border border-gray-200">BOM Required</div>
+                      <p className="text-xs text-gray-500 mt-1.5">
+                        {mode === "edit" && productId
+                          ? "Configure inventory BOM to calculate sellable stock."
+                          : "Stock is calculated after you configure the inventory BOM."}
+                      </p>
+                    </div>
                   )}
                 </div>
                 <div>

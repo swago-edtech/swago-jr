@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
-import { connectDB, Product, ProductConfig } from "@swago/database";
+import { connectDB, Product, ProductConfig, getConfiguredProductIds, applyEffectiveProductStock } from "@swago/database";
 
 export async function GET(request: NextRequest) {
   try {
@@ -18,12 +18,23 @@ export async function GET(request: NextRequest) {
       configs.map((config: any) => [config.productId.toString(), config])
     );
 
+    const configuredIds = await getConfiguredProductIds();
+
+    const staleUnconfiguredIds = products
+      .filter((p: any) => !configuredIds.has(p._id.toString()) && (p.stock ?? 0) > 0)
+      .map((p: any) => p._id);
+
+    if (staleUnconfiguredIds.length > 0) {
+      await Product.updateMany({ _id: { $in: staleUnconfiguredIds } }, { stock: 0 });
+    }
+
     const productsWithConfig = products.map((product: any) => {
+      const hasConfig = configuredIds.has(product._id.toString());
       const config = configMap.get(product._id.toString());
       return {
-        ...product,
-        hasConfig: !!config,
-        componentCount: config ? config.components.length : 0,
+        ...applyEffectiveProductStock(product, configuredIds),
+        hasConfig,
+        componentCount: config?.components?.length ?? 0,
       };
     });
 

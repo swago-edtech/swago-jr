@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { connectDB, Product } from "@swago/database";
+import { connectDB, Product, getConfiguredProductIds, applyEffectiveProductStock } from "@swago/database";
 
 export async function GET(request: Request) {
   try {
@@ -17,17 +17,21 @@ export async function GET(request: Request) {
 
     await connectDB();
 
+    const configuredIds = await getConfiguredProductIds();
+
     const products = await Product.find({ _id: { $in: ids } })
-      .select("_id stock")
-      .lean() as Array<{ _id: { toString(): string }; stock?: number }>;
+      .select("_id stock reservedStock")
+      .lean() as Array<{ _id: { toString(): string }; stock?: number; reservedStock?: number }>;
 
     const stockMap: Record<string, { available: number; reserved: number; total: number }> = {};
 
     for (const product of products) {
-      const total = product.stock ?? 0;
+      const effective = applyEffectiveProductStock(product, configuredIds);
+      const total = effective.stock ?? 0;
+      const reserved = product.reservedStock ?? 0;
       stockMap[product._id.toString()] = {
-        available: total,
-        reserved: 0,
+        available: Math.max(0, total - reserved),
+        reserved,
         total,
       };
     }

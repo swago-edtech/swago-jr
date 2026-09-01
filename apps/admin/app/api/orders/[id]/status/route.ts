@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { connectDB, Order, ProductCode, Product, InventoryItem, ProductConfig, InventoryTransaction } from '@swago/database';
+import { connectDB, Order, ProductCode, Product, InventoryItem, ProductConfig, InventoryTransaction, syncAffectedProducts } from '@swago/database';
 import { isValidObjectId } from 'mongoose';
 import { requireAdmin } from '@/lib/auth';
 
@@ -109,47 +109,52 @@ export async function PATCH(
     // Check if status is transitioning to a cancelled/returned state
     const cancellingStatuses = ['Cancelled', 'RTO', 'Returned', 'Refunded'];
     if (cancellingStatuses.includes(status) && !cancellingStatuses.includes(currentOrder.status) && currentOrder.items) {
-      // Auto-restore inventory
-      (async () => {
-        try {
-          for (const item of currentOrder.items) {
-            const rawId = item.productId?.toString();
-            if (!rawId) continue;
-            let resolvedProductId = rawId;
-            if (!isValidObjectId(rawId)) {
-              const product = await Product.findOne({ slug: rawId });
-              if (!product) continue;
-              resolvedProductId = product._id.toString();
-            }
-            const config = await ProductConfig.findOne({ productId: resolvedProductId, isActive: true });
-            if (!config?.components?.length) continue;
-            const orderQty = item.quantity || 1;
-            for (const component of config.components) {
-              const addition = component.quantity * orderQty;
-              const invItem = await InventoryItem.findById(component.inventoryItemId);
-              if (!invItem) continue;
-              const previousStock = invItem.currentStock;
-              invItem.currentStock = previousStock + addition;
-              await invItem.save();
-              await InventoryTransaction.create({
-                inventoryItemId: component.inventoryItemId,
-                inventoryItemName: invItem.name,
-                type: "addition",
-                quantity: addition,
-                previousStock,
-                newStock: invItem.currentStock,
-                orderId: currentOrder.orderId || "",
-                orderMongoId: currentOrder._id,
-                productName: item.name || "",
-                reason: `Order ${status} (${currentOrder.orderId || currentOrder._id})`,
-                performedBy: session?.name || "Admin",
-              });
-            }
+      const affectedInventoryIds: string[] = [];
+
+      try {
+        for (const item of currentOrder.items) {
+          const rawId = item.productId?.toString();
+          if (!rawId) continue;
+          let resolvedProductId = rawId;
+          if (!isValidObjectId(rawId)) {
+            const product = await Product.findOne({ slug: rawId });
+            if (!product) continue;
+            resolvedProductId = product._id.toString();
           }
-        } catch(err) {
-          console.error("Inventory restore failed:", err);
+          const config = await ProductConfig.findOne({ productId: resolvedProductId, isActive: true });
+          if (!config?.components?.length) continue;
+          const orderQty = item.quantity || 1;
+          for (const component of config.components) {
+            const addition = component.quantity * orderQty;
+            const invItem = await InventoryItem.findById(component.inventoryItemId);
+            if (!invItem) continue;
+            const previousStock = invItem.currentStock;
+            invItem.currentStock = previousStock + addition;
+            await invItem.save();
+            affectedInventoryIds.push(component.inventoryItemId.toString());
+            await InventoryTransaction.create({
+              inventoryItemId: component.inventoryItemId,
+              inventoryItemName: invItem.name,
+              type: "addition",
+              quantity: addition,
+              previousStock,
+              newStock: invItem.currentStock,
+              orderId: currentOrder.orderId || "",
+              orderMongoId: currentOrder._id,
+              productName: item.name || "",
+              reason: `Order ${status} (${currentOrder.orderId || currentOrder._id})`,
+              performedBy: session?.name || "Admin",
+            });
+          }
         }
-      })();
+
+        const uniqueInvIds = [...new Set(affectedInventoryIds)];
+        if (uniqueInvIds.length > 0) {
+          await syncAffectedProducts(uniqueInvIds);
+        }
+      } catch (err) {
+        console.error("Inventory restore failed:", err);
+      }
     }
 
     // Update order status

@@ -79,6 +79,10 @@ export default function ProductConfigPage({ params }: { params: Promise<{ produc
         body: JSON.stringify({ components: validComponents }),
       });
       if (res.ok) {
+        const data = await res.json();
+        if (data.product?.stock !== undefined) {
+          setProduct((prev: any) => ({ ...prev, stock: data.product.stock }));
+        }
         alert("Configuration saved successfully!");
         router.push("/inventory/config");
       } else {
@@ -122,7 +126,7 @@ export default function ProductConfigPage({ params }: { params: Promise<{ produc
               Price: ₹{product.price}
             </span>
             <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-50 text-blue-700">
-              E-commerce Stock: {product.stock}
+              E-commerce Stock: {product.stock ?? 0}
             </span>
           </div>
         </div>
