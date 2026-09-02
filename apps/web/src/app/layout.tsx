@@ -25,8 +25,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const isBlogOnly = process.env.BLOG_ONLY_MODE === "true";
 
   return (
-    <html lang="en" className={poppins.variable}>
-      <body className="flex flex-col min-h-screen bg-gray-50 font-poppins">
+    <html lang="en" className={poppins.variable} suppressHydrationWarning>
+      <body className="flex flex-col min-h-screen bg-gray-50 font-poppins" suppressHydrationWarning>
         <SharedProvider>
           <Suspense fallback={<div className="flex-grow" />}>
             <LayoutUI isBlogOnly={isBlogOnly}>

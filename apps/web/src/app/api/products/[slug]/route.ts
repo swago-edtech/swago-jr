@@ -1,7 +1,8 @@
 // apps/web/src/app/api/products/[slug]/route.ts
 import { NextResponse } from "next/server";
-import { connectDB, Product, getConfiguredProductIds, applyEffectiveProductStock } from "@swago/database";
+import { connectDB, Product, getConfiguredProductIds } from "@swago/database";
 import { isValidObjectId } from "mongoose";
+import { enrichProductAvailability } from "@/lib/product-stock";
 
 interface ProductResponse {
   _id?: string;
@@ -17,6 +18,7 @@ interface ProductResponse {
   boxContents?: string;
   stock?: number;
   reservedStock?: number;
+  availableStock?: number;
   isFeatured?: boolean;
   isActive?: boolean;
   slug?: string;
@@ -64,11 +66,14 @@ export async function GET(
     }
 
     const configuredIds = await getConfiguredProductIds();
-    product = applyEffectiveProductStock(product, configuredIds);
+    const enrichedProduct = enrichProductAvailability(
+      product as { _id: string; stock?: number; reservedStock?: number },
+      configuredIds
+    );
 
     const response = NextResponse.json({
       success: true,
-      product,
+      product: enrichedProduct,
     });
 
     response.headers.set("Cache-Control", "no-store");

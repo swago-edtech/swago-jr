@@ -4,7 +4,7 @@
 import { NextResponse } from "next/server";
 import { connectDB, Product } from "@swago/database";
 import { isValidObjectId } from "mongoose";
-import { withEffectiveProductStock, getEffectiveAvailableStock } from "@/lib/product-stock";
+import { withEffectiveProductStock } from "@/lib/product-stock";
 
 interface RefreshRequestItem {
   productId: string;
@@ -81,7 +81,7 @@ export async function POST(req: Request) {
       const dbProduct = await withEffectiveProductStock(product as any);
       const dbPrice = dbProduct.price;
       const dbName = dbProduct.name;
-      const availableStock = getEffectiveAvailableStock(dbProduct);
+      const availableStock = dbProduct.availableStock ?? 0;
 
       // Detect price changes
       if (frontendPrice !== undefined && frontendPrice !== dbPrice) {

@@ -7,17 +7,19 @@ import { NextResponse } from "next/server";
 import Razorpay from "razorpay";
 import mongoose from "mongoose";
 import { SignJWT } from "jose";
-import { connectDB, Product, Order, User, Coupon as CouponModel, Promotion, hasActiveBomConfig } from "@swago/database";
-import { isValidObjectId } from "mongoose";
+import { connectDB, Product, Order, User, Coupon as CouponModel, Promotion } from "@swago/database";
 import { generateOrderId } from "@/lib/generateOrderId";
 import { cleanupExpiredOrders } from "@/lib/cleanupExpiredOrders";
 import { validateCoupon } from "@/lib/coupon";
 import { sendOrderConfirmationEmail } from "@/lib/msg91-email";
-import { invalidateProductCache } from "@/lib/productCache";
 import { formatPhoneForStorage, verifyAccessToken } from "@/lib/msg91";
-import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { deductInventoryForOrder } from "@/lib/inventory-service";
+import {
+  allocateInventoryForOrder,
+  releaseInventoryAllocation,
+  InsufficientInventoryError,
+} from "@/lib/inventory-service";
+import { findProductWithAvailability } from "@/lib/product-stock";
 
 // ✅ JWT secret for session creation
 const secret = new TextEncoder().encode(process.env.JWT_SECRET);
@@ -75,17 +77,8 @@ const expressOrderSchema = z.object({
 /**
  * Fetch a product by slug or MongoDB _id
  */
-async function getProductById(id: string): Promise<ProductDocument | null> {
-  try {
-    let product = await Product.findOne({ slug: id, isActive: true });
-    if (!product && isValidObjectId(id)) {
-      product = await Product.findOne({ _id: id, isActive: true });
-    }
-    return product as ProductDocument | null;
-  } catch (error) {
-    console.error("Error fetching product:", error);
-    return null;
-  }
+async function getProductById(id: string) {
+  return findProductWithAvailability(id);
 }
 
 /**
@@ -210,7 +203,7 @@ export async function POST(req: Request) {
         continue;
       }
 
-      const availableStock = Math.max(0, product.stock - (product.reservedStock || 0));
+      const availableStock = product.availableStock ?? 0;
 
       if (availableStock === 0) {
         stockErrors.push(`${product.name} is out of stock`);
@@ -308,39 +301,7 @@ export async function POST(req: Request) {
     const calculatedTotal = Math.max(0, calculatedAmountAfterCoupon + shippingFee);
 
     // ========================================
-    // 8. RESERVE STOCK
-    // ========================================
-    if (paymentMethod === "razorpay") {
-      // Reserve stock (will be converted to sold on payment success)
-      for (const { product, quantity } of reservations) {
-        product.reservedStock = Math.max(0, product.reservedStock || 0) + quantity;
-        await product.save();
-        console.log(`🔒 [Express] Reserved ${quantity} units of ${product.name}`);
-      }
-    } else {
-      // COD: Directly deduct stock (BOM products sync via inventory deduction)
-      for (const { product, quantity } of reservations) {
-        const bomManaged = await hasActiveBomConfig(product._id);
-        if (!bomManaged) {
-          product.stock = Math.max(0, product.stock - quantity);
-        }
-        product.totalSold = (product.totalSold || 0) + quantity;
-        await product.save();
-        console.log(`📦 [Express COD] Deducted ${quantity} units of ${product.name}`);
-
-        try {
-          invalidateProductCache(product.slug || "");
-          invalidateProductCache(product._id.toString());
-          revalidatePath(`/product/${product.slug}`);
-          revalidatePath("/products");
-        } catch (e) {
-          console.error("Cache/revalidate failed:", e);
-        }
-      }
-    }
-
-    // ========================================
-    // 9. CREATE ORDER
+    // 8. CREATE ORDER (inventory allocated after creation)
     // ========================================
     const orderId = await generateOrderId();
     console.log("✅ [Express] Generated Order ID:", orderId);
@@ -378,6 +339,32 @@ export async function POST(req: Request) {
 
     console.log("✅ [Express] Order created:", orderId);
 
+    try {
+      await allocateInventoryForOrder(newOrder, {
+        consumeImmediately: paymentMethod === "cod",
+      });
+    } catch (allocError) {
+      await Order.findByIdAndDelete(newOrder._id);
+      if (allocError instanceof InsufficientInventoryError) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Stock unavailable",
+            stockErrors: [allocError.message],
+            details: allocError.message,
+          },
+          { status: 400 }
+        );
+      }
+      throw allocError;
+    }
+
+    if (paymentMethod === "cod") {
+      for (const { product, quantity } of reservations) {
+        await Product.findByIdAndUpdate(product._id, { $inc: { totalSold: quantity } });
+      }
+    }
+
     // Link order to user
     try {
       user.orders.push(newOrder._id);
@@ -397,10 +384,7 @@ export async function POST(req: Request) {
         // Rollback: mark order failed, release stock
         newOrder.status = "Failed";
         await newOrder.save();
-        for (const { product, quantity } of reservations) {
-          product.reservedStock = Math.max(0, (product.reservedStock || 0) - quantity);
-          await product.save();
-        }
+        await releaseInventoryAllocation(newOrder);
         return NextResponse.json(
           { success: false, error: "Payment gateway not configured" },
           { status: 500 }
@@ -456,15 +440,11 @@ export async function POST(req: Request) {
         console.error("❌ [Express] Razorpay order creation failed");
         newOrder.status = "Failed";
         await newOrder.save();
-        for (const { product, quantity } of reservations) {
-          product.reservedStock = Math.max(0, (product.reservedStock || 0) - quantity);
-          await product.save();
-        }
+        await releaseInventoryAllocation(newOrder);
         throw razorpayError;
       }
     } else {
       // ── COD FLOW ──
-      await deductInventoryForOrder(newOrder);
 
       // Increment coupon usage
       if (newOrder.couponCode) {

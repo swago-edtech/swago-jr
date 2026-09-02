@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { connectDB, Product, getConfiguredProductIds, applyEffectiveProductStock } from "@swago/database";
+import { connectDB, Product, getConfiguredProductIds, enrichProductAvailability, reconcileStaleProductStock } from "@swago/database";
 
 interface ProductData {
   _id: string;
@@ -40,6 +40,8 @@ export async function GET(request: Request) {
 
     await connectDB();
 
+    await reconcileStaleProductStock();
+
     const query: ProductQuery = { isActive: true };
 
     if (search) {
@@ -69,7 +71,7 @@ export async function GET(request: Request) {
       .lean() as unknown as ProductData[];
 
     const productsWithEffectiveStock = products.map((product) =>
-      applyEffectiveProductStock(product, configuredIds)
+      enrichProductAvailability(product, configuredIds)
     );
 
     const response = NextResponse.json({

@@ -3,9 +3,9 @@ import { NextResponse } from "next/server";
 import { getLoginSession } from "@/lib/auth";
 import { connectDB, User, Product } from "@swago/database";
 import { isValidObjectId } from "mongoose";
-import { withEffectiveProductStock, getEffectiveAvailableStock } from "@/lib/product-stock";
+import { withEffectiveProductStock } from "@/lib/product-stock";
 
-// ✅ UPDATED: Cart item now includes full product details
+// Cart item includes full product details
 interface CartItem {
   productId: string | number;
   quantity: number;
@@ -21,6 +21,7 @@ interface ProductDocument {
   _id: string;
   stock: number;
   reservedStock?: number;
+  availableStock?: number;
   isActive: boolean;
   price: number;
   name: string;
@@ -46,13 +47,14 @@ async function getFullProductDetails(productId: string | number): Promise<{
     }
 
     if (product) {
+      const enriched = await withEffectiveProductStock(product as ProductDocument);
       return {
-        price: product.price,
-        name: product.name,
-        slug: product.slug,
-        image: product.images?.[0] || '/images/placeholder.png',
-        images: product.images || ['/images/placeholder.png'],
-        stock: product.stock
+        price: enriched.price,
+        name: enriched.name,
+        slug: enriched.slug,
+        image: enriched.images?.[0] || '/images/placeholder.png',
+        images: enriched.images || ['/images/placeholder.png'],
+        stock: enriched.availableStock,
       };
     }
   } catch (error) {
@@ -81,8 +83,6 @@ async function getProductById(id: string | number): Promise<ProductDocument | nu
     return null;
   }
 }
-
-
 // ========================================
 // GET: Fetch user's cart from database
 // ========================================
@@ -172,7 +172,7 @@ export async function POST(req: Request) {
       const product = await getProductById(productId);
 
       if (product) {
-        const availableStock = getEffectiveAvailableStock(product);
+        const availableStock = product.availableStock ?? 0;
 
         if (availableStock === 0) {
           stockErrors.push(`${productDetails.name} is out of stock`);

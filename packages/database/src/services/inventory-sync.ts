@@ -58,9 +58,9 @@ export function calculateBomStock(components: BomComponent[]): BomStockResult {
 export async function hasActiveBomConfig(
   productId: string | mongoose.Types.ObjectId
 ): Promise<boolean> {
-  const config = await ProductConfig.findOne({ productId, isActive: true })
+  const config = (await ProductConfig.findOne({ productId, isActive: true })
     .select("components")
-    .lean();
+    .lean()) as { components?: unknown[] } | null;
   return !!(config?.components?.length);
 }
 
@@ -105,6 +105,76 @@ export function applyEffectiveProductStock<
     return { ...product, stock: 0 };
   }
   return product;
+}
+
+/**
+ * BOM-configured products: stock field is the source of truth (component allocation
+ * is tracked separately). Unconfigured products are never purchasable.
+ * Legacy reservedStock is ignored — it caused false negatives and negative-reserved bugs.
+ */
+export function getEffectiveAvailableStock(
+  product: { stock?: number; reservedStock?: number },
+  isConfigured: boolean
+): number {
+  if (!isConfigured) return 0;
+  return Math.max(0, product.stock ?? 0);
+}
+
+export function enrichProductAvailability<
+  T extends { _id: { toString(): string } | string; stock?: number; reservedStock?: number },
+>(product: T, configuredIds: Set<string>): T & { availableStock: number; hasConfig: boolean } {
+  const id = typeof product._id === "string" ? product._id : product._id.toString();
+  const hasConfig = configuredIds.has(id);
+  const effective = applyEffectiveProductStock(product, configuredIds);
+  return {
+    ...effective,
+    hasConfig,
+    availableStock: getEffectiveAvailableStock(effective, hasConfig),
+  };
+}
+
+/**
+ * Zero stale DB values: unconfigured products with leftover stock, and any negative reservedStock.
+ */
+export async function reconcileStaleProductStock(): Promise<{
+  zeroedUnconfigured: number;
+  fixedReserved: number;
+}> {
+  const configuredIds = await getConfiguredProductIds();
+  const products = await Product.find({ isActive: true })
+    .select("_id stock reservedStock")
+    .lean() as Array<{
+      _id: mongoose.Types.ObjectId;
+      stock?: number;
+      reservedStock?: number;
+    }>;
+
+  const zeroedUnconfiguredIds: mongoose.Types.ObjectId[] = [];
+  const fixedReservedIds: mongoose.Types.ObjectId[] = [];
+
+  for (const product of products) {
+    const id = product._id.toString();
+    const isConfigured = configuredIds.has(id);
+
+    if (!isConfigured && (product.stock ?? 0) > 0) {
+      zeroedUnconfiguredIds.push(product._id);
+    }
+    if ((product.reservedStock ?? 0) !== 0) {
+      fixedReservedIds.push(product._id);
+    }
+  }
+
+  if (zeroedUnconfiguredIds.length > 0) {
+    await Product.updateMany({ _id: { $in: zeroedUnconfiguredIds } }, { stock: 0 });
+  }
+  if (fixedReservedIds.length > 0) {
+    await Product.updateMany({ _id: { $in: fixedReservedIds } }, { reservedStock: 0 });
+  }
+
+  return {
+    zeroedUnconfigured: zeroedUnconfiguredIds.length,
+    fixedReserved: fixedReservedIds.length,
+  };
 }
 
 /**
@@ -156,5 +226,6 @@ export async function syncAffectedProducts(inventoryItemIds: string[]) {
     }
   } catch (error) {
     console.error("⚠️ Failed to sync affected products:", error);
+    throw error;
   }
 }

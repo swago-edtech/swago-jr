@@ -32,3 +32,4 @@ export { default as InventoryTransaction } from './models/InventoryTransaction';
 // Export database connection
 export { default as connectDB } from './connection';
 export * from './services/inventory-sync';
+export * from './services/inventory-order';

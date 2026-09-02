@@ -7,6 +7,12 @@ import { isValidObjectId } from "mongoose";
 import { generateOrderId } from "@/lib/generateOrderId";
 import { cleanupExpiredOrders } from "@/lib/cleanupExpiredOrders";
 import { validateCoupon } from "@/lib/coupon";
+import { findProductWithAvailability } from "@/lib/product-stock";
+import {
+  allocateInventoryForOrder,
+  releaseInventoryAllocation,
+  InsufficientInventoryError,
+} from "@/lib/inventory-service";
 
 
 // ✅ Type definitions
@@ -44,22 +50,9 @@ interface OrderItem {
 }
 
 
-// Helper to get product by ID or slug
-async function getProductById(id: string): Promise<ProductDocument | null> {
-  try {
-    // Try slug first
-    let product = await Product.findOne({ slug: id, isActive: true });
-
-    // Try MongoDB _id if valid ObjectId
-    if (!product && isValidObjectId(id)) {
-      product = await Product.findOne({ _id: id, isActive: true });
-    }
-
-    return product as ProductDocument | null;
-  } catch (error) {
-    console.error('Error fetching product:', error);
-    return null;
-  }
+// Helper to get product by ID or slug with effective availability
+async function getProductById(id: string) {
+  return findProductWithAvailability(id);
 }
 
 
@@ -106,7 +99,7 @@ export async function POST(req: Request) {
     }
 
     const stockErrors: string[] = [];
-    const reservations: Array<{ product: ProductDocument; quantity: number }> = [];
+    const reservations: Array<{ product: ProductDocument & { availableStock?: number }; quantity: number }> = [];
 
 
     // Step 1: Validate all items have sufficient stock
@@ -138,7 +131,7 @@ export async function POST(req: Request) {
       }
 
 
-      const availableStock = Math.max(0, product.stock - (product.reservedStock || 0));
+      const availableStock = product.availableStock ?? 0;
 
       console.log(`📦 ${product.name}: Stock=${product.stock}, Reserved=${product.reservedStock}, Available=${availableStock}, Requested=${item.quantity}`);
 
@@ -164,17 +157,8 @@ export async function POST(req: Request) {
     }
 
 
-    // Step 2: Reserve stock for all items (only DB products)
-    console.log('✅ Stock validation passed. Reserving stock...');
-
-    for (const { product, quantity } of reservations) {
-      product.reservedStock = Math.max(0, product.reservedStock || 0) + quantity;
-      await product.save();
-      console.log(`🔒 Reserved ${quantity} units of ${product.name} (total reserved: ${product.reservedStock})`);
-    }
-
-
-    console.log('✅ Stock reserved successfully for all items');
+    // Stock validated — inventory allocated after order is created
+    console.log('✅ Stock validation passed.');
     // ========================================
 
 
@@ -340,7 +324,21 @@ export async function POST(req: Request) {
       }),
     });
 
-    console.log('✅ Order created with ID:', orderId, 'MongoDB ID:', newOrder._id);
+    try {
+      await allocateInventoryForOrder(newOrder, { consumeImmediately: false });
+    } catch (allocError) {
+      await Order.findByIdAndDelete(newOrder._id);
+      if (allocError instanceof InsufficientInventoryError) {
+        return NextResponse.json({
+          error: "Stock unavailable",
+          stockErrors: [allocError.message],
+          details: allocError.message,
+        }, { status: 400 });
+      }
+      throw allocError;
+    }
+
+    console.log('✅ Inventory allocated for order');
 
     // Link order to user
     try {
@@ -360,11 +358,8 @@ export async function POST(req: Request) {
       newOrder.status = 'Failed';
       await newOrder.save();
 
-      console.log('⚠️ Razorpay config missing, rolling back reservations...');
-      for (const { product, quantity } of reservations) {
-        product.reservedStock = Math.max(0, (product.reservedStock || 0) - quantity);
-        await product.save();
-      }
+      console.log('⚠️ Razorpay config missing, rolling back allocation...');
+      await releaseInventoryAllocation(newOrder);
 
       return NextResponse.json({
         error: "Payment gateway not configured"
@@ -465,11 +460,7 @@ export async function POST(req: Request) {
       newOrder.status = 'Failed';
       await newOrder.save();
 
-      for (const { product, quantity } of reservations) {
-        product.reservedStock = Math.max(0, (product.reservedStock || 0) - quantity);
-        await product.save();
-        console.log(`🔓 Released ${quantity} units of ${product.name}`);
-      }
+      await releaseInventoryAllocation(newOrder);
 
       throw razorpayError;
     }

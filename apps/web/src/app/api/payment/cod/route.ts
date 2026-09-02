@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import mongoose from "mongoose";
 import { getLoginSession } from "@/lib/auth";
-import { connectDB, Product, Order, User, Coupon as CouponModel, Promotion, hasActiveBomConfig } from "@swago/database";
+import { connectDB, Product, Order, User, Coupon as CouponModel, Promotion } from "@swago/database";
 import { isValidObjectId } from "mongoose";
 import { generateOrderId } from "@/lib/generateOrderId";
 import { sendOrderConfirmationEmail, sendAdminOrderNotificationEmail } from "@/lib/msg91-email";
@@ -10,7 +10,11 @@ import { cleanupExpiredOrders } from "@/lib/cleanupExpiredOrders";
 import { invalidateProductCache } from "@/lib/productCache";
 import { validateCoupon } from "@/lib/coupon";
 import { generateAndUploadInvoice } from "@/lib/invoice-service";
-import { deductInventoryForOrder } from "@/lib/inventory-service";
+import { findProductWithAvailability } from "@/lib/product-stock";
+import {
+  allocateInventoryForOrder,
+  InsufficientInventoryError,
+} from "@/lib/inventory-service";
 
 // ✅ Type definitions
 interface ProductDocument {
@@ -45,19 +49,8 @@ interface OrderItem {
 }
 
 // Helper to get product by ID or slug
-async function getProductById(id: string): Promise<ProductDocument | null> {
-    try {
-        let product = await Product.findOne({ slug: id, isActive: true });
-
-        if (!product && isValidObjectId(id)) {
-            product = await Product.findOne({ _id: id, isActive: true });
-        }
-
-        return product as ProductDocument | null;
-    } catch (error) {
-        console.error('Error fetching product:', error);
-        return null;
-    }
+async function getProductById(id: string) {
+    return findProductWithAvailability(id);
 }
 
 // ✅ Check if phone is Indian (+91)
@@ -143,7 +136,7 @@ export async function POST(req: Request) {
                 continue;
             }
 
-            const availableStock = Math.max(0, product.stock - (product.reservedStock || 0));
+            const availableStock = product.availableStock ?? 0;
 
             if (availableStock === 0) {
                 stockErrors.push(`${item.name} is out of stock`);
@@ -163,33 +156,7 @@ export async function POST(req: Request) {
             }, { status: 400 });
         }
 
-        // Step 2: Reduce stock immediately for COD orders (BOM products sync via inventory deduction)
-        for (const { product, quantity } of reservations) {
-            const bomManaged = await hasActiveBomConfig(product._id);
-            if (!bomManaged) {
-                product.stock = Math.max(0, product.stock - quantity);
-            }
-            product.totalSold = (product.totalSold || 0) + quantity;
-            if (product.reservedStock && product.reservedStock < 0) {
-                product.reservedStock = 0;
-            }
-            await product.save();
-
-            try {
-                invalidateProductCache(product.slug || '');
-                invalidateProductCache(product._id.toString());
-                revalidatePath(`/ product / ${product.slug} `);
-                revalidatePath(`/ product / ${product._id} `);
-                revalidatePath('/products');
-                revalidatePath('/');
-            } catch (e) {
-                console.error('Revalidate path/cache failed', e);
-            }
-        }
-
-        // ========================================
-        // ✅ CREATE COD ORDER
-        // ========================================
+        // Stock validated — inventory allocated after order is created
         const orderId = await generateOrderId();
 
         // ✅ ZEPRO Reference: Server-side Bonus Item Validation
@@ -338,7 +305,31 @@ export async function POST(req: Request) {
             }),
         });
 
-        await deductInventoryForOrder(newOrder);
+        try {
+            await allocateInventoryForOrder(newOrder, { consumeImmediately: true });
+        } catch (allocError) {
+            await Order.findByIdAndDelete(newOrder._id);
+            if (allocError instanceof InsufficientInventoryError) {
+                return NextResponse.json({
+                    error: "Stock unavailable",
+                    stockErrors: [allocError.message],
+                    details: allocError.message,
+                }, { status: 400 });
+            }
+            throw allocError;
+        }
+
+        for (const { product, quantity } of reservations) {
+            await Product.findByIdAndUpdate(product._id, {
+                $inc: { totalSold: quantity },
+            });
+            try {
+                invalidateProductCache(product.slug || '');
+                invalidateProductCache(product._id.toString());
+            } catch {
+                // non-critical
+            }
+        }
 
         // Increment coupon usage
         if (newOrder.couponCode) {

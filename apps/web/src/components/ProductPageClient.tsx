@@ -297,11 +297,16 @@ export default function ProductPageClient({ product }: { product: Product }) {
   const quantityInCart = cartItem?.quantity || 0;
   const isInCart = quantityInCart > 0;
 
-  // Stock status
-  const stock = product.stock;
-  const isOutOfStock = stock !== undefined && stock === 0;
-  const isLowStock = stock !== undefined && stock > 0 && stock < 10;
-  const maxQuantity = stock !== undefined ? stock : 999;
+  const availableStock =
+    product.availableStock ??
+    (product.stock !== undefined ? product.stock : undefined);
+  const lowStockThreshold = product.lowStockThreshold ?? 10;
+  const isOutOfStock = availableStock !== undefined && availableStock === 0;
+  const isLowStock =
+    availableStock !== undefined &&
+    availableStock > 0 &&
+    availableStock <= lowStockThreshold;
+  const maxQuantity = availableStock !== undefined ? availableStock : 999;
 
   // Support both naming conventions
   const ageCategory = product.ageCategory || product.age_category || '';
@@ -453,7 +458,7 @@ export default function ProductPageClient({ product }: { product: Product }) {
               )}
               {isLowStock && !isOutOfStock && (
                 <div className="absolute top-4 left-4 bg-orange-500 text-white text-xs md:text-sm font-bold px-3 md:px-4 py-1 md:py-2 rounded-full z-10">
-                  Only {stock} left!
+                  Only {availableStock} left!
                 </div>
               )}
 
@@ -626,7 +631,7 @@ export default function ProductPageClient({ product }: { product: Product }) {
                 </span>
               )}
 
-              {stock !== undefined && (
+              {availableStock !== undefined && (
                 <>
                   {isOutOfStock ? (
                     <span className="inline-flex items-center bg-[hsl(var(--swago-orange))] text-gray-700 text-xs md:text-sm font-semibold px-2 md:px-3 py-1 rounded-full">
@@ -634,7 +639,7 @@ export default function ProductPageClient({ product }: { product: Product }) {
                     </span>
                   ) : isLowStock ? (
                     <span className="inline-flex items-center bg-orange-100 text-orange-700 text-xs md:text-sm font-semibold px-2 md:px-3 py-1 rounded-full">
-                      Only {stock} left
+                      Only {availableStock} left
                     </span>
                   ) : null}
                 </>
@@ -692,9 +697,9 @@ export default function ProductPageClient({ product }: { product: Product }) {
                     +
                   </button>
                 </div>
-                {stock !== undefined && quantity >= stock && (
+                {availableStock !== undefined && quantity >= availableStock && (
                   <span className="text-xs md:text-sm text-orange-600 font-medium">
-                    Max available: {stock}
+                    Max available: {availableStock}
                   </span>
                 )}
               </div>
@@ -738,7 +743,7 @@ export default function ProductPageClient({ product }: { product: Product }) {
                     onClick={handleIncrease}
                     className="px-3 md:px-4 py-1 hover:bg-purple-100 transition text-[hsl(var(--swago-purple))] font-bold text-lg md:text-xl"
                     aria-label="Increase quantity"
-                    disabled={stock !== undefined && quantityInCart >= stock}
+                    disabled={availableStock !== undefined && quantityInCart >= availableStock}
                   >
                     +
                   </button>

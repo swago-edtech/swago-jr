@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
-import { Product, getConfiguredProductIds, applyEffectiveProductStock } from "@swago/database";
+import { Product, getConfiguredProductIds, applyEffectiveProductStock, enrichProductAvailability, reconcileStaleProductStock } from "@swago/database";
 import { connectDB } from "@swago/database";
 
 // GET /api/products - List all products with filters
@@ -56,25 +56,16 @@ export async function GET(request: NextRequest) {
 
     const configuredIds = await getConfiguredProductIds();
 
+    await reconcileStaleProductStock();
+
     // Fetch products
     const products = await Product.find(filter)
       .sort({ createdAt: -1 })
       .lean();
 
-    const staleUnconfiguredIds = products
-      .filter((p: any) => !configuredIds.has(p._id.toString()) && (p.stock ?? 0) > 0)
-      .map((p: any) => p._id);
-
-    if (staleUnconfiguredIds.length > 0) {
-      await Product.updateMany({ _id: { $in: staleUnconfiguredIds } }, { stock: 0 });
-    }
-
     const productsWithEffectiveStock = products.map((product: any) => {
-      const hasConfig = configuredIds.has(product._id.toString());
-      return {
-        ...applyEffectiveProductStock(product, configuredIds),
-        hasConfig,
-      };
+      const enriched = enrichProductAvailability(product, configuredIds);
+      return enriched;
     });
 
     return NextResponse.json({
