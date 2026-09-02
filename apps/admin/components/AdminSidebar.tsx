@@ -45,6 +45,7 @@ const navigation = [
     submenu: [
       { name: 'Dashboard', href: '/inventory' },
       { name: 'Configurations', href: '/inventory/config' },
+      { name: 'Channel Email', href: '/inventory/channel-email' },
       { name: 'Transactions', href: '/inventory/transactions' },
     ]
   },

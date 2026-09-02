@@ -130,6 +130,19 @@ SENDER_EMAIL=
 # ── OpenAI ────────────────────────────────────────────────────────────────
 OPENAI_API_KEY=
 
+# ── Gmail channel inventory sync + storefront Google sign-in ──────────────
+# Same client ID/secret. Register BOTH redirect URIs in Google Cloud Console:
+#   Admin Gmail:     {admin origin}/api/channel-email/google/callback
+#   Storefront auth: {web origin}/api/auth/google/callback
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+GOOGLE_REDIRECT_URI=
+# Production only — web app cron auth. Skip locally; use Admin → Check mail now.
+CRON_SECRET=
+# Email extraction: uses OPENAI_API_KEY when set, otherwise GEMINI_API_KEY
+GEMINI_API_KEY=
+GEMINI_MODEL=gemini-2.0-flash
+
 # ── Cloudinary ────────────────────────────────────────────────────────────
 CLOUDINARY_CLOUD_NAME=
 

@@ -7,6 +7,7 @@ import Script from "next/script";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { HiLockClosed } from "react-icons/hi";
+import GoogleSignInButton, { GoogleAuthDivider } from "@/components/GoogleSignInButton";
 
 type AuthMode = "signup" | "signin";
 
@@ -48,6 +49,18 @@ export default function LoginForm() {
   };
 
   // ✅ Track client-side mounting and handle widget conflicts
+  useEffect(() => {
+    const googleErrors: Record<string, string> = {
+      google_denied: "Google sign-in was cancelled. You can try again or use OTP.",
+      google_failed: "Google sign-in failed. Please try again or use OTP.",
+      google_not_configured: "Google sign-in is not configured yet. Use phone or email OTP.",
+    };
+    const oauthError = searchParams.get("error");
+    if (oauthError && googleErrors[oauthError]) {
+      setMessage(`❌ ${googleErrors[oauthError]}`);
+    }
+  }, [searchParams]);
+
   useEffect(() => {
     setIsMounted(true);
 
@@ -526,6 +539,8 @@ export default function LoginForm() {
 
                     {/* Form Fields */}
                     <div className="space-y-6">
+                      <GoogleSignInButton redirectUrl={redirectUrl} />
+                      <GoogleAuthDivider />
                       <div>
                         <label className="block text-[13px] font-black text-slate-700/80 mb-2 ml-1 tracking-wider">
                           Phone Number <span className="text-rose-400">*</span>
