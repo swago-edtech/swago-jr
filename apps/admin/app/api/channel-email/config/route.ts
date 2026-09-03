@@ -29,19 +29,21 @@ export async function PUT(request: Request) {
     if (typeof body.isEnabled === "boolean") {
       config.isEnabled = body.isEnabled;
     }
-    if (Array.isArray(body.senderAllowlist)) {
-      config.senderAllowlist = body.senderAllowlist
-        .map((sender: string) => String(sender).trim())
-        .filter(Boolean);
-    }
     if (Array.isArray(body.productAliases)) {
       config.productAliases = body.productAliases
         .filter((alias: any) => alias?.alias && alias?.productId)
         .map((alias: any) => ({
           alias: String(alias.alias).trim(),
-          productId: alias.productId,
+          productId: String(alias.productId),
           productName: String(alias.productName || "").trim(),
         }));
+      config.markModified("productAliases");
+    }
+    if (Array.isArray(body.senderAllowlist)) {
+      config.senderAllowlist = body.senderAllowlist
+        .map((sender: string) => String(sender).trim())
+        .filter(Boolean);
+      config.markModified("senderAllowlist");
     }
 
     await config.save();

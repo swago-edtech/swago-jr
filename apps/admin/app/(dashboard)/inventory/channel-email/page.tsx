@@ -1,7 +1,21 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import {
+  CheckCircle2,
+  ChevronDown,
+  ChevronRight,
+  Link2,
+  Loader2,
+  Mail,
+  Package,
+  RefreshCw,
+  Save,
+  Tags,
+  Unlink,
+  XCircle,
+} from "lucide-react";
 
 type Alias = { alias: string; productId: string; productName?: string };
 type ProductOption = { _id: string; name: string };
@@ -14,14 +28,63 @@ type ChannelEvent = {
   externalOrderId?: string;
   receivedAt?: string;
   createdAt: string;
-  extracted?: { confidence?: number; reasoning?: string; items?: Array<{ title: string; quantity: number }> };
-  matchedItems?: Array<{ productName: string; quantity: number; extractedTitle?: string; matchType?: string }>;
+  extracted?: {
+    confidence?: number;
+    reasoning?: string;
+    items?: Array<{ title: string; quantity: number }>;
+  };
+  matchedItems?: Array<{
+    productName: string;
+    quantity: number;
+    extractedTitle?: string;
+    matchType?: string;
+  }>;
+  inventorySnapshot?: Array<{ inventoryItemName?: string; quantity?: number }>;
   error?: string;
+};
+
+type ConfigState = {
+  isEnabled: boolean;
+  isConnected: boolean;
+  connectedEmail: string;
+  senderAllowlist: string[];
+  productAliases: Alias[];
+  lastSyncedAt: string | null;
+};
+
+const STATUS_META: Record<
+  string,
+  { label: string; className: string }
+> = {
+  pending_review: {
+    label: "Needs review",
+    className: "bg-amber-50 text-amber-800 border-amber-200",
+  },
+  applied: {
+    label: "Inventory deducted",
+    className: "bg-emerald-50 text-emerald-800 border-emerald-200",
+  },
+  restored: {
+    label: "Inventory restored",
+    className: "bg-sky-50 text-sky-800 border-sky-200",
+  },
+  ignored: {
+    label: "Ignored",
+    className: "bg-slate-100 text-slate-600 border-slate-200",
+  },
+  failed: {
+    label: "Failed",
+    className: "bg-rose-50 text-rose-800 border-rose-200",
+  },
+  skipped: {
+    label: "Skipped",
+    className: "bg-slate-100 text-slate-600 border-slate-200",
+  },
 };
 
 export default function ChannelEmailPage() {
   return (
-    <Suspense fallback={<div className="p-6 text-gray-500">Loading...</div>}>
+    <Suspense fallback={<div className="p-6 text-slate-500">Loading...</div>}>
       <ChannelEmailPageInner />
     </Suspense>
   );
@@ -33,15 +96,16 @@ function ChannelEmailPageInner() {
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
+  const [aliasesOpen, setAliasesOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState<"info" | "success" | "error">("info");
-  const [config, setConfig] = useState({
+  const [config, setConfig] = useState<ConfigState>({
     isEnabled: true,
     isConnected: false,
     connectedEmail: "",
-    senderAllowlist: [] as string[],
-    productAliases: [] as Alias[],
-    lastSyncedAt: null as string | null,
+    senderAllowlist: [],
+    productAliases: [],
+    lastSyncedAt: null,
   });
   const [senderText, setSenderText] = useState("");
   const [products, setProducts] = useState<ProductOption[]>([]);
@@ -49,7 +113,29 @@ function ChannelEmailPageInner() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [newAlias, setNewAlias] = useState({ alias: "", productId: "" });
 
-  const load = async () => {
+  const showMessage = useCallback((text: string, type: "info" | "success" | "error" = "info") => {
+    setMessage(text);
+    setMessageType(type);
+  }, []);
+
+  const applyConfig = useCallback((next: any) => {
+    const aliases = (next.productAliases || []).map((alias: any) => ({
+      alias: alias.alias,
+      productId: String(alias.productId?._id || alias.productId || ""),
+      productName: alias.productName || "",
+    }));
+    setConfig({
+      isEnabled: Boolean(next.isEnabled),
+      isConnected: Boolean(next.isConnected),
+      connectedEmail: next.connectedEmail || "",
+      senderAllowlist: next.senderAllowlist || [],
+      productAliases: aliases,
+      lastSyncedAt: next.lastSyncedAt || null,
+    });
+    setSenderText((next.senderAllowlist || []).join("\n"));
+  }, []);
+
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const [configRes, productsRes, eventsRes] = await Promise.all([
@@ -61,29 +147,24 @@ function ChannelEmailPageInner() {
       const productsData = await productsRes.json();
       const eventsData = await eventsRes.json();
 
-      if (configData.success) {
-        setConfig(configData.config);
-        setSenderText((configData.config.senderAllowlist || []).join("\n"));
-      }
+      if (configData.success) applyConfig(configData.config);
       if (productsData.success) {
         setProducts(
           (productsData.products || []).map((p: any) => ({
-            _id: p._id,
+            _id: String(p._id),
             name: p.name,
           }))
         );
       }
-      if (eventsData.success) {
-        setEvents(eventsData.events || []);
-      }
+      if (eventsData.success) setEvents(eventsData.events || []);
     } finally {
       setLoading(false);
     }
-  };
+  }, [applyConfig, statusFilter]);
 
   useEffect(() => {
     load();
-  }, [statusFilter]);
+  }, [load]);
 
   useEffect(() => {
     const oauthErrors: Record<string, string> = {
@@ -94,16 +175,52 @@ function ChannelEmailPageInner() {
     };
 
     if (searchParams.get("connected") === "1") {
-      setMessageType("success");
-      setMessage("Gmail connected successfully. Add Amazon sender addresses and run a sync.");
+      showMessage("Gmail connected successfully. Add Amazon sender addresses and run a sync.", "success");
     } else {
       const error = searchParams.get("error");
       if (error) {
-        setMessageType("error");
-        setMessage(oauthErrors[error] || `Gmail connection failed (${error}). Try connecting again.`);
+        showMessage(oauthErrors[error] || `Gmail connection failed (${error}). Try connecting again.`, "error");
       }
     }
-  }, [searchParams]);
+  }, [searchParams, showMessage]);
+
+  const persistSettings = async (overrides?: {
+    isEnabled?: boolean;
+    senderAllowlist?: string[];
+    productAliases?: Alias[];
+  }) => {
+    setSaving(true);
+    try {
+      const payload = {
+        isEnabled: overrides?.isEnabled ?? config.isEnabled,
+        senderAllowlist:
+          overrides?.senderAllowlist ??
+          senderText
+            .split("\n")
+            .map((s) => s.trim())
+            .filter(Boolean),
+        productAliases: overrides?.productAliases ?? config.productAliases,
+      };
+
+      const res = await fetch("/api/channel-email/config", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!data.success) {
+        showMessage(data.error || "Failed to save settings", "error");
+        return false;
+      }
+      applyConfig(data.config);
+      return true;
+    } catch {
+      showMessage("Failed to save settings", "error");
+      return false;
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const connectGmail = async () => {
     const res = await fetch("/api/channel-email/google");
@@ -111,33 +228,7 @@ function ChannelEmailPageInner() {
     if (data.success && data.url) {
       window.location.href = data.url;
     } else {
-      setMessage(data.error || "Could not start Gmail connect");
-    }
-  };
-
-  const saveConfig = async () => {
-    setSaving(true);
-    try {
-      const res = await fetch("/api/channel-email/config", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          isEnabled: config.isEnabled,
-          senderAllowlist: senderText.split("\n").map((s) => s.trim()).filter(Boolean),
-          productAliases: config.productAliases,
-        }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setConfig(data.config);
-        setMessageType("success");
-        setMessage("All settings saved.");
-      } else {
-        setMessageType("error");
-        setMessage(data.error || "Failed to save settings");
-      }
-    } finally {
-      setSaving(false);
+      showMessage(data.error || "Could not start Gmail connect", "error");
     }
   };
 
@@ -150,16 +241,19 @@ function ChannelEmailPageInner() {
       const res = await fetch("/api/channel-email/config", { method: "DELETE" });
       const data = await res.json();
       if (data.success) {
-        setConfig(data.config);
-        setMessageType("success");
-        setMessage("Gmail disconnected.");
+        applyConfig(data.config);
+        showMessage("Gmail disconnected.", "success");
       } else {
-        setMessageType("error");
-        setMessage(data.error || "Failed to disconnect Gmail");
+        showMessage(data.error || "Failed to disconnect Gmail", "error");
       }
     } finally {
       setDisconnecting(false);
     }
+  };
+
+  const saveAll = async () => {
+    const ok = await persistSettings();
+    if (ok) showMessage("Settings saved.", "success");
   };
 
   const runSync = async () => {
@@ -167,25 +261,47 @@ function ChannelEmailPageInner() {
     try {
       const res = await fetch("/api/channel-email/sync", { method: "POST" });
       const data = await res.json();
-      setMessageType(data.success ? "info" : "error");
-      setMessage(data.message || data.error || "Sync finished");
+      showMessage(data.message || data.error || "Sync finished", data.success ? "info" : "error");
       await load();
     } finally {
       setSyncing(false);
     }
   };
 
-  const addAlias = () => {
-    if (!newAlias.alias || !newAlias.productId) return;
+  const addAlias = async () => {
+    if (!newAlias.alias.trim() || !newAlias.productId) {
+      showMessage("Enter an Amazon title and select a Swago product.", "error");
+      return;
+    }
     const product = products.find((p) => p._id === newAlias.productId);
-    setConfig((prev) => ({
-      ...prev,
-      productAliases: [
-        ...prev.productAliases,
-        { alias: newAlias.alias, productId: newAlias.productId, productName: product?.name },
-      ],
-    }));
-    setNewAlias({ alias: "", productId: "" });
+    const nextAliases = [
+      ...config.productAliases,
+      {
+        alias: newAlias.alias.trim(),
+        productId: newAlias.productId,
+        productName: product?.name,
+      },
+    ];
+    const ok = await persistSettings({ productAliases: nextAliases });
+    if (ok) {
+      setNewAlias({ alias: "", productId: "" });
+      setAliasesOpen(true);
+      showMessage("Alias saved.", "success");
+    }
+  };
+
+  const removeAlias = async (index: number) => {
+    const nextAliases = config.productAliases.filter((_, i) => i !== index);
+    const ok = await persistSettings({ productAliases: nextAliases });
+    if (ok) showMessage("Alias removed.", "success");
+  };
+
+  const toggleEnabled = async (checked: boolean) => {
+    setConfig((prev) => ({ ...prev, isEnabled: checked }));
+    const ok = await persistSettings({ isEnabled: checked });
+    if (ok) {
+      showMessage(checked ? "Automatic checking enabled." : "Automatic checking disabled.", "success");
+    }
   };
 
   const eventAction = async (id: string, action: "apply" | "ignore") => {
@@ -196,182 +312,275 @@ function ChannelEmailPageInner() {
     });
     const data = await res.json();
     if (!data.success) {
-      setMessageType("error");
-      setMessage(data.error || "Action failed");
+      showMessage(data.error || "Action failed", "error");
+    } else {
+      showMessage(action === "apply" ? "Inventory applied." : "Event ignored.", "success");
     }
     await load();
   };
 
+  const statusCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const event of events) {
+      counts[event.status] = (counts[event.status] || 0) + 1;
+    }
+    return counts;
+  }, [events]);
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
+        <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
       </div>
     );
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+    <div className="p-6 space-y-6 max-w-7xl mx-auto">
+      <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Channel Email Sync</h1>
-          <p className="text-gray-600 mt-1">
-            Watch a linked Gmail inbox for Amazon order emails, identify products, and keep BOM inventory in sync.
-            These events are not storefront orders.
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900">Channel Email Sync</h1>
+          <p className="text-slate-600 mt-1 max-w-2xl">
+            Amazon order emails update the same BOM inventory pool as the website. No storefront
+            orders are created — only unit stock moves.
           </p>
-          <p className="text-xs text-gray-500 mt-2">
-            Local dev: cron does not run automatically — use <strong>Check mail now</strong> after connecting Gmail.
-            Production uses a scheduled job on the web app; no cron setup needed locally.
+          <p className="text-xs text-slate-500 mt-2">
+            Local: use <strong>Check mail now</strong>. Production: run the{" "}
+            <code className="bg-slate-100 px-1 rounded">worker:channel-email</code> process on your
+            VPS (interval sync).
           </p>
         </div>
-        <div className="flex flex-col sm:flex-row gap-2">
+        <div className="flex flex-wrap gap-2">
           <button
-            onClick={saveConfig}
+            onClick={saveAll}
             disabled={saving}
-            className="bg-gray-900 text-white px-5 py-2.5 rounded-xl font-medium disabled:opacity-50"
+            className="inline-flex items-center gap-2 bg-slate-900 text-white px-4 py-2.5 rounded-xl text-sm font-medium disabled:opacity-50"
           >
-            {saving ? "Saving..." : "Save all settings"}
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            Save settings
           </button>
           <button
             onClick={runSync}
             disabled={syncing || !config.isConnected}
-            className="bg-indigo-600 text-white px-5 py-2.5 rounded-xl font-medium disabled:opacity-50"
+            className="inline-flex items-center gap-2 bg-indigo-600 text-white px-4 py-2.5 rounded-xl text-sm font-medium disabled:opacity-50"
           >
-            {syncing ? "Checking mail..." : "Check mail now"}
+            {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            Check mail now
           </button>
         </div>
       </div>
 
       {message && (
         <div
-          className={`p-3 rounded-lg text-sm ${
+          className={`rounded-xl px-4 py-3 text-sm border ${
             messageType === "error"
-              ? "bg-red-50 text-red-800"
+              ? "bg-rose-50 text-rose-800 border-rose-200"
               : messageType === "success"
-                ? "bg-green-50 text-green-800"
-                : "bg-indigo-50 text-indigo-800"
+                ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+                : "bg-indigo-50 text-indigo-800 border-indigo-200"
           }`}
         >
           {message}
         </div>
       )}
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        <section className="xl:col-span-1 bg-white border border-gray-200 rounded-2xl p-5 space-y-4">
-          <h2 className="font-semibold text-gray-900">Gmail account</h2>
-          <p className="text-sm text-gray-600">
-            {config.isConnected
-              ? `Connected as ${config.connectedEmail}`
-              : "No Gmail account linked yet."}
-          </p>
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
+        <section className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
+          <div className="flex items-center gap-2">
+            <Mail className="h-4 w-4 text-indigo-600" />
+            <h2 className="font-semibold text-slate-900">Gmail</h2>
+          </div>
+          <div
+            className={`rounded-xl border px-3 py-3 text-sm ${
+              config.isConnected
+                ? "bg-emerald-50 border-emerald-200 text-emerald-900"
+                : "bg-slate-50 border-slate-200 text-slate-600"
+            }`}
+          >
+            {config.isConnected ? (
+              <div className="flex items-start gap-2">
+                <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" />
+                <div>
+                  <p className="font-medium">Connected</p>
+                  <p className="text-xs mt-0.5 break-all">{config.connectedEmail}</p>
+                </div>
+              </div>
+            ) : (
+              "No Gmail account linked yet."
+            )}
+          </div>
           {config.lastSyncedAt && (
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-slate-500">
               Last checked: {new Date(config.lastSyncedAt).toLocaleString("en-IN")}
             </p>
           )}
           <button
             onClick={connectGmail}
-            className="w-full border border-gray-300 rounded-xl py-2.5 text-sm font-medium text-gray-900 hover:bg-gray-50"
+            className="w-full inline-flex items-center justify-center gap-2 border border-slate-300 rounded-xl py-2.5 text-sm font-medium text-slate-900 hover:bg-slate-50"
           >
+            <Link2 className="h-4 w-4" />
             {config.isConnected ? "Reconnect Gmail" : "Connect Gmail"}
           </button>
           {config.isConnected && (
             <button
               onClick={disconnectGmail}
               disabled={disconnecting}
-              className="w-full border border-red-200 text-red-700 rounded-xl py-2.5 text-sm font-medium hover:bg-red-50 disabled:opacity-50"
+              className="w-full inline-flex items-center justify-center gap-2 border border-rose-200 text-rose-700 rounded-xl py-2.5 text-sm font-medium hover:bg-rose-50 disabled:opacity-50"
             >
-              {disconnecting ? "Disconnecting..." : "Disconnect Gmail"}
+              <Unlink className="h-4 w-4" />
+              {disconnecting ? "Disconnecting..." : "Disconnect"}
             </button>
           )}
-          <label className="flex items-center gap-2 text-sm text-gray-700">
+          <label className="flex items-center gap-2 text-sm text-slate-700 pt-1">
             <input
               type="checkbox"
               checked={config.isEnabled}
-              onChange={(e) => setConfig((prev) => ({ ...prev, isEnabled: e.target.checked }))}
+              onChange={(e) => toggleEnabled(e.target.checked)}
+              className="rounded border-slate-300"
             />
-            Enable automatic checking
+            Enable automatic checking (worker / cron)
           </label>
         </section>
 
-        <section className="xl:col-span-2 bg-white border border-gray-200 rounded-2xl p-5 space-y-4">
-          <h2 className="font-semibold text-gray-900">Amazon / sender emails</h2>
-          <p className="text-sm text-gray-600">
-            One address or domain per line. Only mail from these senders is analyzed.
-          </p>
+        <section className="xl:col-span-2 bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h2 className="font-semibold text-slate-900">Amazon sender emails</h2>
+              <p className="text-sm text-slate-500 mt-0.5">
+                One address or domain per line. Only these senders are analyzed.
+              </p>
+            </div>
+            <button
+              onClick={saveAll}
+              disabled={saving}
+              className="shrink-0 text-sm font-medium text-indigo-700 hover:text-indigo-900 disabled:opacity-50"
+            >
+              Save emails
+            </button>
+          </div>
           <textarea
             value={senderText}
             onChange={(e) => setSenderText(e.target.value)}
-            rows={6}
-            className="w-full border border-gray-300 rounded-xl p-3 text-sm font-mono text-gray-900 placeholder:text-gray-400"
-            placeholder="auto-confirm@amazon.in"
+            onBlur={() => {
+              const next = senderText
+                .split("\n")
+                .map((s) => s.trim())
+                .filter(Boolean);
+              const prev = config.senderAllowlist || [];
+              const changed =
+                next.length !== prev.length || next.some((email, i) => email !== prev[i]);
+              if (changed) void persistSettings({ senderAllowlist: next });
+            }}
+            rows={7}
+            className="w-full border border-slate-300 rounded-xl p-3 text-sm font-mono text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+            placeholder={"auto-confirm@amazon.in\norder-update@amazon.in"}
           />
-          <p className="text-xs text-gray-500">
-            Sender addresses and product aliases are saved together via &ldquo;Save all settings&rdquo; above.
-          </p>
         </section>
       </div>
 
-      <section className="bg-white border border-gray-200 rounded-2xl p-5 space-y-4">
-        <h2 className="font-semibold text-gray-900">Product aliases</h2>
-        <p className="text-sm text-gray-600">
-          Map Amazon titles to Swago products when names do not match exactly.
-        </p>
-        <div className="flex flex-col md:flex-row gap-3">
-          <input
-            value={newAlias.alias}
-            onChange={(e) => setNewAlias((prev) => ({ ...prev, alias: e.target.value }))}
-            placeholder="Amazon product title"
-            className="flex-1 border border-gray-300 rounded-xl px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
-          />
-          <select
-            value={newAlias.productId}
-            onChange={(e) => setNewAlias((prev) => ({ ...prev, productId: e.target.value }))}
-            className="md:w-72 border border-gray-300 rounded-xl px-3 py-2 text-sm text-gray-900"
-          >
-            <option value="">Select Swago product</option>
-            {products.map((product) => (
-              <option key={product._id} value={product._id}>
-                {product.name}
-              </option>
-            ))}
-          </select>
-          <button onClick={addAlias} className="bg-indigo-50 text-indigo-700 px-4 py-2 rounded-xl text-sm font-medium">
-            Add alias
-          </button>
-        </div>
-        <ul className="divide-y divide-gray-100">
-          {config.productAliases.map((alias, index) => (
-            <li key={`${alias.alias}-${index}`} className="py-2 flex justify-between gap-3 text-sm">
-              <span>
-                <span className="font-medium text-gray-900">{alias.alias}</span>
-                <span className="text-gray-500"> → {alias.productName || alias.productId}</span>
-              </span>
-              <button
-                className="text-red-600"
-                onClick={() =>
-                  setConfig((prev) => ({
-                    ...prev,
-                    productAliases: prev.productAliases.filter((_, i) => i !== index),
-                  }))
-                }
+      <section className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setAliasesOpen((open) => !open)}
+          className="w-full flex items-center justify-between gap-3 px-5 py-4 text-left hover:bg-slate-50"
+        >
+          <div className="flex items-center gap-3">
+            <Tags className="h-4 w-4 text-indigo-600" />
+            <div>
+              <h2 className="font-semibold text-slate-900">Product aliases</h2>
+              <p className="text-sm text-slate-500">
+                Map Amazon titles to Swago products when names differ.{" "}
+                <span className="font-medium text-slate-700">
+                  {config.productAliases.length} saved
+                </span>
+              </p>
+            </div>
+          </div>
+          {aliasesOpen ? (
+            <ChevronDown className="h-5 w-5 text-slate-400" />
+          ) : (
+            <ChevronRight className="h-5 w-5 text-slate-400" />
+          )}
+        </button>
+
+        {aliasesOpen && (
+          <div className="border-t border-slate-100 px-5 py-4 space-y-4">
+            <div className="flex flex-col md:flex-row gap-3">
+              <input
+                value={newAlias.alias}
+                onChange={(e) => setNewAlias((prev) => ({ ...prev, alias: e.target.value }))}
+                placeholder="Amazon product title"
+                className="flex-1 border border-slate-300 rounded-xl px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400"
+              />
+              <select
+                value={newAlias.productId}
+                onChange={(e) => setNewAlias((prev) => ({ ...prev, productId: e.target.value }))}
+                className="md:w-72 border border-slate-300 rounded-xl px-3 py-2.5 text-sm text-slate-900"
               >
-                Remove
+                <option value="">Select Swago product</option>
+                {products.map((product) => (
+                  <option key={product._id} value={product._id}>
+                    {product.name}
+                  </option>
+                ))}
+              </select>
+              <button
+                onClick={addAlias}
+                disabled={saving}
+                className="bg-indigo-600 text-white px-4 py-2.5 rounded-xl text-sm font-medium disabled:opacity-50"
+              >
+                Add & save
               </button>
-            </li>
-          ))}
-        </ul>
+            </div>
+
+            {config.productAliases.length === 0 ? (
+              <p className="text-sm text-slate-500 py-2">No aliases yet.</p>
+            ) : (
+              <ul className="divide-y divide-slate-100 max-h-72 overflow-y-auto rounded-xl border border-slate-100">
+                {config.productAliases.map((alias, index) => (
+                  <li
+                    key={`${alias.alias}-${alias.productId}-${index}`}
+                    className="px-4 py-3 flex justify-between gap-3 text-sm"
+                  >
+                    <span>
+                      <span className="font-medium text-slate-900">{alias.alias}</span>
+                      <span className="text-slate-500">
+                        {" "}
+                        → {alias.productName || alias.productId}
+                      </span>
+                    </span>
+                    <button
+                      className="text-rose-600 hover:text-rose-800 shrink-0"
+                      onClick={() => removeAlias(index)}
+                      disabled={saving}
+                    >
+                      Remove
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
       </section>
 
-      <section className="bg-white border border-gray-200 rounded-2xl p-5 space-y-4">
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="font-semibold text-gray-900">Identified emails</h2>
+      <section className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Package className="h-4 w-4 text-indigo-600" />
+            <div>
+              <h2 className="font-semibold text-slate-900">Tracked emails</h2>
+              <p className="text-sm text-slate-500">
+                AI-extracted Amazon mail and inventory outcomes
+              </p>
+            </div>
+          </div>
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="border border-gray-300 rounded-xl px-3 py-2 text-sm text-gray-900"
+            className="border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-900"
           >
-            <option value="all">All</option>
+            <option value="all">All statuses</option>
             <option value="pending_review">Needs review</option>
             <option value="applied">Inventory deducted</option>
             <option value="restored">Inventory restored</option>
@@ -381,65 +590,141 @@ function ChannelEmailPageInner() {
           </select>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead>
-              <tr className="text-left text-xs uppercase tracking-wide text-gray-500 border-b">
-                <th className="py-2 pr-3">Email</th>
-                <th className="py-2 pr-3">Type</th>
-                <th className="py-2 pr-3">Products</th>
-                <th className="py-2 pr-3">Status</th>
-                <th className="py-2">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {events.map((event) => (
-                <tr key={event._id} className="border-b border-gray-100 align-top">
-                  <td className="py-3 pr-3">
-                    <p className="font-medium text-black">{event.subject || "(no subject)"}</p>
-                    <p className="text-xs text-black">{event.fromEmail}</p>
-                    {event.externalOrderId && (
-                      <p className="text-xs text-black">Order {event.externalOrderId}</p>
+        {statusFilter === "all" && events.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {Object.entries(statusCounts).map(([status, count]) => (
+              <span
+                key={status}
+                className={`text-xs font-medium px-2.5 py-1 rounded-full border ${
+                  STATUS_META[status]?.className || "bg-slate-100 text-slate-600 border-slate-200"
+                }`}
+              >
+                {STATUS_META[status]?.label || status}: {count}
+              </span>
+            ))}
+          </div>
+        )}
+
+        <div className="space-y-3">
+          {events.map((event) => {
+            const meta = STATUS_META[event.status] || {
+              label: event.status,
+              className: "bg-slate-100 text-slate-600 border-slate-200",
+            };
+            const productLines = event.matchedItems?.length
+              ? event.matchedItems.map(
+                  (item) =>
+                    `${item.productName} × ${item.quantity}${
+                      item.matchType ? ` (${item.matchType})` : ""
+                    }`
+                )
+              : event.extracted?.items?.map((item) => `${item.title} × ${item.quantity}`) || [];
+
+            return (
+              <article
+                key={event._id}
+                className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 space-y-3"
+              >
+                <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+                  <div className="min-w-0 space-y-1">
+                    <p className="font-semibold text-slate-900 truncate">
+                      {event.subject || "(no subject)"}
+                    </p>
+                    <p className="text-xs text-slate-500 break-all">{event.fromEmail}</p>
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-white border border-slate-200 text-slate-700 capitalize">
+                        {event.eventType}
+                      </span>
+                      <span
+                        className={`text-xs font-medium px-2 py-0.5 rounded-full border ${meta.className}`}
+                      >
+                        {meta.label}
+                      </span>
+                      {event.externalOrderId && (
+                        <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-white border border-slate-200 text-slate-700">
+                          Order {event.externalOrderId}
+                        </span>
+                      )}
+                      {typeof event.extracted?.confidence === "number" && (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-white border border-slate-200 text-slate-600">
+                          Confidence {Math.round(event.extracted.confidence * 100)}%
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <p className="text-xs text-slate-500 shrink-0">
+                    {new Date(event.receivedAt || event.createdAt).toLocaleString("en-IN")}
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                  <div className="rounded-xl bg-white border border-slate-200 p-3">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1.5">
+                      Products
+                    </p>
+                    {productLines.length ? (
+                      <ul className="space-y-1 text-slate-800">
+                        {productLines.map((line, i) => (
+                          <li key={i}>{line}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-slate-500">No products extracted</p>
                     )}
-                  </td>
-                  <td className="py-3 pr-3 capitalize text-black">{event.eventType}</td>
-                  <td className="py-3 pr-3 text-black">
-                    {(event.matchedItems?.length
-                      ? event.matchedItems.map((item) => `${item.productName} × ${item.quantity}`)
-                      : event.extracted?.items?.map((item) => `${item.title} × ${item.quantity}`)
-                    )?.join(", ") || "—"}
-                    {event.error && <p className="text-xs text-amber-700 mt-1">{event.error}</p>}
-                  </td>
-                  <td className="py-3 pr-3 text-black">{event.status.replace("_", " ")}</td>
-                  <td className="py-3 space-x-2 whitespace-nowrap text-black">
-                    {event.status === "pending_review" && event.matchedItems?.length ? (
+                  </div>
+                  <div className="rounded-xl bg-white border border-slate-200 p-3">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1.5">
+                      Inventory / notes
+                    </p>
+                    {event.inventorySnapshot?.length ? (
+                      <ul className="space-y-1 text-slate-800">
+                        {event.inventorySnapshot.map((line, i) => (
+                          <li key={i}>
+                            {line.inventoryItemName || "Unit"} × {line.quantity}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : event.extracted?.reasoning ? (
+                      <p className="text-slate-600">{event.extracted.reasoning}</p>
+                    ) : (
+                      <p className="text-slate-500">—</p>
+                    )}
+                    {event.error && (
+                      <p className="text-xs text-amber-700 mt-2 flex items-start gap-1">
+                        <XCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                        {event.error}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {event.status === "pending_review" && (
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {(!!event.matchedItems?.length || event.eventType === "cancel") && (
                       <button
                         onClick={() => eventAction(event._id, "apply")}
-                        className="text-indigo-700 font-medium"
+                        className="bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium"
                       >
-                        Apply inventory
-                      </button>
-                    ) : null}
-                    {event.status === "pending_review" && (
-                      <button
-                        onClick={() => eventAction(event._id, "ignore")}
-                        className="text-black font-medium"
-                      >
-                        Ignore
+                        {event.eventType === "cancel" ? "Restore inventory" : "Apply inventory"}
                       </button>
                     )}
-                  </td>
-                </tr>
-              ))}
-              {events.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="py-8 text-center text-black text-sm">
-                    No emails processed yet.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                    <button
+                      onClick={() => eventAction(event._id, "ignore")}
+                      className="border border-slate-300 text-slate-700 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-white"
+                    >
+                      Ignore
+                    </button>
+                  </div>
+                )}
+              </article>
+            );
+          })}
+
+          {events.length === 0 && (
+            <div className="rounded-2xl border border-dashed border-slate-300 py-12 text-center text-slate-500 text-sm">
+              No emails processed yet. Connect Gmail, save senders, then click Check mail now.
+            </div>
+          )}
         </div>
       </section>
     </div>

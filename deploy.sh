@@ -137,8 +137,11 @@ OPENAI_API_KEY=
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 GOOGLE_REDIRECT_URI=
-# Production only — web app cron auth. Skip locally; use Admin → Check mail now.
+# Production only for HTTP cron route auth. Local admin "Check mail now" needs no secret.
+# Worker (pnpm worker:channel-email) calls the web cron URL on an interval — set this on the VPS.
 CRON_SECRET=
+CHANNEL_EMAIL_SYNC_INTERVAL_MS=300000
+CHANNEL_EMAIL_SYNC_URL=http://127.0.0.1:3000/api/cron/channel-email-sync
 # Email extraction: uses OPENAI_API_KEY when set, otherwise GEMINI_API_KEY
 GEMINI_API_KEY=
 GEMINI_MODEL=gemini-2.0-flash

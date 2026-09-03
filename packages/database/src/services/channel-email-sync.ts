@@ -92,7 +92,11 @@ export function sanitizeChannelConfig(config: any) {
     connectedEmail: plain.connectedEmail || "",
     isConnected: Boolean(plain.refreshToken && plain.connectedEmail),
     senderAllowlist: plain.senderAllowlist || [],
-    productAliases: plain.productAliases || [],
+    productAliases: (plain.productAliases || []).map((alias: any) => ({
+      alias: alias.alias,
+      productId: String(alias.productId?._id || alias.productId || ""),
+      productName: alias.productName || "",
+    })),
     lastHistoryId: plain.lastHistoryId || "",
     lastSyncedAt: plain.lastSyncedAt || null,
   };
@@ -199,7 +203,12 @@ ${body.slice(0, 12000)}`;
 
 function parseExtractedOrder(content: string, fallback: ExtractedOrder): ExtractedOrder {
   try {
-    const parsed = JSON.parse(content);
+    const cleaned = String(content || "")
+      .trim()
+      .replace(/^```(?:json)?\s*/i, "")
+      .replace(/\s*```$/i, "")
+      .trim();
+    const parsed = JSON.parse(cleaned);
     const eventType =
       parsed.eventType === "order" || parsed.eventType === "cancel"
         ? parsed.eventType
@@ -479,6 +488,10 @@ export async function runChannelEmailSync(limit = 25) {
         event.status = "skipped";
         event.error = "Order already applied";
         await event.save();
+      } else if (!extracted.externalOrderId) {
+        event.status = "pending_review";
+        event.error = "No marketplace order id — review before applying inventory";
+        await event.save();
       } else if (isHighConfidenceMatch(matched, unmatched, extracted.confidence)) {
         await applyMatchedOrder(event, reasonId);
       } else {
@@ -507,9 +520,8 @@ export async function applyChannelEvent(eventId: string) {
   await connectDB();
   const event = await ChannelOrderEvent.findById(eventId);
   if (!event) throw new Error("Channel event not found");
-  if (event.status === "applied") return event;
-  if (!event.matchedItems?.length) {
-    throw new Error("No matched products to apply");
+  if (event.status === "applied" || event.status === "restored" || event.status === "ignored") {
+    return event;
   }
 
   const reasonId = event.externalOrderId
@@ -518,15 +530,21 @@ export async function applyChannelEvent(eventId: string) {
 
   if (event.eventType === "cancel") {
     await applyCancellation(event, reasonId);
-  } else {
-    if (event.externalOrderId && (await hasAppliedOrderForExternalId(event.externalOrderId))) {
-      event.status = "skipped";
-      event.error = "Order already applied";
-      await event.save();
-      return event;
-    }
-    await applyMatchedOrder(event, reasonId);
+    return event;
   }
+
+  if (!event.matchedItems?.length) {
+    throw new Error("No matched products to apply");
+  }
+
+  if (event.externalOrderId && (await hasAppliedOrderForExternalId(event.externalOrderId))) {
+    event.status = "skipped";
+    event.error = "Order already applied";
+    await event.save();
+    return event;
+  }
+
+  await applyMatchedOrder(event, reasonId);
   return event;
 }
 
