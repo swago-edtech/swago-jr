@@ -1,18 +1,15 @@
 /**
  * Channel email sync worker for EC2 / VPS.
  *
- * Polls the web cron route on an interval. No external cron service required.
- * Run alongside the web app (pm2 / systemd).
+ * Started automatically with deploy (PM2) alongside web + admin.
+ * Also runs under `pnpm start` locally/production if you use the monorepo start script.
  *
- * Usage:
- *   pnpm worker:channel-email
- *   # or
- *   node scripts/workers/channel-email-sync.js
+ * Polls the web cron route on an interval. No external cron service required.
  *
  * Env (loads apps/web/.env.local, apps/admin/.env.local, then root .env):
  *   CHANNEL_EMAIL_SYNC_INTERVAL_MS  (default 300000 = 5 min)
  *   CHANNEL_EMAIL_SYNC_URL          (default http://127.0.0.1:3000/api/cron/channel-email-sync)
- *   CRON_SECRET                     (optional in local; required if web is production)
+ *   CRON_SECRET                     (required when web NODE_ENV=production)
  */
 const path = require("path");
 const { config: loadEnv } = require("dotenv");
@@ -77,5 +74,9 @@ async function tick() {
 console.log(
   `[channel-email-worker] started — every ${INTERVAL_MS}ms → ${SYNC_URL}`
 );
-tick();
-setInterval(tick, INTERVAL_MS);
+
+// Give the web app a moment when all processes boot together (pm2 / pnpm start)
+setTimeout(() => {
+  tick();
+  setInterval(tick, INTERVAL_MS);
+}, Number(process.env.CHANNEL_EMAIL_SYNC_BOOT_DELAY_MS || 15_000));

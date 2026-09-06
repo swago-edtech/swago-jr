@@ -138,7 +138,7 @@ GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 GOOGLE_REDIRECT_URI=
 # Production only for HTTP cron route auth. Local admin "Check mail now" needs no secret.
-# Worker (pnpm worker:channel-email) calls the web cron URL on an interval — set this on the VPS.
+# Channel email worker starts automatically with `pnpm start:web` / `pnpm start` (same PM2 restart).
 CRON_SECRET=
 CHANNEL_EMAIL_SYNC_INTERVAL_MS=300000
 CHANNEL_EMAIL_SYNC_URL=http://127.0.0.1:3000/api/cron/channel-email-sync
