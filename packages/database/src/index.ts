@@ -28,8 +28,13 @@ export { default as InvoiceCounter } from './models/InvoiceCounter';
 export { default as InventoryItem } from './models/InventoryItem';
 export { default as ProductConfig } from './models/ProductConfig';
 export { default as InventoryTransaction } from './models/InventoryTransaction';
+export { default as ChannelEmailConfig } from './models/ChannelEmailConfig';
+export { default as ChannelOrderEvent } from './models/ChannelOrderEvent';
 
 // Export database connection
 export { default as connectDB } from './connection';
 export * from './services/inventory-sync';
 export * from './services/inventory-order';
+export * from './services/channel-inventory';
+export * from './services/channel-email-sync';
+export * from './services/google-signin';

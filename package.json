@@ -15,11 +15,14 @@
     "build": "pnpm build:web && pnpm build:admin",
     "build:web": "pnpm --filter web build",
     "build:admin": "pnpm --filter admin build",
-    "start:web": "TZ=Asia/Kolkata pnpm --filter web start",
+    "start:web": "TZ=Asia/Kolkata concurrently -n web,channel-email -c blue,green \"pnpm --filter web start\" \"pnpm worker:channel-email\"",
     "start:admin": "TZ=Asia/Kolkata pnpm --filter admin start",
+    "start": "concurrently -n web,admin -c blue,magenta \"pnpm start:web\" \"pnpm start:admin\"",
+    "start:web-only": "TZ=Asia/Kolkata pnpm --filter web start",
     "lint": "pnpm --recursive run lint",
     "clean": "pnpm --recursive run clean && rm -rf node_modules",
-    "type-check": "pnpm --recursive run type-check"
+    "type-check": "pnpm --recursive run type-check",
+    "worker:channel-email": "node scripts/workers/channel-email-sync.js"
   },
   "devDependencies": {
     "@types/node": "^20.19.19",
