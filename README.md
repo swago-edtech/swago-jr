@@ -89,4 +89,4 @@ The application is designed to be hosted on **Serverless** or **Containerized** 
 
 ---
 
-© 2024-2025 Swago Jr. All rights reserved.
+© 2025-2026 Swago Jr. All rights reserved.
