@@ -1,14 +1,17 @@
-import { connectDB, Order, User, Review } from '@swago/database';
+import { connectDB, Order, User, Review, ChannelOrder, ensureChannelOrdersBackfilled } from '@swago/database';
 import { formatPrice } from '@swago/utils';
 import AnalyticsCharts from '@/components/AnalyticsCharts';
-import { TrendingUp, TrendingDown, Users, ShoppingBag, DollarSign, Star, MessageSquare, Package } from 'lucide-react';
+import { TrendingUp, TrendingDown, Users, ShoppingBag, DollarSign, Package, Store } from 'lucide-react';
+import { amazonSaleDate } from '@/lib/sales-query';
 
 async function getAnalyticsData() {
   await connectDB();
+  await ensureChannelOrdersBackfilled(2000);
 
   // Get all data
-  const [orders, users, reviews] = await Promise.all([
+  const [orders, amazonOrders, users, reviews] = await Promise.all([
     Order.find().select('total status createdAt items paymentMethod').lean(),
+    ChannelOrder.find().select('total status createdAt receivedAt confirmedAt items').lean(),
     User.find({ isAdmin: false }).select('createdAt').lean(),
     Review.find().select('rating sentimentLabel status createdAt productId').lean(),
   ]);
@@ -39,9 +42,19 @@ async function getAnalyticsData() {
   
   // Confirmed statuses for revenue calculations (Pending excluded — payment not yet completed)
   const confirmedStatuses = ['Paid', 'Packed', 'Shipped', 'Out for Delivery', 'Delivered'];
-  const confirmedOrders = validOrders.filter(o => confirmedStatuses.includes(o.status));
+  const confirmedWebsiteOrders = validOrders.filter(o => confirmedStatuses.includes(o.status));
+  const confirmedAmazonOrders = amazonOrders.filter((o: any) => o.status !== 'Cancelled');
+  const confirmedOrders = [
+    ...confirmedWebsiteOrders.map((o: any) => ({ ...o, channel: 'website' as const, saleAt: o.createdAt })),
+    ...confirmedAmazonOrders.map((o: any) => ({
+      ...o,
+      channel: 'amazon' as const,
+      saleAt: amazonSaleDate(o),
+      createdAt: amazonSaleDate(o),
+    })),
+  ];
   
-  // Calculate raw totals
+  // Calculate raw totals (website + Amazon)
   const totalRevenue = confirmedOrders.reduce((sum, o) => sum + (o.total || 0), 0);
   const pendingRevenue = validOrders.filter(o => o.status === 'Pending').reduce((sum, o) => sum + (o.total || 0), 0);
   const avgOrderValue = confirmedOrders.length > 0 ? totalRevenue / confirmedOrders.length : 0;
@@ -61,6 +74,12 @@ async function getAnalyticsData() {
   // ── Current 30 Days Stats ──
   const current30DaysOrders = confirmedOrders.filter(o => new Date(o.createdAt) >= thirtyDaysAgo);
   const current30DaysRevenue = current30DaysOrders.reduce((sum, o) => sum + (o.total || 0), 0);
+  const current30DaysWebsiteRevenue = current30DaysOrders
+    .filter((o: any) => o.channel === 'website')
+    .reduce((sum, o) => sum + (o.total || 0), 0);
+  const current30DaysAmazonRevenue = current30DaysOrders
+    .filter((o: any) => o.channel === 'amazon')
+    .reduce((sum, o) => sum + (o.total || 0), 0);
   const current30DaysUsers = users.filter(u => new Date(u.createdAt) >= thirtyDaysAgo);
 
   // ── Previous 30 Days Stats ──
@@ -200,13 +219,21 @@ async function getAnalyticsData() {
 
 
 
+  const amazon30Days = confirmedAmazonOrders.filter(
+    (o: any) => new Date(o.createdAt) >= thirtyDaysAgo
+  ).length;
+
   return {
     totalRevenue,
+    websiteRevenue: current30DaysWebsiteRevenue,
+    amazonRevenue: current30DaysAmazonRevenue,
     pendingRevenue,
     avgOrderValue,
     todayRevenue,
     monthRevenue: current30DaysRevenue,
     totalOrders: current30DaysOrders.length,
+    amazonOrders30d: amazon30Days,
+    websiteOrders30d: current30DaysOrders.filter((o: any) => o.channel === 'website').length,
     pendingOrders: validOrders.filter(o => o.status === 'Pending').length,
     totalCustomers: current30DaysUsers.length,
     totalReviews: reviews.length,
@@ -232,6 +259,7 @@ export default async function AnalyticsPage() {
       trend: data.trends.revenue,
       icon: DollarSign,
       color: 'from-blue-500 to-indigo-600',
+      subtitle: `Web ${formatPrice(data.websiteRevenue)} · Amz ${formatPrice(data.amazonRevenue)}`,
     },
     {
       title: "30-Day Orders",
@@ -239,6 +267,15 @@ export default async function AnalyticsPage() {
       trend: data.trends.orders,
       icon: ShoppingBag,
       color: 'from-emerald-400 to-teal-500',
+      subtitle: `Web ${data.websiteOrders30d} · Amz ${data.amazonOrders30d}`,
+    },
+    {
+      title: "Amazon Orders (30d)",
+      value: data.amazonOrders30d,
+      trend: null,
+      icon: Store,
+      color: 'from-orange-400 to-amber-500',
+      subtitle: formatPrice(data.amazonRevenue) + ' est. catalog value',
     },
     {
       title: "New Customers",
@@ -252,7 +289,7 @@ export default async function AnalyticsPage() {
       value: formatPrice(data.avgOrderValue),
       trend: null,
       icon: TrendingUp,
-      color: 'from-orange-400 to-amber-500',
+      color: 'from-sky-400 to-cyan-500',
     },
     {
       title: "Cart Abandonment",
@@ -275,7 +312,9 @@ export default async function AnalyticsPage() {
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Analytics Dashboard</h1>
-        <p className="text-gray-500 mt-1">Real-time business insights and operational metrics</p>
+        <p className="text-gray-500 mt-1">
+          Website + Amazon channel insights in one place
+        </p>
       </div>
 
       {/* Premium Glassmorphic Stats Cards */}
@@ -299,6 +338,9 @@ export default async function AnalyticsPage() {
                   <p className="text-3xl font-bold text-gray-900 mt-2 tracking-tight">
                     {card.value}
                   </p>
+                  {'subtitle' in card && card.subtitle ? (
+                    <p className="text-xs text-gray-400 mt-1.5">{card.subtitle}</p>
+                  ) : null}
                   
                   {card.trend !== null && (
                     <div className="mt-3 flex items-center">

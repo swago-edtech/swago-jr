@@ -5,6 +5,7 @@ import OrderDateCell from './OrderDateCell'; // ✨ NEW: Client component for da
 import { cleanupExpiredOrders } from '@/lib/cleanupExpiredOrders';
 import OrderFilters from './OrderFilters';
 import Pagination from '@/components/Pagination';
+import AmazonOrdersPanel from './AmazonOrdersPanel';
 
 async function getOrders(searchParams: { [key: string]: string | undefined }) {
   await connectDB();
@@ -186,21 +187,41 @@ async function getOrders(searchParams: { [key: string]: string | undefined }) {
 
 export default async function OrdersPage(props: { searchParams?: Promise<{ [key: string]: string | undefined }> }) {
   const searchParams = (await props.searchParams) || {};
+  const channel = searchParams.channel || 'website';
+
+  if (channel === 'amazon') {
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Orders</h1>
+            <p className="text-gray-600 mt-1">Website and Amazon channel sales</p>
+          </div>
+          <ChannelTabs channel={channel} searchParams={searchParams} />
+        </div>
+        <AmazonOrdersPanel searchParams={searchParams} />
+      </div>
+    );
+  }
+
   const { orders, pagination } = await getOrders(searchParams);
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Orders</h1>
-          <p className="text-gray-600 mt-1">Manage all customer orders</p>
+          <p className="text-gray-600 mt-1">Website and Amazon channel sales</p>
         </div>
-        
+        <ChannelTabs channel={channel} searchParams={searchParams} />
+      </div>
+
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         {/* Tabs */}
-        <div className="flex bg-gray-100 p-1 rounded-lg mx-4">
+        <div className="flex bg-gray-100 p-1 rounded-lg">
           <Link 
-            href={{ pathname: '/orders', query: { ...searchParams, tab: 'current', page: '1', status: undefined } }} 
+            href={{ pathname: '/orders', query: { ...searchParams, channel: 'website', tab: 'current', page: '1', status: undefined } }} 
             className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
               (searchParams.tab || 'current') === 'current' 
                 ? 'bg-white text-blue-600 shadow-sm' 
@@ -210,7 +231,7 @@ export default async function OrdersPage(props: { searchParams?: Promise<{ [key:
             Current Orders
           </Link>
           <Link 
-            href={{ pathname: '/orders', query: { ...searchParams, tab: 'abandoned', page: '1', status: undefined } }} 
+            href={{ pathname: '/orders', query: { ...searchParams, channel: 'website', tab: 'abandoned', page: '1', status: undefined } }} 
             className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
               searchParams.tab === 'abandoned' 
                 ? 'bg-white text-blue-600 shadow-sm' 
@@ -427,5 +448,39 @@ function PaymentBadge({ method }: { method?: string }) {
       }`}>
       {isCOD ? 'Cash on Delivery' : 'Prepaid (Razorpay)'}
     </span>
+  );
+}
+
+function ChannelTabs({
+  channel,
+  searchParams,
+}: {
+  channel: string;
+  searchParams: { [key: string]: string | undefined };
+}) {
+  const base = { ...searchParams, page: '1' };
+  return (
+    <div className="flex bg-slate-900/5 p-1 rounded-xl">
+      <Link
+        href={{ pathname: '/orders', query: { ...base, channel: 'website', tab: searchParams.tab || 'current' } }}
+        className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+          channel === 'website'
+            ? 'bg-white text-slate-900 shadow-sm'
+            : 'text-slate-500 hover:text-slate-800'
+        }`}
+      >
+        Website
+      </Link>
+      <Link
+        href={{ pathname: '/orders', query: { ...base, channel: 'amazon', tab: undefined, status: undefined } }}
+        className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+          channel === 'amazon'
+            ? 'bg-white text-slate-900 shadow-sm'
+            : 'text-slate-500 hover:text-slate-800'
+        }`}
+      >
+        Amazon
+      </Link>
+    </div>
   );
 }

@@ -69,6 +69,7 @@ export default function ProductAnalyticsClient() {
           <option value="all">All Payments</option>
           <option value="razorpay">Prepaid Only</option>
           <option value="cod">COD Only</option>
+          <option value="amazon">Amazon Only</option>
         </select>
         <select
           value={statusFilter}

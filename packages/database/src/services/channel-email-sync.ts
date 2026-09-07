@@ -11,6 +11,10 @@ import {
   deductInventoryForChannelItems,
   restoreInventoryFromChannelSnapshot,
 } from "./channel-inventory";
+import {
+  upsertChannelOrderFromEvent,
+  cancelChannelOrderFromExternalId,
+} from "./channel-order";
 
 const GMAIL_SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"];
 
@@ -339,6 +343,15 @@ async function applyMatchedOrder(event: any, reasonId: string) {
   event.status = "applied";
   event.error = "";
   await event.save();
+  try {
+    await upsertChannelOrderFromEvent(event);
+  } catch (err: any) {
+    const message = err?.message || String(err);
+    console.error("Failed to upsert channel order after inventory apply:", err);
+    // Inventory already applied — keep applied, flag for backfill/heal
+    event.error = `Inventory applied; order record sync failed: ${message}`;
+    await event.save();
+  }
 }
 
 async function applyCancellation(event: any, reasonId: string) {
@@ -369,6 +382,14 @@ async function applyCancellation(event: any, reasonId: string) {
   event.inventorySnapshot = original.inventorySnapshot;
   event.error = "";
   await event.save();
+  try {
+    await cancelChannelOrderFromExternalId(event.externalOrderId);
+  } catch (err: any) {
+    const message = err?.message || String(err);
+    console.error("Failed to cancel channel order after inventory restore:", err);
+    event.error = `Inventory restored; order cancel sync failed: ${message}`;
+    await event.save();
+  }
 }
 
 export async function runChannelEmailSync(limit = 25) {

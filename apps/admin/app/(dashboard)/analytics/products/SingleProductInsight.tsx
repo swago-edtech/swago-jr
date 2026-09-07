@@ -148,7 +148,7 @@ export default function SingleProductInsight({ productsList }: { productsList: P
               {/* Breakdowns */}
               <div className="flex flex-col gap-4">
                 <div className="border border-slate-200 rounded-xl p-5 flex-1">
-                  <h3 className="text-sm font-bold text-slate-800 mb-4">Payment Method Split</h3>
+                  <h3 className="text-sm font-bold text-slate-800 mb-4">Channel & Payment Split</h3>
                   <div className="space-y-4">
                     <div>
                       <div className="flex justify-between text-xs font-bold mb-1">
@@ -171,6 +171,20 @@ export default function SingleProductInsight({ productsList }: { productsList: P
                         <div 
                           className="h-full bg-indigo-500 rounded-full" 
                           style={{ width: `${data.totals.totalOrders > 0 ? (data.breakdown.codOrders / data.totals.totalOrders) * 100 : 0}%` }}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-xs font-bold mb-1">
+                        <span className="text-slate-600">Amazon</span>
+                        <span className="text-orange-600">{data.breakdown.amazonOrders || 0} orders</span>
+                      </div>
+                      <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-orange-500 rounded-full"
+                          style={{
+                            width: `${data.totals.totalOrders > 0 ? ((data.breakdown.amazonOrders || 0) / data.totals.totalOrders) * 100 : 0}%`,
+                          }}
                         />
                       </div>
                     </div>
