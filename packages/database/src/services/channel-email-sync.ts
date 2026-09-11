@@ -253,7 +253,7 @@ async function extractWithGemini(system: string, user: string): Promise<string |
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return null;
 
-  const model = process.env.GEMINI_MODEL || "gemini-2.0-flash";
+  const model = process.env.GEMINI_MODEL || "gemini-3.6-flash";
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
     {
@@ -294,14 +294,21 @@ async function extractOrderFromEmail(
   const { system, user } = buildExtractionPrompt(subject, body, catalog);
 
   let content: string | null = null;
-  if (process.env.OPENAI_API_KEY) {
+  if (process.env.GEMINI_API_KEY) {
+    try {
+      content = await extractWithGemini(system, user);
+    } catch (geminiErr) {
+      console.warn("⚠️ Gemini extraction failed, falling back to OpenAI:", geminiErr instanceof Error ? geminiErr.message : geminiErr);
+      if (process.env.OPENAI_API_KEY) {
+        content = await extractWithOpenAI(system, user);
+      }
+    }
+  } else if (process.env.OPENAI_API_KEY) {
     content = await extractWithOpenAI(system, user);
-  } else if (process.env.GEMINI_API_KEY) {
-    content = await extractWithGemini(system, user);
   } else {
     return {
       ...fallback,
-      reasoning: "Configure OPENAI_API_KEY or GEMINI_API_KEY for email extraction",
+      reasoning: "Configure GEMINI_API_KEY or OPENAI_API_KEY for email extraction",
     };
   }
 

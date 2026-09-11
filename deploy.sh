@@ -144,7 +144,7 @@ CHANNEL_EMAIL_SYNC_INTERVAL_MS=300000
 CHANNEL_EMAIL_SYNC_URL=http://127.0.0.1:3000/api/cron/channel-email-sync
 # Email extraction: uses OPENAI_API_KEY when set, otherwise GEMINI_API_KEY
 GEMINI_API_KEY=
-GEMINI_MODEL=gemini-2.0-flash
+GEMINI_MODEL=gemini-3.7-flash
 
 # ── Cloudinary ────────────────────────────────────────────────────────────
 CLOUDINARY_CLOUD_NAME=
