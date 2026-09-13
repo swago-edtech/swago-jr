@@ -152,11 +152,14 @@ export function isAllowedSender(fromHeader: string, allowlist: string[]): boolea
   });
 }
 
-function buildSenderQuery(senders: string[]): string {
+function buildSenderQuery(senders: string[], lastSyncedAt?: Date | null): string {
+  const timeClause = lastSyncedAt
+    ? `after:${Math.floor(lastSyncedAt.getTime() / 1000)}`
+    : "newer_than:3d";
   const cleaned = senders.map((s) => s.trim()).filter(Boolean);
-  if (!cleaned.length) return "newer_than:7d";
+  if (!cleaned.length) return timeClause;
   const clause = cleaned.map((sender) => `from:${sender}`).join(" OR ");
-  return `{${clause}} newer_than:14d`;
+  return `{${clause}} ${timeClause}`;
 }
 
 type ExtractedOrder = {
@@ -394,7 +397,7 @@ export async function runChannelEmailSync(limit = 25) {
   const gmail = google.gmail({ version: "v1", auth: oauth });
 
   const allowlist = config.senderAllowlist || [];
-  const query = buildSenderQuery(allowlist);
+  const query = buildSenderQuery(allowlist, config.lastSyncedAt);
   const listed = await gmail.users.messages.list({
     userId: "me",
     q: query,
@@ -517,7 +520,7 @@ export async function runChannelEmailSync(limit = 25) {
     processed += 1;
   }
 
-  config.lastSyncedAt = new Date();
+  config.lastSyncedAt = new Date(Date.now() - 300_000);
   await config.save();
 
   return { processed, skipped, message: `Processed ${processed} new emails` };
