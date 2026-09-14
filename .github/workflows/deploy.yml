@@ -31,6 +31,11 @@ jobs:
     name: Build & Deploy
     runs-on: ubuntu-latest
 
+    env:
+      # Give Next.js enough heap to build the web app — default GH runner has 7GB RAM.
+      NODE_OPTIONS: "--max-old-space-size=6144"
+      NEXT_TELEMETRY_DISABLED: "1"
+
     steps:
       # ── 1. Checkout the repository ──────────────────────────────────────
       - name: Checkout code
