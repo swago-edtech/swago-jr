@@ -345,6 +345,7 @@ export interface CountryConfig {
   currencySymbol: string;
   phonePrefix: string;
   shippingFee: number;
+  shippingTiers?: { minWeight: number; maxWeight: number; fee: number; }[];
   isDefault: boolean;
   isActive: boolean;
   exchangeRate: number;

@@ -7,6 +7,16 @@ const CountrySchema = new mongoose.Schema({
   currencySymbol: { type: String, required: true, trim: true },
   phonePrefix: { type: String, required: true, trim: true },
   shippingFee: { type: Number, default: 0, min: 0 },
+  shippingTiers: {
+    type: [
+      {
+        minWeight: { type: Number, required: true, min: 0 },
+        maxWeight: { type: Number, required: true, min: 0 },
+        fee: { type: Number, required: true, min: 0 },
+      }
+    ],
+    default: [],
+  },
   isDefault: { type: Boolean, default: false },
   isActive: { type: Boolean, default: true },
   exchangeRate: { type: Number, required: true, min: 0 },

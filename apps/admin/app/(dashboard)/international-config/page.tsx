@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { HiOutlineGlobe, HiOutlineSave, HiPlus } from "react-icons/hi";
 
 interface CountryConfig {
@@ -13,6 +13,7 @@ interface CountryConfig {
   isDefault: boolean;
   isActive: boolean;
   exchangeRate: number;
+  shippingTiers?: { minWeight: number; maxWeight: number; fee: number; }[];
 }
 
 export default function InternationalConfigPage() {
@@ -20,6 +21,7 @@ export default function InternationalConfigPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [expandedCountry, setExpandedCountry] = useState<number | null>(null);
 
   useEffect(() => {
     fetchConfig();
@@ -79,8 +81,42 @@ export default function InternationalConfigPage() {
         isDefault: false,
         isActive: true,
         exchangeRate: 1,
+        shippingTiers: [],
       },
     ]);
+  };
+
+  const addTier = (countryIdx: number) => {
+    const updated = [...countries];
+    const country = updated[countryIdx];
+    const tiers = country.shippingTiers || [];
+    updated[countryIdx] = {
+      ...country,
+      shippingTiers: [...tiers, { minWeight: 0, maxWeight: 0, fee: 0 }]
+    };
+    setCountries(updated);
+  };
+
+  const updateTier = (countryIdx: number, tierIdx: number, field: string, value: number) => {
+    const updated = [...countries];
+    const country = updated[countryIdx];
+    if (!country.shippingTiers) return;
+    
+    const tiers = [...country.shippingTiers];
+    tiers[tierIdx] = { ...tiers[tierIdx], [field]: value };
+    
+    updated[countryIdx] = { ...country, shippingTiers: tiers };
+    setCountries(updated);
+  };
+
+  const removeTier = (countryIdx: number, tierIdx: number) => {
+    const updated = [...countries];
+    const country = updated[countryIdx];
+    if (!country.shippingTiers) return;
+    
+    const tiers = country.shippingTiers.filter((_, i) => i !== tierIdx);
+    updated[countryIdx] = { ...country, shippingTiers: tiers };
+    setCountries(updated);
   };
 
   if (loading) {
@@ -130,8 +166,9 @@ export default function InternationalConfigPage() {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {countries.map((country, idx) => (
-                <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
-                  <td className="px-6 py-4">
+                <React.Fragment key={idx}>
+                  <tr className="hover:bg-slate-50/50 transition-colors">
+                    <td className="px-6 py-4">
                     <div className="flex gap-2">
                       <input
                         value={country.code}
@@ -187,14 +224,22 @@ export default function InternationalConfigPage() {
                     />
                   </td>
                   <td className="px-6 py-4">
-                    <div className="flex items-center gap-1">
-                      <span className="text-slate-400">{country.currencySymbol}</span>
-                      <input
-                        type="number"
-                        value={country.shippingFee}
-                        onChange={(e) => updateCountry(idx, "shippingFee", parseInt(e.target.value) || 0)}
-                        className="w-20 px-2 py-1.5 text-black bg-slate-50 border border-slate-200 rounded text-xs text-right"
-                      />
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-1">
+                        <span className="text-slate-400">{country.currencySymbol}</span>
+                        <input
+                          type="number"
+                          value={country.shippingFee}
+                          onChange={(e) => updateCountry(idx, "shippingFee", parseInt(e.target.value) || 0)}
+                          className="w-20 px-2 py-1.5 text-black bg-slate-50 border border-slate-200 rounded text-xs text-right"
+                        />
+                      </div>
+                      <button
+                        onClick={() => setExpandedCountry(expandedCountry === idx ? null : idx)}
+                        className="text-xs text-indigo-600 font-bold hover:underline text-left mt-1"
+                      >
+                        {expandedCountry === idx ? "Hide Tiers" : `Tiers (${country.shippingTiers?.length || 0})`}
+                      </button>
                     </div>
                   </td>
                   <td className="px-6 py-4">
@@ -210,6 +255,68 @@ export default function InternationalConfigPage() {
                     </label>
                   </td>
                 </tr>
+                {expandedCountry === idx && (
+                  <tr key={`tiers-${idx}`} className="bg-indigo-50/30 border-b border-slate-100">
+                    <td colSpan={6} className="px-6 py-4">
+                      <div className="bg-white rounded-xl border border-indigo-100 p-4 shadow-sm">
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="text-sm font-bold text-slate-700">Weight-Based Shipping Tiers</h4>
+                          <button
+                            onClick={() => addTier(idx)}
+                            className="text-xs bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-lg font-bold hover:bg-indigo-200 transition-colors"
+                          >
+                            + Add Tier
+                          </button>
+                        </div>
+                        
+                        {(!country.shippingTiers || country.shippingTiers.length === 0) ? (
+                          <p className="text-xs text-slate-500 italic">No weight tiers defined. Flat shipping fee will be used.</p>
+                        ) : (
+                          <div className="space-y-2">
+                            <div className="grid grid-cols-4 gap-4 text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 px-2">
+                              <div>Min Weight (g)</div>
+                              <div>Max Weight (g)</div>
+                              <div>Fee ({country.currencySymbol})</div>
+                              <div>Actions</div>
+                            </div>
+                            {country.shippingTiers.map((tier, tierIdx) => (
+                              <div key={tierIdx} className="grid grid-cols-4 gap-4 items-center bg-slate-50 p-2 rounded-lg border border-slate-200">
+                                <input
+                                  type="number"
+                                  value={tier.minWeight}
+                                  onChange={(e) => updateTier(idx, tierIdx, "minWeight", parseInt(e.target.value) || 0)}
+                                  placeholder="0"
+                                  className="w-full px-2 py-1.5 text-black bg-white border border-slate-200 rounded text-xs"
+                                />
+                                <input
+                                  type="number"
+                                  value={tier.maxWeight}
+                                  onChange={(e) => updateTier(idx, tierIdx, "maxWeight", parseInt(e.target.value) || 0)}
+                                  placeholder="500"
+                                  className="w-full px-2 py-1.5 text-black bg-white border border-slate-200 rounded text-xs"
+                                />
+                                <input
+                                  type="number"
+                                  value={tier.fee}
+                                  onChange={(e) => updateTier(idx, tierIdx, "fee", parseInt(e.target.value) || 0)}
+                                  placeholder="400"
+                                  className="w-full px-2 py-1.5 text-black bg-white border border-slate-200 rounded text-xs"
+                                />
+                                <button
+                                  onClick={() => removeTier(idx, tierIdx)}
+                                  className="text-red-500 hover:text-red-700 text-xs font-bold px-2 py-1 bg-red-50 rounded"
+                                >
+                                  Remove
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                )}
+                </React.Fragment>
               ))}
             </tbody>
           </table>

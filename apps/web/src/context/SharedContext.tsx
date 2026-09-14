@@ -40,6 +40,7 @@ export type Product = {
   showPromotionalMessage?: boolean;
   promotionalMessage?: string;
   skills?: { title: string; image: string }[];
+  weight?: number; // 🆕 Added weight field for shipping calculation
   createdAt?: string;
   updatedAt?: string;
 };
@@ -285,6 +286,7 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
         quantity: item.quantity,
         price: item.price,
         name: item.name,
+        weight: item.weight,
       }));
 
       const res = await fetch('/api/cart/refresh', {
@@ -333,6 +335,7 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
               stock: refreshed.stock,
               originalPrice: refreshed.originalPrice || item.originalPrice,
               slug: refreshed.slug || item.slug,
+              weight: refreshed.weight !== undefined ? refreshed.weight : item.weight,
               quantity: refreshed.availableStock === 0
                 ? 0
                 : Math.min(item.quantity, refreshed.availableStock),
@@ -424,6 +427,7 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
         price: item.price,
         name: item.name,
         slug: item.slug,
+        weight: item.weight,
         image: item.images?.[0] || '/images/placeholder.png',
         images: item.images || ['/images/placeholder.png'],
         addedAt: new Date()
@@ -438,6 +442,7 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
       price: item.price,
       name: item.name,
       slug: item.slug,
+      weight: item.weight,
       image: item.images?.[0] || '/images/placeholder.png',
       images: item.images || ['/images/placeholder.png'],
       addedAt: new Date()

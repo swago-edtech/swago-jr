@@ -251,13 +251,17 @@ export async function POST(req: Request) {
     }
 
     // Build order items using DB-verified prices
-    const orderItems: OrderItem[] = reservations.map(({ product, quantity }) => ({
-      productId: product._id.toString(),
-      name: product.name,
-      price: (product as any).price,
-      quantity,
-      image: (product as any).images?.[0] || "",
-    }));
+    let totalWeight = 0;
+    const orderItems: OrderItem[] = reservations.map(({ product, quantity }) => {
+      totalWeight += ((product as any).weight || 0) * quantity;
+      return {
+        productId: product._id.toString(),
+        name: product.name,
+        price: (product as any).price,
+        quantity,
+        image: (product as any).images?.[0] || "",
+      };
+    });
 
     const subtotal = orderItems.reduce(
       (sum, item) => sum + item.price * item.quantity,
@@ -309,7 +313,19 @@ export async function POST(req: Request) {
       if (config && config.supportedCountries) {
         const countryConfig = config.supportedCountries.find((c: any) => c.code === countryCode);
         if (countryConfig) {
-          shippingFee = countryConfig.shippingFee || 0;
+          if (countryConfig.shippingTiers && countryConfig.shippingTiers.length > 0) {
+            const matchedTier = countryConfig.shippingTiers.find(
+              (t: any) => totalWeight >= t.minWeight && totalWeight <= t.maxWeight
+            );
+            if (matchedTier) {
+              shippingFee = matchedTier.fee;
+            } else {
+              const highestTier = [...countryConfig.shippingTiers].sort((a: any, b: any) => b.maxWeight - a.maxWeight)[0];
+              shippingFee = totalWeight > highestTier.maxWeight ? highestTier.fee : countryConfig.shippingFee;
+            }
+          } else {
+            shippingFee = countryConfig.shippingFee || 0;
+          }
         }
       }
     } else {
