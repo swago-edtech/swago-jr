@@ -5,6 +5,7 @@
     "main": "src/index.ts",
     "types": "src/index.ts",
     "dependencies": {
+        "googleapis": "^164.1.0",
         "mongoose": "^8.18.1"
     },
     "devDependencies": {

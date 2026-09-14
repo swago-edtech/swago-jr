@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import ProductPageClient from "@/components/ProductPageClient";
 import { notFound } from "next/navigation";
-import { connectDB, Product } from "@swago/database";
+import { connectDB, Product, getConfiguredProductIds } from "@swago/database";
 import { isValidObjectId } from "mongoose";
+import { enrichProductAvailability } from "@/lib/product-stock";
 
 export const revalidate = 0;
 
@@ -24,8 +25,12 @@ async function getProduct(id: string) {
     }
 
     if (product) {
-       // Convert _id to string for serialization
-       return JSON.parse(JSON.stringify(product));
+       const configuredIds = await getConfiguredProductIds();
+       const enriched = enrichProductAvailability(
+         JSON.parse(JSON.stringify(product)),
+         configuredIds
+       );
+       return enriched;
     }
   } catch (error) {
     console.error('Error fetching product from DB:', error);

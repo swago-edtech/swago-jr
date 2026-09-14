@@ -15,7 +15,7 @@ This project is architected as a **pnpm monorepo** using **Next.js 14+** and **T
 - **Workspaces**:
   - `apps/web`: The main customer-facing store.
   - `apps/admin`: Corporate management dashboard.
-  - `packages/database`: Shared data models and connection logic.
+  - `packages/database`: Shared data models and connection logic..
 
 > 📖 **Deep Dive**: For a detailed technical breakdown, please refer to the [**ARCHITECTURE.md**](./ARCHITECTURE.md) file.
 
@@ -24,11 +24,11 @@ This project is architected as a **pnpm monorepo** using **Next.js 14+** and **T
 ## 🚀 Quick Start Guide
 
 ### 1. Prerequisites
-- **Node.js**: 18.0.0 or higher
+- **Node.js**: 20.0.0 or higher
 - **pnpm**: 8.0.0 or higher
 - **MongoDB**: Access to a MongoDB Atlas cluster
 
-### 2. Installation
+### 2. Installation:
 ```bash
 # Clone the repository
 git clone <repository-url>
@@ -77,7 +77,7 @@ swago-jr/
 ## 🚢 Deployment Context
 The application is designed to be hosted on **Serverless** or **Containerized** environments.
 - **Primary Hosting**: AWS Amplify (Recommended for Next.js Monorepos).
-- **Secondary Hosting**: Vercel / AWS EC2.
+- **Secondary Hosting**: Vercel / AWS EC2...
 
 ---
 
@@ -89,4 +89,4 @@ The application is designed to be hosted on **Serverless** or **Containerized** 
 
 ---
 
-© 2024-2025 Swago Jr. All rights reserved.
+© 2025-2026 Swago Jr. All rights reserved...

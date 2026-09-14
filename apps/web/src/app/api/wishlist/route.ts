@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
-import { connectDB, User, Product } from "@swago/database";
+import { connectDB, User, Product, getConfiguredProductIds } from "@swago/database";
 import { getLoginSession } from "@/lib/auth";
 import { z } from "zod";
 import mongoose from "mongoose";
+import { enrichProductAvailability } from "@/lib/product-stock";
 
 // ✅ Type for MongoDB product document
 interface DbProduct {
@@ -194,12 +195,19 @@ export async function GET() {
       : [];
 
     // Return DB products
-    const allWishlistProducts = dbProducts.map(p => ({
-      ...p,
-      _id: p._id.toString(),
-      ageCategory: p.ageCategory,
-      coreElements: p.coreElements
-    }));
+    const configuredIds = await getConfiguredProductIds();
+
+    const allWishlistProducts = dbProducts.map((p) =>
+      enrichProductAvailability(
+        {
+          ...p,
+          _id: p._id.toString(),
+          ageCategory: p.ageCategory,
+          coreElements: p.coreElements,
+        },
+        configuredIds
+      )
+    );
 
     console.log('✅ Returning wishlist:', allWishlistProducts.length, 'products');
 

@@ -29,6 +29,7 @@ export type Product = {
   box_contents?: string;
   boxContents?: string;
   stock?: number;
+  availableStock?: number;
   isFeatured?: boolean;
   isActive?: boolean;
   slug?: string;
@@ -675,7 +676,11 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
 
   // Cart functions
   const addToCart = (product: Product, quantity: number = 1) => {
-    if (product.stock !== undefined && product.stock === 0) {
+    const available =
+      product.availableStock ??
+      (product.stock !== undefined ? product.stock : undefined);
+
+    if (available !== undefined && available === 0) {
       alert("This product is out of stock");
       return;
     }
@@ -687,8 +692,8 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
       if (existing) {
         const newQuantity = existing.quantity + quantity;
 
-        if (product.stock !== undefined && newQuantity > product.stock) {
-          alert(`Only ${product.stock} items available in stock`);
+        if (available !== undefined && newQuantity > available) {
+          alert(`Only ${available} items available in stock`);
           return prev;
         }
 
@@ -697,13 +702,13 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
         );
       }
 
-      if (product.stock !== undefined && quantity > product.stock) {
-        alert(`Only ${product.stock} items available in stock`);
+      if (available !== undefined && quantity > available) {
+        alert(`Only ${available} items available in stock`);
         return prev;
       }
 
       Feedback.playPop();
-      return [...prev, { ...product, quantity }];
+      return [...prev, { ...product, quantity, availableStock: available }];
     });
   };
 
@@ -719,9 +724,12 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
       if (getProductId(p) !== id.toString()) return p;
 
       const newQuantity = p.quantity + 1;
+      const available =
+        p.availableStock ??
+        (p.stock !== undefined ? p.stock : undefined);
 
-      if (p.stock !== undefined && newQuantity > p.stock) {
-        alert(`Only ${p.stock} items available in stock`);
+      if (available !== undefined && newQuantity > available) {
+        alert(`Only ${available} items available in stock`);
         return p;
       }
 

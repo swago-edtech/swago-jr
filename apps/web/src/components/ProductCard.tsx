@@ -22,10 +22,15 @@ export default function ProductCard({ product }: { product: Product }) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isHovering, setIsHovering] = useState(false);
 
-  // Get stock status
-  const stock = product.stock;
-  const isOutOfStock = stock !== undefined && stock === 0;
-  const isLowStock = stock !== undefined && stock > 0 && stock < 10;
+  const availableStock =
+    product.availableStock ??
+    (product.stock !== undefined ? product.stock : undefined);
+  const lowStockThreshold = product.lowStockThreshold ?? 10;
+  const isOutOfStock = availableStock !== undefined && availableStock === 0;
+  const isLowStock =
+    availableStock !== undefined &&
+    availableStock > 0 &&
+    availableStock <= lowStockThreshold;
 
   // Check if item is in cart and get quantity
   const getCartItemId = (item: CartItem): string => {
@@ -209,7 +214,7 @@ export default function ProductCard({ product }: { product: Product }) {
             )}
             {isLowStock && !isOutOfStock && !product.label && (
               <div className="absolute top-3 left-3 bg-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full z-10">
-                Only {stock} left!
+                Only {availableStock} left!
               </div>
             )}
           </div>
@@ -285,7 +290,7 @@ export default function ProductCard({ product }: { product: Product }) {
                     onClick={handleIncrease}
                     className="px-3 py-2 hover:bg-purple-100 transition text-[hsl(var(--swago-purple))] font-bold text-lg"
                     aria-label="Increase quantity"
-                    disabled={stock !== undefined && quantityInCart >= stock}
+                    disabled={availableStock !== undefined && quantityInCart >= availableStock}
                   >
                     +
                   </button>

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
-import { Product } from "@swago/database";
+import { Product, getConfiguredProductIds, applyEffectiveProductStock, enrichProductAvailability, reconcileStaleProductStock } from "@swago/database";
 import { connectDB } from "@swago/database";
 import { parseComboFields } from "@/lib/combo-units";
 
@@ -55,15 +55,24 @@ export async function GET(request: NextRequest) {
       filter.isFeatured = true;
     }
 
+    const configuredIds = await getConfiguredProductIds();
+
+    await reconcileStaleProductStock();
+
     // Fetch products
     const products = await Product.find(filter)
       .sort({ createdAt: -1 })
       .lean();
 
+    const productsWithEffectiveStock = products.map((product: any) => {
+      const enriched = enrichProductAvailability(product, configuredIds);
+      return enriched;
+    });
+
     return NextResponse.json({
       success: true,
-      products,
-      count: products.length,
+      products: productsWithEffectiveStock,
+      count: productsWithEffectiveStock.length,
     });
   } catch (error: any) {
     console.error("Error fetching products:", error);
@@ -144,7 +153,7 @@ export async function POST(request: NextRequest) {
       coreElements: body.coreElements,
       boxContents: body.boxContents,
       benefits: body.benefits,
-      stock: body.stock || 0,
+      stock: 0,
       lowStockThreshold: body.lowStockThreshold || 10,
       weight: body.weight || 0,
       isFeatured: body.isFeatured || false,

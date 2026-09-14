@@ -127,8 +127,21 @@ TWILIO_VERIFY_SID=
 SENDGRID_API_KEY=
 SENDER_EMAIL=
 
-# ── OpenAI ────────────────────────────────────────────────────────────────
-OPENAI_API_KEY=
+# ── Gmail channel inventory sync + storefront Google sign-in ──────────────
+# Same client ID/secret. Register BOTH redirect URIs in Google Cloud Console:
+#   Admin Gmail:     {admin origin}/api/channel-email/google/callback
+#   Storefront auth: {web origin}/api/auth/google/callback
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+GOOGLE_REDIRECT_URI=
+# Production only for HTTP cron route auth. Local admin "Check mail now" needs no secret.
+# Channel email worker starts automatically with `pnpm start:web` / `pnpm start` (same PM2 restart).
+CRON_SECRET=
+CHANNEL_EMAIL_SYNC_INTERVAL_MS=300000
+CHANNEL_EMAIL_SYNC_URL=http://127.0.0.1:3000/api/cron/channel-email-sync
+# Email extraction + review sentiment: Gemini only
+GEMINI_API_KEY=
+GEMINI_MODEL=gemini-3.1-flash-lite
 
 # ── Cloudinary ────────────────────────────────────────────────────────────
 CLOUDINARY_CLOUD_NAME=

@@ -10,6 +10,11 @@ import { cleanupExpiredOrders } from "@/lib/cleanupExpiredOrders";
 import { invalidateProductCache } from "@/lib/productCache";
 import { validateCoupon } from "@/lib/coupon";
 import { generateAndUploadInvoice } from "@/lib/invoice-service";
+import { findProductWithAvailability } from "@/lib/product-stock";
+import {
+  allocateInventoryForOrder,
+  InsufficientInventoryError,
+} from "@/lib/inventory-service";
 
 
 interface ProductDocument {
@@ -44,19 +49,8 @@ interface OrderItem {
 }
 
 // Helper to get product by ID or slug
-async function getProductById(id: string): Promise<ProductDocument | null> {
-    try {
-        let product = await Product.findOne({ slug: id, isActive: true });
-
-        if (!product && isValidObjectId(id)) {
-            product = await Product.findOne({ _id: id, isActive: true });
-        }
-
-        return product as ProductDocument | null;
-    } catch (error) {
-        console.error('Error fetching product:', error);
-        return null;
-    }
+async function getProductById(id: string) {
+    return findProductWithAvailability(id);
 }
 
 // Check if phone is Indian (+91)
@@ -150,7 +144,7 @@ export async function POST(req: Request) {
                 continue;
             }
 
-            const availableStock = Math.max(0, product.stock - (product.reservedStock || 0));
+            const availableStock = product.availableStock ?? 0;
 
             if (availableStock === 0) {
                 stockErrors.push(`${item.name} is out of stock`);
@@ -170,7 +164,7 @@ export async function POST(req: Request) {
             }, { status: 400 });
         }
 
-        // Step 2: Reduce stock immediately for COD orders
+// Step 2: Reduce stock immediately for COD orders
         for (const { product, quantity } of reservations) {
             product.stock = Math.max(0, product.stock - quantity);
             product.totalSold = (product.totalSold || 0) + quantity;
@@ -191,9 +185,11 @@ export async function POST(req: Request) {
             }
         }
 
+        // =================================
+// CALCULATE FINAL TOTAL ORDER
         // ========================================
-        // CALCULATE FINAL TOTAL ORDER
-        // ========================================
+=======
+        // Stock validated — inventory allocated after order is created
         const orderId = await generateOrderId();
 
         // ZEPRO Reference: Server-side Bonus Item Validation
@@ -346,6 +342,32 @@ export async function POST(req: Request) {
                 couponDetails: validatedCoupon,
             }),
         });
+
+        try {
+            await allocateInventoryForOrder(newOrder, { consumeImmediately: true });
+        } catch (allocError) {
+            await Order.findByIdAndDelete(newOrder._id);
+            if (allocError instanceof InsufficientInventoryError) {
+                return NextResponse.json({
+                    error: "Stock unavailable",
+                    stockErrors: [allocError.message],
+                    details: allocError.message,
+                }, { status: 400 });
+            }
+            throw allocError;
+        }
+
+        for (const { product, quantity } of reservations) {
+            await Product.findByIdAndUpdate(product._id, {
+                $inc: { totalSold: quantity },
+            });
+            try {
+                invalidateProductCache(product.slug || '');
+                invalidateProductCache(product._id.toString());
+            } catch {
+                // non-critical
+            }
+        }
 
         // Increment coupon usage
         if (newOrder.couponCode) {

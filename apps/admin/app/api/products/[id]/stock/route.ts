@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
-import { Product } from "@swago/database";
+import { Product, hasActiveBomConfig } from "@swago/database";
 import { connectDB } from "@swago/database";
 import mongoose from "mongoose";
 
@@ -28,6 +28,13 @@ export async function PUT(
     if (stock === undefined || stock < 0) {
       return NextResponse.json(
         { error: "Valid stock value is required" },
+        { status: 400 }
+      );
+    }
+
+    if (await hasActiveBomConfig(id)) {
+      return NextResponse.json(
+        { error: "Stock is auto-calculated from inventory BOM and cannot be edited manually." },
         { status: 400 }
       );
     }

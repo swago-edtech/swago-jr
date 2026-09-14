@@ -5,7 +5,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { LayoutDashboard, ShoppingBag, Package, Users, MessageSquare, X, Menu, HelpCircle, TrendingUp, Award, ChevronDown, ChevronRight, Mail, Ticket, Megaphone, Trophy, Gift, Target, GraduationCap, BarChart3 } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, Package, Users, MessageSquare, X, Menu, HelpCircle, TrendingUp, Award, ChevronDown, ChevronRight, Mail, Ticket, Megaphone, Trophy, Gift, Target, GraduationCap, BarChart3, Warehouse } from "lucide-react";
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -40,6 +40,16 @@ const navigation = [
   { name: 'Promotions', href: '/promotions', icon: Gift },
   { name: 'Reviews', href: '/reviews', icon: MessageSquare },
   { name: 'Products', href: '/products', icon: Package },
+  {
+    name: 'Inventory',
+    icon: Warehouse,
+    submenu: [
+      { name: 'Dashboard', href: '/inventory' },
+      { name: 'Configurations', href: '/inventory/config' },
+      { name: 'Channel Email', href: '/inventory/channel-email' },
+      { name: 'Transactions', href: '/inventory/transactions' },
+    ]
+  },
   { name: 'Quests', href: '/quests', icon: Trophy },
   {
     name: 'Masterclass',
@@ -224,7 +234,7 @@ export default function AdminSidebar() {
                     <div className="ml-4 mt-1 space-y-1">
                       {item.submenu.map((subItem) => {
                         // If it's a base path like /masterclass or /analytics, only match exactly to avoid highlighting everything in the submenu
-                        const isBasePath = subItem.href === '/masterclass' || subItem.href === '/lottery' || subItem.href === '/ambassadors' || subItem.href === '/analytics' || subItem.href === '/users';
+                        const isBasePath = subItem.href === '/masterclass' || subItem.href === '/lottery' || subItem.href === '/ambassadors' || subItem.href === '/analytics' || subItem.href === '/users' || subItem.href === '/inventory';
                         const isSubActive = isBasePath 
                           ? pathname === subItem.href 
                           : (pathname === subItem.href || pathname.startsWith(subItem.href + '/'));

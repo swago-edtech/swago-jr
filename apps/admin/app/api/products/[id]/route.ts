@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
-import { Product } from "@swago/database";
+import { Product, hasActiveBomConfig } from "@swago/database";
 import { connectDB } from "@swago/database";
 import mongoose from "mongoose";
 import { parseComboFields } from "@/lib/combo-units";
@@ -86,7 +86,16 @@ export async function PUT(
     if (body.coreElements !== undefined) updateFields.coreElements = body.coreElements;
     if (body.boxContents !== undefined) updateFields.boxContents = body.boxContents;
     if (body.benefits !== undefined) updateFields.benefits = body.benefits;
-    if (body.stock !== undefined) updateFields.stock = body.stock;
+    if (body.stock !== undefined) {
+      const bomConfigured = await hasActiveBomConfig(id);
+      if (bomConfigured) {
+        return NextResponse.json(
+          { error: "Stock is auto-calculated from inventory BOM and cannot be edited manually." },
+          { status: 400 }
+        );
+      }
+      updateFields.stock = body.stock;
+    }
     if (body.weight !== undefined) updateFields.weight = body.weight;
     if (body.lowStockThreshold !== undefined) updateFields.lowStockThreshold = body.lowStockThreshold;
     if (body.isFeatured !== undefined) updateFields.isFeatured = body.isFeatured;

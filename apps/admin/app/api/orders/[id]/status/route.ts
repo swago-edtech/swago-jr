@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { connectDB, Order, ProductCode } from '@swago/database';
+import { connectDB, Order, ProductCode, restoreInventoryForOrder, orderHadInventoryDeducted } from '@swago/database';
 import { requireAdmin } from '@/lib/auth';
 
 // Helper function to generate random hex string
@@ -58,7 +58,7 @@ export async function PATCH(
 ) {
   try {
     // Check admin authentication
-    await requireAdmin();
+    const session = await requireAdmin();
 
     const { id } = await params;
     const { status: rawStatus } = await request.json();
@@ -104,7 +104,24 @@ export async function PATCH(
       );
     }
 
+
+    // Check if status is transitioning to a cancelled/returned state
+    const cancellingStatuses = ['Cancelled', 'RTO', 'Returned', 'Refunded'];
+    if (cancellingStatuses.includes(status) && !cancellingStatuses.includes(currentOrder.status) && currentOrder.items) {
+      try {
+        if (
+          orderHadInventoryDeducted(currentOrder) &&
+          currentOrder.inventoryAllocationStatus !== "restored"
+        ) {
+          await restoreInventoryForOrder(currentOrder, session?.name || "Admin");
+        }
+      } catch (err) {
+        console.error("Inventory restore failed:", err);
+      }
+    }
+
     // Update order status
+
     const order = await Order.findByIdAndUpdate(
       id,
       { status, updatedAt: new Date() },

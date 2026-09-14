@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useSharedContext } from "@/context/SharedContext";
 import { USER_EVENTS } from "@/context/SharedContext";
 import Script from "next/script";
+import GoogleSignInButton, { GoogleAuthDivider } from "@/components/GoogleSignInButton";
 
 type AuthMode = "signup" | "signin";
 
@@ -40,6 +41,18 @@ export default function EmailLoginForm() {
   };
 
   // ✅ Track client-side mounting and handle widget conflicts
+  useEffect(() => {
+    const googleErrors: Record<string, string> = {
+      google_denied: "Google sign-in was cancelled. You can try again or use OTP.",
+      google_failed: "Google sign-in failed. Please try again or use OTP.",
+      google_not_configured: "Google sign-in is not configured yet. Use phone or email OTP.",
+    };
+    const oauthError = searchParams.get("error");
+    if (oauthError && googleErrors[oauthError]) {
+      setMessage(`❌ ${googleErrors[oauthError]}`);
+    }
+  }, [searchParams]);
+
   useEffect(() => {
     setIsMounted(true);
 
@@ -383,6 +396,8 @@ export default function EmailLoginForm() {
 
           {step === "form" && (
             <div className="space-y-4">
+              <GoogleSignInButton redirectUrl={redirectUrl} />
+              <GoogleAuthDivider />
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Email Address <span className="text-red-500">*</span>
