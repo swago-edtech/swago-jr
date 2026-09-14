@@ -18,7 +18,7 @@ export async function analyzeReviewSentiment(
       throw new Error("GEMINI_API_KEY is not configured");
     }
 
-    const model = process.env.GEMINI_MODEL || "gemini-2.5-flash-lite";
+    const model = process.env.GEMINI_MODEL || "gemini-3.1-flash-lite";
     const prompt = `Analyze the sentiment of this product review. Return ONLY a JSON object with this exact format:
 {
   "sentiment": "POSITIVE" | "NEGATIVE" | "NEUTRAL",
