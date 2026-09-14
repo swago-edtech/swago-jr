@@ -28,7 +28,7 @@ This project is architected as a **pnpm monorepo** using **Next.js 14+** and **T
 - **pnpm**: 8.0.0 or higher
 - **MongoDB**: Access to a MongoDB Atlas cluster
 
-### 2. Installation
+### 2. Installation:
 ```bash
 # Clone the repository
 git clone <repository-url>
