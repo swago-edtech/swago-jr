@@ -1,9 +1,9 @@
 import mongoose from "mongoose";
 import connectDB from "../connection";
 import Product from "../models/Product";
-import ProductConfig from "../models/ProductConfig";
 import InventoryItem from "../models/InventoryItem";
 import InventoryTransaction from "../models/InventoryTransaction";
+import ProductConfig from "../models/ProductConfig";
 import { InsufficientInventoryError } from "./inventory-order";
 import { syncAffectedProducts } from "./inventory-sync";
 
@@ -35,6 +35,42 @@ function normalizeTitle(value: string): string {
     .trim();
 }
 
+/**
+ * Try to match an item to a Swago product using its SKU.
+ * Looks up InventoryItem by SKU, then finds ProductConfigs that reference that item.
+ */
+async function matchBySku(
+  sku: string,
+  products: ProductLean[]
+): Promise<{ productId: string; productName: string } | null> {
+  if (!sku) return null;
+
+  const invItem = await InventoryItem.findOne({ sku: sku.toUpperCase() }).select("_id name");
+  if (!invItem) return null;
+
+  // Find any active ProductConfig whose components reference this inventory item
+  const config = await ProductConfig.findOne({
+    "components.inventoryItemId": invItem._id,
+    isActive: true,
+  }).populate("productId", "name");
+
+  if (config) {
+    const product = config.productId as any;
+    return {
+      productId: (product._id || config.productId).toString(),
+      productName: product.name || config.productName || "",
+    };
+  }
+
+  // Fall back to a direct product name match on the inventory item name
+  const byName = products.find((p) => normalizeTitle(p.name) === normalizeTitle(invItem.name));
+  if (byName) {
+    return { productId: byName._id.toString(), productName: byName.name };
+  }
+
+  return null;
+}
+
 export async function matchChannelProducts(
   extractedItems: Array<{ title?: string; quantity?: number; sku?: string }>,
   aliases: Array<{ alias: string; productId: { toString(): string }; productName?: string }>
@@ -52,6 +88,22 @@ export async function matchChannelProducts(
     const title = item.title || "";
     const quantity = Math.max(1, Number(item.quantity) || 1);
     const normalized = normalizeTitle(title);
+
+    // First try matching by SKU if available
+    if (item.sku) {
+      const skuMatch = await matchBySku(item.sku, products);
+      if (skuMatch) {
+        matched.push({
+          productId: skuMatch.productId,
+          productName: skuMatch.productName,
+          quantity,
+          extractedTitle: title,
+          matchType: "sku",
+        });
+        continue;
+      }
+    }
+
     if (!normalized) {
       unmatched.push(title || "(empty title)");
       continue;
@@ -136,7 +188,7 @@ export function isHighConfidenceMatch(
 ): boolean {
   if (!matched.length || unmatched.length) return false;
   const strong = matched.every((item) =>
-    ["alias", "exact", "slug", "shortForm"].includes(item.matchType || "")
+    ["alias", "exact", "slug", "shortForm", "sku"].includes(item.matchType || "")
   );
   return strong || confidence >= 0.85;
 }

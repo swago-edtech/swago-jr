@@ -191,8 +191,11 @@ Return JSON:
   "externalOrderId": "Amazon/marketplace order id or empty",
   "confidence": 0.0-1.0,
   "reasoning": "short",
-  "items": [{ "title": "product title as in email", "quantity": 1, "sku": "" }]
+  "items": [{ "title": "product title as in email", "quantity": 1, "sku": "SWG-XXXX-XX-XX-XY or empty if none" }]
 }
+
+CRITICAL: Extract the SKU field from each item when available (e.g. SWG-XXXX-XX-XX-XY).
+The SKU helps us match the product to our catalog.
 
 Prefer titles that can match this Swago catalog:
 ${catalogPreview || "(empty catalog)"}
@@ -229,7 +232,7 @@ export function isGenuineNewOrderEmail(input: {
 
   const fromAutoConfirm = from.includes("auto-confirm@");
   const orderSubject =
-    /\b(order confirmation|new order|sold|you('ve| have) (an? )?order|order confirmed|confirm(ed)? order|action required|amazon\.in order|amazon\.com order)\b/.test(
+    /\b(order confirmation|new order|sold|congratulations.*order|you('ve| have) .*?order|order confirmed|confirm(ed)? order|action required|amazon\..*order|order.*placed|order.*received|order.*amazon)\b/i.test(
       subject
     );
 
@@ -245,6 +248,56 @@ export function shouldAutoApplyNewOrder(
 ): boolean {
   if (!genuine || !matched.length || unmatched.length) return false;
   return true;
+}
+
+/**
+ * Parse standard Amazon order notification email format using regex.
+ * Returns null when the email does not match the known format.
+ */
+function parseAmazonOrderFormat(body: string): ExtractedOrder | null {
+  const orderIdMatch = body.match(/Order ID:\s*([A-Z0-9\-]{5,})/i);
+  if (!orderIdMatch) return null;
+
+  const externalOrderId = orderIdMatch[1].trim();
+  if (!externalOrderId) return null;
+
+  // Amazon multi-item format — each Item block has Condition / SKU / Quantity
+  // Use \\s+ to handle both plain-text (newlines) and HTML-stripped (spaces) emails
+  const blockRegex =
+    /Item:\s*(.+?)\s+Condition:.*?\s+SKU:\s*(\S+)\s+Quantity:\s*(\d+)/gis;
+  const items: Array<{ title: string; quantity: number; sku: string }> = [];
+  let match;
+  while ((match = blockRegex.exec(body)) !== null) {
+    items.push({
+      title: match[1].replace(/\s+/g, " ").trim(),
+      quantity: Math.max(1, parseInt(match[3], 10) || 1),
+      sku: match[2].trim(),
+    });
+  }
+
+  // Fallback: single-item email with looser alignment
+  if (items.length === 0) {
+    const itemMatch = body.match(/Item:\s*(.+?)\s+(?:Condition|Price)/i);
+    const skuMatch = body.match(/SKU:\s*(\S+)/i);
+    const qtyMatch = body.match(/Quantity:\s*(\d+)/i);
+    if (itemMatch && skuMatch) {
+      items.push({
+        title: itemMatch[1].replace(/\s+/g, " ").trim(),
+        quantity: qtyMatch ? Math.max(1, parseInt(qtyMatch[1], 10) || 1) : 1,
+        sku: skuMatch[1].trim(),
+      });
+    }
+  }
+
+  if (items.length === 0) return null;
+
+  return {
+    eventType: "order",
+    externalOrderId,
+    confidence: 0.95,
+    reasoning: "Local Amazon order parser",
+    items,
+  };
 }
 
 function parseExtractedOrder(content: string, fallback: ExtractedOrder): ExtractedOrder {
@@ -322,6 +375,10 @@ async function extractOrderFromEmail(
     reasoning: "Could not extract order details",
     items: [],
   };
+
+  // First, try the local Amazon order format parser — it's fast and accurate
+  const localParsed = parseAmazonOrderFormat(body);
+  if (localParsed) return localParsed;
 
   if (!process.env.GEMINI_API_KEY) {
     return {
