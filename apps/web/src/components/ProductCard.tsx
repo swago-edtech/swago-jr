@@ -217,7 +217,10 @@ export default function ProductCard({ product }: { product: Product }) {
           <div className="p-2 sm:p-4 flex flex-col flex-grow">
             <div className="flex-grow text-left">
               {/* Product name with Read more */}
-              <h3 className="text-xs sm:text-base font-semibold text-slate-800 mb-1 sm:mb-2 min-h-[2.5rem] sm:min-h-[3rem]">
+              <h3 
+                className="text-xs sm:text-base font-semibold text-slate-800 mb-1 sm:mb-2 line-clamp-3 md:line-clamp-4"
+                title={displayName}
+              >
                 {displayName}
               </h3>
             </div>
