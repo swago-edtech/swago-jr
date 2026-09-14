@@ -11,7 +11,7 @@ const nextConfig: NextConfig = {
   // Tell Next.js to transpile our shared packages
   transpilePackages: ['@swago/utils', '@swago/database', '@swago/types'],
 
-  serverExternalPackages: ['mongoose', 'googleapis', 'openai'],
+  serverExternalPackages: ['mongoose', 'googleapis'],
 
   turbopack: {},
   images: {

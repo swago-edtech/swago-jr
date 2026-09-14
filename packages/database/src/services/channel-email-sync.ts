@@ -1,5 +1,4 @@
 import { google } from "googleapis";
-import OpenAI from "openai";
 import mongoose from "mongoose";
 import connectDB from "../connection";
 import Product from "../models/Product";
@@ -238,20 +237,6 @@ function parseExtractedOrder(content: string, fallback: ExtractedOrder): Extract
   }
 }
 
-async function extractWithOpenAI(system: string, user: string): Promise<string | null> {
-  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-  const response = await openai.chat.completions.create({
-    model: process.env.OPENAI_MODEL || "gpt-4o-mini",
-    temperature: 0.1,
-    response_format: { type: "json_object" },
-    messages: [
-      { role: "system", content: system },
-      { role: "user", content: user },
-    ],
-  });
-  return response.choices[0].message.content;
-}
-
 async function extractWithGemini(system: string, user: string): Promise<string | null> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return null;
@@ -294,29 +279,29 @@ async function extractOrderFromEmail(
     items: [],
   };
 
-  const { system, user } = buildExtractionPrompt(subject, body, catalog);
-
-  let content: string | null = null;
-  if (process.env.GEMINI_API_KEY) {
-    try {
-      content = await extractWithGemini(system, user);
-    } catch (geminiErr) {
-      console.warn("⚠️ Gemini extraction failed, falling back to OpenAI:", geminiErr instanceof Error ? geminiErr.message : geminiErr);
-      if (process.env.OPENAI_API_KEY) {
-        content = await extractWithOpenAI(system, user);
-      }
-    }
-  } else if (process.env.OPENAI_API_KEY) {
-    content = await extractWithOpenAI(system, user);
-  } else {
+  if (!process.env.GEMINI_API_KEY) {
     return {
       ...fallback,
-      reasoning: "Configure GEMINI_API_KEY or OPENAI_API_KEY for email extraction",
+      reasoning: "Configure GEMINI_API_KEY for email extraction",
     };
   }
 
-  if (!content) return fallback;
-  return parseExtractedOrder(content, fallback);
+  const { system, user } = buildExtractionPrompt(subject, body, catalog);
+
+  try {
+    const content = await extractWithGemini(system, user);
+    if (!content) return fallback;
+    return parseExtractedOrder(content, fallback);
+  } catch (geminiErr) {
+    console.error(
+      "⚠️ Gemini extraction failed:",
+      geminiErr instanceof Error ? geminiErr.message : geminiErr
+    );
+    return {
+      ...fallback,
+      reasoning: geminiErr instanceof Error ? geminiErr.message : "Gemini extraction failed",
+    };
+  }
 }
 
 async function hasAppliedOrderForExternalId(externalOrderId: string): Promise<boolean> {

@@ -14,9 +14,6 @@ importers:
       lucide-react:
         specifier: ^0.344.0
         version: 0.344.0(react@18.3.1)
-      openai:
-        specifier: ^6.6.0
-        version: 6.16.0(ws@8.18.3)(zod@4.3.6)
       recharts:
         specifier: ^3.4.1
         version: 3.7.0(@types/react@19.2.9)(react-dom@19.1.0(react@18.3.1))(react-is@16.13.1)(react@18.3.1)(redux@5.0.1)
@@ -190,9 +187,6 @@ importers:
       next:
         specifier: 16.1.4
         version: 16.1.4(@opentelemetry/api@1.9.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
-      openai:
-        specifier: ^6.6.0
-        version: 6.16.0(ws@8.18.3)(zod@4.3.6)
       pdfkit:
         specifier: ^0.19.1
         version: 0.19.1
@@ -284,9 +278,6 @@ importers:
       mongoose:
         specifier: ^8.18.1
         version: 8.21.1(supports-color@8.1.1)
-      openai:
-        specifier: ^6.16.0
-        version: 6.16.0(ws@8.18.3)(zod@4.3.6)
     devDependencies:
       '@types/node':
         specifier: ^20.19.19
@@ -3431,18 +3422,6 @@ packages:
   onetime@7.0.0:
     resolution: {integrity: sha512-VXJjc87FScF88uafS3JllDgvAm+c/Slfz06lorj2uAY34rlUu0Nt+v8wreiImcrgAjjIHp1rXpTDlLOGw29WwQ==}
     engines: {node: '>=18'}
-
-  openai@6.16.0:
-    resolution: {integrity: sha512-fZ1uBqjFUjXzbGc35fFtYKEOxd20kd9fDpFeqWtsOZWiubY8CZ1NAlXHW3iathaFvqmNtCWMIsosCuyeI7Joxg==}
-    hasBin: true
-    peerDependencies:
-      ws: ^8.18.0
-      zod: ^3.25 || ^4.0
-    peerDependenciesMeta:
-      ws:
-        optional: true
-      zod:
-        optional: true
 
   optionator@0.9.4:
     resolution: {integrity: sha512-6IpQ7mKUxRcZNLIObR0hz7lxsapSSIYNZJwXPGeF0mTVqGKFIXj1DQcMoT22S3ROcLyY/rz0PWaWZ9ayWmad9g==}
@@ -7585,11 +7564,6 @@ snapshots:
   onetime@7.0.0:
     dependencies:
       mimic-function: 5.0.1
-
-  openai@6.16.0(ws@8.18.3)(zod@4.3.6):
-    optionalDependencies:
-      ws: 8.18.3
-      zod: 4.3.6
 
   optionator@0.9.4:
     dependencies:

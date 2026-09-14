@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { runChannelEmailSync } from "@swago/database";
 
-// Production: GOOGLE_*, OPENAI_API_KEY or GEMINI_API_KEY, MONGODB_URI, CRON_SECRET
+// Production: GOOGLE_*, GEMINI_API_KEY, MONGODB_URI, CRON_SECRET
 // Local dev: use Admin → Channel Email → "Check mail now" instead; cron auth is skipped here
 export async function GET(req: NextRequest) {
   try {
