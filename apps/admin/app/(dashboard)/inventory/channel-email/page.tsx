@@ -53,7 +53,7 @@ type ConfigState = {
 
 const STATUS_META: Record<string, { label: string; className: string }> = {
   pending_review: {
-    label: "Review",
+    label: "Needs confirm",
     className: "bg-amber-50 text-amber-800 border-amber-200",
   },
   applied: {
@@ -149,7 +149,7 @@ function ChannelEmailPageInner() {
   const [senderText, setSenderText] = useState("");
   const [products, setProducts] = useState<ProductOption[]>([]);
   const [events, setEvents] = useState<ChannelEvent[]>([]);
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("pending_review");
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, totalPages: 1 });
   const [statusCounts, setStatusCounts] = useState<Record<string, number>>({});
@@ -376,7 +376,10 @@ function ChannelEmailPageInner() {
     if (!data.success) {
       showMessage(data.error || "Action failed", "error");
     } else {
-      showMessage(action === "apply" ? "Inventory updated." : "Event ignored.", "success");
+      showMessage(
+        action === "apply" ? "Order confirmed — inventory updated." : "Event ignored.",
+        "success"
+      );
     }
     await load();
   };
@@ -397,7 +400,8 @@ function ChannelEmailPageInner() {
             Channel Email Sync
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            Amazon mail updates BOM inventory. Website orders are unchanged.
+            Genuine Amazon new-order mail cuts BOM stock automatically when products match.
+            Unclear rows need Confirm. Website orders are unchanged.
             {config.lastSyncedAt && (
               <>
                 {" "}
@@ -464,11 +468,11 @@ function ChannelEmailPageInner() {
           <div>
             <h2 className="font-semibold text-slate-900">Tracked emails</h2>
             <p className="text-xs text-slate-500 mt-0.5">
-              Amazon messages that may change stock — open a row for details
+              Needs attention first — shipping/other mail is skipped. Open a row for details.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            {(["pending_review", "ignored", "applied", "restored"] as const).map((status) =>
+            {(["pending_review", "applied", "restored", "ignored"] as const).map((status) =>
               statusCounts[status] ? (
                 <button
                   key={status}
@@ -487,13 +491,13 @@ function ChannelEmailPageInner() {
               onChange={(e) => setStatusFilter(e.target.value)}
               className="border border-slate-300 rounded-lg px-2.5 py-1.5 text-sm text-slate-900"
             >
-              <option value="all">All</option>
-              <option value="pending_review">Review</option>
+              <option value="pending_review">Needs confirm</option>
               <option value="applied">Stock cut</option>
               <option value="restored">Stock returned</option>
               <option value="ignored">Ignored</option>
               <option value="failed">Failed</option>
               <option value="skipped">Skipped</option>
+              <option value="all">All</option>
             </select>
           </div>
         </div>
@@ -504,7 +508,13 @@ function ChannelEmailPageInner() {
           </div>
         ) : events.length === 0 ? (
           <div className="px-5 py-14 text-center text-slate-500 text-sm">
-            No emails yet. Click <strong>Check mail now</strong> to scan the connected inbox.
+            {statusFilter === "pending_review" ? (
+              <>Nothing needs confirm. Genuine new orders are applied automatically when products match.</>
+            ) : (
+              <>
+                No emails in this filter. Click <strong>Check mail now</strong> to scan the connected inbox.
+              </>
+            )}
           </div>
         ) : (
           <>
@@ -537,6 +547,7 @@ function ChannelEmailPageInner() {
                     event.status === "pending_review" &&
                     event.eventType === "cancel" &&
                     !!event.externalOrderId;
+                  const showIgnore = event.status === "pending_review" && !canApplyOrder && !canRestore;
 
                   return (
                     <Fragment key={event._id}>
@@ -608,7 +619,7 @@ function ChannelEmailPageInner() {
                                   onClick={() => eventAction(event._id, "apply")}
                                   className="inline-flex cursor-pointer items-center rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-indigo-700 active:scale-[0.98]"
                                 >
-                                  Cut stock
+                                  Confirm order
                                 </button>
                               )}
                               {canRestore && (
@@ -617,16 +628,18 @@ function ChannelEmailPageInner() {
                                   onClick={() => eventAction(event._id, "apply")}
                                   className="inline-flex cursor-pointer items-center rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-indigo-700 active:scale-[0.98]"
                                 >
-                                  Return stock
+                                  Confirm cancel
                                 </button>
                               )}
-                              <button
-                                type="button"
-                                onClick={() => eventAction(event._id, "ignore")}
-                                className="inline-flex cursor-pointer items-center rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 active:scale-[0.98]"
-                              >
-                                Ignore
-                              </button>
+                              {showIgnore && (
+                                <button
+                                  type="button"
+                                  onClick={() => eventAction(event._id, "ignore")}
+                                  className="inline-flex cursor-pointer items-center rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 active:scale-[0.98]"
+                                >
+                                  Ignore
+                                </button>
+                              )}
                             </div>
                           ) : (
                             <span className="inline-flex items-center rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-500">
@@ -677,6 +690,15 @@ function ChannelEmailPageInner() {
                                 {event.error && event.inventorySnapshot?.length ? (
                                   <p className="text-xs text-amber-700 mt-1">{event.error}</p>
                                 ) : null}
+                                {(canApplyOrder || canRestore) && (
+                                  <button
+                                    type="button"
+                                    onClick={() => eventAction(event._id, "ignore")}
+                                    className="mt-3 text-xs font-medium text-slate-500 underline hover:text-slate-800"
+                                  >
+                                    Not an order — ignore
+                                  </button>
+                                )}
                               </div>
                             </div>
                           </td>

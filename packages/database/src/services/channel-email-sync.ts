@@ -6,7 +6,6 @@ import ChannelEmailConfig from "../models/ChannelEmailConfig";
 import ChannelOrderEvent from "../models/ChannelOrderEvent";
 import {
   matchChannelProducts,
-  isHighConfidenceMatch,
   deductInventoryForChannelItems,
   restoreInventoryFromChannelSnapshot,
 } from "./channel-inventory";
@@ -181,7 +180,11 @@ function buildExtractionPrompt(
 
   const system =
     "Extract marketplace order details from seller/customer emails. Return only JSON.";
-  const user = `Extract whether this email is a new paid/confirmed order or a cancellation/refund.
+  const user = `Classify this Amazon/marketplace seller email.
+Use eventType "order" ONLY for a NEW paid/confirmed order (order confirmation / sold notification) with line items.
+Use eventType "cancel" ONLY for a clear cancellation or refund of an existing order.
+Use eventType "unknown" for shipping, dispatch, delivery, tracking, payment reminders, marketing, or anything that is not a new order or cancel.
+
 Return JSON:
 {
   "eventType": "order" | "cancel" | "unknown",
@@ -191,7 +194,6 @@ Return JSON:
   "items": [{ "title": "product title as in email", "quantity": 1, "sku": "" }]
 }
 
-Ignore shipping-only updates with no line items unless they clearly cancel an order.
 Prefer titles that can match this Swago catalog:
 ${catalogPreview || "(empty catalog)"}
 
@@ -201,6 +203,48 @@ Email:
 ${body.slice(0, 12000)}`;
 
   return { system, user };
+}
+
+/** True only for a clear new-order email — not shipping/updates. */
+export function isGenuineNewOrderEmail(input: {
+  eventType: string;
+  externalOrderId?: string;
+  confidence?: number;
+  items?: Array<{ title?: string }>;
+  subject?: string;
+  fromEmail?: string;
+}): boolean {
+  if (input.eventType !== "order") return false;
+  if (!String(input.externalOrderId || "").trim()) return false;
+  if (!input.items?.length) return false;
+
+  const subject = String(input.subject || "").toLowerCase();
+  const from = String(input.fromEmail || "").toLowerCase();
+
+  const nonOrderSubject =
+    /\b(shipped|dispatched|out for delivery|delivered|tracking|shipping update|expected delivery|your package|package update)\b/.test(
+      subject
+    );
+  if (nonOrderSubject) return false;
+
+  const fromAutoConfirm = from.includes("auto-confirm@");
+  const orderSubject =
+    /\b(order confirmation|new order|sold|you('ve| have) (an? )?order|order confirmed|confirm(ed)? order|action required|amazon\.in order|amazon\.com order)\b/.test(
+      subject
+    );
+
+  // Require a clear new-order signal — do not auto-apply on AI confidence alone.
+  return fromAutoConfirm || orderSubject;
+}
+
+/** Auto-apply only when the mail is a genuine new order and every line matched a product. */
+export function shouldAutoApplyNewOrder(
+  matched: Array<{ matchType?: string }>,
+  unmatched: string[],
+  genuine: boolean
+): boolean {
+  if (!genuine || !matched.length || unmatched.length) return false;
+  return true;
 }
 
 function parseExtractedOrder(content: string, fallback: ExtractedOrder): ExtractedOrder {
@@ -485,16 +529,28 @@ export async function runChannelEmailSync(limit = 25) {
         await event.save();
       } else if (!extracted.externalOrderId) {
         event.status = "pending_review";
-        event.error = "No marketplace order id — review before applying inventory";
+        event.error = "No marketplace order id — confirm before cutting stock";
         await event.save();
-      } else if (isHighConfidenceMatch(matched, unmatched, extracted.confidence)) {
-        await applyMatchedOrder(event, reasonId);
       } else {
-        event.status = "pending_review";
-        event.error = unmatched.length
-          ? `Unmatched products: ${unmatched.join(", ")}`
-          : "Low confidence match — review required";
-        await event.save();
+        const genuine = isGenuineNewOrderEmail({
+          eventType: extracted.eventType,
+          externalOrderId: extracted.externalOrderId,
+          confidence: extracted.confidence,
+          items: extracted.items,
+          subject,
+          fromEmail,
+        });
+        if (shouldAutoApplyNewOrder(matched, unmatched, genuine)) {
+          await applyMatchedOrder(event, reasonId);
+        } else {
+          event.status = "pending_review";
+          event.error = unmatched.length
+            ? `Unmatched products: ${unmatched.join(", ")}`
+            : genuine
+              ? "Products need a closer look before cutting stock"
+              : "Not a clear new-order email — confirm before cutting stock";
+          await event.save();
+        }
       }
     } catch (error) {
       event.status = "failed";
