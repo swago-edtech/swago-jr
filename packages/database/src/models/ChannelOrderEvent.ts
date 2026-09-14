@@ -51,7 +51,7 @@ const ChannelOrderEventSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-ChannelOrderEventSchema.index({ status: 1, createdAt: -1 });
+ChannelOrderEventSchema.index({ status: 1, receivedAt: -1, createdAt: -1 });
 ChannelOrderEventSchema.index({ eventType: 1, externalOrderId: 1 });
 
 export default mongoose.models.ChannelOrderEvent ||

@@ -93,15 +93,12 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
           echo "${{ secrets.SSH_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
 
-      - name: Rsync project to VPS (exclude .git, node_modules, .next builds)
+      - name: Rsync project to VPS (exclude .git, node_modules, .pnpm-store)
         run: |
           rsync -avz --delete \
             --exclude='.git' \
             --exclude='node_modules' \
             --exclude='.pnpm-store' \
-            --exclude='.next' \
-            --exclude='apps/web/.next' \
-            --exclude='apps/admin/.next' \
             -e 'ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no' \
             ./ \
             ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:${{ secrets.VPS_APP_DIR }}/

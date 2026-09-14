@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
 
     const [events, total, statusGroups] = await Promise.all([
       ChannelOrderEvent.find(filter)
-        .sort({ createdAt: -1 })
+        .sort({ receivedAt: -1, createdAt: -1 })
         .skip((page - 1) * limit)
         .limit(limit)
         .lean(),
