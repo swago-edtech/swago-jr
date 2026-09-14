@@ -26,6 +26,8 @@ export { default as PopupConfig } from './models/PopupConfig';
 export { default as ExpressConfig } from './models/ExpressConfig';
 export { default as InvoiceCounter } from './models/InvoiceCounter';
 export { default as InternationalConfig } from './models/InternationalConfig';
+export { default as ReturnGiftOrder } from './models/ReturnGiftOrder';
+export { default as GiftingPageConfig } from './models/GiftingPageConfig';
 
 // Export database connection
 export { default as connectDB } from './connection';

@@ -1,17 +1,33 @@
-import { connectDB, Order, User, Review } from '@swago/database';
+import { connectDB, Order, User, Review, Product } from '@swago/database';
 import { formatPrice } from '@swago/utils';
 import AnalyticsCharts from '@/components/AnalyticsCharts';
 import { TrendingUp, TrendingDown, Users, ShoppingBag, DollarSign, Star, MessageSquare, Package } from 'lucide-react';
+import {
+  effectiveUnits,
+  normalizeProductNameForAnalytics,
+} from '@/lib/combo-units';
 
 async function getAnalyticsData() {
   await connectDB();
 
   // Get all data
-  const [orders, users, reviews] = await Promise.all([
+  const [orders, users, reviews, products] = await Promise.all([
     Order.find().select('total status createdAt items paymentMethod').lean(),
     User.find({ isAdmin: false }).select('createdAt').lean(),
     Review.find().select('rating sentimentLabel status createdAt productId').lean(),
+    Product.find().select('_id name isCombo comboUnitCount').lean(),
   ]);
+
+  const comboById: Record<string, { isCombo?: boolean; comboUnitCount?: number }> = {};
+  const comboByName: Record<string, { isCombo?: boolean; comboUnitCount?: number }> = {};
+  for (const p of products as any[]) {
+    const meta = {
+      isCombo: Boolean(p.isCombo),
+      comboUnitCount: p.comboUnitCount || 1,
+    };
+    comboById[String(p._id)] = meta;
+    if (p.name) comboByName[String(p.name).trim()] = meta;
+  }
 
   // ── Normalize Status First ──
   const normalizeStatus = (status: string) => {
@@ -117,13 +133,7 @@ async function getAnalyticsData() {
   }
 
   // Normalize product names to fix fragmented product IDs from testing
-  const normalizeProductName = (name: string) => {
-    if (!name) return 'Unknown Product';
-    const lowerName = name.toLowerCase();
-    if (lowerName.includes('seek rush')) return 'Seek Rush';
-    if (lowerName.includes('scarf') || lowerName.includes('charades') || lowerName.includes('chardaes')) return 'Scarf Dumb Charades';
-    return name;
-  };
+  const normalizeProductName = normalizeProductNameForAnalytics;
 
   // Product sales count
   const productSales: Record<string, { name: string; count: number, revenue: number }> = {};
@@ -138,8 +148,11 @@ async function getAnalyticsData() {
           revenue: 0,
         };
       }
-      productSales[normalizedName].count += (item.quantity || 1);
-      productSales[normalizedName].revenue += ((item.price || 0) * (item.quantity || 1));
+      const pid = String(item.productId || '');
+      const meta = comboById[pid] || comboByName[(item.name || '').trim()] || null;
+      const lineQty = item.quantity || 1;
+      productSales[normalizedName].count += effectiveUnits(lineQty, meta);
+      productSales[normalizedName].revenue += ((item.price || 0) * lineQty);
     });
   });
 

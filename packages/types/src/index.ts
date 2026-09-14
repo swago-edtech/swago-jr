@@ -16,6 +16,9 @@ export interface Product {
   totalSold: number;
   isActive: boolean;
   isFeatured: boolean;
+  isCombo?: boolean;
+  comboUnitCount?: number;
+  comboProductIds?: string[];
   slug: string;
   createdAt: Date;
   updatedAt: Date;
@@ -37,6 +40,9 @@ export interface CreateProductInput {
   lowStockThreshold?: number;
   isFeatured?: boolean;
   isActive?: boolean;
+  isCombo?: boolean;
+  comboUnitCount?: number;
+  comboProductIds?: string[];
 }
 
 // For public-facing product displays (customer side)

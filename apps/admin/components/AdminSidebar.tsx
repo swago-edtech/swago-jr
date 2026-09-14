@@ -66,6 +66,14 @@ const navigation = [
   { name: 'Users', href: '/users', icon: Users },
   { name: 'Contact', href: '/contact', icon: Mail },
   {
+    name: 'Gifting',
+    icon: Gift,
+    submenu: [
+      { name: 'Return Gifts Orders', href: '/return-gifts' },
+      { name: 'Banner Config', href: '/return-gifts-config' },
+    ]
+  },
+  {
     name: 'Ambassadors',
     icon: Award,
     submenu: [

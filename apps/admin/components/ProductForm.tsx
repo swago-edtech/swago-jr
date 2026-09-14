@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import {
@@ -20,6 +20,7 @@ import {
   Check,
 } from "lucide-react";
 import LotteryCodesManager from "@/components/LotteryCodesManager";
+import ComboProductFields from "@/components/ComboProductFields";
 
 type ProductFormData = {
   name: string;
@@ -36,6 +37,9 @@ type ProductFormData = {
   lowStockThreshold: number;
   isFeatured: boolean;
   isActive: boolean;
+  isCombo?: boolean;
+  comboUnitCount?: number;
+  comboProductIds?: string[];
   label?: string;
   rating?: number;
   numReviews?: number;
@@ -76,6 +80,8 @@ export default function ProductForm({ mode, initialData, productId }: ProductFor
     lowStockThreshold: initialData?.lowStockThreshold?.toString() ?? "10",
     isFeatured: initialData?.isFeatured ?? false,
     isActive: initialData?.isActive ?? true,
+    isCombo: initialData?.isCombo ?? false,
+    comboUnitCount: initialData?.comboUnitCount?.toString() ?? "2",
     label: initialData?.label ?? "",
     rating: initialData?.rating?.toString() ?? (mode === "create" ? "4.7" : "0"),
     numReviews: initialData?.numReviews?.toString() ?? (mode === "create" ? "23" : "0"),
@@ -89,6 +95,28 @@ export default function ProductForm({ mode, initialData, productId }: ProductFor
     initialData?.skills ?? []
   );
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [comboProductIds, setComboProductIds] = useState<string[]>(
+    initialData?.comboProductIds ?? []
+  );
+  const [productOptions, setProductOptions] = useState<{ _id: string; name: string }[]>([]);
+
+  useEffect(() => {
+    fetch("/api/products?isActive=true")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.success && Array.isArray(data.products)) {
+          setProductOptions(
+            data.products
+              .filter((p: { _id: string }) => p._id !== productId)
+              .map((p: { _id: string; name: string }) => ({
+                _id: p._id,
+                name: p.name,
+              }))
+          );
+        }
+      })
+      .catch(() => {});
+  }, [productId]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -196,6 +224,12 @@ export default function ProductForm({ mode, initialData, productId }: ProductFor
     if (images.length === 0) e.images = "At least one image is required";
     if (form.stock === "" || parseInt(form.stock) < 0)
       e.stock = "Valid stock quantity is required";
+    if (form.isCombo) {
+      const n = parseInt(form.comboUnitCount, 10);
+      if (!Number.isInteger(n) || n < 2) {
+        e.comboUnitCount = "Units per combo must be an integer ≥ 2";
+      }
+    }
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -223,6 +257,9 @@ export default function ProductForm({ mode, initialData, productId }: ProductFor
         lowStockThreshold: parseInt(form.lowStockThreshold),
         isFeatured: form.isFeatured,
         isActive: form.isActive,
+        isCombo: form.isCombo,
+        comboUnitCount: form.isCombo ? parseInt(form.comboUnitCount, 10) : 1,
+        comboProductIds: form.isCombo ? comboProductIds : [],
         label: form.label,
         rating: parseFloat(form.rating) || 0,
         numReviews: parseInt(form.numReviews) || 0,
@@ -805,6 +842,20 @@ export default function ProductForm({ mode, initialData, productId }: ProductFor
                     <span className="text-xs text-gray-400 block">Visible for browsing and purchase</span>
                   </div>
                 </label>
+                <ComboProductFields
+                  isCombo={form.isCombo}
+                  comboUnitCount={form.comboUnitCount}
+                  comboProductIds={comboProductIds}
+                  productOptions={productOptions}
+                  errors={errors}
+                  onIsComboChange={(checked) =>
+                    setForm({ ...form, isCombo: checked })
+                  }
+                  onComboUnitCountChange={(value) =>
+                    setForm({ ...form, comboUnitCount: value })
+                  }
+                  onComboProductIdsChange={setComboProductIds}
+                />
               </div>
             </div>
 

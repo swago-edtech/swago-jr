@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { Product } from "@swago/database";
 import { connectDB } from "@swago/database";
+import { parseComboFields } from "@/lib/combo-units";
 
 // GET /api/products - List all products with filters
 export async function GET(request: NextRequest) {
@@ -126,6 +127,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const combo = parseComboFields(body);
+    if (!combo.ok) {
+      return NextResponse.json({ error: combo.error }, { status: 400 });
+    }
+
     // Create product
     const product = await Product.create({
       name: body.name,
@@ -143,6 +149,9 @@ export async function POST(request: NextRequest) {
       weight: body.weight || 0,
       isFeatured: body.isFeatured || false,
       isActive: body.isActive !== undefined ? body.isActive : true,
+      isCombo: combo.fields.isCombo,
+      comboUnitCount: combo.fields.comboUnitCount,
+      comboProductIds: combo.fields.comboProductIds,
       label: body.label || "",
       rating: body.rating || 0,
       numReviews: body.numReviews || 0,

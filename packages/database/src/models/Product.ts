@@ -111,6 +111,23 @@ const ProductSchema = new mongoose.Schema(
       default: false
     },
 
+    // Combo pack: one SKU that ships multiple physical units (analytics multiplier only)
+    isCombo: {
+      type: Boolean,
+      default: false
+    },
+
+    comboUnitCount: {
+      type: Number,
+      default: 1,
+      min: [1, "Combo unit count must be at least 1"]
+    },
+
+    comboProductIds: {
+      type: [String],
+      default: []
+    },
+
     label: {
       type: String,
       trim: true,

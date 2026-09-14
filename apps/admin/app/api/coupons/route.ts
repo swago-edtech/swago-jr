@@ -12,7 +12,10 @@ export async function GET() {
         const couponsWithActualCount = await Promise.all(coupons.map(async (coupon: any) => {
             const actualCount = await Order.countDocuments({
                 couponCode: new RegExp(`^${coupon.code}$`, 'i'),
-                status: new RegExp('^(Paid|Shipped|Delivered)$', 'i')
+                $or: [
+                    { status: new RegExp('^(Paid|Packed|Shipped|Out for Delivery|Delivered)$', 'i') },
+                    { status: new RegExp('^Pending$', 'i'), paymentMethod: new RegExp('^cod$', 'i') }
+                ]
             });
             return {
                 ...coupon,
