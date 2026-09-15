@@ -264,7 +264,7 @@ function parseAmazonOrderFormat(body: string): ExtractedOrder | null {
   // Amazon multi-item format — each Item block has Condition / SKU / Quantity
   // Use \\s+ to handle both plain-text (newlines) and HTML-stripped (spaces) emails
   const blockRegex =
-    /Item:\s*(.+?)\s+Condition:.*?\s+SKU:\s*(\S+)\s+Quantity:\s*(\d+)/gis;
+    /Item:\s*([\s\S]+?)\s+Condition:[\s\S]*?\s+SKU:\s*(\S+)\s+Quantity:\s*(\d+)/gi;
   const items: Array<{ title: string; quantity: number; sku: string }> = [];
   let match;
   while ((match = blockRegex.exec(body)) !== null) {
