@@ -77,7 +77,7 @@ swago-jr/
 ## 🚢 Deployment Context
 The application is designed to be hosted on **Serverless** or **Containerized** environments.
 - **Primary Hosting**: AWS Amplify (Recommended for Next.js Monorepos).
-- **Secondary Hosting**: Vercel / AWS EC2...
+- **Secondary Hosting**: Vercel / AWS EC2.....
 
 ---
 
