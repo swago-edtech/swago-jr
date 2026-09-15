@@ -14,7 +14,7 @@ This project is architected as a **pnpm monorepo** using **Next.js 14+** and **T
 - **Communication**: MSG91 for Email & OTP.
 - **Workspaces**:
   - `apps/web`: The main customer-facing store.
-  - `apps/admin`: Corporate management dashboard.
+  - `apps/admin`: Corporate management dashboard..
   - `packages/database`: Shared data models and connection logic..
 
 > 📖 **Deep Dive**: For a detailed technical breakdown, please refer to the [**ARCHITECTURE.md**](./ARCHITECTURE.md) file.
