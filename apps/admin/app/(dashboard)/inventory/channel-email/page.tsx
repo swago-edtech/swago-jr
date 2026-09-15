@@ -96,10 +96,10 @@ function cleanSubject(subject?: string): string {
 function productLines(event: ChannelEvent): string[] {
   const linked = !!event.matchedItems?.length;
   const raw = linked
-    ? event.matchedItems.map((i) => ({
+    ? event.matchedItems?.map((i) => ({
         name: String(i.productName || i.extractedTitle || "").trim(),
         quantity: Math.max(1, Number(i.quantity) || 1),
-      }))
+      })) || []
     : (event.extracted?.items || []).map((i) => ({
         name: String(i.title || "").trim(),
         quantity: Math.max(1, Number(i.quantity) || 1),
