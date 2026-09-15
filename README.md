@@ -85,7 +85,7 @@ The application is designed to be hosted on **Serverless** or **Containerized** 
 - **Ambassador Program**: Integrated reward system with "Swago Dollars" wallet.
 - **Lottery Engine**: Automated raffle and winner selection system.
 - **Payment Verification**: Robust webhook-based payment confirmation.
-- **Kid Profiles**: Persona-based access for games and activities.
+- **Kid Profiles**: Persona-based access for games and activities..
 
 ---
 
