@@ -432,9 +432,8 @@ function OrderCard({
   const orderDate = useFormattedDate(order.createdAt, 'clean');
   const { canPay, reason, minutesLeft } = canRetryPayment(order);
   const isPendingOrFailed = ['pending', 'failed'].includes(order.status?.toLowerCase() || '');
-const isCOD = order.paymentMethod === 'cod';  // ✅ Check if COD order
   const { formatPrice } = useCountry();
-const isCOD = order.paymentMethod === 'cod';
+  const isCOD = order.paymentMethod === 'cod';
   const orderTotal = getOrderTotal(order);
 
   return (
@@ -497,15 +496,7 @@ const isCOD = order.paymentMethod === 'cod';
 
       {/* ✅ COD Order Status Section */}
       {isCOD && isPendingOrFailed && (
-<div className="mb-4 p-4 rounded-lg bg-purple-50 border border-purple-200">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-              <span className="text-lg font-bold text-purple-700">🚚</span>
-            </div>
-            <div>
-              <p className="font-medium text-purple-800">Cash on Delivery</p>
-              <p className="text-sm text-purple-600">Pay {formatPrice(order.total || 0)} when your order arrives</p>
-<div className="mb-4 p-4 rounded-lg bg-purple-50 border border-purple-200 lg:mb-6 lg:flex lg:items-center lg:gap-4 lg:rounded-xl lg:px-5 lg:py-4">
+        <div className="mb-4 p-4 rounded-lg bg-purple-50 border border-purple-200 lg:mb-6 lg:flex lg:items-center lg:gap-4 lg:rounded-xl lg:px-5 lg:py-4">
           <div className="flex items-center gap-3 lg:flex-1">
             <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center lg:w-11 lg:h-11 lg:shrink-0">
               <span className="text-lg font-bold text-purple-700">₹</span>
@@ -659,13 +650,7 @@ const isCOD = order.paymentMethod === 'cod';
                   </svg>
                 </div>
               )}
-<div className="flex-1 min-w-0">
-                <p className="font-medium text-slate-900 leading-snug line-clamp-2 pr-2 text-sm sm:text-base">{item.name}</p>
-                <div className="flex justify-between items-center mt-1">
-                  <p className="text-xs sm:text-sm text-slate-500 font-medium">Qty: {item.quantity}</p>
-                  <p className="font-bold text-slate-900 text-sm sm:text-base">{formatPrice(item.price)}</p>
-                </div>
-<div className="min-w-0">
+              <div className="min-w-0">
                 <p className="font-medium text-slate-900 leading-snug">{item.name}</p>
                 {isDelivered && onWriteReview && (
                   <div className="mt-1.5 flex flex-wrap gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -719,8 +704,7 @@ const isCOD = order.paymentMethod === 'cod';
         <div className="flex items-center gap-2 self-end sm:self-auto">
           <span className="font-semibold text-slate-600">Order Total:</span>
           <span className="text-xl font-bold text-slate-900">
-{formatPrice(order.total || order.items.reduce((total, item) => total + item.price * item.quantity, 0))}
-₹{orderTotal.toFixed(2)}
+{formatPrice(orderTotal)}
           </span>
         </div>
       </div>

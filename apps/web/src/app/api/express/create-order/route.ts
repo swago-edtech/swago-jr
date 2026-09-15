@@ -9,7 +9,6 @@ import mongoose from "mongoose";
 import { SignJWT } from "jose";
 import { connectDB, Product, Order, User, Coupon as CouponModel, Promotion, InternationalConfig } from "@swago/database";
 import { isValidObjectId } from "mongoose";
-import { connectDB, Product, Order, User, Coupon as CouponModel, Promotion } from "@swago/database";
 import { generateOrderId } from "@/lib/generateOrderId";
 import { cleanupExpiredOrders } from "@/lib/cleanupExpiredOrders";
 import { validateCoupon } from "@/lib/coupon";

@@ -31,6 +31,8 @@ export { default as GiftingPageConfig } from './models/GiftingPageConfig';
 export { default as InventoryItem } from './models/InventoryItem';
 export { default as ProductConfig } from './models/ProductConfig';
 export { default as InventoryTransaction } from './models/InventoryTransaction';
+export { default as ChannelEmailConfig } from './models/ChannelEmailConfig';
+export { default as ChannelOrderEvent } from './models/ChannelOrderEvent';
 export * from './services/inventory-sync';
 
 // Export database connection

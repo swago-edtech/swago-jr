@@ -49,21 +49,6 @@ interface OrderItem {
 }
 
 
-async function getProductById(id: string): Promise<ProductDocument | null> {
-  try {
-    // Try slug first
-    let product = await Product.findOne({ slug: id, isActive: true });
-
-    // Try MongoDB _id if valid ObjectId
-    if (!product && isValidObjectId(id)) {
-      product = await Product.findOne({ _id: id, isActive: true });
-    }
-
-    return product as ProductDocument | null;
-  } catch (error) {
-    console.error('Error fetching product:', error);
-    return null;
-  }
 // Helper to get product by ID or slug with effective availability
 async function getProductById(id: string) {
   return findProductWithAvailability(id);

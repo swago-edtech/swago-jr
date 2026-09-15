@@ -164,31 +164,6 @@ export async function POST(req: Request) {
             }, { status: 400 });
         }
 
-// Step 2: Reduce stock immediately for COD orders
-        for (const { product, quantity } of reservations) {
-            product.stock = Math.max(0, product.stock - quantity);
-            product.totalSold = (product.totalSold || 0) + quantity;
-            if (product.reservedStock && product.reservedStock < 0) {
-                product.reservedStock = 0;
-            }
-            await product.save();
-
-            try {
-                invalidateProductCache(product.slug || '');
-                invalidateProductCache(product._id.toString());
-                revalidatePath(`/ product / ${product.slug} `);
-                revalidatePath(`/ product / ${product._id} `);
-                revalidatePath('/products');
-                revalidatePath('/');
-            } catch (e) {
-                console.error('Revalidate path/cache failed', e);
-            }
-        }
-
-        // =================================
-// CALCULATE FINAL TOTAL ORDER
-        // ========================================
-=======
         // Stock validated — inventory allocated after order is created
         const orderId = await generateOrderId();
 
