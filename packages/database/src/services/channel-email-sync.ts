@@ -151,9 +151,10 @@ export function isAllowedSender(fromHeader: string, allowlist: string[]): boolea
 }
 
 function buildSenderQuery(senders: string[], lastSyncedAt?: Date | null): string {
-  const timeClause = lastSyncedAt
-    ? `after:${Math.floor(lastSyncedAt.getTime() / 1000)}`
-    : "newer_than:3d";
+  // No lastSyncedAt means we've never synced — return impossible query
+  // so the first sync only initializes without processing old emails.
+  if (!lastSyncedAt) return "not-a-real-email@nowhere.invalid";
+  const timeClause = `after:${Math.floor(lastSyncedAt.getTime() / 1000)}`;
   const cleaned = senders.map((s) => s.trim()).filter(Boolean);
   if (!cleaned.length) return timeClause;
   const clause = cleaned.map((sender) => `from:${sender}`).join(" OR ");
@@ -549,6 +550,13 @@ export async function runChannelEmailSync(limit = 25) {
   const gmail = google.gmail({ version: "v1", auth: oauth });
 
   const allowlist = config.senderAllowlist || [];
+  // First sync: initialize lastSyncedAt to now and return — no historical email processing
+  if (!config.lastSyncedAt) {
+    config.lastSyncedAt = new Date(Date.now() - 300_000);
+    await config.save();
+    return { processed: 0, skipped: 0, message: "Sync initialized — tracking emails from now onwards" };
+  }
+
   const query = buildSenderQuery(allowlist, config.lastSyncedAt);
   const listed = await gmail.users.messages.list({
     userId: "me",
