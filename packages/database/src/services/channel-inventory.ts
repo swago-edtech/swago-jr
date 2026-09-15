@@ -26,6 +26,7 @@ type ProductLean = {
   name: string;
   slug?: string;
   shortForms?: string[];
+  amazonSku?: string;
 };
 
 function normalizeTitle(value: string): string {
@@ -33,6 +34,50 @@ function normalizeTitle(value: string): string {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
+}
+
+const TITLE_STOP_WORDS = new Set([
+  "the",
+  "and",
+  "for",
+  "with",
+  "from",
+  "kids",
+  "teens",
+  "adults",
+  "ages",
+  "gift",
+  "boys",
+  "girls",
+  "family",
+  "party",
+  "game",
+  "night",
+  "players",
+  "educational",
+  "brain",
+  "training",
+  "focus",
+  "memory",
+  "board",
+  "paced",
+  "fast",
+  "swago",
+]);
+
+/** True when catalog product name is clearly contained in a long Amazon listing title. */
+function titleLooksLikeProduct(productName: string, amazonTitle: string): boolean {
+  const productNorm = normalizeTitle(productName);
+  const titleNorm = normalizeTitle(amazonTitle);
+  if (!productNorm || !titleNorm) return false;
+  if (titleNorm.includes(productNorm) || productNorm.includes(titleNorm)) return true;
+
+  const tokens = productNorm
+    .split(" ")
+    .map((t) => t.trim())
+    .filter((t) => t.length > 2 && !TITLE_STOP_WORDS.has(t));
+  if (tokens.length < 2) return tokens.length === 1 && titleNorm.includes(tokens[0]);
+  return tokens.every((t) => titleNorm.includes(t));
 }
 
 /**
@@ -43,9 +88,15 @@ async function matchBySku(
   sku: string,
   products: ProductLean[]
 ): Promise<{ productId: string; productName: string } | null> {
-  if (!sku) return null;
+  const cleaned = String(sku || "")
+    .trim()
+    .toUpperCase()
+    .replace(/^SKU[:\s]+/i, "");
+  if (!cleaned) return null;
 
-  const invItem = await InventoryItem.findOne({ sku: sku.toUpperCase() }).select("_id name");
+  const invItem = await InventoryItem.findOne({
+    sku: { $regex: `^${cleaned.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, $options: "i" },
+  }).select("_id name sku");
   if (!invItem) return null;
 
   // Find any active ProductConfig whose components reference this inventory item
@@ -78,7 +129,7 @@ export async function matchChannelProducts(
   await connectDB();
 
   const products = (await Product.find({ isActive: true })
-    .select("_id name slug shortForms")
+    .select("_id name slug shortForms amazonSku")
     .lean()) as unknown as ProductLean[];
 
   const matched: ChannelMatchedItem[] = [];
@@ -88,10 +139,14 @@ export async function matchChannelProducts(
     const title = item.title || "";
     const quantity = Math.max(1, Number(item.quantity) || 1);
     const normalized = normalizeTitle(title);
+    const skuClean = String(item.sku || "")
+      .trim()
+      .toUpperCase()
+      .replace(/^SKU[:\s]+/i, "");
 
     // First try matching by SKU if available
-    if (item.sku) {
-      const skuMatch = await matchBySku(item.sku, products);
+    if (skuClean) {
+      const skuMatch = await matchBySku(skuClean, products);
       if (skuMatch) {
         matched.push({
           productId: skuMatch.productId,
@@ -99,6 +154,54 @@ export async function matchChannelProducts(
           quantity,
           extractedTitle: title,
           matchType: "sku",
+        });
+        continue;
+      }
+
+      // Product-level Amazon SKU (set on product edit page)
+      const byAmazonSku = products.find(
+        (p) => String(p.amazonSku || "").trim().toUpperCase() === skuClean
+      );
+      if (byAmazonSku) {
+        matched.push({
+          productId: byAmazonSku._id.toString(),
+          productName: byAmazonSku.name,
+          quantity,
+          extractedTitle: title,
+          matchType: "amazonSku",
+        });
+        continue;
+      }
+
+      // Alias keyed by marketplace SKU
+      const skuAlias = aliases.find((a) => normalizeTitle(a.alias) === normalizeTitle(skuClean));
+      if (skuAlias) {
+        const product = products.find((p) => p._id.toString() === skuAlias.productId.toString());
+        matched.push({
+          productId: skuAlias.productId.toString(),
+          productName: product?.name || skuAlias.productName || title,
+          quantity,
+          extractedTitle: title,
+          matchType: "alias",
+        });
+        continue;
+      }
+
+      // Lottery short-forms sometimes mirror a SKU segment (e.g. SSR)
+      const skuParts = skuClean.split("-").filter((part) => part.length >= 3);
+      const byShortForm = products.find((p) =>
+        (p.shortForms || []).some((form) => {
+          const f = normalizeTitle(form);
+          return f === normalizeTitle(skuClean) || skuParts.some((part) => normalizeTitle(part) === f);
+        })
+      );
+      if (byShortForm) {
+        matched.push({
+          productId: byShortForm._id.toString(),
+          productName: byShortForm.name,
+          quantity,
+          extractedTitle: title,
+          matchType: "shortForm",
         });
         continue;
       }
@@ -175,6 +278,19 @@ export async function matchChannelProducts(
       continue;
     }
 
+    // Amazon titles are long; match catalog names by significant tokens (e.g. "Seek Rush")
+    const soft = products.filter((p) => titleLooksLikeProduct(p.name, title));
+    if (soft.length === 1) {
+      matched.push({
+        productId: soft[0]._id.toString(),
+        productName: soft[0].name,
+        quantity,
+        extractedTitle: title,
+        matchType: "soft",
+      });
+      continue;
+    }
+
     unmatched.push(title);
   }
 
@@ -188,7 +304,7 @@ export function isHighConfidenceMatch(
 ): boolean {
   if (!matched.length || unmatched.length) return false;
   const strong = matched.every((item) =>
-    ["alias", "exact", "slug", "shortForm", "sku"].includes(item.matchType || "")
+    ["alias", "exact", "slug", "shortForm", "sku", "amazonSku", "soft"].includes(item.matchType || "")
   );
   return strong || confidence >= 0.85;
 }

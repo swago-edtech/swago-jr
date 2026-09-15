@@ -149,6 +149,7 @@ export async function POST(request: NextRequest) {
       benefits: body.benefits,
       stock: 0,
       lowStockThreshold: body.lowStockThreshold || 10,
+      amazonSku: String(body.amazonSku || "").trim().toUpperCase(),
       isFeatured: body.isFeatured || false,
       isActive: body.isActive !== undefined ? body.isActive : true,
       label: body.label || "",

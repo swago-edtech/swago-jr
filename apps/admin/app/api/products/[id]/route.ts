@@ -99,6 +99,9 @@ export async function PUT(
       updateFields.stock = 0;
     }
     if (body.lowStockThreshold !== undefined) updateFields.lowStockThreshold = body.lowStockThreshold;
+    if (body.amazonSku !== undefined) {
+      updateFields.amazonSku = String(body.amazonSku || "").trim().toUpperCase();
+    }
     if (body.isFeatured !== undefined) updateFields.isFeatured = body.isFeatured;
     if (body.isActive !== undefined) updateFields.isActive = body.isActive;
     if (body.label !== undefined) updateFields.label = body.label;

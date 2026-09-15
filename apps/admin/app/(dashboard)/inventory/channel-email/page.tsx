@@ -94,7 +94,8 @@ function cleanSubject(subject?: string): string {
 }
 
 function productLines(event: ChannelEvent): string[] {
-  const raw = event.matchedItems?.length
+  const linked = !!event.matchedItems?.length;
+  const raw = linked
     ? event.matchedItems.map((i) => ({
         name: String(i.productName || i.extractedTitle || "").trim(),
         quantity: Math.max(1, Number(i.quantity) || 1),
@@ -116,7 +117,10 @@ function productLines(event: ChannelEvent): string[] {
     }
   }
 
-  return Array.from(totals.values()).map((item) => `${item.quantity}× ${item.name}`);
+  return Array.from(totals.values()).map((item) => {
+    const line = `${item.quantity}× ${item.name}`;
+    return linked ? line : `Not linked: ${line}`;
+  });
 }
 
 export default function ChannelEmailPage() {
@@ -366,7 +370,7 @@ function ChannelEmailPageInner() {
     }
   };
 
-  const eventAction = async (id: string, action: "apply" | "ignore") => {
+  const eventAction = async (id: string, action: "apply" | "ignore" | "rematch") => {
     const res = await fetch(`/api/channel-email/events/${id}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -375,6 +379,14 @@ function ChannelEmailPageInner() {
     const data = await res.json();
     if (!data.success) {
       showMessage(data.error || "Action failed", "error");
+    } else if (action === "rematch") {
+      const matched = data.event?.matchedItems?.length || 0;
+      showMessage(
+        matched
+          ? `Matched ${matched} product(s). Click Confirm order to cut stock.`
+          : "Still unmatched. Set Amazon SKU on the product (or an alias), then Match again.",
+        matched ? "success" : "error"
+      );
     } else {
       showMessage(
         action === "apply" ? "Order confirmed — inventory updated." : "Event ignored.",
@@ -400,8 +412,10 @@ function ChannelEmailPageInner() {
             Channel Email Sync
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            Genuine Amazon new-order mail cuts BOM stock automatically when products match.
-            Unclear rows need Confirm. Website orders are unchanged.
+            Genuine Amazon new-order mail cuts BOM stock when products match by{" "}
+            <strong>Amazon SKU on the product</strong>, inventory-item SKU, alias, or catalog name.
+            Unmatched rows show <strong>Match again</strong> then <strong>Confirm order</strong>.
+            Ignore only dismisses mail that is not a real sale.
             {config.lastSyncedAt && (
               <>
                 {" "}
@@ -468,7 +482,8 @@ function ChannelEmailPageInner() {
           <div>
             <h2 className="font-semibold text-slate-900">Tracked emails</h2>
             <p className="text-xs text-slate-500 mt-0.5">
-              Needs attention first — shipping/other mail is skipped. Open a row for details.
+              Needs attention first — shipping/other mail is skipped. “Not linked” means Amazon
+              title was read but not tied to a catalog product yet.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -547,7 +562,11 @@ function ChannelEmailPageInner() {
                     event.status === "pending_review" &&
                     event.eventType === "cancel" &&
                     !!event.externalOrderId;
-                  const showIgnore = event.status === "pending_review" && !canApplyOrder && !canRestore;
+                  const needsMatch =
+                    event.status === "pending_review" &&
+                    event.eventType !== "cancel" &&
+                    !event.matchedItems?.length;
+                  const showIgnore = event.status === "pending_review";
 
                   return (
                     <Fragment key={event._id}>
@@ -585,7 +604,12 @@ function ChannelEmailPageInner() {
                           ) : (
                             <ul className="space-y-0.5">
                               {lines.slice(0, 3).map((line, i) => (
-                                <li key={i} className="line-clamp-1">
+                                <li
+                                  key={i}
+                                  className={`line-clamp-1 ${
+                                    needsMatch ? "text-amber-800" : ""
+                                  }`}
+                                >
                                   {line}
                                 </li>
                               ))}
@@ -599,7 +623,7 @@ function ChannelEmailPageInner() {
                           <span
                             className={`inline-flex text-xs font-medium px-2 py-0.5 rounded-full border ${meta.className}`}
                           >
-                            {meta.label}
+                            {needsMatch ? "Needs product link" : meta.label}
                           </span>
                         </td>
                         <td className="px-2 py-3 text-xs text-slate-500 whitespace-nowrap">
@@ -613,6 +637,15 @@ function ChannelEmailPageInner() {
                         <td className="px-4 py-3 text-right">
                           {event.status === "pending_review" ? (
                             <div className="inline-flex flex-wrap items-center justify-end gap-2">
+                              {needsMatch && (
+                                <button
+                                  type="button"
+                                  onClick={() => eventAction(event._id, "rematch")}
+                                  className="inline-flex cursor-pointer items-center rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-indigo-700 active:scale-[0.98]"
+                                >
+                                  Match again
+                                </button>
+                              )}
                               {canApplyOrder && (
                                 <button
                                   type="button"
@@ -698,6 +731,16 @@ function ChannelEmailPageInner() {
                                   >
                                     Not an order — ignore
                                   </button>
+                                )}
+                                {needsMatch && (
+                                  <p className="text-xs text-amber-700 mt-2">
+                                    Amazon title was extracted, but it is not linked to a Swago product.
+                                    Open the product (e.g. Seek Rush) → Inventory & Stock Alert → set{" "}
+                                    <strong>Amazon / Marketplace SKU</strong> to{" "}
+                                    <code className="font-mono">SWG-OBG-SSR-01-6Y</code>, save, then
+                                    Match again → Confirm order. (You can also map via Channel Email
+                                    aliases.)
+                                  </p>
                                 )}
                               </div>
                             </div>

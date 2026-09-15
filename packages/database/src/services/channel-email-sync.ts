@@ -168,6 +168,63 @@ type ExtractedOrder = {
   items: Array<{ title: string; quantity: number; sku?: string }>;
 };
 
+/** Pull marketplace SKUs like SWG-OBG-SSR-01-6Y from subject/body. */
+function findSkuHints(text: string): string[] {
+  const found = String(text || "").match(/\b(SWG-[A-Z0-9]+(?:-[A-Z0-9]+)*)\b/gi) || [];
+  return [...new Set(found.map((s) => s.toUpperCase()))];
+}
+
+function enrichItemsWithSkuHints(
+  subject: string,
+  body: string,
+  items: Array<{ title: string; quantity: number; sku?: string }>
+): Array<{ title: string; quantity: number; sku?: string }> {
+  const hints = findSkuHints(`${subject}\n${body}`);
+  if (!hints.length) return items;
+
+  return items.map((item, index) => {
+    if (item.sku) return item;
+    // Prefer SKU that appears near the item title; else unique subject SKU; else first hint for single-item emails
+    const near = hints.find((sku) =>
+      normalizeLoose(`${item.title} ${subject}`).includes(normalizeLoose(sku))
+    );
+    const sku =
+      near ||
+      (items.length === 1 && hints.length === 1 ? hints[0] : undefined) ||
+      (items.length === 1 ? hints[0] : undefined) ||
+      (hints[index] || undefined);
+    return sku ? { ...item, sku } : item;
+  });
+}
+
+function normalizeLoose(value: string) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "");
+}
+
+/** Subject like: Sold, ship now: SWG-OBG-SSR-01-6Y Swago Seek Rush ... 403-2649531-3257906 */
+function parseSoldShipNowSubject(subject: string): ExtractedOrder | null {
+  const cleaned = String(subject || "").replace(/^\[[^\]]*\]\s*/g, "").trim();
+  const match = cleaned.match(
+    /sold,?\s*ship now:\s*(SWG-[A-Z0-9-]+)\s+(.+?)\s+(\d{3}-\d{7}-\d{7})\b/i
+  );
+  if (!match) return null;
+  return {
+    eventType: "order",
+    externalOrderId: match[3],
+    confidence: 0.9,
+    reasoning: "Parsed sold/ship-now subject",
+    items: [
+      {
+        title: match[2].replace(/\s+/g, " ").trim(),
+        quantity: 1,
+        sku: match[1].toUpperCase(),
+      },
+    ],
+  };
+}
+
 function buildExtractionPrompt(
   subject: string,
   body: string,
@@ -376,9 +433,17 @@ async function extractOrderFromEmail(
     items: [],
   };
 
+  const finalize = (result: ExtractedOrder): ExtractedOrder => ({
+    ...result,
+    items: enrichItemsWithSkuHints(subject, body, result.items || []),
+  });
+
   // First, try the local Amazon order format parser — it's fast and accurate
   const localParsed = parseAmazonOrderFormat(body);
-  if (localParsed) return localParsed;
+  if (localParsed) return finalize(localParsed);
+
+  const subjectParsed = parseSoldShipNowSubject(subject);
+  if (subjectParsed) return finalize(subjectParsed);
 
   if (!process.env.GEMINI_API_KEY) {
     return {
@@ -391,13 +456,14 @@ async function extractOrderFromEmail(
 
   try {
     const content = await extractWithGemini(system, user);
-    if (!content) return fallback;
-    return parseExtractedOrder(content, fallback);
+    if (!content) return subjectParsed || fallback;
+    return finalize(parseExtractedOrder(content, fallback));
   } catch (geminiErr) {
     console.error(
       "⚠️ Gemini extraction failed:",
       geminiErr instanceof Error ? geminiErr.message : geminiErr
     );
+    if (subjectParsed) return finalize(subjectParsed);
     return {
       ...fallback,
       reasoning: geminiErr instanceof Error ? geminiErr.message : "Gemini extraction failed",
@@ -624,9 +690,68 @@ export async function runChannelEmailSync(limit = 25) {
   return { processed, skipped, message: `Processed ${processed} new emails` };
 }
 
-export async function applyChannelEvent(eventId: string) {
+export async function rematchChannelEvent(eventId: string) {
   await connectDB();
   const event = await ChannelOrderEvent.findById(eventId);
+  if (!event) throw new Error("Channel event not found");
+  if (["applied", "restored", "ignored"].includes(event.status)) {
+    return event;
+  }
+
+  const config = await getOrCreateChannelEmailConfig();
+  let items = (event.extracted?.items || []).map((item: any) => ({
+    title: String(item.title || "").trim(),
+    quantity: Math.max(1, Number(item.quantity) || 1),
+    sku: String(item.sku || "").trim(),
+  }));
+
+  // Heal older events that never stored SKU / items from subject
+  if (!items.length || items.every((i: { sku?: string }) => !i.sku)) {
+    const subjectParsed = parseSoldShipNowSubject(event.subject || "");
+    if (subjectParsed?.items?.length) {
+      items = enrichItemsWithSkuHints(event.subject || "", event.rawText || "", subjectParsed.items);
+      if (!event.externalOrderId && subjectParsed.externalOrderId) {
+        event.externalOrderId = subjectParsed.externalOrderId;
+      }
+      if (event.eventType === "unknown") event.eventType = "order";
+      event.extracted = {
+        ...(event.extracted || {}),
+        confidence: Math.max(Number(event.extracted?.confidence) || 0, subjectParsed.confidence),
+        reasoning: subjectParsed.reasoning,
+        items,
+      };
+    } else {
+      items = enrichItemsWithSkuHints(event.subject || "", event.rawText || "", items);
+      event.extracted = {
+        ...(event.extracted || {}),
+        items,
+      };
+    }
+  } else {
+    items = enrichItemsWithSkuHints(event.subject || "", event.rawText || "", items);
+    event.extracted = {
+      ...(event.extracted || {}),
+      items,
+    };
+  }
+
+  const { matched, unmatched } = await matchChannelProducts(
+    items,
+    config?.productAliases || []
+  );
+  event.matchedItems = matched;
+  event.error = unmatched.length
+    ? `Unmatched products: ${unmatched.join(", ")}`
+    : matched.length
+      ? ""
+      : event.error || "No products found to match";
+  await event.save();
+  return event;
+}
+
+export async function applyChannelEvent(eventId: string) {
+  await connectDB();
+  let event = await ChannelOrderEvent.findById(eventId);
   if (!event) throw new Error("Channel event not found");
   if (event.status === "applied" || event.status === "restored" || event.status === "ignored") {
     return event;
@@ -641,8 +766,14 @@ export async function applyChannelEvent(eventId: string) {
     return event;
   }
 
+  // Rematch with current aliases + SKU before applying (fixes older unmatched rows)
   if (!event.matchedItems?.length) {
-    throw new Error("No matched products to apply");
+    event = (await rematchChannelEvent(eventId)) as any;
+  }
+  if (!event.matchedItems?.length) {
+    throw new Error(
+      "Still no catalog match. Add a product alias or set the inventory SKU, then click Match again."
+    );
   }
 
   if (event.externalOrderId && (await hasAppliedOrderForExternalId(event.externalOrderId))) {
