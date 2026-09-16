@@ -2,9 +2,6 @@ import type { NextConfig } from "next";
 import path from "path";
 
 const nextConfig: NextConfig = {
-  // Standalone output for Docker — bundles only the files needed at runtime
-  output: 'standalone',
-
   // Tell Next.js to transpile our shared packages
   transpilePackages: ['@swago/utils', '@swago/database', '@swago/types'],
 
