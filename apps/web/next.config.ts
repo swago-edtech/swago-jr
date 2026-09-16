@@ -8,8 +8,6 @@ const nextConfig: NextConfig = {
   // Required for monorepo: trace dependencies from the workspace root
   outputFileTracingRoot: path.join(__dirname, '../..'),
 
-  // Server-side packages
-  serverExternalPackages: ['mongoose', 'pdfkit'],
 
   // ✅ Image configuration for external domains
   images: {
