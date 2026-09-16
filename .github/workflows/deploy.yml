@@ -1,0 +1,133 @@
+# =============================================================================
+# Swago Jr. — GitHub Actions CI/CD Pipeline
+#
+# Workflow:
+#   1. Checkout repo
+#   2. Write 3 .env.local files from GitHub Secrets
+#   3. Install dependencies & build both apps
+#   4. Rsync built project to VPS
+#   5. SSH into VPS: install deps, restart PM2 & Nginx
+#
+# Required GitHub Secrets:
+#   SSH_PRIVATE_KEY     – SSH private key for VPS access
+#   SSH_KNOWN_HOSTS     – VPS host public key (from `ssh-keyscan`)
+#   VPS_HOST            – VPS IP address or domain
+#   VPS_USER            – SSH user (e.g. ec2-user, ubuntu, root)
+#   VPS_APP_DIR         – App directory on VPS (e.g. /home/ec2-user/swago-jr)
+#   ENV_FILE_ROOT       – Full content of root .env.local
+#   ENV_FILE_WEB        – Full content of apps/web/.env.local
+#   ENV_FILE_ADMIN      – Full content of apps/admin/.env.local
+# =============================================================================
+
+name: Deploy Swago Jr.
+
+on:
+  push:
+    branches: [ feature/email-notification-amazon-dashboard ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Build & Deploy
+    runs-on: ubuntu-latest
+
+    env:
+      # Give Next.js enough heap to build the web app — default GH runner has 7GB RAM.
+      NODE_OPTIONS: "--max-old-space-size=6144"
+      NEXT_TELEMETRY_DISABLED: "1"
+
+    steps:
+      # ── 1. Checkout the repository ──────────────────────────────────────
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # ── 2. Setup pnpm ───────────────────────────────────────────────────
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      # ── 3. Write .env.local files from secrets ──────────────────────────
+      - name: Write root .env.local
+        run: |
+          cat > .env.local << 'EOF'
+          ${{ secrets.ENV_FILE_ROOT }}
+          EOF
+
+      - name: Write web .env.local
+        run: |
+          mkdir -p apps/web
+          cat > apps/web/.env.local << 'EOF'
+          ${{ secrets.ENV_FILE_WEB }}
+          EOF
+
+      - name: Write admin .env.local
+        run: |
+          mkdir -p apps/admin
+          cat > apps/admin/.env.local << 'EOF'
+          ${{ secrets.ENV_FILE_ADMIN }}
+          EOF
+
+      # ── 4. Install dependencies ─────────────────────────────────────────
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # ── 5. Build both apps ──────────────────────────────────────────────
+      - name: Build web app
+        run: pnpm build:web
+
+      - name: Build admin app
+        run: pnpm build:admin
+
+      # ── 6. Rsync to VPS ────────────────────────────────────────────────
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          echo "${{ secrets.SSH_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+
+      - name: Rsync project to VPS (exclude .git, node_modules, .pnpm-store)
+        run: |
+          rsync -avz --delete \
+            --exclude='.git' \
+            --exclude='node_modules' \
+            --exclude='.pnpm-store' \
+            -e 'ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no' \
+            ./ \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:${{ secrets.VPS_APP_DIR }}/
+
+      # ── 7. Post-deploy on VPS ───────────────────────────────────────────
+      - name: Post-deploy — install deps, configure env, restart services
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'DEPLOY_EOF'
+            set -e
+
+            APP_DIR="${{ secrets.VPS_APP_DIR }}"
+            cd "$APP_DIR"
+
+            echo "=== Ensuring env files exist (synced from CI) ==="
+            ls -la .env.local apps/web/.env.local apps/admin/.env.local
+
+            echo "=== Installing production dependencies ==="
+            pnpm install --frozen-lockfile
+
+            echo "=== Restarting PM2 processes ==="
+            pm2 restart swago-web 2>/dev/null || \
+              pm2 start pnpm --name swago-web --cwd "$APP_DIR" -- start:web
+
+            pm2 restart swago-admin 2>/dev/null || \
+              pm2 start pnpm --name swago-admin --cwd "$APP_DIR" -- start:admin
+
+            pm2 save
+
+            echo "=== Deployment complete ==="
+            pm2 list
+          DEPLOY_EOF
