@@ -41,6 +41,12 @@ export async function findOrLinkGoogleUser(
     user.cart = mergeCartItems(user.cart || [], localCart);
   }
 
+  if (user.cart?.length) {
+    user.cart = user.cart.filter(
+      (item: any) => item.productId && item.name && item.price != null && item.image
+    );
+  }
+
   await user.save();
   return { user, isNewUser: false };
 }
