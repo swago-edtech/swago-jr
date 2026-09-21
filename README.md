@@ -34,7 +34,7 @@ This project is architected as a **pnpm monorepo** using **Next.js 14+** and **T
 git clone <repository-url>
 cd swago-jr
 
-# Install all dependencies (Monorepo)
+# Install all dependencies (Monorepo)///
 pnpm install
 ```
 
