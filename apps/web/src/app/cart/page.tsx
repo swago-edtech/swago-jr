@@ -247,7 +247,7 @@ export default function CartPage() {
                 const imageUrl = item.images?.[0] || '/images/placeholder.png';
                 const productId = getProductKey(item);
                 const stock = stockInfo[productId];
-                const isOutOfStock = stock && stock.available === 0;
+                const isOutOfStock = false; // Stock decoupled
                 const price = typeof item.price === "number" ? item.price : 0;
                 const originalPrice = item.originalPrice || price * 1.5;
 

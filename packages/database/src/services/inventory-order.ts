@@ -272,15 +272,14 @@ export async function deductInventoryForOrder(order: OrderLike) {
         const deduction = component.quantity * orderQty;
 
         const updated = await InventoryItem.findOneAndUpdate(
-          { _id: component.inventoryItemId, currentStock: { $gte: deduction } },
+          { _id: component.inventoryItemId },
           { $inc: { currentStock: -deduction } },
           { new: true }
         );
 
         if (!updated) {
-          throw new InsufficientInventoryError(
-            `Insufficient inventory for ${component.inventoryItemName}`
-          );
+          console.warn(`⚠️ Inventory item ${component.inventoryItemId} not found, skipping deduction`);
+          continue;
         }
 
         affectedInventoryIds.push(component.inventoryItemId.toString());

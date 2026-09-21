@@ -349,13 +349,15 @@ export async function deductInventoryForChannelItems(
 
   for (const [itemId, { quantity, name }] of totals) {
     const updated = await InventoryItem.findOneAndUpdate(
-      { _id: itemId, currentStock: { $gte: quantity } },
+      { _id: itemId },
       { $inc: { currentStock: -quantity } },
       { new: true }
     );
 
     if (!updated) {
       throw new InsufficientInventoryError(`Insufficient inventory for ${name}`);
+      console.warn(`⚠️ Inventory item ${name} (${itemId}) not found, skipping`);
+      continue;
     }
 
     affectedInventoryIds.push(itemId);

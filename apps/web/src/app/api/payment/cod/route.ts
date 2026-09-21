@@ -138,22 +138,15 @@ export async function POST(req: Request) {
 
             const availableStock = product.availableStock ?? 0;
 
-            if (availableStock === 0) {
-                stockErrors.push(`${item.name} is out of stock`);
-            } else if (item.quantity > availableStock) {
-                stockErrors.push(`${item.name}: Only ${availableStock} available(you requested ${item.quantity})`);
-            } else {
-                reservations.push({ product, quantity: item.quantity });
+            if (availableStock <= 0) {
+                console.log(`⚠️ ${item.name}: negative/zero stock (${availableStock}), COD order still accepted`);
             }
+            reservations.push({ product, quantity: item.quantity });
         }
 
-        // If any stock errors, don't proceed
+        // Stock decoupled: stockErrors no longer block checkout
         if (stockErrors.length > 0) {
-            return NextResponse.json({
-                error: "Stock unavailable",
-                stockErrors: stockErrors,
-                details: stockErrors.join('; ')
-            }, { status: 400 });
+            console.log("⚠️ Stock warnings (non-blocking):", stockErrors);
         }
 
         // Stock validated — inventory allocated after order is created

@@ -205,13 +205,10 @@ export async function POST(req: Request) {
 
       const availableStock = product.availableStock ?? 0;
 
-      if (availableStock === 0) {
-        stockErrors.push(`${product.name} is out of stock`);
-      } else if (item.quantity > availableStock) {
-        stockErrors.push(`${product.name}: Only ${availableStock} available (you requested ${item.quantity})`);
-      } else {
-        reservations.push({ product, quantity: item.quantity });
+      if (availableStock <= 0) {
+        console.log(`⚠️ [Express] ${product.name}: negative/zero stock (${availableStock}), order still accepted`);
       }
+      reservations.push({ product, quantity: item.quantity });
     }
 
     if (stockErrors.length > 0) {

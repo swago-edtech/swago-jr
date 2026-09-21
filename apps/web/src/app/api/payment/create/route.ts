@@ -135,25 +135,19 @@ export async function POST(req: Request) {
 
       console.log(`📦 ${product.name}: Stock=${product.stock}, Reserved=${product.reservedStock}, Available=${availableStock}, Requested=${item.quantity}`);
 
-      if (availableStock === 0) {
-        stockErrors.push(`${item.name} is out of stock`);
-      } else if (item.quantity > availableStock) {
-        stockErrors.push(`${item.name}: Only ${availableStock} available (you requested ${item.quantity})`);
-      } else {
+      // Stock decoupled: allow orders regardless of stock level
+      {
+        if (availableStock <= 0) console.log(`⚠️ ${item.name}: negative/zero stock (${availableStock}), order still accepted`);
+
         // Stock is sufficient - prepare for reservation
         reservations.push({ product, quantity: item.quantity });
       }
     }
 
 
-    // If any stock errors, don't proceed
+    // Stock decoupled: stockErrors no longer block checkout
     if (stockErrors.length > 0) {
-      console.log('❌ Stock validation failed:', stockErrors);
-      return NextResponse.json({
-        error: "Stock unavailable",
-        stockErrors: stockErrors,
-        details: stockErrors.join('; ')
-      }, { status: 400 });
+      console.log("⚠️ Stock warnings (non-blocking):", stockErrors);
     }
 
 
