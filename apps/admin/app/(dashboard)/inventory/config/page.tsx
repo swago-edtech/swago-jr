@@ -236,7 +236,7 @@ export default function InventoryDashboardPage() {
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 flex-1 min-w-0">
                     <MiniCard
-                      label="Boxes we can make"
+                      label="Boxes in stock"
                       count={product.boxesPossible}
                       tone={
                         product.productHealth === "out"
