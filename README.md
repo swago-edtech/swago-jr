@@ -26,7 +26,7 @@ This project is architected as a **pnpm monorepo** using **Next.js 14+** and **T
 ### 1. Prerequisites
 - **Node.js**: 20.0.0 or higher
 - **pnpm**: 8.0.0 or higher
-- **MongoDB**: Access to a MongoDB Atlas cluster.
+- **MongoDB**: Access to a MongoDB Atlas cluster..
 
 ### 2. Installation:
 ```bash
