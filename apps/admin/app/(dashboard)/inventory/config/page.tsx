@@ -72,7 +72,7 @@ function ChipList({
         return (
           <div
             key={item.name}
-            className="flex items-center gap-1.5 rounded-md bg-white/90 border border-black/5 px-1.5 py-0.5 text-[10px] leading-none min-w-0"
+            className="flex items-center gap-1.5 rounded-md  border-black/5 px-1.5 py-0.5 text-[10px] leading-none min-w-0"
             title={`${item.name}: ${have}/${need || "—"} · need ${gap}`}
           >
             <span className="font-semibold text-slate-900 truncate min-w-0">{item.name}</span>
@@ -112,24 +112,24 @@ function MiniCard({
   const tones = {
     ok: "border-emerald-200 bg-emerald-50",
     warn: "border-amber-200 bg-amber-50",
-    danger: "border-rose-200 bg-rose-50",
+    danger: "border-red-500 bg-red-100 shadow-sm",
     neutral: "border-slate-200 bg-slate-50",
   };
   const nums = {
     ok: "text-emerald-800",
     warn: "text-amber-800",
-    danger: "text-rose-800",
+    danger: "text-red-800",
     neutral: "text-slate-800",
   };
   return (
     <div className={`rounded-lg border px-2.5 py-2 ${tones[tone]}`}>
       <div className="flex items-center justify-between gap-1">
-        <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-600">
+        <span className={`text-[10px] font-bold uppercase tracking-wide ${tone === 'danger' ? 'text-red-700' : 'text-slate-600'}`}>
           {label}
         </span>
-        <Icon className="w-3.5 h-3.5 text-slate-500" />
+        <Icon className={`w-3.5 h-3.5 ${tone === 'danger' ? 'text-red-500' : 'text-slate-500'}`} />
       </div>
-      <p className={`text-lg font-bold tabular-nums leading-none mt-0.5 ${nums[tone]}`}>{count}</p>
+      <p className={`text-lg font-black tabular-nums leading-none mt-0.5 ${nums[tone]}`}>{count}</p>
       {limiter ? (
         <p className="text-[10px] text-slate-600 mt-1 truncate" title={limiter}>
           Limited by <span className="font-bold text-slate-900">{limiter}</span>

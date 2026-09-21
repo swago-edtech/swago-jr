@@ -55,6 +55,7 @@ async function buildComponentTotals(
       throw new InsufficientInventoryError(
         `${item.name || "Product"} is not configured for inventory`
       );
+      continue;
     }
 
     const orderQty = item.quantity || 1;
@@ -88,6 +89,7 @@ export async function allocateInventoryForOrder(
   const componentTotals = await buildComponentTotals(order.items);
   if (componentTotals.size === 0) {
     throw new InsufficientInventoryError("No inventory components to allocate");
+    return; // No inventory components configured — skip allocation silently
   }
 
   const snapshot: Array<{
@@ -100,7 +102,7 @@ export async function allocateInventoryForOrder(
   const runAllocation = async (session?: mongoose.ClientSession) => {
     for (const [itemId, { quantity, name }] of componentTotals) {
       const updated = await InventoryItem.findOneAndUpdate(
-        { _id: itemId, currentStock: { $gte: quantity } },
+        { _id: itemId },
         { $inc: { currentStock: -quantity } },
         { new: true, session }
       );
@@ -109,6 +111,8 @@ export async function allocateInventoryForOrder(
         throw new InsufficientInventoryError(
           `Insufficient inventory for ${name}`
         );
+        console.warn(`⚠️ Inventory item ${name} (${itemId}) not found, skipping allocation`);
+        continue;
       }
 
       affectedInventoryIds.push(itemId);

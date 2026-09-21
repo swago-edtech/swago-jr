@@ -139,6 +139,7 @@ export async function POST(req: Request) {
         isActive: dbProduct.isActive,
         quantity: availableStock === 0 ? 0 : Math.min(quantity, availableStock),
         quantity: quantity, // Stock decoupled: keep whatever quantity they had
+        quantity, // Stock decoupled: keep whatever quantity they had
       });
     }
 
