@@ -4,10 +4,9 @@ import React from "react";
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Package, TrendingUp, AlertTriangle, XCircle, Search, Plus, Edit, History, X } from "lucide-react";
+import { Search, Plus, Edit, X, Package } from "lucide-react";
 
-export default function InventoryDashboard() {
-  const [stats, setStats] = useState({ totalItems: 0, totalStock: 0, lowStockCount: 0, outOfStockCount: 0 });
+export default function InventoryStockItemsPage() {
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -17,18 +16,6 @@ export default function InventoryDashboard() {
   const [addStockQty, setAddStockQty] = useState("");
   const [addStockReason, setAddStockReason] = useState("");
   const [submittingStock, setSubmittingStock] = useState(false);
-
-  const fetchStats = async () => {
-    try {
-      const res = await fetch("/api/inventory/stats");
-      if (res.ok) {
-        const data = await res.json();
-        setStats(data.stats);
-      }
-    } catch (error) {
-      console.error(error);
-    }
-  };
 
   const fetchItems = async () => {
     try {
@@ -47,10 +34,6 @@ export default function InventoryDashboard() {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    fetchStats();
-  }, []);
 
   useEffect(() => {
     const delay = setTimeout(() => fetchItems(), 300);
@@ -75,7 +58,6 @@ export default function InventoryDashboard() {
         setAddStockQty("");
         setAddStockReason("");
         fetchItems();
-        fetchStats();
       } else {
         alert("Failed to add stock");
       }
@@ -97,7 +79,7 @@ export default function InventoryDashboard() {
     <div className="p-6 w-full">
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Inventory Dashboard</h1>
+          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Stock Items</h1>
           <p className="text-gray-500 mt-1">Manage unit-level stock for raw materials and components</p>
         </div>
         <Link
@@ -106,45 +88,6 @@ export default function InventoryDashboard() {
         >
           <Plus className="w-5 h-5 mr-2" /> New Item
         </Link>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex items-center">
-          <div className="p-4 rounded-xl bg-indigo-50 text-indigo-600 mr-5">
-            <Package className="w-7 h-7" />
-          </div>
-          <div>
-            <p className="text-sm font-medium text-gray-500 mb-1">Total Items</p>
-            <p className="text-3xl font-bold text-gray-900">{stats.totalItems}</p>
-          </div>
-        </div>
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex items-center">
-          <div className="p-4 rounded-xl bg-green-50 text-green-600 mr-5">
-            <TrendingUp className="w-7 h-7" />
-          </div>
-          <div>
-            <p className="text-sm font-medium text-gray-500 mb-1">Total Stock</p>
-            <p className="text-3xl font-bold text-gray-900">{stats.totalStock}</p>
-          </div>
-        </div>
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex items-center">
-          <div className="p-4 rounded-xl bg-amber-50 text-amber-600 mr-5">
-            <AlertTriangle className="w-7 h-7" />
-          </div>
-          <div>
-            <p className="text-sm font-medium text-gray-500 mb-1">Low Stock</p>
-            <p className="text-3xl font-bold text-gray-900">{stats.lowStockCount}</p>
-          </div>
-        </div>
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex items-center">
-          <div className="p-4 rounded-xl bg-red-50 text-red-600 mr-5">
-            <XCircle className="w-7 h-7" />
-          </div>
-          <div>
-            <p className="text-sm font-medium text-gray-500 mb-1">Out of Stock</p>
-            <p className="text-3xl font-bold text-gray-900">{stats.outOfStockCount}</p>
-          </div>
-        </div>
       </div>
 
       <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 mb-6">
