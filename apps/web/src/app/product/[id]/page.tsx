@@ -4,8 +4,10 @@ import { notFound } from "next/navigation";
 import { connectDB, Product, getConfiguredProductIds } from "@swago/database";
 import { isValidObjectId } from "mongoose";
 import { enrichProductAvailability } from "@/lib/product-stock";
+import { Suspense } from "react";
 
-export const revalidate = 0;
+// On-demand only: avoids enumerating every product during `next build` (OOM on 4GB boxes)
+export const dynamic = "force-dynamic";
 
 // Fetch product directly from DB
 async function getProduct(id: string) {
@@ -39,20 +41,6 @@ async function getProduct(id: string) {
   return null;
 }
 
-export async function generateStaticParams() {
-  try {
-    await connectDB();
-    const products = await Product.find({ isActive: true }).select("slug _id").lean();
-    
-    return products.map((product: any) => ({
-      id: product.slug || product._id.toString(),
-    }));
-  } catch (error) {
-    console.error('Error generating static params from DB:', error);
-  }
-  return [];
-}
-
 export async function generateMetadata({
   params
 }: {
@@ -70,8 +58,6 @@ export async function generateMetadata({
     description: product.description,
   };
 }
-
-import { Suspense } from "react";
 
 export default async function ProductDetailPage({
   params

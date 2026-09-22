@@ -334,9 +334,6 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
               stock: refreshed.stock,
               originalPrice: refreshed.originalPrice || item.originalPrice,
               slug: refreshed.slug || item.slug,
-              quantity: refreshed.availableStock === 0
-                ? 0
-                : Math.min(item.quantity, refreshed.availableStock),
               quantity: item.quantity, // Stock decoupled
             };
           }).filter(item => item.quantity > 0);
