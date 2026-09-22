@@ -58,7 +58,15 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { name, sku, description, unit, currentStock, lowStockThreshold, targetQuantity } = body;
 
-    const existingItem = await InventoryItem.findOne({ $or: [{ name }, { sku }] });
+    const normalizedSku = typeof sku === "string" ? sku.trim() : "";
+    const hasSku = Boolean(normalizedSku);
+
+    const duplicateQuery: Record<string, unknown>[] = [{ name }];
+    if (hasSku) {
+      duplicateQuery.push({ sku: normalizedSku });
+    }
+
+    const existingItem = await InventoryItem.findOne({ $or: duplicateQuery });
     if (existingItem) {
       return NextResponse.json(
         { error: "Item with this name or SKU already exists" },
@@ -68,7 +76,7 @@ export async function POST(request: NextRequest) {
 
     const item = await InventoryItem.create({
       name,
-      sku,
+      ...(hasSku ? { sku: normalizedSku } : {}),
       description,
       unit,
       currentStock: currentStock || 0,

@@ -36,9 +36,21 @@ export async function PUT(
 
     const { name, sku, description, unit, lowStockThreshold, targetQuantity, isActive } = body;
 
+    const normalizedSku = typeof sku === "string" ? sku.trim() : "";
+    const fields = {
+      name,
+      description,
+      unit,
+      lowStockThreshold,
+      targetQuantity,
+      isActive,
+    };
+
     const item = await InventoryItem.findByIdAndUpdate(
       id,
-      { name, sku, description, unit, lowStockThreshold, targetQuantity, isActive },
+      normalizedSku
+        ? { ...fields, sku: normalizedSku }
+        : { $set: fields, $unset: { sku: 1 } },
       { new: true, runValidators: true }
     );
 
