@@ -5,10 +5,15 @@ import {
   Product,
   ProductConfig,
   InventoryItem,
+  Order,
   getConfiguredProductIds,
   applyEffectiveProductStock,
   calculateBomStock,
 } from "@swago/database";
+
+const LOOKBACK_DAYS = 30;
+const STOCK_BUFFER_DAYS = 3;
+const CONFIRMED_STATUSES = ["Paid", "Packed", "Shipped", "Out for Delivery", "Delivered"];
 
 type ItemSnap = {
   name: string;
@@ -45,7 +50,6 @@ function buildItemInsight(components: any[]): {
     if (snap.targetQuantity > 0 && snap.currentStock < snap.targetQuantity) {
       belowTargetItems.push(snap);
     }
-    // Not yet optimal: above low threshold but still under target (planning restock)
     if (
       snap.targetQuantity > 0 &&
       snap.currentStock > snap.lowStockThreshold &&
@@ -65,23 +69,56 @@ function buildItemInsight(components: any[]): {
   };
 }
 
+function daysOfStockLeft(boxesPossible: number, avgDailyUnits: number) {
+  if (!(avgDailyUnits > 0)) {
+    return { avgDailyUnits: 0, daysRaw: null as number | null, daysLeft: null as number | null };
+  }
+  const daysRaw = boxesPossible / avgDailyUnits;
+  const daysLeft = Math.max(0, Math.floor(daysRaw - STOCK_BUFFER_DAYS));
+  return { avgDailyUnits, daysRaw, daysLeft };
+}
+
 export async function GET(request: NextRequest) {
   try {
     await requireAdmin();
     await connectDB();
 
-    const products = await Product.find({ isActive: true })
-      .select("name price images stock lowStockThreshold")
-      .sort({ name: 1 })
-      .lean();
+    const since = new Date(Date.now() - LOOKBACK_DAYS * 24 * 60 * 60 * 1000);
 
-    const configs = await ProductConfig.find()
-      .populate({
-        path: "components.inventoryItemId",
-        model: InventoryItem,
-        select: "name currentStock lowStockThreshold targetQuantity isActive",
-      })
-      .lean();
+    const [products, configs, salesRows] = await Promise.all([
+      Product.find({ isActive: true })
+        .select("name price images stock lowStockThreshold")
+        .sort({ name: 1 })
+        .lean(),
+      ProductConfig.find()
+        .populate({
+          path: "components.inventoryItemId",
+          model: InventoryItem,
+          select: "name currentStock lowStockThreshold targetQuantity isActive",
+        })
+        .lean(),
+      Order.aggregate([
+        {
+          $match: {
+            status: { $in: CONFIRMED_STATUSES },
+            createdAt: { $gte: since },
+          },
+        },
+        { $unwind: "$items" },
+        {
+          $group: {
+            _id: { $toString: "$items.productId" },
+            units: { $sum: { $ifNull: ["$items.quantity", 0] } },
+          },
+        },
+      ]),
+    ]);
+
+    const unitsByProduct = new Map<string, number>();
+    for (const row of salesRows as { _id: string; units: number }[]) {
+      if (!row?._id) continue;
+      unitsByProduct.set(String(row._id), Number(row.units) || 0);
+    }
 
     const configMap = new Map(
       configs.map((config: any) => [config.productId.toString(), config])
@@ -98,8 +135,9 @@ export async function GET(request: NextRequest) {
     }
 
     const productsWithConfig = products.map((product: any) => {
-      const hasConfig = configuredIds.has(product._id.toString());
-      const config = configMap.get(product._id.toString());
+      const id = product._id.toString();
+      const hasConfig = configuredIds.has(id);
+      const config = configMap.get(id);
       const effective = applyEffectiveProductStock(product, configuredIds);
       const insight = hasConfig
         ? buildItemInsight(config?.components || [])
@@ -117,6 +155,10 @@ export async function GET(request: NextRequest) {
       if (boxes <= 0) productHealth = "out";
       else if (boxes <= lowThreshold) productHealth = "low";
 
+      const unitsSold = unitsByProduct.get(id) || 0;
+      const avgDailyUnits = unitsSold / LOOKBACK_DAYS;
+      const pace = daysOfStockLeft(boxes, avgDailyUnits);
+
       return {
         ...effective,
         hasConfig,
@@ -128,6 +170,11 @@ export async function GET(request: NextRequest) {
         belowOptimalItems: insight.belowOptimalItems,
         productHealth,
         lowStockThreshold: lowThreshold,
+        avgDailyUnits: Number(pace.avgDailyUnits.toFixed(2)),
+        daysOfStockRaw: pace.daysRaw === null ? null : Number(pace.daysRaw.toFixed(1)),
+        daysOfStockLeft: pace.daysLeft,
+        stockLookbackDays: LOOKBACK_DAYS,
+        stockBufferDays: STOCK_BUFFER_DAYS,
       };
     });
 

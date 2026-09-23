@@ -9,6 +9,22 @@ import {
 
 const STATE_COOKIE = "google_oauth_state";
 const REDIRECT_COOKIE = "google_oauth_redirect";
+const CALLBACK_PATH = "/api/auth/google/callback";
+
+function resolveGoogleRedirectUri(request: NextRequest) {
+  const fromEnv = process.env.GOOGLE_REDIRECT_URI?.trim();
+  if (fromEnv) return fromEnv.replace(/\/$/, "");
+  return `${request.nextUrl.origin}${CALLBACK_PATH}`;
+}
+
+function resolveAppOrigin(request: NextRequest) {
+  const redirectUri = resolveGoogleRedirectUri(request);
+  try {
+    return new URL(redirectUri).origin;
+  } catch {
+    return request.nextUrl.origin;
+  }
+}
 
 function failRedirect(origin: string, error: string, redirect?: string) {
   const loginUrl = new URL("/login", origin);
@@ -18,7 +34,8 @@ function failRedirect(origin: string, error: string, redirect?: string) {
 }
 
 export async function GET(request: NextRequest) {
-  const origin = request.nextUrl.origin;
+  const origin = resolveAppOrigin(request);
+  const oauthRedirectUri = resolveGoogleRedirectUri(request);
   const redirect = sanitizeAuthRedirect(request.cookies.get(REDIRECT_COOKIE)?.value);
   const expectedState = request.cookies.get(STATE_COOKIE)?.value;
   const state = request.nextUrl.searchParams.get("state");
@@ -41,7 +58,7 @@ export async function GET(request: NextRequest) {
 
   try {
     await connectDB();
-    const profile = await completeGoogleSignIn(code, `${origin}/api/auth/google/callback`);
+    const profile = await completeGoogleSignIn(code, oauthRedirectUri);
     const { user } = await findOrLinkGoogleUser(profile);
     const token = await signStorefrontSession(user);
 

@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Package, Settings, Search, AlertTriangle, Target, Box } from "lucide-react";
+import { Package, Settings, Search, AlertTriangle, Target, Box, Copy, X, CalendarDays } from "lucide-react";
 
 type ItemSnap = {
   name: string;
@@ -27,6 +27,10 @@ type DashboardProduct = {
   belowOptimalItems: ItemSnap[];
   productHealth: "out" | "low" | "ok";
   lowStockThreshold: number;
+  avgDailyUnits?: number;
+  daysOfStockRaw?: number | null;
+  daysOfStockLeft?: number | null;
+  stockBufferDays?: number;
 };
 
 const PAGE_SIZE = 10;
@@ -51,43 +55,85 @@ function shortfall(have: number, need: number) {
   return Math.max(0, need - have);
 }
 
-function ChipList({
+function itemLine(item: ItemSnap, mode: "low" | "target") {
+  const need =
+    mode === "low" ? Number(item.lowStockThreshold) || 0 : Number(item.targetQuantity) || 0;
+  const have = Number(item.currentStock) || 0;
+  const gap = shortfall(have, need);
+  return {
+    name: item.name,
+    have,
+    need,
+    gap,
+    text: `${item.name}: ${have}/${need || "—"} · need ${gap}`,
+  };
+}
+
+
+function ItemsModal({
+  title,
   items,
   mode,
+  onClose,
 }: {
+  title: string;
   items: ItemSnap[];
   mode: "low" | "target";
+  onClose: () => void;
 }) {
-  if (!items.length) return null;
-  return (
-    <div className="mt-1.5 space-y-1 max-h-24 overflow-y-auto">
-      {items.slice(0, 5).map((item) => {
-        const need =
-          mode === "low"
-            ? Number(item.lowStockThreshold) || 0
-            : Number(item.targetQuantity) || 0;
-        const have = Number(item.currentStock) || 0;
-        const gap = shortfall(have, need);
+  const rows = items.map((item) => itemLine(item, mode));
+  const [copied, setCopied] = useState(false);
 
-        return (
-          <div
-            key={item.name}
-            className="flex items-center gap-1.5 rounded-md  border-black/5 px-1.5 py-0.5 text-[10px] leading-none min-w-0"
-            title={`${item.name}: ${have}/${need || "—"} · need ${gap}`}
-          >
-            <span className="font-semibold text-slate-900 truncate min-w-0">{item.name}</span>
-            <span className="ml-auto shrink-0 tabular-nums text-slate-700">
-              <span className="font-bold text-slate-900">{have}</span>
-              <span className="text-slate-400">/</span>
-              <span>{need || "—"}</span>
-              {gap > 0 ? <span className="ml-1 font-bold text-rose-700">need {gap}</span> : null}
-            </span>
+  const copyAll = async () => {
+    const body = rows.map((r) => r.text).join("\n");
+    await navigator.clipboard.writeText(`${title}\n${body}`);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <button type="button" className="absolute inset-0 bg-black/40" aria-label="Close" onClick={onClose} />
+      <div
+        role="dialog"
+        aria-modal="true"
+        className="relative z-10 w-full max-w-md rounded-2xl bg-white shadow-xl border border-slate-200 overflow-hidden"
+      >
+        <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-slate-100">
+          <h3 className="text-sm font-bold text-slate-900 truncate">{title}</h3>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={copyAll}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+            >
+              <Copy className="w-3.5 h-3.5" />
+              {copied ? "Copied" : "Copy"}
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100"
+              aria-label="Close dialog"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
-        );
-      })}
-      {items.length > 5 && (
-        <p className="text-[10px] font-semibold text-slate-600">+{items.length - 5} more</p>
-      )}
+        </div>
+        <ul className="max-h-[60vh] overflow-y-auto divide-y divide-slate-100">
+          {rows.map((row) => (
+            <li key={row.name} className="flex items-center gap-3 px-4 py-2.5 text-sm">
+              <span className="font-semibold text-slate-900 min-w-0 truncate">{row.name}</span>
+              <span className="ml-auto shrink-0 tabular-nums text-slate-700">
+                <span className="font-bold text-slate-900">{row.have}</span>
+                <span className="text-slate-400">/</span>
+                <span>{row.need || "—"}</span>
+                {row.gap > 0 ? <span className="ml-1.5 font-bold text-rose-700">need {row.gap}</span> : null}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </div>
     </div>
   );
 }
@@ -100,6 +146,8 @@ function MiniCard({
   items,
   itemMode,
   limiter,
+  onOpen,
+  title,
 }: {
   label: string;
   count: number | string;
@@ -108,6 +156,8 @@ function MiniCard({
   items?: ItemSnap[];
   itemMode?: "low" | "target";
   limiter?: string | null;
+  onOpen?: () => void;
+  title?: string;
 }) {
   const tones = {
     ok: "border-emerald-200 bg-emerald-50",
@@ -121,21 +171,43 @@ function MiniCard({
     danger: "text-red-800",
     neutral: "text-slate-800",
   };
+  const clickable = Boolean(onOpen && items?.length);
+
   return (
-    <div className={`rounded-lg border px-2.5 py-2 ${tones[tone]}`}>
-      <div className="flex items-center justify-between gap-1">
-        <span className={`text-[10px] font-bold uppercase tracking-wide ${tone === 'danger' ? 'text-red-700' : 'text-slate-600'}`}>
-          {label}
-        </span>
-        <Icon className={`w-3.5 h-3.5 ${tone === 'danger' ? 'text-red-500' : 'text-slate-500'}`} />
-      </div>
-      <p className={`text-lg font-black tabular-nums leading-none mt-0.5 ${nums[tone]}`}>{count}</p>
-      {limiter ? (
-        <p className="text-[10px] text-slate-600 mt-1 truncate" title={limiter}>
-          Limited by <span className="font-bold text-slate-900">{limiter}</span>
+    <div
+      title={title}
+      role={clickable ? "button" : undefined}
+      tabIndex={clickable ? 0 : undefined}
+      onClick={clickable ? onOpen : undefined}
+      onKeyDown={
+        clickable
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onOpen?.();
+              }
+            }
+          : undefined
+      }
+      className={`rounded-xl border px-3.5 py-4 min-h-[7.5rem] ${tones[tone]} ${
+        clickable ? "cursor-pointer hover:brightness-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-400/60" : ""
+      }`}
+    >
+      <div className="flex flex-col h-full min-h-[5.5rem]">
+        <div className="flex items-center justify-between gap-1">
+          <span
+            className={`text-[10px] font-bold uppercase tracking-wide ${
+              tone === "danger" ? "text-red-700" : "text-slate-600"
+            }`}
+          >
+            {label}
+          </span>
+          <Icon className={`w-3.5 h-3.5 ${tone === "danger" ? "text-red-500" : "text-slate-500"}`} />
+        </div>
+        <p className={`mt-auto text-4xl font-black tabular-nums leading-none text-right ${nums[tone]}`}>
+          {count}
         </p>
-      ) : null}
-      {items && itemMode ? <ChipList items={items} mode={itemMode} /> : null}
+      </div>
     </div>
   );
 }
@@ -145,6 +217,11 @@ export default function InventoryDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [itemsModal, setItemsModal] = useState<{
+    title: string;
+    items: ItemSnap[];
+    mode: "low" | "target";
+  } | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -234,7 +311,7 @@ export default function InventoryDashboardPage() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 flex-1 min-w-0">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-2 flex-1 min-w-0">
                     <MiniCard
                       label="Boxes in stock"
                       count={product.boxesPossible}
@@ -248,16 +325,29 @@ export default function InventoryDashboardPage() {
                       icon={Box}
                       limiter={product.limitingComponent}
                     />
-                    {product.lowStockItems.length > 0 && (
-                      <MiniCard
-                        label="Low stock items"
-                        count={product.lowStockItems.length}
-                        tone="danger"
-                        icon={AlertTriangle}
-                        items={product.lowStockItems}
-                        itemMode="low"
-                      />
-                    )}
+                    <MiniCard
+                      label="Days of stock"
+                      count={
+                        product.daysOfStockLeft === null || product.daysOfStockLeft === undefined
+                          ? "—"
+                          : product.daysOfStockLeft
+                      }
+                      tone={
+                        product.daysOfStockLeft === null || product.daysOfStockLeft === undefined
+                          ? "neutral"
+                          : product.daysOfStockLeft <= 0
+                            ? "danger"
+                            : product.daysOfStockLeft <= 3
+                              ? "warn"
+                              : "ok"
+                      }
+                      icon={CalendarDays}
+                      title={
+                        product.avgDailyUnits && product.avgDailyUnits > 0
+                          ? `~${product.avgDailyUnits}/day over 30d · raw ${product.daysOfStockRaw ?? "—"}d − ${product.stockBufferDays ?? 3}d buffer`
+                          : "Not enough confirmed order history in the last 30 days"
+                      }
+                    />
                     {product.belowTargetItems.length > 0 && (
                       <MiniCard
                         label="Below target"
@@ -266,6 +356,30 @@ export default function InventoryDashboardPage() {
                         icon={Target}
                         items={product.belowTargetItems}
                         itemMode="target"
+                        onOpen={() =>
+                          setItemsModal({
+                            title: `${product.name} · Below target`,
+                            items: product.belowTargetItems,
+                            mode: "target",
+                          })
+                        }
+                      />
+                    )}
+                    {product.lowStockItems.length > 0 && (
+                      <MiniCard
+                        label="Low stock items"
+                        count={product.lowStockItems.length}
+                        tone="danger"
+                        icon={AlertTriangle}
+                        items={product.lowStockItems}
+                        itemMode="low"
+                        onOpen={() =>
+                          setItemsModal({
+                            title: `${product.name} · Low stock items`,
+                            items: product.lowStockItems,
+                            mode: "low",
+                          })
+                        }
                       />
                     )}
                   </div>
@@ -421,6 +535,15 @@ export default function InventoryDashboardPage() {
           </>
         )}
       </div>
+
+      {itemsModal ? (
+        <ItemsModal
+          title={itemsModal.title}
+          items={itemsModal.items}
+          mode={itemsModal.mode}
+          onClose={() => setItemsModal(null)}
+        />
+      ) : null}
     </div>
   );
 }
