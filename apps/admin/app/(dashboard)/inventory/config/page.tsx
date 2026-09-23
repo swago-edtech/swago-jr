@@ -100,7 +100,7 @@ function ItemsModal({
         className="relative z-10 w-full max-w-md rounded-2xl bg-white shadow-xl border border-slate-200 overflow-hidden"
       >
         <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-slate-100">
-          <h3 className="text-sm font-bold text-slate-900 truncate">{title}</h3>
+          <h3 className="text-sm font-bold text-slate-900 truncate max-w-full">{title}</h3>
           <div className="flex items-center gap-2 shrink-0">
             <button
               type="button"
@@ -151,7 +151,7 @@ function MiniCard({
 }: {
   label: string;
   count: number | string;
-  tone: "ok" | "warn" | "danger" | "neutral";
+  tone: "ok" | "info" | "warn" | "danger" | "neutral";
   icon: React.ComponentType<{ className?: string }>;
   items?: ItemSnap[];
   itemMode?: "low" | "target";
@@ -160,16 +160,25 @@ function MiniCard({
   title?: string;
 }) {
   const tones = {
-    ok: "border-emerald-200 bg-emerald-50",
-    warn: "border-amber-200 bg-amber-50",
-    danger: "border-red-500 bg-red-100 shadow-sm",
-    neutral: "border-slate-200 bg-slate-50",
+    ok: "border-emerald-300 bg-emerald-100/90",
+    info: "border-violet-300 bg-violet-100/90",
+    warn: "border-amber-300 bg-amber-100/90",
+    danger: "border-red-400 bg-red-100 shadow-sm",
+    neutral: "border-slate-300 bg-slate-100",
   };
   const nums = {
     ok: "text-emerald-800",
+    info: "text-violet-800",
     warn: "text-amber-800",
     danger: "text-red-800",
     neutral: "text-slate-800",
+  };
+  const labelTones = {
+    ok: "bg-emerald-600/15 text-emerald-950 ring-1 ring-emerald-700/20",
+    info: "bg-violet-600/15 text-violet-950 ring-1 ring-violet-700/20",
+    warn: "bg-amber-600/15 text-amber-950 ring-1 ring-amber-700/25",
+    danger: "bg-red-600/15 text-red-950 ring-1 ring-red-700/25",
+    neutral: "bg-slate-600/10 text-slate-900 ring-1 ring-slate-500/20",
   };
   const clickable = Boolean(onOpen && items?.length);
 
@@ -189,20 +198,30 @@ function MiniCard({
             }
           : undefined
       }
-      className={`rounded-xl border px-3.5 py-4 min-h-[7.5rem] ${tones[tone]} ${
+      className={`rounded-xl border-2 px-3.5 py-3 min-h-[6.5rem] h-full w-full ${tones[tone]} ${
         clickable ? "cursor-pointer hover:brightness-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-400/60" : ""
       }`}
     >
-      <div className="flex flex-col h-full min-h-[5.5rem]">
-        <div className="flex items-center justify-between gap-1">
+      <div className="flex flex-col h-full gap-2">
+        <div className="flex items-start justify-between gap-2">
           <span
-            className={`text-[10px] font-bold uppercase tracking-wide ${
-              tone === "danger" ? "text-red-700" : "text-slate-600"
-            }`}
+            className={`inline-flex max-w-[85%] rounded-md px-1.5 py-0.5 text-[11px] font-bold leading-snug tracking-normal shadow-sm ${labelTones[tone]}`}
           >
             {label}
           </span>
-          <Icon className={`w-3.5 h-3.5 ${tone === "danger" ? "text-red-500" : "text-slate-500"}`} />
+          <Icon
+            className={`w-4 h-4 shrink-0 mt-0.5 ${
+              tone === "danger"
+                ? "text-red-600"
+                : tone === "info"
+                  ? "text-violet-600"
+                  : tone === "warn"
+                    ? "text-amber-600"
+                    : tone === "ok"
+                      ? "text-emerald-600"
+                      : "text-slate-500"
+            }`}
+          />
         </div>
         <p className={`mt-auto text-4xl font-black tabular-nums leading-none text-right ${nums[tone]}`}>
           {count}
@@ -281,8 +300,8 @@ export default function InventoryDashboardPage() {
                 key={product._id}
                 className="rounded-xl border border-rose-100 bg-white shadow-sm px-3 py-2.5"
               >
-                <div className="flex flex-col lg:flex-row lg:items-center gap-3">
-                  <div className="flex items-center gap-2.5 lg:w-44 shrink-0 min-w-0">
+                <div className="flex flex-col lg:flex-row lg:items-stretch gap-3 w-full">
+                  <div className="flex items-center gap-2.5 w-full lg:w-52 xl:w-60 shrink-0 min-w-0">
                     {product.images?.[0] ? (
                       <div className="relative h-9 w-9 rounded-lg overflow-hidden border border-gray-200 shrink-0">
                         <Image
@@ -311,9 +330,9 @@ export default function InventoryDashboardPage() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-2 flex-1 min-w-0">
+                  <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 flex-1 min-w-0">
                     <MiniCard
-                      label="Boxes in stock"
+                      label="Stock available (units)"
                       count={product.boxesPossible}
                       tone={
                         product.productHealth === "out"
@@ -326,7 +345,7 @@ export default function InventoryDashboardPage() {
                       limiter={product.limitingComponent}
                     />
                     <MiniCard
-                      label="Days of stock"
+                      label="Days of stock remaining"
                       count={
                         product.daysOfStockLeft === null || product.daysOfStockLeft === undefined
                           ? "—"
@@ -339,7 +358,7 @@ export default function InventoryDashboardPage() {
                             ? "danger"
                             : product.daysOfStockLeft <= 3
                               ? "warn"
-                              : "ok"
+                              : "info"
                       }
                       icon={CalendarDays}
                       title={
@@ -350,7 +369,7 @@ export default function InventoryDashboardPage() {
                     />
                     {product.belowTargetItems.length > 0 && (
                       <MiniCard
-                        label="Below target"
+                        label="No of items below target"
                         count={product.belowTargetItems.length}
                         tone="warn"
                         icon={Target}
@@ -367,7 +386,7 @@ export default function InventoryDashboardPage() {
                     )}
                     {product.lowStockItems.length > 0 && (
                       <MiniCard
-                        label="Low stock items"
+                        label="No of critical low stock items"
                         count={product.lowStockItems.length}
                         tone="danger"
                         icon={AlertTriangle}
