@@ -337,9 +337,7 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
               originalPrice: refreshed.originalPrice || item.originalPrice,
               slug: refreshed.slug || item.slug,
               weight: refreshed.weight !== undefined ? refreshed.weight : item.weight,
-              quantity: refreshed.availableStock === 0
-                ? 0
-                : Math.min(item.quantity, refreshed.availableStock),
+              quantity: item.quantity, // Stock decoupled
             };
           }).filter(item => item.quantity > 0);
 
@@ -685,6 +683,7 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
+    // Stock decoupled: always allow adding to cart
     setCart((prev) => {
       const productId = getProductId(product);
       const existing = prev.find((p) => getProductId(p) === productId);
@@ -709,6 +708,7 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
 
       Feedback.playPop();
       return [...prev, { ...product, quantity, availableStock: available }];
+      return [...prev, { ...product, quantity }];
     });
   };
 
@@ -723,6 +723,7 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
     setCart((prev) => prev.map((p) => {
       if (getProductId(p) !== id.toString()) return p;
 
+      // Stock decoupled: always allow increase
       const newQuantity = p.quantity + 1;
       const available =
         p.availableStock ??
@@ -733,6 +734,7 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
         return p;
       }
 
+      
       Feedback.playPop();
       return { ...p, quantity: newQuantity };
     }));

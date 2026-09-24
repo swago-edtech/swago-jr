@@ -28,6 +28,14 @@ export async function POST(request: Request) {
       await user.save();
     }
 
+    if (user.cart?.length) {
+      user.cart = user.cart.filter(
+        (item: any) => item.productId && item.name && item.price != null && item.image
+      );
+    }
+
+    await user.save();
+
     return NextResponse.json({
       success: true,
       user: publicUserPayload(user),

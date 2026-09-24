@@ -303,12 +303,9 @@ export default function ProductPageClient({ product }: { product: Product }) {
     product.availableStock ??
     (product.stock !== undefined ? product.stock : undefined);
   const lowStockThreshold = product.lowStockThreshold ?? 10;
-  const isOutOfStock = availableStock !== undefined && availableStock === 0;
-  const isLowStock =
-    availableStock !== undefined &&
-    availableStock > 0 &&
-    availableStock <= lowStockThreshold;
-  const maxQuantity = availableStock !== undefined ? availableStock : 999;
+  const isOutOfStock = false; // Stock decoupled: customers can always order
+  const isLowStock = false; // Stock decoupled: hide low-stock urgency
+  const maxQuantity = 999; // Stock decoupled: no limit from inventory
 
   // Support both naming conventions
   const ageCategory = product.ageCategory || product.age_category || '';
@@ -745,7 +742,7 @@ export default function ProductPageClient({ product }: { product: Product }) {
                     onClick={handleIncrease}
                     className="px-3 md:px-4 py-1 hover:bg-purple-100 transition text-[hsl(var(--swago-purple))] font-bold text-lg md:text-xl"
                     aria-label="Increase quantity"
-                    disabled={availableStock !== undefined && quantityInCart >= availableStock}
+                    disabled={false}
                   >
                     +
                   </button>

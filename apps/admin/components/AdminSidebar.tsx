@@ -44,8 +44,8 @@ const navigation = [
     name: 'Inventory',
     icon: Warehouse,
     submenu: [
-      { name: 'Dashboard', href: '/inventory' },
-      { name: 'Configurations', href: '/inventory/config' },
+      { name: 'Dashboard', href: '/inventory/config' },
+      { name: 'Stock Items', href: '/inventory' },
       { name: 'Channel Email', href: '/inventory/channel-email' },
       { name: 'Transactions', href: '/inventory/transactions' },
     ]

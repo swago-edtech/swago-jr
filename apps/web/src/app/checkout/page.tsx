@@ -11,6 +11,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import { RiInformationLine, RiSearchLine, RiShoppingBag3Line } from "react-icons/ri";
 import CartProgress from "@/components/CartProgress";
 import { Feedback } from "@/lib/feedback";
+import {
+  COD_MAX_UNITS,
+  COD_UNIT_LIMIT_MESSAGE,
+  SWAGO_CONTACT,
+  cartUnitCount,
+  isCodOverUnitLimit,
+} from "@/lib/cod-limits";
 
 // ✅ States List for Dropdown
 const INDIAN_STATES = [
@@ -327,12 +334,17 @@ export default function CheckoutPage() {
     });
   }, []);
 
-  const isCodBlocked = useMemo(() => {
+  const cartUnits = useMemo(() => cartUnitCount(cart), [cart]);
+  const isCodOverLimit = useMemo(() => isCodOverUnitLimit(cart), [cart]);
+
+  const isCodBlockedByLocation = useMemo(() => {
     if (isInternational) return true;
     const stateBlocked = promotion?.blockedCodStates?.some((blockedState: string) => blockedState.toLowerCase() === state.toLowerCase()) || false;
     const pincodeBlocked = promotion?.blockedCodPincodes?.includes(pincode) || false;
     return stateBlocked || pincodeBlocked;
   }, [promotion, state, pincode, isInternational]);
+
+  const isCodBlocked = isCodBlockedByLocation || isCodOverLimit;
 
   useEffect(() => {
     if (isCodBlocked && paymentMethod === 'cod') {
@@ -674,7 +686,32 @@ export default function CheckoutPage() {
                   </div>
                   <div className="flex-1">
                     <span className="text-sm font-bold text-slate-900">Cash on Delivery (COD)</span>
-                    {isCodBlocked && <p className="text-[11px] text-red-500 font-bold mt-1">{isInternational ? 'COD is not available for international orders' : 'COD is not available for your location'}</p>}
+                    {isCodBlockedByLocation && (
+                      <p className="text-[11px] text-red-500 font-bold mt-1">
+                        {isInternational ? 'COD is not available for international orders' : 'COD is not available for your location'}
+                      </p>
+                    )}
+                    {isCodOverLimit && !isCodBlockedByLocation && (
+                      <div className="mt-2 text-[11px] text-slate-600 leading-relaxed space-y-1">
+                        <p className="font-bold text-amber-700">
+                          {COD_UNIT_LIMIT_MESSAGE} You have {cartUnits} units (max {COD_MAX_UNITS}).
+                        </p>
+                        <p>
+                          Call{" "}
+                          <a className="font-bold text-[hsl(var(--swago-purple))] underline" href={`tel:${SWAGO_CONTACT.phoneTel}`}>
+                            {SWAGO_CONTACT.phoneDisplay}
+                          </a>
+                          {" · "}
+                          <a className="font-bold text-[hsl(var(--swago-purple))] underline" href={SWAGO_CONTACT.whatsappUrl} target="_blank" rel="noopener noreferrer">
+                            WhatsApp
+                          </a>
+                          {" · "}
+                          <a className="font-bold text-[hsl(var(--swago-purple))] underline" href={`mailto:${SWAGO_CONTACT.email}`}>
+                            {SWAGO_CONTACT.email}
+                          </a>
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

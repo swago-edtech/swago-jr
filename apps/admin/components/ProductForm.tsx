@@ -38,6 +38,7 @@ type ProductFormData = {
   benefits: string;
   stock: number;
   lowStockThreshold: number;
+  amazonSku?: string;
   isFeatured: boolean;
   isActive: boolean;
   isCombo?: boolean;
@@ -111,6 +112,7 @@ export default function ProductForm({ mode, initialData, productId }: ProductFor
     benefits: initialData?.benefits ?? "",
     stock: initialData?.stock?.toString() ?? "0",
     lowStockThreshold: initialData?.lowStockThreshold?.toString() ?? "10",
+    amazonSku: (initialData as any)?.amazonSku ?? "",
     isFeatured: initialData?.isFeatured ?? false,
     isActive: initialData?.isActive ?? true,
     isCombo: initialData?.isCombo ?? false,
@@ -287,6 +289,7 @@ export default function ProductForm({ mode, initialData, productId }: ProductFor
         boxContents: form.boxContents,
         benefits: form.benefits,
         lowStockThreshold: parseInt(form.lowStockThreshold),
+        amazonSku: form.amazonSku.trim().toUpperCase(),
         isFeatured: form.isFeatured,
         isActive: form.isActive,
         isCombo: form.isCombo,
@@ -976,6 +979,24 @@ export default function ProductForm({ mode, initialData, productId }: ProductFor
                     className={fieldClass()}
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Amazon / Marketplace SKU
+                </label>
+                <input
+                  type="text"
+                  name="amazonSku"
+                  value={form.amazonSku}
+                  onChange={handleChange}
+                  placeholder="e.g. SWG-OBG-SSR-01-6Y"
+                  className={fieldClass()}
+                />
+                <p className="text-xs text-gray-500 mt-1.5">
+                  Paste the seller SKU from Amazon order emails so Channel Email can link sales to this
+                  product. This is separate from inventory unit SKUs under Inventory → Items.
+                </p>
               </div>
             </div>
 

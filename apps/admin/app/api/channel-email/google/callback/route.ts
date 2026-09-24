@@ -2,8 +2,25 @@ import { NextRequest, NextResponse } from "next/server";
 import { completeGmailOAuth } from "@swago/database";
 import { getAdminSession } from "@/lib/auth";
 
+const CALLBACK_PATH = "/api/channel-email/google/callback";
+
+function resolveGoogleRedirectUri(request: NextRequest) {
+  const fromEnv = process.env.GOOGLE_REDIRECT_URI?.trim();
+  if (fromEnv) return fromEnv.replace(/\/$/, "");
+  return `${request.nextUrl.origin}${CALLBACK_PATH}`;
+}
+
+function resolveAppOrigin(request: NextRequest) {
+  const redirectUri = resolveGoogleRedirectUri(request);
+  try {
+    return new URL(redirectUri).origin;
+  } catch {
+    return request.nextUrl.origin;
+  }
+}
+
 export async function GET(request: NextRequest) {
-  const origin = request.nextUrl.origin;
+  const origin = resolveAppOrigin(request);
   const session = await getAdminSession();
   if (!session) {
     return NextResponse.redirect(`${origin}/login`);
@@ -15,7 +32,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const redirectUri = `${origin}/api/channel-email/google/callback`;
+    const redirectUri = resolveGoogleRedirectUri(request);
     await completeGmailOAuth(code, redirectUri);
     return NextResponse.redirect(`${origin}/inventory/channel-email?connected=1`);
   } catch (error) {

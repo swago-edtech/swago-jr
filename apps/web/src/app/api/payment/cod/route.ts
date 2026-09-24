@@ -15,6 +15,12 @@ import {
   allocateInventoryForOrder,
   InsufficientInventoryError,
 } from "@/lib/inventory-service";
+import {
+  COD_MAX_UNITS,
+  COD_UNIT_LIMIT_MESSAGE,
+  SWAGO_CONTACT,
+  cartUnitCount,
+} from "@/lib/cod-limits";
 
 
 interface ProductDocument {
@@ -109,6 +115,16 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "COD is not available in your location" }, { status: 400 });
         }
 
+        const units = cartUnitCount(orderDetails.cart);
+        if (units > COD_MAX_UNITS) {
+            return NextResponse.json({
+                error: `${COD_UNIT_LIMIT_MESSAGE} Contact ${SWAGO_CONTACT.phoneDisplay} / WhatsApp / ${SWAGO_CONTACT.email}`,
+                code: "COD_UNIT_LIMIT",
+                maxUnits: COD_MAX_UNITS,
+                cartUnits: units,
+            }, { status: 400 });
+        }
+
         // Clean up expired orders first to release reserved stock
         await cleanupExpiredOrders();
 
@@ -146,22 +162,15 @@ export async function POST(req: Request) {
 
             const availableStock = product.availableStock ?? 0;
 
-            if (availableStock === 0) {
-                stockErrors.push(`${item.name} is out of stock`);
-            } else if (item.quantity > availableStock) {
-                stockErrors.push(`${item.name}: Only ${availableStock} available(you requested ${item.quantity})`);
-            } else {
-                reservations.push({ product, quantity: item.quantity });
+            if (availableStock <= 0) {
+                console.log(`⚠️ ${item.name}: negative/zero stock (${availableStock}), COD order still accepted`);
             }
+            reservations.push({ product, quantity: item.quantity });
         }
 
-        // If any stock errors, don't proceed
+        // Stock decoupled: stockErrors no longer block checkout
         if (stockErrors.length > 0) {
-            return NextResponse.json({
-                error: "Stock unavailable",
-                stockErrors: stockErrors,
-                details: stockErrors.join('; ')
-            }, { status: 400 });
+            console.log("⚠️ Stock warnings (non-blocking):", stockErrors);
         }
 
         // Stock validated — inventory allocated after order is created

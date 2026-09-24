@@ -29,7 +29,7 @@ export default function ProductConfigPage({ params }: { params: Promise<{ produc
           setProduct(prodData.product);
           if (prodData.config?.components) {
             setComponents(prodData.config.components.map((c: any) => ({
-              inventoryItemId: c.inventoryItemId,
+              inventoryItemId: String(c.inventoryItemId?._id || c.inventoryItemId || ""),
               quantity: c.quantity
             })));
           }
@@ -67,6 +67,22 @@ export default function ProductConfigPage({ params }: { params: Promise<{ produc
       newComps[index].quantity = Number(value);
     }
     setComponents(newComps);
+  };
+
+  const itemId = (value: unknown) => String((value as any)?._id || value || "");
+
+  /** Options for one row: keep this row's pick, hide items already chosen elsewhere. */
+  const optionsForRow = (rowIndex: number) => {
+    const selectedElsewhere = new Set(
+      components
+        .map((c, i) => (i === rowIndex ? "" : itemId(c.inventoryItemId)))
+        .filter(Boolean)
+    );
+    const current = itemId(components[rowIndex]?.inventoryItemId);
+    return inventoryItems.filter((item) => {
+      const id = itemId(item._id);
+      return id === current || !selectedElsewhere.has(id);
+    });
   };
 
   const handleSave = async () => {
@@ -161,11 +177,11 @@ export default function ProductConfigPage({ params }: { params: Promise<{ produc
                     <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Inventory Item</label>
                     <select
                       className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-900 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none bg-white shadow-sm"
-                      value={comp.inventoryItemId}
+                      value={itemId(comp.inventoryItemId)}
                       onChange={(e) => handleComponentChange(index, "inventoryItemId", e.target.value)}
                     >
                       <option value="">-- Select an item --</option>
-                      {inventoryItems.map((item: any) => (
+                      {optionsForRow(index).map((item: any) => (
                         <option key={item._id} value={item._id}>
                           {item.name} ({item.currentStock} {item.unit} available)
                         </option>

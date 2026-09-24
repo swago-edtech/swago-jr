@@ -2,6 +2,13 @@ import type { NextConfig } from "next";
 import path from "path";
 
 const nextConfig: NextConfig = {
+  // Optimize memory usage on constrained build machines like AWS t3a.medium (4GB RAM)
+  experimental: {
+    memoryBasedWorkersCount: true,
+    webpackMemoryOptimizations: true,
+    optimizePackageImports: ["lucide-react", "react-icons", "recharts", "date-fns"],
+  },
+
   // Standalone output for Docker — bundles only the files needed at runtime
   output: 'standalone',
 
@@ -39,8 +46,9 @@ const nextConfig: NextConfig = {
     ],
   },
 
-  // Silence MongoDB optional dependency warnings
+  // Silence MongoDB optional dependency warnings + cap parallelism for low-RAM builds
   webpack: (config, { isServer }) => {
+    config.parallelism = 1;
     if (isServer) {
       config.externals.push({
         'aws4': 'commonjs aws4',

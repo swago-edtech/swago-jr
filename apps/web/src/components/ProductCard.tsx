@@ -26,11 +26,8 @@ export default function ProductCard({ product }: { product: Product }) {
     product.availableStock ??
     (product.stock !== undefined ? product.stock : undefined);
   const lowStockThreshold = product.lowStockThreshold ?? 10;
-  const isOutOfStock = availableStock !== undefined && availableStock === 0;
-  const isLowStock =
-    availableStock !== undefined &&
-    availableStock > 0 &&
-    availableStock <= lowStockThreshold;
+  const isOutOfStock = false; // Stock decoupled: customers can always order
+  const isLowStock = false; // Stock decoupled: hide low-stock urgency
 
   // Check if item is in cart and get quantity
   const getCartItemId = (item: CartItem): string => {
@@ -290,7 +287,7 @@ export default function ProductCard({ product }: { product: Product }) {
                     onClick={handleIncrease}
                     className="px-3 py-2 hover:bg-purple-100 transition text-[hsl(var(--swago-purple))] font-bold text-lg"
                     aria-label="Increase quantity"
-                    disabled={availableStock !== undefined && quantityInCart >= availableStock}
+                    disabled={false}
                   >
                     +
                   </button>

@@ -14,7 +14,7 @@ This project is architected as a **pnpm monorepo** using **Next.js 14+** and **T
 - **Communication**: MSG91 for Email & OTP.
 - **Workspaces**:
   - `apps/web`: The main customer-facing store.
-  - `apps/admin`: Corporate management dashboard.
+  - `apps/admin`: Corporate management dashboard..
   - `packages/database`: Shared data models and connection logic..
 
 > 📖 **Deep Dive**: For a detailed technical breakdown, please refer to the [**ARCHITECTURE.md**](./ARCHITECTURE.md) file.
@@ -26,7 +26,7 @@ This project is architected as a **pnpm monorepo** using **Next.js 14+** and **T
 ### 1. Prerequisites
 - **Node.js**: 20.0.0 or higher
 - **pnpm**: 8.0.0 or higher
-- **MongoDB**: Access to a MongoDB Atlas cluster
+- **MongoDB**: Access to a MongoDB Atlas cluster..
 
 ### 2. Installation:
 ```bash
@@ -34,7 +34,7 @@ This project is architected as a **pnpm monorepo** using **Next.js 14+** and **T
 git clone <repository-url>
 cd swago-jr
 
-# Install all dependencies (Monorepo)
+# Install all dependencies (Monorepo)///
 pnpm install
 ```
 
@@ -77,7 +77,7 @@ swago-jr/
 ## 🚢 Deployment Context
 The application is designed to be hosted on **Serverless** or **Containerized** environments.
 - **Primary Hosting**: AWS Amplify (Recommended for Next.js Monorepos).
-- **Secondary Hosting**: Vercel / AWS EC2...
+- **Secondary Hosting**: Vercel / AWS EC2.....
 
 ---
 
@@ -85,7 +85,7 @@ The application is designed to be hosted on **Serverless** or **Containerized** 
 - **Ambassador Program**: Integrated reward system with "Swago Dollars" wallet.
 - **Lottery Engine**: Automated raffle and winner selection system.
 - **Payment Verification**: Robust webhook-based payment confirmation.
-- **Kid Profiles**: Persona-based access for games and activities.
+- **Kid Profiles**: Persona-based access for games and activities..
 
 ---
 

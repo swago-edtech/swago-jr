@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { applyChannelEvent, ignoreChannelEvent } from "@swago/database";
+import { applyChannelEvent, ignoreChannelEvent, rematchChannelEvent } from "@swago/database";
 import { requireAdmin } from "@/lib/auth";
 
 export async function POST(
@@ -14,6 +14,10 @@ export async function POST(
 
     if (action === "apply") {
       const event = await applyChannelEvent(id);
+      return NextResponse.json({ success: true, event });
+    }
+    if (action === "rematch") {
+      const event = await rematchChannelEvent(id);
       return NextResponse.json({ success: true, event });
     }
     if (action === "ignore") {

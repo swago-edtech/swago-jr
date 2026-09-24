@@ -156,6 +156,7 @@ export async function POST(request: NextRequest) {
       stock: 0,
       lowStockThreshold: body.lowStockThreshold || 10,
       weight: body.weight || 0,
+      amazonSku: String(body.amazonSku || "").trim().toUpperCase(),
       isFeatured: body.isFeatured || false,
       isActive: body.isActive !== undefined ? body.isActive : true,
       isCombo: combo.fields.isCombo,

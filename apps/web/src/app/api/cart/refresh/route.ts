@@ -124,6 +124,7 @@ export async function POST(req: Request) {
         });
       }
 
+      // Stock decoupled: no longer detect stock issues or reduce quantity
       // Build refreshed item with current DB data
       refreshedItems.push({
         productId: dbProduct.slug || dbProduct._id.toString(),
@@ -136,7 +137,7 @@ export async function POST(req: Request) {
         stock: dbProduct.stock ?? 0,
         availableStock,
         isActive: dbProduct.isActive,
-        quantity: availableStock === 0 ? 0 : Math.min(quantity, availableStock),
+        quantity, // Stock decoupled: keep whatever quantity they had
       });
     }
 

@@ -98,6 +98,9 @@ export async function PUT(
     }
     if (body.weight !== undefined) updateFields.weight = body.weight;
     if (body.lowStockThreshold !== undefined) updateFields.lowStockThreshold = body.lowStockThreshold;
+    if (body.amazonSku !== undefined) {
+      updateFields.amazonSku = String(body.amazonSku || "").trim().toUpperCase();
+    }
     if (body.isFeatured !== undefined) updateFields.isFeatured = body.isFeatured;
     if (body.isActive !== undefined) updateFields.isActive = body.isActive;
     if (

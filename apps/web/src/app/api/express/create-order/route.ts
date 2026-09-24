@@ -21,6 +21,12 @@ import {
   InsufficientInventoryError,
 } from "@/lib/inventory-service";
 import { findProductWithAvailability } from "@/lib/product-stock";
+import {
+  COD_MAX_UNITS,
+  COD_UNIT_LIMIT_MESSAGE,
+  SWAGO_CONTACT,
+  cartUnitCount,
+} from "@/lib/cod-limits";
 
 // ✅ JWT secret for session creation
 const secret = new TextEncoder().encode(process.env.JWT_SECRET);
@@ -157,6 +163,23 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "COD is not available in your location" }, { status: 400 });
     }
 
+    // ✅ COD unit limit — same guard as /api/payment/cod (before stock/order mutation)
+    if (paymentMethod === "cod") {
+      const units = cartUnitCount(items);
+      if (units > COD_MAX_UNITS) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `${COD_UNIT_LIMIT_MESSAGE} Contact ${SWAGO_CONTACT.phoneDisplay} / WhatsApp / ${SWAGO_CONTACT.email}`,
+            code: "COD_UNIT_LIMIT",
+            maxUnits: COD_MAX_UNITS,
+            cartUnits: units,
+          },
+          { status: 400 }
+        );
+      }
+    }
+
     await cleanupExpiredOrders();
 
     // ========================================
@@ -213,13 +236,10 @@ export async function POST(req: Request) {
 
       const availableStock = product.availableStock ?? 0;
 
-      if (availableStock === 0) {
-        stockErrors.push(`${product.name} is out of stock`);
-      } else if (item.quantity > availableStock) {
-        stockErrors.push(`${product.name}: Only ${availableStock} available (you requested ${item.quantity})`);
-      } else {
-        reservations.push({ product, quantity: item.quantity });
+      if (availableStock <= 0) {
+        console.log(`⚠️ [Express] ${product.name}: negative/zero stock (${availableStock}), order still accepted`);
       }
+      reservations.push({ product, quantity: item.quantity });
     }
 
     if (stockErrors.length > 0) {
