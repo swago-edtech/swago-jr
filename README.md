@@ -48,7 +48,7 @@ NEXT_PUBLIC_RAZORPAY_KEY=your_razorpay_key
 MSG91_AUTH_KEY=your_msg91_key
 ```
 
-### 4. Local Development
+### 4.. Local Development
 ```bash
 # Run everything (Web + Admin)
 pnpm dev
