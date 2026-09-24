@@ -26,6 +26,19 @@ export { default as PopupConfig } from './models/PopupConfig';
 export { default as ExpressConfig } from './models/ExpressConfig';
 export { default as InvoiceCounter } from './models/InvoiceCounter';
 export { default as InternationalConfig } from './models/InternationalConfig';
+export { default as ReturnGiftOrder } from './models/ReturnGiftOrder';
+export { default as GiftingPageConfig } from './models/GiftingPageConfig';
+export { default as InventoryItem } from './models/InventoryItem';
+export { default as ProductConfig } from './models/ProductConfig';
+export { default as InventoryTransaction } from './models/InventoryTransaction';
+export { default as ChannelEmailConfig } from './models/ChannelEmailConfig';
+export { default as ChannelOrderEvent } from './models/ChannelOrderEvent';
+export * from './services/inventory-sync';
 
 // Export database connection
 export { default as connectDB } from './connection';
+export * from './services/inventory-sync';
+export * from './services/inventory-order';
+export * from './services/channel-inventory';
+export * from './services/channel-email-sync';
+export * from './services/google-signin';

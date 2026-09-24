@@ -1,6 +1,7 @@
 'use server';
 
 import { connectDB, Product, Order } from '@swago/database';
+import { effectiveUnits } from '@/lib/combo-units';
 
 export interface InventoryRow {
   productId: string;
@@ -33,7 +34,7 @@ export async function getInventoryAnalytics(): Promise<InventoryAnalyticsData> {
   await connectDB();
 
   const products = await Product.find()
-    .select('_id name category price stock reservedStock lowStockThreshold')
+    .select('_id name category price stock reservedStock lowStockThreshold isCombo comboUnitCount')
     .lean();
 
   // Get current date in IST
@@ -53,6 +54,14 @@ export async function getInventoryAnalytics(): Promise<InventoryAnalyticsData> {
     status: { $in: confirmedStatuses },
   }).select('items createdAt').lean();
 
+  const comboById: Record<string, { isCombo?: boolean; comboUnitCount?: number }> = {};
+  for (const p of products as any[]) {
+    comboById[String(p._id)] = {
+      isCombo: Boolean(p.isCombo),
+      comboUnitCount: p.comboUnitCount || 1,
+    };
+  }
+
   const salesMap: Record<string, { today: number, month: number }> = {};
   
   for (const order of recentOrders) {
@@ -60,8 +69,9 @@ export async function getInventoryAnalytics(): Promise<InventoryAnalyticsData> {
     for (const item of order.items || []) {
       const pid = String(item.productId);
       if (!salesMap[pid]) salesMap[pid] = { today: 0, month: 0 };
-      salesMap[pid].month += item.quantity || 0;
-      if (isToday) salesMap[pid].today += item.quantity || 0;
+      const units = effectiveUnits(item.quantity || 0, comboById[pid]);
+      salesMap[pid].month += units;
+      if (isToday) salesMap[pid].today += units;
     }
   }
 

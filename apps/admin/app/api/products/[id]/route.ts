@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
-import { Product } from "@swago/database";
+import { Product, hasActiveBomConfig } from "@swago/database";
 import { connectDB } from "@swago/database";
 import mongoose from "mongoose";
+import { parseComboFields } from "@/lib/combo-units";
 
 // GET /api/products/[id] - Get single product
 export async function GET(
@@ -85,16 +86,52 @@ export async function PUT(
     if (body.coreElements !== undefined) updateFields.coreElements = body.coreElements;
     if (body.boxContents !== undefined) updateFields.boxContents = body.boxContents;
     if (body.benefits !== undefined) updateFields.benefits = body.benefits;
-    if (body.stock !== undefined) updateFields.stock = body.stock;
+    if (body.stock !== undefined) {
+      const bomConfigured = await hasActiveBomConfig(id);
+      if (bomConfigured) {
+        return NextResponse.json(
+          { error: "Stock is auto-calculated from inventory BOM and cannot be edited manually." },
+          { status: 400 }
+        );
+      }
+      updateFields.stock = body.stock;
+    }
     if (body.weight !== undefined) updateFields.weight = body.weight;
     if (body.lowStockThreshold !== undefined) updateFields.lowStockThreshold = body.lowStockThreshold;
+    if (body.amazonSku !== undefined) {
+      updateFields.amazonSku = String(body.amazonSku || "").trim().toUpperCase();
+    }
     if (body.isFeatured !== undefined) updateFields.isFeatured = body.isFeatured;
     if (body.isActive !== undefined) updateFields.isActive = body.isActive;
+    if (
+      body.isCombo !== undefined ||
+      body.comboUnitCount !== undefined ||
+      body.comboProductIds !== undefined
+    ) {
+      const combo = parseComboFields({
+        isCombo: body.isCombo !== undefined ? body.isCombo : existingProduct.isCombo,
+        comboUnitCount:
+          body.comboUnitCount !== undefined
+            ? body.comboUnitCount
+            : existingProduct.comboUnitCount,
+        comboProductIds:
+          body.comboProductIds !== undefined
+            ? body.comboProductIds
+            : existingProduct.comboProductIds,
+      });
+      if (!combo.ok) {
+        return NextResponse.json({ error: combo.error }, { status: 400 });
+      }
+      updateFields.isCombo = combo.fields.isCombo;
+      updateFields.comboUnitCount = combo.fields.comboUnitCount;
+      updateFields.comboProductIds = combo.fields.comboProductIds;
+    }
     if (body.label !== undefined) updateFields.label = body.label;
     if (body.rating !== undefined) updateFields.rating = body.rating;
     if (body.numReviews !== undefined) updateFields.numReviews = body.numReviews;
     if (body.showPromotionalMessage !== undefined) updateFields.showPromotionalMessage = body.showPromotionalMessage;
     if (body.promotionalMessage !== undefined) updateFields.promotionalMessage = body.promotionalMessage;
+    if (body.skills !== undefined) updateFields.skills = body.skills;
 
     // Update product
     const updatedProduct = await Product.findByIdAndUpdate(

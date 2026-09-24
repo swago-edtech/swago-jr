@@ -4,6 +4,7 @@
 import { NextResponse } from "next/server";
 import { connectDB, Product } from "@swago/database";
 import { isValidObjectId } from "mongoose";
+import { withEffectiveProductStock } from "@/lib/product-stock";
 
 interface RefreshRequestItem {
   productId: string;
@@ -77,12 +78,10 @@ export async function POST(req: Request) {
         continue;
       }
 
-      const dbProduct = product as any;
+      const dbProduct = await withEffectiveProductStock(product as any);
       const dbPrice = dbProduct.price;
       const dbName = dbProduct.name;
-      const dbStock = dbProduct.stock ?? 0;
-      const dbReservedStock = dbProduct.reservedStock ?? 0;
-      const availableStock = Math.max(0, dbStock - dbReservedStock);
+      const availableStock = dbProduct.availableStock ?? 0;
 
       // Detect price changes
       if (frontendPrice !== undefined && frontendPrice !== dbPrice) {
@@ -125,6 +124,7 @@ export async function POST(req: Request) {
         });
       }
 
+      // Stock decoupled: no longer detect stock issues or reduce quantity
       // Build refreshed item with current DB data
       refreshedItems.push({
         productId: dbProduct.slug || dbProduct._id.toString(),
@@ -134,10 +134,10 @@ export async function POST(req: Request) {
         price: dbPrice,
         originalPrice: dbProduct.originalPrice || undefined,
         images: dbProduct.images || ["/images/placeholder.png"],
-        stock: dbStock,
+        stock: dbProduct.stock ?? 0,
         availableStock,
         isActive: dbProduct.isActive,
-        quantity: availableStock === 0 ? 0 : Math.min(quantity, availableStock),
+        quantity, // Stock decoupled: keep whatever quantity they had
       });
     }
 

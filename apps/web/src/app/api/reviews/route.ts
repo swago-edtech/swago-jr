@@ -75,7 +75,7 @@ export async function POST(req: Request) {
     }
 
     // ✅ AI Sentiment Analysis (internal logging only)
-    console.log("🤖 Analyzing sentiment with GPT-4o-mini...");
+    console.log("🤖 Analyzing sentiment with Gemini...");
     const sentiment = await analyzeReviewSentiment(title, comment);
     console.log("📊 Sentiment Result:", {
       label: sentiment.label,

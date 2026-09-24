@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { connectDB, Product } from "@swago/database";
+import { connectDB, Product, getConfiguredProductIds, enrichProductAvailability, reconcileStaleProductStock } from "@swago/database";
 
-// ✅ Type definition for product data
 interface ProductData {
   _id: string;
   name: string;
@@ -22,7 +21,6 @@ interface ProductData {
   [key: string]: unknown;
 }
 
-// ✅ Type definition for query filter
 interface ProductQuery {
   isActive: boolean;
   name?: { $regex: string; $options: string };
@@ -31,53 +29,29 @@ interface ProductQuery {
   isFeatured?: boolean;
 }
 
-// Cache for product listings
-const listCache = new Map<string, { data: ProductData[]; timestamp: number }>();
-const CACHE_TTL = 60000; // 1 minute cache for product lists
-
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    
-    // Extract query parameters
+
     const search = searchParams.get("search") || "";
     const age = searchParams.get("age") || "";
     const elements = searchParams.get("elements") || "";
     const featured = searchParams.get("featured") === "true";
 
-    // Create cache key
-    const cacheKey = `${search}-${age}-${elements}-${featured}`;
-    const cached = listCache.get(cacheKey);
-    
-    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-      console.log(`Product list cache hit: ${cacheKey}`);
-      const response = NextResponse.json({
-        success: true,
-        products: cached.data,
-        count: cached.data.length
-      });
-      response.headers.set('X-Cache', 'HIT');
-      response.headers.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=120');
-      return response;
-    }
-
-    // Connect to database
     await connectDB();
 
-    // ✅ Build query with proper typing
+    await reconcileStaleProductStock();
+
     const query: ProductQuery = { isActive: true };
 
-    // Search filter
     if (search) {
       query.name = { $regex: search, $options: "i" };
     }
 
-    // Age category filter
     if (age) {
       query.ageCategory = age;
     }
 
-    // Core elements filter (all selected elements must be present)
     if (elements) {
       const elementArray = elements.split(",").filter(Boolean);
       if (elementArray.length > 0) {
@@ -85,51 +59,37 @@ export async function GET(request: Request) {
       }
     }
 
-    // Featured filter
     if (featured) {
       query.isFeatured = true;
     }
 
-    // Fetch products
+    const configuredIds = await getConfiguredProductIds();
+
     const products = await Product.find(query)
-      .select("-__v") // Exclude version key
+      .select("-__v")
       .sort({ createdAt: -1 })
       .lean() as unknown as ProductData[];
 
-
-    // Store in cache
-    listCache.set(cacheKey, {
-      data: products,
-      timestamp: Date.now()
-    });
-
-    // Clean up old cache entries
-    if (listCache.size > 100) {
-      const now = Date.now();
-      for (const [key, value] of listCache.entries()) {
-        if (now - value.timestamp > CACHE_TTL * 2) {
-          listCache.delete(key);
-        }
-      }
-    }
+    const productsWithEffectiveStock = products.map((product) =>
+      enrichProductAvailability(product, configuredIds)
+    );
 
     const response = NextResponse.json({
       success: true,
-      products: products,
-      count: products.length
+      products: productsWithEffectiveStock,
+      count: productsWithEffectiveStock.length,
     });
 
-    response.headers.set('X-Cache', 'MISS');
-    response.headers.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=120');
+    response.headers.set("Cache-Control", "no-store");
 
     return response;
   } catch (error) {
     console.error("Error fetching products:", error);
     return NextResponse.json(
-      { 
-        success: false, 
+      {
+        success: false,
         error: "Failed to fetch products",
-        message: error instanceof Error ? error.message : "Unknown error"
+        message: error instanceof Error ? error.message : "Unknown error",
       },
       { status: 500 }
     );

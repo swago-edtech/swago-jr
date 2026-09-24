@@ -1,6 +1,6 @@
 # Swago Jr. - Monorepo
 
-Welcome to the **Swago Jr.** official repository. This is a full-stack, high-performance e-commerce platform designed for children, featuring a unique Ambassador Program, Lottery mechanics, and a secure shopping experience.
+Welcome to the **Swago Jr.** official repository. This is a full-stack, high-performance e-commerce platform designed for children, featuring a unique Ambassador Program, Lottery mechanics, and a secure shopping experience..
 
 ---
 
@@ -14,8 +14,8 @@ This project is architected as a **pnpm monorepo** using **Next.js 14+** and **T
 - **Communication**: MSG91 for Email & OTP.
 - **Workspaces**:
   - `apps/web`: The main customer-facing store.
-  - `apps/admin`: Corporate management dashboard.
-  - `packages/database`: Shared data models and connection logic.
+  - `apps/admin`: Corporate management dashboard..
+  - `packages/database`: Shared data models and connection logic..
 
 > 📖 **Deep Dive**: For a detailed technical breakdown, please refer to the [**ARCHITECTURE.md**](./ARCHITECTURE.md) file.
 
@@ -24,17 +24,17 @@ This project is architected as a **pnpm monorepo** using **Next.js 14+** and **T
 ## 🚀 Quick Start Guide
 
 ### 1. Prerequisites
-- **Node.js**: 18.0.0 or higher
+- **Node.js**: 20.0.0 or higher
 - **pnpm**: 8.0.0 or higher
-- **MongoDB**: Access to a MongoDB Atlas cluster
+- **MongoDB**: Access to a MongoDB Atlas cluster..
 
-### 2. Installation
+### 2. Installation:
 ```bash
 # Clone the repository
 git clone <repository-url>
 cd swago-jr
 
-# Install all dependencies (Monorepo)
+# Install all dependencies (Monorepo)///
 pnpm install
 ```
 
@@ -48,7 +48,7 @@ NEXT_PUBLIC_RAZORPAY_KEY=your_razorpay_key
 MSG91_AUTH_KEY=your_msg91_key
 ```
 
-### 4. Local Development
+### 4.. Local Development
 ```bash
 # Run everything (Web + Admin)
 pnpm dev
@@ -77,7 +77,7 @@ swago-jr/
 ## 🚢 Deployment Context
 The application is designed to be hosted on **Serverless** or **Containerized** environments.
 - **Primary Hosting**: AWS Amplify (Recommended for Next.js Monorepos).
-- **Secondary Hosting**: Vercel / AWS EC2.
+- **Secondary Hosting**: Vercel / AWS EC2.....
 
 ---
 
@@ -85,8 +85,8 @@ The application is designed to be hosted on **Serverless** or **Containerized** 
 - **Ambassador Program**: Integrated reward system with "Swago Dollars" wallet.
 - **Lottery Engine**: Automated raffle and winner selection system.
 - **Payment Verification**: Robust webhook-based payment confirmation.
-- **Kid Profiles**: Persona-based access for games and activities.
+- **Kid Profiles**: Persona-based access for games and activities..
 
 ---
 
-© 2024-2025 Swago Jr. All rights reserved.
+© 2025-2026 Swago Jr. All rights reserved...

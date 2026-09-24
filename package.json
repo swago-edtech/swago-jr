@@ -12,14 +12,17 @@
     "dev:web": "TZ=Asia/Kolkata pnpm --filter web dev",
     "dev:admin": "TZ=Asia/Kolkata pnpm --filter admin dev",
     "dev": "concurrently \"pnpm dev:web\" \"pnpm dev:admin\"",
-    "build": "pnpm build:web && pnpm build:admin",
-    "build:web": "pnpm --filter web build",
-    "build:admin": "pnpm --filter admin build",
-    "start:web": "TZ=Asia/Kolkata pnpm --filter web start",
+    "build": "NODE_OPTIONS=\"--max-old-space-size=2560\" pnpm build:web && NODE_OPTIONS=\"--max-old-space-size=2560\" pnpm build:admin",
+    "build:web": "NODE_OPTIONS=\"--max-old-space-size=2560\" pnpm --filter web build",
+    "build:admin": "NODE_OPTIONS=\"--max-old-space-size=2560\" pnpm --filter admin build",
+    "start:web": "TZ=Asia/Kolkata concurrently -n web,channel-email -c blue,green \"pnpm --filter web start\" \"pnpm worker:channel-email\"",
     "start:admin": "TZ=Asia/Kolkata pnpm --filter admin start",
+    "start": "concurrently -n web,admin -c blue,magenta \"pnpm start:web\" \"pnpm start:admin\"",
+    "start:web-only": "TZ=Asia/Kolkata pnpm --filter web start",
     "lint": "pnpm --recursive run lint",
     "clean": "pnpm --recursive run clean && rm -rf node_modules",
-    "type-check": "pnpm --recursive run type-check"
+    "type-check": "pnpm --recursive run type-check",
+    "worker:channel-email": "node scripts/workers/channel-email-sync.js"
   },
   "devDependencies": {
     "@types/node": "^20.19.19",
@@ -30,17 +33,9 @@
     "mongoose": "^8.19.0",
     "typescript": "^5"
   },
-  "pnpm": {
-    "overrides": {
-      "react": "19.1.0",
-      "react-dom": "19.1.0",
-      "next": "16.1.4"
-    }
-  },
   "dependencies": {
     "@next/third-parties": "^16.1.3",
     "lucide-react": "^0.344.0",
-    "openai": "^6.6.0",
     "recharts": "^3.4.1",
     "xlsx": "^0.18.5"
   }

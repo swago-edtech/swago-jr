@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "NODE_OPTIONS=\"--max-old-space-size=2560\" next build --webpack",
     "start": "next start",
     "lint": "eslint"
   },
@@ -31,7 +31,6 @@
     "lucide-react": "^0.344.0",
     "mongoose": "^8.18.1",
     "next": "16.1.4",
-    "openai": "^6.6.0",
     "pdfkit": "^0.19.1",
     "razorpay": "^2.9.6",
     "react": "19.1.0",
@@ -40,6 +39,7 @@
     "react-email": "^4.2.11",
     "react-icons": "^5.5.0",
     "react-phone-number-input": "^3.4.13",
+    "react-zoom-pan-pinch": "^4.0.4",
     "swiper": "^14.0.5",
     "twilio": "^5.9.0",
     "zod": "^4.1.11"

@@ -4,10 +4,11 @@
 // Returns product data, coupon validation, cross-sell recommendations, and promotion config.
 
 import { NextRequest, NextResponse } from "next/server";
-import { connectDB, Product, Promotion, ExpressConfig } from "@swago/database";
+import { connectDB, Product, Promotion, ExpressConfig, getConfiguredProductIds } from "@swago/database";
 import { isValidObjectId } from "mongoose";
 import { validateCoupon } from "@/lib/coupon";
 import { Coupon } from "@swago/database";
+import { findProductWithAvailability, enrichProductAvailability } from "@/lib/product-stock";
 
 // ✅ Type for product documents
 interface ProductDocument {
@@ -35,23 +36,10 @@ interface ProductDocument {
 }
 
 /**
- * Fetch a product by slug or MongoDB _id
+ * Fetch a product by slug or MongoDB _id with effective availability
  */
-async function getProductByIdOrSlug(id: string): Promise<ProductDocument | null> {
-  try {
-    // Try slug first
-    let product = await Product.findOne({ slug: id, isActive: true }).lean();
-
-    // Try MongoDB _id if valid ObjectId
-    if (!product && isValidObjectId(id)) {
-      product = await Product.findOne({ _id: id, isActive: true }).lean();
-    }
-
-    return product as ProductDocument | null;
-  } catch (error) {
-    console.error("Error fetching product:", error);
-    return null;
-  }
+async function getProductByIdOrSlug(id: string) {
+  return findProductWithAvailability(id);
 }
 
 export async function GET(request: NextRequest) {
@@ -81,7 +69,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const availableStock = Math.max(0, product.stock - (product.reservedStock || 0));
+    const availableStock = product.availableStock ?? 0;
 
     if (availableStock === 0) {
       return NextResponse.json(
@@ -138,12 +126,9 @@ export async function GET(request: NextRequest) {
       .limit(4)
       .lean() as unknown as ProductDocument[];
 
-    // Add available stock to each cross-sell product
+    const configuredIds = await getConfiguredProductIds();
     const crossSells = crossSellProducts
-      .map((p) => ({
-        ...p,
-        availableStock: Math.max(0, p.stock - (p.reservedStock || 0)),
-      }))
+      .map((p) => enrichProductAvailability(p, configuredIds))
       .filter((p) => p.availableStock > 0);
 
     // ========================================

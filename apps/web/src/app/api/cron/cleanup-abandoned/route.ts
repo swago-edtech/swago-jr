@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectDB, Order, Product } from "@swago/database";
 import { isValidObjectId } from "mongoose";
 import { invalidateProductCache } from "@/lib/productCache";
+import { releaseInventoryAllocation } from "@/lib/inventory-service";
 
 
 // ✅ Type for product document
@@ -80,11 +81,12 @@ export async function GET(req: NextRequest) {
         // Find orders that are Pending and were created more than X minutes ago
         const abandonedOrders = await Order.find({
             status: 'Pending',
+            paymentMethod: { $ne: 'cod' },
             $or: [
                 { stockReservedAt: { $lt: cutoffTime } },
                 { stockReservedAt: { $exists: false }, createdAt: { $lt: cutoffTime } }
             ]
-        }).limit(100);  // Process in batches
+        }).limit(100);
 
         console.log(`📦 Found ${abandonedOrders.length} abandoned orders to process`);
 
@@ -105,7 +107,11 @@ export async function GET(req: NextRequest) {
             try {
                 console.log(`\n🔄 Processing order: ${order.orderId || order._id}`);
 
-                // Release reserved stock for each item
+                if (order.inventoryAllocationStatus === "allocated") {
+                    await releaseInventoryAllocation(order);
+                }
+
+                // Release legacy reserved stock for each item
                 for (const item of order.items) {
                     const productId = item.productId;
                     if (!productId) continue;

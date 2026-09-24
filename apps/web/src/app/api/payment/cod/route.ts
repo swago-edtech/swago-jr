@@ -10,6 +10,17 @@ import { cleanupExpiredOrders } from "@/lib/cleanupExpiredOrders";
 import { invalidateProductCache } from "@/lib/productCache";
 import { validateCoupon } from "@/lib/coupon";
 import { generateAndUploadInvoice } from "@/lib/invoice-service";
+import { findProductWithAvailability } from "@/lib/product-stock";
+import {
+  allocateInventoryForOrder,
+  InsufficientInventoryError,
+} from "@/lib/inventory-service";
+import {
+  COD_MAX_UNITS,
+  COD_UNIT_LIMIT_MESSAGE,
+  SWAGO_CONTACT,
+  cartUnitCount,
+} from "@/lib/cod-limits";
 
 
 interface ProductDocument {
@@ -44,19 +55,8 @@ interface OrderItem {
 }
 
 // Helper to get product by ID or slug
-async function getProductById(id: string): Promise<ProductDocument | null> {
-    try {
-        let product = await Product.findOne({ slug: id, isActive: true });
-
-        if (!product && isValidObjectId(id)) {
-            product = await Product.findOne({ _id: id, isActive: true });
-        }
-
-        return product as ProductDocument | null;
-    } catch (error) {
-        console.error('Error fetching product:', error);
-        return null;
-    }
+async function getProductById(id: string) {
+    return findProductWithAvailability(id);
 }
 
 // Check if phone is Indian (+91)
@@ -115,6 +115,16 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "COD is not available in your location" }, { status: 400 });
         }
 
+        const units = cartUnitCount(orderDetails.cart);
+        if (units > COD_MAX_UNITS) {
+            return NextResponse.json({
+                error: `${COD_UNIT_LIMIT_MESSAGE} Contact ${SWAGO_CONTACT.phoneDisplay} / WhatsApp / ${SWAGO_CONTACT.email}`,
+                code: "COD_UNIT_LIMIT",
+                maxUnits: COD_MAX_UNITS,
+                cartUnits: units,
+            }, { status: 400 });
+        }
+
         // Clean up expired orders first to release reserved stock
         await cleanupExpiredOrders();
 
@@ -150,50 +160,20 @@ export async function POST(req: Request) {
                 continue;
             }
 
-            const availableStock = Math.max(0, product.stock - (product.reservedStock || 0));
+            const availableStock = product.availableStock ?? 0;
 
-            if (availableStock === 0) {
-                stockErrors.push(`${item.name} is out of stock`);
-            } else if (item.quantity > availableStock) {
-                stockErrors.push(`${item.name}: Only ${availableStock} available(you requested ${item.quantity})`);
-            } else {
-                reservations.push({ product, quantity: item.quantity });
+            if (availableStock <= 0) {
+                console.log(`⚠️ ${item.name}: negative/zero stock (${availableStock}), COD order still accepted`);
             }
+            reservations.push({ product, quantity: item.quantity });
         }
 
-        // If any stock errors, don't proceed
+        // Stock decoupled: stockErrors no longer block checkout
         if (stockErrors.length > 0) {
-            return NextResponse.json({
-                error: "Stock unavailable",
-                stockErrors: stockErrors,
-                details: stockErrors.join('; ')
-            }, { status: 400 });
+            console.log("⚠️ Stock warnings (non-blocking):", stockErrors);
         }
 
-        // Step 2: Reduce stock immediately for COD orders
-        for (const { product, quantity } of reservations) {
-            product.stock = Math.max(0, product.stock - quantity);
-            product.totalSold = (product.totalSold || 0) + quantity;
-            if (product.reservedStock && product.reservedStock < 0) {
-                product.reservedStock = 0;
-            }
-            await product.save();
-
-            try {
-                invalidateProductCache(product.slug || '');
-                invalidateProductCache(product._id.toString());
-                revalidatePath(`/ product / ${product.slug} `);
-                revalidatePath(`/ product / ${product._id} `);
-                revalidatePath('/products');
-                revalidatePath('/');
-            } catch (e) {
-                console.error('Revalidate path/cache failed', e);
-            }
-        }
-
-        // ========================================
-        // CALCULATE FINAL TOTAL ORDER
-        // ========================================
+        // Stock validated — inventory allocated after order is created
         const orderId = await generateOrderId();
 
         // ZEPRO Reference: Server-side Bonus Item Validation
@@ -346,6 +326,32 @@ export async function POST(req: Request) {
                 couponDetails: validatedCoupon,
             }),
         });
+
+        try {
+            await allocateInventoryForOrder(newOrder, { consumeImmediately: true });
+        } catch (allocError) {
+            await Order.findByIdAndDelete(newOrder._id);
+            if (allocError instanceof InsufficientInventoryError) {
+                return NextResponse.json({
+                    error: "Stock unavailable",
+                    stockErrors: [allocError.message],
+                    details: allocError.message,
+                }, { status: 400 });
+            }
+            throw allocError;
+        }
+
+        for (const { product, quantity } of reservations) {
+            await Product.findByIdAndUpdate(product._id, {
+                $inc: { totalSold: quantity },
+            });
+            try {
+                invalidateProductCache(product.slug || '');
+                invalidateProductCache(product._id.toString());
+            } catch {
+                // non-critical
+            }
+        }
 
         // Increment coupon usage
         if (newOrder.couponCode) {

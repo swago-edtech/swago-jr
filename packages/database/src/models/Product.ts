@@ -92,6 +92,15 @@ const ProductSchema = new mongoose.Schema(
       min: [0, "Total sold cannot be negative"]
     },
 
+    // Amazon / marketplace listing SKU (e.g. SWG-OBG-SSR-01-6Y) for channel email matching
+    amazonSku: {
+      type: String,
+      default: "",
+      uppercase: true,
+      trim: true,
+      index: true,
+    },
+
     // 🆕 NEW: Lottery Code Short Forms
     shortForms: {
       type: [String],
@@ -109,6 +118,23 @@ const ProductSchema = new mongoose.Schema(
     isFeatured: {
       type: Boolean,
       default: false
+    },
+
+    // Combo pack: one SKU that ships multiple physical units (analytics multiplier only)
+    isCombo: {
+      type: Boolean,
+      default: false
+    },
+
+    comboUnitCount: {
+      type: Number,
+      default: 1,
+      min: [1, "Combo unit count must be at least 1"]
+    },
+
+    comboProductIds: {
+      type: [String],
+      default: []
     },
 
     label: {

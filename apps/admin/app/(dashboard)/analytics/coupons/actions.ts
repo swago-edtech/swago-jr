@@ -29,9 +29,9 @@ export async function getCouponAnalytics(from: string, to: string): Promise<Coup
   // Get orders that have a coupon applied
   const orders = await Order.find({
     createdAt: { $gte: fromDate, $lte: toDate },
-    couponApplied: { $exists: true, $ne: '' },
+    couponCode: { $exists: true, $ne: '' },
   })
-    .select('total subtotal discount status couponApplied')
+    .select('total subtotal discount status couponCode paymentMethod')
     .lean();
 
   const confirmedStatuses = ['Paid', 'Packed', 'Shipped', 'Out for Delivery', 'Delivered'];
@@ -49,10 +49,13 @@ export async function getCouponAnalytics(from: string, to: string): Promise<Coup
   let totalRevenueFromCoupons = 0;
 
   for (const order of orders) {
-    const code = (order.couponApplied || 'UNKNOWN').toUpperCase();
+    const code = (order.couponCode || 'UNKNOWN').toUpperCase();
     
     // Only count confirmed/successful orders for revenue metrics
-    if (!confirmedStatuses.includes(order.status)) continue;
+    const isConfirmedPrepaid = confirmedStatuses.includes(order.status);
+    const isConfirmedCod = order.status === 'Pending' && order.paymentMethod === 'cod';
+    
+    if (!isConfirmedPrepaid && !isConfirmedCod) continue;
 
     const discount = order.discount || 0;
     const net = order.total || 0;

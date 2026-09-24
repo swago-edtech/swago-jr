@@ -1,16 +1,7 @@
-import { connectDB, Order, Product } from '@swago/database';
+import { connectDB, Order, Product, releaseInventoryAllocation } from '@swago/database';
 
 // ✅ Payment window expiry time in minutes (must match web/orders/page.tsx)
 const PAYMENT_EXPIRY_MINUTES = 10;
-
-interface ExpiredOrder {
-    _id: string;
-    orderId?: string;
-    items?: Array<{
-        productId?: string | number;
-        quantity: number;
-    }>;
-}
 
 /**
  * Mark expired prepaid orders as "Abandoned" and release reserved stock.
@@ -28,12 +19,12 @@ export async function cleanupExpiredOrders(): Promise<number> {
 
         const expiryTime = new Date(Date.now() - (PAYMENT_EXPIRY_MINUTES * 60 * 1000));
 
-        // Find expired prepaid orders
+        // Find expired prepaid orders (need inventory fields for BOM release)
         const expiredOrders = await Order.find({
             paymentMethod: { $ne: 'cod' },  // Not COD (prepaid only)
             status: { $in: ['Pending', 'pending'] },
             createdAt: { $lt: expiryTime }
-        }).select('_id orderId items').lean() as ExpiredOrder[];
+        });
 
         if (expiredOrders.length === 0) {
             return 0;
@@ -41,15 +32,15 @@ export async function cleanupExpiredOrders(): Promise<number> {
 
         console.log(`🧹 Found ${expiredOrders.length} expired prepaid orders to mark as abandoned`);
 
-        // Mark orders as abandoned
-        const orderIds = expiredOrders.map(o => o._id);
-        await Order.updateMany(
-            { _id: { $in: orderIds } },
-            { $set: { status: 'Abandoned' } }
-        );
-
-        // Release reserved stock for each order
         for (const order of expiredOrders) {
+            order.status = 'Abandoned';
+            await order.save();
+
+            // Restock BOM inventory allocated during prepaid reserve
+            if (order.inventoryAllocationStatus === 'allocated') {
+                await releaseInventoryAllocation(order);
+            }
+
             if (!order.items) continue;
 
             for (const item of order.items) {

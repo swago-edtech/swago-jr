@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { connectDB, Product } from "@swago/database";
+import { connectDB, Product, getConfiguredProductIds, applyEffectiveProductStock, getEffectiveAvailableStock } from "@swago/database";
+import { isValidObjectId } from "mongoose";
 
 export async function GET(request: Request) {
   try {
@@ -17,19 +18,40 @@ export async function GET(request: Request) {
 
     await connectDB();
 
-    const products = await Product.find({ _id: { $in: ids } })
-      .select("_id stock")
-      .lean() as Array<{ _id: { toString(): string }; stock?: number }>;
+    const configuredIds = await getConfiguredProductIds();
+    const objectIds = ids.filter((id) => isValidObjectId(id));
+    const slugs = ids.filter((id) => !isValidObjectId(id));
+
+    const orConditions: Record<string, unknown>[] = [];
+    if (objectIds.length) orConditions.push({ _id: { $in: objectIds } });
+    if (slugs.length) orConditions.push({ slug: { $in: slugs } });
+
+    const products = await Product.find({ $or: orConditions })
+      .select("_id slug stock reservedStock")
+      .lean() as Array<{
+        _id: { toString(): string };
+        slug?: string;
+        stock?: number;
+        reservedStock?: number;
+      }>;
 
     const stockMap: Record<string, { available: number; reserved: number; total: number }> = {};
 
     for (const product of products) {
-      const total = product.stock ?? 0;
-      stockMap[product._id.toString()] = {
-        available: total,
+      const id = product._id.toString();
+      const hasConfig = configuredIds.has(id);
+      const effective = applyEffectiveProductStock(product, configuredIds);
+      const total = effective.stock ?? 0;
+      const entry = {
+        available: getEffectiveAvailableStock(effective, hasConfig),
         reserved: 0,
         total,
       };
+
+      stockMap[product._id.toString()] = entry;
+      if (product.slug) {
+        stockMap[product.slug] = entry;
+      }
     }
 
     return NextResponse.json({ success: true, stock: stockMap });

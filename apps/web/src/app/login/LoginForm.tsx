@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSharedContext } from "@/context/SharedContext";
 import { USER_EVENTS } from "@/context/SharedContext";
@@ -8,6 +8,7 @@ import Script from "next/script";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { HiLockClosed } from "react-icons/hi";
+import GoogleSignInButton, { GoogleAuthDivider } from "@/components/GoogleSignInButton";
 
 type AuthMode = "signup" | "signin";
 
@@ -27,22 +28,32 @@ export default function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [scriptLoaded, setScriptLoaded] = useState(false);
   const [widgetReady, setWidgetReady] = useState(false);
-  const [isMounted, setIsMounted] = useState(false); // ✅ Track client-side mounting
+  const [isMounted, setIsMounted] = useState(false);
   const router = useRouter();
   const { setUser, cart } = useSharedContext();
-  const { country } = useCountry();
+  const { country, isInternational, isLoading: countryLoading } = useCountry();
+
+  // ✅ Resolve international flag once on first mount to prevent flicker
+  const resolvedRef = useRef<{ isInt: boolean } | null>(null);
+  if (!countryLoading && !resolvedRef.current) {
+    resolvedRef.current = { isInt: isInternational };
+  }
+  const isInt = resolvedRef.current?.isInt ?? false;
 
   const searchParams = useSearchParams();
   const rawRedirect = searchParams.get("redirect") || searchParams.get("callbackUrl");
   const redirectUrl = rawRedirect?.startsWith('/kids') ? '/profile' : rawRedirect;
 
-  // Demo credentials
+  // Demo credentials (phone demo only)
   const DEMO_PHONE = "9876543210";
   const DEMO_OTP_HINT = "123456";
 
-  // Widget configuration
-  const WIDGET_ID = process.env.NEXT_PUBLIC_MSG91_WIDGET_ID!;
+  // ✅ Widget configuration — EMAIL widget for international, PHONE for domestic
+  const PHONE_WIDGET_ID = process.env.NEXT_PUBLIC_MSG91_WIDGET_ID!;
+  const EMAIL_WIDGET_ID = process.env.NEXT_PUBLIC_MSG91_EMAIL_WIDGET_ID!;
   const TOKEN_AUTH = process.env.NEXT_PUBLIC_MSG91_TOKEN_AUTH!;
+  const activeWidgetId = isInt ? EMAIL_WIDGET_ID : PHONE_WIDGET_ID;
+  const activeWidgetType = isInt ? 'email' : 'phone';
 
   const handleWidgetLoad = () => {
     console.log("📱 MSG91 script loaded");
@@ -51,32 +62,49 @@ export default function LoginForm() {
 
   // ✅ Track client-side mounting and handle widget conflicts
   useEffect(() => {
+    const googleErrors: Record<string, string> = {
+      google_denied: "Google sign-in was cancelled. You can try again or use OTP.",
+      google_failed: "Google sign-in failed. Please try again or use OTP.",
+      google_not_configured: "Google sign-in is not configured yet. Use phone or email OTP.",
+    };
+    const oauthError = searchParams.get("error");
+    if (oauthError && googleErrors[oauthError]) {
+      setMessage(`❌ ${googleErrors[oauthError]}`);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
     setIsMounted(true);
+  }, []);
+
+  // ✅ Widget type switching: wait for country to resolve, then enforce the correct widget
+  useEffect(() => {
+    if (countryLoading || !isMounted) return;
 
     // ✅ Check if a different widget type was previously loaded
     const loadedWidgetType = sessionStorage.getItem('msg91_widget_type');
 
-    // If EMAIL widget was loaded and methods exist, we MUST reload to switch to PHONE
-    if (loadedWidgetType === 'email' && window.sendOtp) {
-      console.log("🔄 EMAIL widget detected, reloading for PHONE widget...");
-      sessionStorage.setItem('msg91_widget_type', 'phone');
+    // If a DIFFERENT widget type is loaded and methods exist, reload to switch
+    if (loadedWidgetType && loadedWidgetType !== activeWidgetType && (window.sendOtp || loadedWidgetType)) {
+      console.log(`🔄 ${loadedWidgetType} widget detected, reloading for ${activeWidgetType} widget...`);
+      sessionStorage.setItem('msg91_widget_type', activeWidgetType);
       window.location.reload();
       return;
     }
 
-    // Mark that we want the PHONE widget
-    sessionStorage.setItem('msg91_widget_type', 'phone');
+    // Mark that we want this widget type
+    sessionStorage.setItem('msg91_widget_type', activeWidgetType);
 
-    // If widget is already initialized for PHONE, use it
+    // If widget is already initialized for this type, use it
     if (typeof window.initSendOTP === "function") {
-      console.log("🔄 Initializing PHONE widget...");
+      console.log(`🔄 Initializing ${activeWidgetType.toUpperCase()} widget...`);
       try {
         window.initSendOTP({
-          widgetId: WIDGET_ID,
+          widgetId: activeWidgetId,
           tokenAuth: TOKEN_AUTH,
           exposeMethods: true,
           success: () => {
-            console.log("✅ PHONE widget initialized");
+            console.log(`✅ ${activeWidgetType.toUpperCase()} widget initialized`);
             setWidgetReady(true);
             setScriptLoaded(true);
           },
@@ -102,11 +130,11 @@ export default function LoginForm() {
         console.error("❌ Widget error:", error);
       }
     }
-  }, [WIDGET_ID, TOKEN_AUTH]);
+  }, [countryLoading, isMounted, activeWidgetType, activeWidgetId, TOKEN_AUTH]);
 
   // ✅ IMPROVED: Widget initialization with method polling (from ambassador form)
   useEffect(() => {
-    if (!scriptLoaded) return;
+    if (!scriptLoaded || countryLoading) return;
 
     let checkCount = 0;
     const maxChecks = 10;
@@ -120,7 +148,7 @@ export default function LoginForm() {
       if (typeof window.initSendOTP === "function") {
         try {
           window.initSendOTP({
-            widgetId: WIDGET_ID,
+            widgetId: activeWidgetId,
             tokenAuth: TOKEN_AUTH,
             exposeMethods: true,
             success: (data) => {
@@ -168,11 +196,11 @@ export default function LoginForm() {
     };
 
     setTimeout(initWidget, 500);
-  }, [scriptLoaded, WIDGET_ID, TOKEN_AUTH]);
+  }, [scriptLoaded, countryLoading, activeWidgetId, TOKEN_AUTH]);
 
   // ✅ NEW: Fallback timeout - show form after 8 seconds no matter what
   useEffect(() => {
-    if (scriptLoaded && !widgetReady && step === "form") {
+    if (scriptLoaded && !widgetReady && step === "form" && !countryLoading) {
       const timeout = setTimeout(() => {
         console.log("⏰ Timeout reached - showing form");
         setWidgetReady(true);
@@ -180,9 +208,101 @@ export default function LoginForm() {
 
       return () => clearTimeout(timeout);
     }
-  }, [scriptLoaded, widgetReady, step]);
+  }, [scriptLoaded, widgetReady, step, countryLoading]);
 
   const sendOtp = async () => {
+    // ============ INTERNATIONAL: EMAIL FLOW ============
+    if (isInt) {
+      if (!email) {
+        setMessage("❌ Please enter your email address");
+        return;
+      }
+
+      if (!email.includes("@") || !email.includes(".")) {
+        setMessage("❌ Please enter a valid email address");
+        return;
+      }
+
+      if (authMode === "signup" && !name.trim()) {
+        setMessage("❌ Please enter your name");
+        return;
+      }
+
+      setLoading(true);
+      setMessage("Checking account...");
+
+      try {
+        const checkRes = await fetch("/api/check-user", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            identifier: email,
+            authMethod: "email"
+          })
+        });
+
+        const checkData = await checkRes.json();
+
+        if (!checkData.success) {
+          setMessage("❌ Failed to verify account. Please try again.");
+          setLoading(false);
+          return;
+        }
+
+        // ✅ AUTO-SWITCH: Sign Up mode but user exists → sign in
+        if (authMode === "signup" && checkData.exists) {
+          setMessage("✅ Account found! Switching to sign in...");
+          setAuthMode("signin");
+          setTimeout(() => {
+            setMessage("");
+            setLoading(false);
+          }, 1500);
+          return;
+        }
+
+        // ✅ AUTO-SWITCH: Sign In mode but user doesn't exist → sign up
+        if (authMode === "signin" && !checkData.exists) {
+          setMessage("📝 New email! Switching to sign up...");
+          setAuthMode("signup");
+          setTimeout(() => {
+            setMessage("");
+            setLoading(false);
+          }, 1500);
+          return;
+        }
+
+        if (!window.sendOtp) {
+          setMessage("❌ Widget not loaded. Please refresh the page.");
+          setLoading(false);
+          return;
+        }
+
+        setMessage("Sending OTP...");
+
+        window.sendOtp(
+          email,
+          (data: any) => {
+            console.log("✅ Email OTP sent:", data);
+            setStep("otp");
+            setMessage("✅ OTP sent to your email");
+            setLoading(false);
+          },
+          (error: any) => {
+            console.error("❌ Email OTP error:", error);
+            fetch('/api/log-msg91', { method: 'POST', body: JSON.stringify({ status: 'ERROR', data: error }) }).catch(()=>{});
+            setMessage(`❌ ${error.message || "Failed to send OTP"}`);
+            setLoading(false);
+          }
+        );
+      } catch (error) {
+        console.error("OTP send error:", error);
+        setMessage("❌ Failed to send OTP. Please try again.");
+        setLoading(false);
+      }
+      return;
+    }
+
+    // ============ DOMESTIC (INDIA): PHONE FLOW ============
     if (!phone) {
       setMessage("❌ Please enter a phone number");
       return;
@@ -314,7 +434,8 @@ export default function LoginForm() {
     console.log(`🛒 Sending local cart with ${localCart.length} items`);
 
     try {
-      if (phone === DEMO_PHONE) {
+      // ✅ Demo mode — only available for domestic phone flow
+      if (!isInt && phone === DEMO_PHONE) {
         if (code !== DEMO_OTP_HINT) {
           setMessage(`❌ Invalid demo OTP. Use ${DEMO_OTP_HINT}`);
           setLoading(false);
@@ -350,6 +471,9 @@ export default function LoginForm() {
         return;
       }
 
+      const verifyIdentifier = isInt ? email : (country?.phonePrefix || '+91') + phone;
+      const verifyAuthMethod = isInt ? 'email' : 'phone';
+
       window.verifyOtp(
         code,
         async (data) => {
@@ -362,17 +486,22 @@ export default function LoginForm() {
             return;
           }
 
-          // ✅ UPDATED: Send local cart with FULL details
+          const body: Record<string, unknown> = {
+            accessToken,
+            identifier: verifyIdentifier,
+            authMethod: verifyAuthMethod,
+            localCart,
+          };
+
+          if (authMode === "signup") {
+            body.name = name;
+            if (!isInt) body.email = email; // phone signup also captures email
+          }
+
           const res = await fetch("/api/verify-otp", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              accessToken,
-              identifier: (country?.phonePrefix || '+91') + phone,
-              authMethod: "phone",
-              localCart, // ✅ Now includes price, name, image
-              ...(authMode === "signup" && { name, email }),
-            }),
+            body: JSON.stringify(body),
           });
 
           const responseData = await res.json();
@@ -531,29 +660,49 @@ export default function LoginForm() {
 
                     {/* Form Fields */}
                     <div className="space-y-6">
-                      <div>
-                        <label className="block text-[13px] font-black text-slate-700/80 mb-2 ml-1 tracking-wider">
-                          Phone Number <span className="text-rose-400">*</span>
-                        </label>
-                        <div className="flex gap-2 md:gap-3">
-                          <div className="w-16 md:w-20">
-                            <div className="w-full bg-slate-50/50 border border-slate-100 rounded-xl md:rounded-2xl p-3 md:p-4 text-slate-900 font-black text-center text-sm md:text-base">
-                              {country?.phonePrefix || '+91'}
-                            </div>
-                          </div>
+                      <GoogleSignInButton redirectUrl={redirectUrl} />
+                      <GoogleAuthDivider />
+
+                      {/* ✅ International: Email input */}
+                      {isInt ? (
+                        <div>
+                          <label className="block text-[13px] font-black text-slate-700/80 mb-2 ml-1 tracking-wider">
+                            Email Address <span className="text-rose-400">*</span>
+                          </label>
                           <input
-                            type="tel"
-                            value={phone}
-                            onChange={(e) => {
-                              const value = e.target.value.replace(/\D/g, "");
-                              if (value.length <= 15) setPhone(value);
-                            }}
-                            placeholder="Enter phone number"
-                            maxLength={15}
-                            className="flex-1 bg-white border border-slate-100 rounded-xl md:rounded-2xl p-3 md:p-4 text-sm md:text-base focus:outline-none focus:ring-4 focus:ring-purple-50 focus:border-[hsl(var(--swago-purple))] transition-all placeholder:text-slate-300 text-slate-900 font-bold shadow-sm"
+                            type="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value.toLowerCase().trim())}
+                            placeholder="your.email@example.com"
+                            className="w-full bg-white border border-slate-100 rounded-xl md:rounded-2xl p-3 md:p-4 text-sm md:text-base focus:outline-none focus:ring-4 focus:ring-purple-50 focus:border-[hsl(var(--swago-purple))] transition-all placeholder:text-slate-300 text-slate-900 font-bold shadow-sm"
                           />
                         </div>
-                      </div>
+                      ) : (
+                        /* ✅ Domestic: Phone input with prefix */
+                        <div>
+                          <label className="block text-[13px] font-black text-slate-700/80 mb-2 ml-1 tracking-wider">
+                            Phone Number <span className="text-rose-400">*</span>
+                          </label>
+                          <div className="flex gap-2 md:gap-3">
+                            <div className="w-16 md:w-20">
+                              <div className="w-full bg-slate-50/50 border border-slate-100 rounded-xl md:rounded-2xl p-3 md:p-4 text-slate-900 font-black text-center text-sm md:text-base">
+                                {country?.phonePrefix || '+91'}
+                              </div>
+                            </div>
+                            <input
+                              type="tel"
+                              value={phone}
+                              onChange={(e) => {
+                                const value = e.target.value.replace(/\D/g, "");
+                                if (value.length <= 15) setPhone(value);
+                              }}
+                              placeholder="Enter phone number"
+                              maxLength={15}
+                              className="flex-1 bg-white border border-slate-100 rounded-xl md:rounded-2xl p-3 md:p-4 text-sm md:text-base focus:outline-none focus:ring-4 focus:ring-purple-50 focus:border-[hsl(var(--swago-purple))] transition-all placeholder:text-slate-300 text-slate-900 font-bold shadow-sm"
+                            />
+                          </div>
+                        </div>
+                      )}
 
                       <AnimatePresence mode="wait">
                         {authMode === "signup" && (
@@ -577,25 +726,28 @@ export default function LoginForm() {
                               />
                             </div>
 
-                            <div>
-                              <label className="block text-[13px] font-black text-slate-700/80 mb-2 ml-1 tracking-wider">
-                                Email Address <span className="text-rose-400">*</span>
-                              </label>
-                              <input
-                                type="email"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                placeholder="your.email@example.com"
-                                className="w-full bg-white border border-slate-100 rounded-xl md:rounded-2xl p-3 md:p-4 text-sm md:text-base focus:outline-none focus:ring-4 focus:ring-purple-50 focus:border-[hsl(var(--swago-purple))] transition-all placeholder:text-slate-300 text-slate-900 font-bold shadow-sm"
-                              />
-                            </div>
+                            {/* ✅ Email field for domestic signup (for international, email IS the identifier) */}
+                            {!isInt && (
+                              <div>
+                                <label className="block text-[13px] font-black text-slate-700/80 mb-2 ml-1 tracking-wider">
+                                  Email Address <span className="text-rose-400">*</span>
+                                </label>
+                                <input
+                                  type="email"
+                                  value={email}
+                                  onChange={(e) => setEmail(e.target.value)}
+                                  placeholder="your.email@example.com"
+                                  className="w-full bg-white border border-slate-100 rounded-xl md:rounded-2xl p-3 md:p-4 text-sm md:text-base focus:outline-none focus:ring-4 focus:ring-purple-50 focus:border-[hsl(var(--swago-purple))] transition-all placeholder:text-slate-300 text-slate-900 font-bold shadow-sm"
+                                />
+                              </div>
+                            )}
                           </motion.div>
                         )}
                       </AnimatePresence>
 
                       <button
                         onClick={sendOtp}
-                        disabled={loading || !phone || phone.length < 7 || phone.length > 15}
+                        disabled={loading || (isInt ? (!email || !email.includes("@")) : (!phone || phone.length < 7 || phone.length > 15))}
                         className="w-full btn-shine bg-[hsl(var(--swago-purple))] hover:brightness-110 text-white font-black py-3 md:py-5 rounded-lg md:rounded-2xl text-[13px] md:text-lg tracking-wide md:tracking-[.25em] transition-all hover:scale-[1.01] active:scale-98 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_20px_40px_-10px_rgba(124,93,250,0.4)] md:mt-4"
                       >
                         {loading ? "Please wait..." : "Send OTP"}
@@ -606,12 +758,15 @@ export default function LoginForm() {
                           <HiLockClosed className="w-4 h-4" />
                           <span>Your information is secure with us</span>
                         </div>
-                        <button
-                          onClick={() => router.push(`/login/email${redirectUrl ? `?redirect=${encodeURIComponent(redirectUrl)}` : ''}`)}
-                          className="text-sm font-black text-[#7c5dfa] hover:underline underline-offset-4 tracking-tight"
-                        >
-                          Prefer email login?
-                        </button>
+                        {/* ✅ "Prefer email login?" — only for domestic users */}
+                        {!isInt && (
+                          <button
+                            onClick={() => router.push(`/login/email${redirectUrl ? `?redirect=${encodeURIComponent(redirectUrl)}` : ''}`)}
+                            className="text-sm font-black text-[#7c5dfa] hover:underline underline-offset-4 tracking-tight"
+                          >
+                            Prefer email login?
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -619,9 +774,14 @@ export default function LoginForm() {
 
                 {step === "otp" && (
                   <div className="space-y-8 py-4">
+                    {/* ✅ OTP sent info — email for intl, phone for domestic */}
                     <div className="text-center space-y-1 md:space-y-2">
                       <p className="text-slate-400 font-bold text-xs md:text-sm tracking-wide md:tracking-widest">OTP sent to:</p>
-                      <p className="text-lg md:text-3xl font-black text-slate-800 tracking-tight">{country?.phonePrefix || '+91'} {phone}</p>
+                      {isInt ? (
+                        <p className="text-lg md:text-2xl font-black text-slate-800 tracking-tight break-all">{email}</p>
+                      ) : (
+                        <p className="text-lg md:text-3xl font-black text-slate-800 tracking-tight">{country?.phonePrefix || '+91'} {phone}</p>
+                      )}
                     </div>
 
                     <div className="relative group">
@@ -655,7 +815,7 @@ export default function LoginForm() {
                         }}
                         className="text-sm font-black text-slate-400 hover:text-slate-600 tracking-wide md:tracking-widest border-b-2 border-slate-100 pb-1"
                       >
-                        Back to edit number
+                        {isInt ? "Change email address" : "Back to edit number"}
                       </button>
                     </div>
                   </div>

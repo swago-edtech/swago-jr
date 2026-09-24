@@ -29,6 +29,7 @@ export type Product = {
   box_contents?: string;
   boxContents?: string;
   stock?: number;
+  availableStock?: number;
   isFeatured?: boolean;
   isActive?: boolean;
   slug?: string;
@@ -336,9 +337,7 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
               originalPrice: refreshed.originalPrice || item.originalPrice,
               slug: refreshed.slug || item.slug,
               weight: refreshed.weight !== undefined ? refreshed.weight : item.weight,
-              quantity: refreshed.availableStock === 0
-                ? 0
-                : Math.min(item.quantity, refreshed.availableStock),
+              quantity: item.quantity, // Stock decoupled
             };
           }).filter(item => item.quantity > 0);
 
@@ -675,11 +674,16 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
 
   // Cart functions
   const addToCart = (product: Product, quantity: number = 1) => {
-    if (product.stock !== undefined && product.stock === 0) {
+    const available =
+      product.availableStock ??
+      (product.stock !== undefined ? product.stock : undefined);
+
+    if (available !== undefined && available === 0) {
       alert("This product is out of stock");
       return;
     }
 
+    // Stock decoupled: always allow adding to cart
     setCart((prev) => {
       const productId = getProductId(product);
       const existing = prev.find((p) => getProductId(p) === productId);
@@ -687,8 +691,8 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
       if (existing) {
         const newQuantity = existing.quantity + quantity;
 
-        if (product.stock !== undefined && newQuantity > product.stock) {
-          alert(`Only ${product.stock} items available in stock`);
+        if (available !== undefined && newQuantity > available) {
+          alert(`Only ${available} items available in stock`);
           return prev;
         }
 
@@ -697,12 +701,13 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
         );
       }
 
-      if (product.stock !== undefined && quantity > product.stock) {
-        alert(`Only ${product.stock} items available in stock`);
+      if (available !== undefined && quantity > available) {
+        alert(`Only ${available} items available in stock`);
         return prev;
       }
 
       Feedback.playPop();
+      return [...prev, { ...product, quantity, availableStock: available }];
       return [...prev, { ...product, quantity }];
     });
   };
@@ -718,13 +723,18 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
     setCart((prev) => prev.map((p) => {
       if (getProductId(p) !== id.toString()) return p;
 
+      // Stock decoupled: always allow increase
       const newQuantity = p.quantity + 1;
+      const available =
+        p.availableStock ??
+        (p.stock !== undefined ? p.stock : undefined);
 
-      if (p.stock !== undefined && newQuantity > p.stock) {
-        alert(`Only ${p.stock} items available in stock`);
+      if (available !== undefined && newQuantity > available) {
+        alert(`Only ${available} items available in stock`);
         return p;
       }
 
+      
       Feedback.playPop();
       return { ...p, quantity: newQuantity };
     }));

@@ -14,11 +14,17 @@ const UserSchema = new mongoose.Schema(
     email: { 
       type: String, 
     },
+
+    googleId: {
+      type: String,
+      unique: true,
+      sparse: true,
+    },
     
     // ✅ Track authentication method
     authMethod: {
       type: String,
-      enum: ['phone', 'email'],
+      enum: ['phone', 'email', 'google'],
       required: false  // Existing users don't have this
     },
     

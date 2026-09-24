@@ -47,6 +47,18 @@ const OrderSchema = new mongoose.Schema(
     paymentAttempts: { type: Number, default: 0 },
     lastPaymentAttempt: { type: Date },
     stockReservedAt: { type: Date },
+    inventoryAllocationStatus: {
+      type: String,
+      enum: ["none", "allocated", "consumed", "released", "restored"],
+      default: "none",
+    },
+    inventorySnapshot: [
+      {
+        inventoryItemId: { type: mongoose.Schema.Types.ObjectId, ref: "InventoryItem" },
+        inventoryItemName: String,
+        quantity: { type: Number, min: 0 },
+      },
+    ],
     items: [
       {
         productId: { type: mongoose.Schema.Types.Mixed, required: true }, // ✅ CHANGED: Now accepts both Number and String

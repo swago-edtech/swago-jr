@@ -1,6 +1,7 @@
 'use server';
 
 import { connectDB, Order, Product } from '@swago/database';
+import { effectiveUnits, type ComboProductMeta } from '@/lib/combo-units';
 
 export interface ProductSalesRow {
   productId: string;
@@ -72,10 +73,15 @@ export async function getProductAnalytics(
   const confirmedStatuses = ['Paid', 'Packed', 'Shipped', 'Out for Delivery', 'Delivered'];
 
   // Fetch product categories and build mapping dictionaries
-  const allProducts = await Product.find().select('_id name ageCategory').lean();
+  const allProducts = await Product.find()
+    .select('_id name ageCategory isCombo comboUnitCount')
+    .lean();
   
   // Maps true MongoDB _id to its metadata
-  const productMetaMap: Record<string, { id: string; category: string; name: string }> = {};
+  const productMetaMap: Record<
+    string,
+    { id: string; category: string; name: string } & ComboProductMeta
+  > = {};
   // Maps product name to its true MongoDB _id (for healing legacy corrupted orders)
   const nameToIdMap: Record<string, string> = {};
 
@@ -86,7 +92,9 @@ export async function getProductAnalytics(
     productMetaMap[id] = {
       id,
       category: p.ageCategory || 'Uncategorized',
-      name: pName
+      name: pName,
+      isCombo: Boolean(p.isCombo),
+      comboUnitCount: p.comboUnitCount || 1,
     };
 
     if (pName) {
@@ -125,8 +133,11 @@ export async function getProductAnalytics(
         truePid = nameToIdMap[rawName];
       }
 
-      const qty = item.quantity || 1;
-      const itemRevenue = (item.price || 0) * qty;
+      const qty = effectiveUnits(
+        item.quantity || 1,
+        productMetaMap[truePid] || null
+      );
+      const itemRevenue = (item.price || 0) * (item.quantity || 1);
       const itemRefund = itemRevenue * refundRatio;
 
       if (!productMap[truePid]) {
@@ -217,6 +228,10 @@ export async function getSingleProductAnalytics(
     .lean();
 
   const confirmedStatuses = ['Paid', 'Packed', 'Shipped', 'Out for Delivery', 'Delivered'];
+
+  const comboMeta = await Product.findById(productId)
+    .select('isCombo comboUnitCount')
+    .lean() as ComboProductMeta | null;
   
   const result = {
     totals: { qtySold: 0, revenue: 0, netRevenue: 0, rtoCount: 0, refunds: 0, totalOrders: 0 },
@@ -246,8 +261,9 @@ export async function getSingleProductAnalytics(
       // Match by exact ID or exact Name (to heal legacy orders)
       if (rawPid === productId || rawName === productName || rawName === productId) {
         hasProduct = true;
-        const qty = item.quantity || 1;
-        const itemRevenue = (item.price || 0) * qty;
+        const lineQty = item.quantity || 1;
+        const qty = effectiveUnits(lineQty, comboMeta);
+        const itemRevenue = (item.price || 0) * lineQty;
         qtyInOrder += qty;
         revInOrder += itemRevenue;
       }
