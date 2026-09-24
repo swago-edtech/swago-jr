@@ -11,6 +11,13 @@ import CartProgress from "@/components/CartProgress";
 import ExpressOrderSummary from "@/components/ExpressOrderSummary";
 import ExpressCrossSell from "@/components/ExpressCrossSell";
 import { Feedback } from "@/lib/feedback";
+import {
+  COD_MAX_UNITS,
+  COD_UNIT_LIMIT_MESSAGE,
+  SWAGO_CONTACT,
+  cartUnitCount,
+  isCodOverUnitLimit,
+} from "@/lib/cod-limits";
 
 const INDIAN_STATES = [
   "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa", "Gujarat", "Haryana",
@@ -281,11 +288,16 @@ function ExpressCheckoutContent() {
 
   const discount = dynamicCoupon.discount;
   
-  const isCodBlocked = useMemo(() => {
+  const cartUnits = useMemo(() => cartUnitCount(cart), [cart]);
+  const isCodOverLimit = useMemo(() => isCodOverUnitLimit(cart), [cart]);
+
+  const isCodBlockedByLocation = useMemo(() => {
     const stateBlocked = promotion?.blockedCodStates?.some((blockedState: string) => blockedState.toLowerCase() === state.toLowerCase()) || false;
     const pincodeBlocked = promotion?.blockedCodPincodes?.includes(pincode) || false;
     return stateBlocked || pincodeBlocked;
   }, [promotion, state, pincode]);
+
+  const isCodBlocked = isCodBlockedByLocation || isCodOverLimit;
 
   useEffect(() => {
     if (isCodBlocked && paymentMethod === "cod") {
@@ -648,10 +660,29 @@ function ExpressCheckoutContent() {
                     </div>
                     <div className="flex flex-col">
                       <span className="text-[12px] sm:text-[13px] font-bold text-[#475569] leading-tight">Cash on Delivery</span>
-                      {isCodBlocked && <span className="text-[9px] sm:text-[10px] text-red-500 font-bold mt-1 leading-snug">Not available for your location</span>}
+                      {isCodBlockedByLocation && (
+                        <span className="text-[9px] sm:text-[10px] text-red-500 font-bold mt-1 leading-snug">Not available for your location</span>
+                      )}
+                      {isCodOverLimit && !isCodBlockedByLocation && (
+                        <span className="text-[9px] sm:text-[10px] text-amber-700 font-bold mt-1 leading-snug">
+                          Max {COD_MAX_UNITS} boxes for COD ({cartUnits} in cart). Contact us.
+                        </span>
+                      )}
                     </div>
                   </button>
                 </div>
+                {isCodOverLimit && !isCodBlockedByLocation && (
+                  <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-[11px] text-slate-700 leading-relaxed">
+                    <p className="font-bold text-amber-800">{COD_UNIT_LIMIT_MESSAGE}</p>
+                    <p className="mt-1">
+                      <a className="font-bold text-[hsl(var(--swago-purple))] underline" href={`tel:${SWAGO_CONTACT.phoneTel}`}>{SWAGO_CONTACT.phoneDisplay}</a>
+                      {" · "}
+                      <a className="font-bold text-[hsl(var(--swago-purple))] underline" href={SWAGO_CONTACT.whatsappUrl} target="_blank" rel="noopener noreferrer">WhatsApp</a>
+                      {" · "}
+                      <a className="font-bold text-[hsl(var(--swago-purple))] underline" href={`mailto:${SWAGO_CONTACT.email}`}>{SWAGO_CONTACT.email}</a>
+                    </p>
+                  </div>
+                )}
               </section>
 
               {/* Message */}

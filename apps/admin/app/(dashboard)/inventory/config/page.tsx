@@ -30,6 +30,8 @@ type DashboardProduct = {
   avgDailyUnits?: number;
   daysOfStockRaw?: number | null;
   daysOfStockLeft?: number | null;
+  daysOfStockCapped?: boolean;
+  daysOfStockCap?: number;
   stockBufferDays?: number;
 };
 
@@ -349,7 +351,9 @@ export default function InventoryDashboardPage() {
                       count={
                         product.daysOfStockLeft === null || product.daysOfStockLeft === undefined
                           ? "—"
-                          : product.daysOfStockLeft
+                          : product.daysOfStockCapped
+                            ? `${product.daysOfStockCap ?? 90}+`
+                            : product.daysOfStockLeft
                       }
                       tone={
                         product.daysOfStockLeft === null || product.daysOfStockLeft === undefined
@@ -363,8 +367,12 @@ export default function InventoryDashboardPage() {
                       icon={CalendarDays}
                       title={
                         product.avgDailyUnits && product.avgDailyUnits > 0
-                          ? `~${product.avgDailyUnits}/day over 30d · raw ${product.daysOfStockRaw ?? "—"}d − ${product.stockBufferDays ?? 3}d buffer`
-                          : "Not enough confirmed order history in the last 30 days"
+                          ? `~${product.avgDailyUnits}/day over 30d (storefront + Amazon) · raw ${product.daysOfStockRaw ?? "—"}d − ${product.stockBufferDays ?? 3}d buffer${
+                              product.daysOfStockCapped
+                                ? ` · shown as ${product.daysOfStockCap ?? 90}+`
+                                : ""
+                            }`
+                          : "Not enough confirmed storefront or Amazon sales in the last 30 days"
                       }
                     />
                     {product.belowTargetItems.length > 0 && (

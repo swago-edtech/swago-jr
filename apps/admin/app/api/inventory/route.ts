@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
       ];
     }
 
-    if (isActive !== null) {
+    if (isActive !== null && isActive !== undefined && isActive !== "") {
       query.isActive = isActive === "true";
     }
 

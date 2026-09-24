@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 
 type Alias = { alias: string; productId: string; productName?: string };
-type ProductOption = { _id: string; name: string };
+type ProductOption = { _id: string; name: string; isActive: boolean };
 type ChannelEvent = {
   _id: string;
   subject: string;
@@ -196,10 +196,16 @@ function ChannelEmailPageInner() {
       if (configData.success) applyConfig(configData.config);
       if (productsData.success) {
         setProducts(
-          (productsData.products || []).map((p: any) => ({
-            _id: String(p._id),
-            name: p.name,
-          }))
+          (productsData.products || [])
+            .map((p: any) => ({
+              _id: String(p._id),
+              name: p.name,
+              isActive: p.isActive !== false,
+            }))
+            .sort((a: ProductOption, b: ProductOption) => {
+              if (a.isActive !== b.isActive) return a.isActive ? -1 : 1;
+              return a.name.localeCompare(b.name);
+            })
         );
       }
       if (eventsData.success) {
@@ -938,7 +944,9 @@ function ChannelEmailPageInner() {
                       <option value="">Select Swago product</option>
                       {products.map((product) => (
                         <option key={product._id} value={product._id}>
-                          {product.name}
+                          {product.isActive
+                            ? product.name
+                            : `${product.name} (Inactive)`}
                         </option>
                       ))}
                     </select>

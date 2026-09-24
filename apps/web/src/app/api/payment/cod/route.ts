@@ -15,6 +15,12 @@ import {
   allocateInventoryForOrder,
   InsufficientInventoryError,
 } from "@/lib/inventory-service";
+import {
+  COD_MAX_UNITS,
+  COD_UNIT_LIMIT_MESSAGE,
+  SWAGO_CONTACT,
+  cartUnitCount,
+} from "@/lib/cod-limits";
 
 // ✅ Type definitions
 interface ProductDocument {
@@ -99,6 +105,16 @@ export async function POST(req: Request) {
         const isBlockedPincode = activePromotion?.blockedCodPincodes?.includes(orderDetails.pincode);
         if (isBlockedState || isBlockedPincode) {
             return NextResponse.json({ error: "COD is not available in your location" }, { status: 400 });
+        }
+
+        const units = cartUnitCount(orderDetails.cart);
+        if (units > COD_MAX_UNITS) {
+            return NextResponse.json({
+                error: `${COD_UNIT_LIMIT_MESSAGE} Contact ${SWAGO_CONTACT.phoneDisplay} / WhatsApp / ${SWAGO_CONTACT.email}`,
+                code: "COD_UNIT_LIMIT",
+                maxUnits: COD_MAX_UNITS,
+                cartUnits: units,
+            }, { status: 400 });
         }
 
         // ✅ Clean up expired orders first to release reserved stock

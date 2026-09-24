@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSharedContext } from "@/context/SharedContext";
 import { useRouter } from "next/navigation";
 import Script from "next/script";
@@ -8,6 +8,13 @@ import Link from "next/link";
 import { formatPrice } from "@swago/utils";
 import { RazorpayOptions, RazorpaySuccessResponse, RazorpayInstance, RazorpayFailedEvent } from "@swago/types";
 import { Feedback } from "@/lib/feedback";
+import {
+  COD_MAX_UNITS,
+  COD_UNIT_LIMIT_MESSAGE,
+  SWAGO_CONTACT,
+  cartUnitCount,
+  isCodOverUnitLimit,
+} from "@/lib/cod-limits";
 
 
 
@@ -57,6 +64,7 @@ export default function PaymentMethodPage() {
         }
         return false;
     });
+    const [promotion, setPromotion] = useState<any>(null);
 
     // Load checkout data from sessionStorage
     useEffect(() => {
@@ -94,6 +102,30 @@ export default function PaymentMethodPage() {
     const finalAmount = checkoutData?.finalAmount || total;
     const form = checkoutData?.form;
 
+    // Fetch promotion for location-based COD blocks (parity with checkout/express)
+    useEffect(() => {
+        fetch("/api/promotion")
+            .then((r) => r.json())
+            .then((d) => {
+                if (d.success) setPromotion(d.promotion);
+            })
+            .catch(() => {});
+    }, []);
+
+    const cartUnits = useMemo(() => cartUnitCount(cart), [cart]);
+    const isCodOverLimit = useMemo(() => isCodOverUnitLimit(cart), [cart]);
+
+    const isCodBlockedByLocation = useMemo(() => {
+        if (!form) return false;
+        const stateBlocked =
+            promotion?.blockedCodStates?.some(
+                (blockedState: string) => blockedState.toLowerCase() === (form.state || "").toLowerCase()
+            ) || false;
+        const pincodeBlocked = promotion?.blockedCodPincodes?.includes(form.pincode) || false;
+        return stateBlocked || pincodeBlocked;
+    }, [promotion, form]);
+
+    const isCodBlocked = isCodBlockedByLocation || isCodOverLimit;
 
     // Handle Razorpay payment
     const handlePayOnline = async () => {
@@ -280,6 +312,18 @@ export default function PaymentMethodPage() {
     // Handle COD order
     const handleCOD = async () => {
         if (!form || !checkoutData) return;
+
+        // Defense in depth — UI also disables COD when blocked
+        if (isCodBlockedByLocation) {
+            setMessage("COD is not available for your location");
+            return;
+        }
+        if (isCodOverUnitLimit(cart)) {
+            setMessage(
+              `${COD_UNIT_LIMIT_MESSAGE} Contact ${SWAGO_CONTACT.phoneDisplay} / WhatsApp / ${SWAGO_CONTACT.email}`
+            );
+            return;
+        }
 
         setProcessing(true);
         setMessage("Verifying prices...");
@@ -518,31 +562,73 @@ export default function PaymentMethodPage() {
 
                             {/* COD Card */}
                             <button
-                                onClick={handleCOD}
-                                disabled={processing}
-                                className="w-full bg-white rounded-2xl shadow-lg border-2 border-transparent hover:border-amber-500 p-6 text-left transition-all duration-200 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed group"
+                                type="button"
+                                onClick={() => !isCodBlocked && handleCOD()}
+                                disabled={processing || isCodBlocked}
+                                className={`w-full rounded-2xl shadow-lg border-2 p-6 text-left transition-all duration-200 group ${
+                                    isCodBlocked
+                                        ? "bg-slate-50 border-slate-200 opacity-60 cursor-not-allowed"
+                                        : "bg-white border-transparent hover:border-amber-500 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                                }`}
                             >
                                 <div className="flex items-start gap-4">
-                                    <div className="w-16 h-16 bg-gradient-to-br from-amber-400 to-amber-600 rounded-2xl flex items-center justify-center text-3xl shadow-lg group-hover:scale-110 transition-transform">
+                                    <div className={`w-16 h-16 bg-gradient-to-br from-amber-400 to-amber-600 rounded-2xl flex items-center justify-center text-3xl shadow-lg transition-transform ${isCodBlocked ? "" : "group-hover:scale-110"}`}>
                                         🏠
                                     </div>
                                     <div className="flex-1">
                                         <h3 className="text-xl font-bold text-slate-900 mb-1">
                                             Cash on Delivery
                                         </h3>
-                                        <p className="text-slate-600 text-sm mb-3">
-                                            Pay when your order arrives at your doorstep
-                                        </p>
-                                        <div className="flex items-center gap-2 text-amber-700 bg-amber-100 rounded-lg px-3 py-1.5 text-sm font-medium w-fit">
-                                            <span>💰</span>
-                                            <span>Pay {formatPrice(finalAmount)} on delivery</span>
+                                        {isCodBlockedByLocation ? (
+                                            <p className="text-red-500 text-sm font-bold mb-1">
+                                                COD is not available for your location
+                                            </p>
+                                        ) : isCodOverLimit ? (
+                                            <p className="text-amber-700 text-sm font-bold mb-1">
+                                                Max {COD_MAX_UNITS} boxes for COD ({cartUnits} in cart). Contact us.
+                                            </p>
+                                        ) : (
+                                            <p className="text-slate-600 text-sm mb-3">
+                                                Pay when your order arrives at your doorstep
+                                            </p>
+                                        )}
+                                        {!isCodBlocked && (
+                                            <div className="flex items-center gap-2 text-amber-700 bg-amber-100 rounded-lg px-3 py-1.5 text-sm font-medium w-fit">
+                                                <span>💰</span>
+                                                <span>Pay {formatPrice(finalAmount)} on delivery</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                    {!isCodBlocked && (
+                                        <div className="text-amber-500 text-2xl">
+                                            →
                                         </div>
-                                    </div>
-                                    <div className="text-amber-500 text-2xl">
-                                        →
-                                    </div>
+                                    )}
                                 </div>
                             </button>
+
+                            {/* Contact banner outside disabled button so links stay clickable */}
+                            {isCodOverLimit && !isCodBlockedByLocation && (
+                                <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-slate-700 leading-relaxed">
+                                    <p className="font-bold text-amber-800">
+                                        {COD_UNIT_LIMIT_MESSAGE} You have {cartUnits} units (max {COD_MAX_UNITS}).
+                                    </p>
+                                    <p className="mt-1">
+                                        Call{" "}
+                                        <a className="font-bold text-[hsl(var(--swago-purple))] underline" href={`tel:${SWAGO_CONTACT.phoneTel}`}>
+                                            {SWAGO_CONTACT.phoneDisplay}
+                                        </a>
+                                        {" · "}
+                                        <a className="font-bold text-[hsl(var(--swago-purple))] underline" href={SWAGO_CONTACT.whatsappUrl} target="_blank" rel="noopener noreferrer">
+                                            WhatsApp
+                                        </a>
+                                        {" · "}
+                                        <a className="font-bold text-[hsl(var(--swago-purple))] underline" href={`mailto:${SWAGO_CONTACT.email}`}>
+                                            {SWAGO_CONTACT.email}
+                                        </a>
+                                    </p>
+                                </div>
+                            )}
                         </div>
 
                         {/* Security Badge */}

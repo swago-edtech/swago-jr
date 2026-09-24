@@ -4,13 +4,15 @@ import React from "react";
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Search, Plus, Edit, X, Package } from "lucide-react";
+import { Search, Plus, Edit, X, Package, RotateCcw, Trash2 } from "lucide-react";
 
 export default function InventoryStockItemsPage() {
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [stockStatus, setStockStatus] = useState("");
+  const [activeFilter, setActiveFilter] = useState("");
+  const [busyId, setBusyId] = useState<string | null>(null);
 
   const [addStockModal, setAddStockModal] = useState<any>(null);
   const [addStockQty, setAddStockQty] = useState("");
@@ -23,6 +25,7 @@ export default function InventoryStockItemsPage() {
       const query = new URLSearchParams();
       if (search) query.append("search", search);
       if (stockStatus) query.append("stockStatus", stockStatus);
+      if (activeFilter !== "") query.append("isActive", activeFilter);
       const res = await fetch(`/api/inventory?${query.toString()}`);
       if (res.ok) {
         const data = await res.json();
@@ -38,7 +41,7 @@ export default function InventoryStockItemsPage() {
   useEffect(() => {
     const delay = setTimeout(() => fetchItems(), 300);
     return () => clearTimeout(delay);
-  }, [search, stockStatus]);
+  }, [search, stockStatus, activeFilter]);
 
   const handleAddStock = async (e: any) => {
     e.preventDefault();
@@ -68,6 +71,64 @@ export default function InventoryStockItemsPage() {
     }
   };
 
+  const toggleActive = async (item: any) => {
+    const next = !item.isActive;
+    const label = next ? "activate" : "deactivate";
+    if (!confirm(`${next ? "Activate" : "Deactivate"} "${item.name}"?`)) return;
+    setBusyId(item._id);
+    try {
+      const res = await fetch(`/api/inventory/${item._id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: item.name,
+          sku: item.sku || "",
+          description: item.description || "",
+          unit: item.unit,
+          lowStockThreshold: item.lowStockThreshold,
+          targetQuantity: item.targetQuantity,
+          isActive: next,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        fetchItems();
+      } else {
+        alert(data.error || `Failed to ${label}`);
+      }
+    } catch (error) {
+      console.error(error);
+      alert(`Error trying to ${label}`);
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const handleDelete = async (item: any) => {
+    if (
+      !confirm(
+        `Permanently delete "${item.name}"? Stock must be 0 and it must not be used in any product config.`
+      )
+    ) {
+      return;
+    }
+    setBusyId(item._id);
+    try {
+      const res = await fetch(`/api/inventory/${item._id}`, { method: "DELETE" });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        fetchItems();
+      } else {
+        alert(data.error || "Failed to delete item");
+      }
+    } catch (error) {
+      console.error(error);
+      alert("Error deleting item");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   const getStockBadge = (current: number, low: number, target: number) => {
     if (current === 0) return <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-red-100 text-red-800">Out of Stock</span>;
     if (current <= low) return <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">Low Stock</span>;
@@ -91,7 +152,7 @@ export default function InventoryStockItemsPage() {
       </div>
 
       <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <div className="relative col-span-2">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <Search className="h-5 w-5 text-gray-400" />
@@ -110,16 +171,27 @@ export default function InventoryStockItemsPage() {
               value={stockStatus}
               onChange={(e) => setStockStatus(e.target.value)}
             >
-              <option value="">All Statuses</option>
+              <option value="">All stock levels</option>
               <option value="in-stock">In Stock</option>
               <option value="low-stock">Low Stock</option>
               <option value="out-of-stock">Out of Stock</option>
               <option value="below-target">Below Target</option>
             </select>
           </div>
+          <div>
+            <select
+              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all outline-none bg-white"
+              value={activeFilter}
+              onChange={(e) => setActiveFilter(e.target.value)}
+            >
+              <option value="">All statuses</option>
+              <option value="true">Active</option>
+              <option value="false">Inactive</option>
+            </select>
+          </div>
           <div className="flex items-center">
             <button
-              onClick={() => { setSearch(""); setStockStatus(""); }}
+              onClick={() => { setSearch(""); setStockStatus(""); setActiveFilter(""); }}
               className="text-sm text-indigo-600 font-medium hover:text-indigo-800 transition px-2 py-1 rounded-md hover:bg-indigo-50"
             >
               Clear Filters
@@ -152,10 +224,12 @@ export default function InventoryStockItemsPage() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-100">
-                {items.map((item: any) => (
-                  <tr key={item._id} className="hover:bg-gray-50/80 transition-colors">
+                {items.map((item: any) => {
+                  const inactive = item.isActive === false;
+                  return (
+                  <tr key={item._id} className={`hover:bg-gray-50/80 transition-colors ${inactive ? "bg-gray-50/60" : ""}`}>
                     <td className="px-6 py-4">
-                      <div className="text-sm font-semibold text-gray-900 max-w-[200px] sm:max-w-xs md:max-w-md truncate" title={item.name}>{item.name}</div>
+                      <div className={`text-sm font-semibold max-w-[200px] sm:max-w-xs md:max-w-md truncate ${inactive ? "text-gray-500" : "text-gray-900"}`} title={item.name}>{item.name}</div>
                       <div className="text-xs text-gray-500 mt-0.5">{item.sku}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -171,18 +245,53 @@ export default function InventoryStockItemsPage() {
                       {item.unit}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-right space-x-2">
-                      <button
-                        onClick={() => setAddStockModal({ id: item._id, name: item.name })}
-                        className="inline-flex items-center px-2.5 py-1.5 border border-gray-200 text-xs rounded-lg text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-300 transition-colors shadow-sm"
-                      >
-                        <Plus className="w-3.5 h-3.5 mr-1 text-green-600" /> Restock
-                      </button>
-                      <Link href={`/inventory/${item._id}`} className="inline-flex items-center px-2.5 py-1.5 border border-gray-200 text-xs rounded-lg text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-300 transition-colors shadow-sm">
-                        <Edit className="w-3.5 h-3.5 mr-1 text-blue-600" /> Edit
-                      </Link>
+                      {inactive ? (
+                        <>
+                          <button
+                            type="button"
+                            disabled={busyId === item._id}
+                            onClick={() => toggleActive(item)}
+                            className="inline-flex items-center px-2.5 py-1.5 border border-green-200 text-xs rounded-lg text-green-700 bg-green-50 hover:bg-green-100 transition-colors shadow-sm disabled:opacity-50"
+                          >
+                            <RotateCcw className="w-3.5 h-3.5 mr-1" /> Activate
+                          </button>
+                          <Link href={`/inventory/${item._id}`} className="inline-flex items-center px-2.5 py-1.5 border border-gray-200 text-xs rounded-lg text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-300 transition-colors shadow-sm">
+                            <Edit className="w-3.5 h-3.5 mr-1 text-blue-600" /> Edit
+                          </Link>
+                          <button
+                            type="button"
+                            disabled={busyId === item._id}
+                            onClick={() => handleDelete(item)}
+                            className="inline-flex items-center px-2.5 py-1.5 border border-red-200 text-xs rounded-lg text-red-600 bg-red-50 hover:bg-red-100 transition-colors shadow-sm disabled:opacity-50"
+                          >
+                            <Trash2 className="w-3.5 h-3.5 mr-1" /> Delete
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => setAddStockModal({ id: item._id, name: item.name })}
+                            className="inline-flex items-center px-2.5 py-1.5 border border-gray-200 text-xs rounded-lg text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-300 transition-colors shadow-sm"
+                          >
+                            <Plus className="w-3.5 h-3.5 mr-1 text-green-600" /> Restock
+                          </button>
+                          <Link href={`/inventory/${item._id}`} className="inline-flex items-center px-2.5 py-1.5 border border-gray-200 text-xs rounded-lg text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-300 transition-colors shadow-sm">
+                            <Edit className="w-3.5 h-3.5 mr-1 text-blue-600" /> Edit
+                          </Link>
+                          <button
+                            type="button"
+                            disabled={busyId === item._id}
+                            onClick={() => toggleActive(item)}
+                            className="inline-flex items-center px-2.5 py-1.5 border border-gray-200 text-xs rounded-lg text-gray-600 bg-white hover:bg-gray-50 hover:border-gray-300 transition-colors shadow-sm disabled:opacity-50"
+                          >
+                            Deactivate
+                          </button>
+                        </>
+                      )}
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>

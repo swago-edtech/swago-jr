@@ -5,15 +5,18 @@ import React from "react";
 import { use, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Save, Trash2, History } from "lucide-react";
+import { ArrowLeft, Save, Ban, RotateCcw, Trash2, History } from "lucide-react";
 
 export default function EditInventoryItem({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [toggling, setToggling] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [transactions, setTransactions] = useState<any[]>([]);
-  
+  const [currentStock, setCurrentStock] = useState(0);
+
   const [formData, setFormData] = useState({
     name: "",
     sku: "",
@@ -44,8 +47,9 @@ export default function EditInventoryItem({ params }: { params: Promise<{ id: st
             targetQuantity: item.targetQuantity,
             isActive: item.isActive,
           });
+          setCurrentStock(item.currentStock ?? 0);
         }
-        
+
         if (txRes.ok) {
           const txData = await txRes.json();
           setTransactions(txData.transactions || []);
@@ -56,7 +60,7 @@ export default function EditInventoryItem({ params }: { params: Promise<{ id: st
         setLoading(false);
       }
     };
-    
+
     fetchData();
   }, [id]);
 
@@ -64,8 +68,8 @@ export default function EditInventoryItem({ params }: { params: Promise<{ id: st
     const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: type === "checkbox" 
-        ? checked 
+      [name]: type === "checkbox"
+        ? checked
         : ["lowStockThreshold", "targetQuantity"].includes(name)
           ? Number(value)
           : value,
@@ -97,18 +101,55 @@ export default function EditInventoryItem({ params }: { params: Promise<{ id: st
     }
   };
 
-  const handleDelete = async () => {
-    if (!confirm("Are you sure you want to deactivate this item?")) return;
-    
+  const handleToggleActive = async () => {
+    const next = !formData.isActive;
+    const label = next ? "activate" : "deactivate";
+    if (!confirm(`Are you sure you want to ${label} this item?`)) return;
+
+    setToggling(true);
     try {
       const res = await fetch(`/api/inventory/${id}`, {
-        method: "DELETE",
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...formData, isActive: next }),
       });
+      const data = await res.json();
       if (res.ok) {
-        router.push("/inventory");
+        setFormData((prev) => ({ ...prev, isActive: next }));
+      } else {
+        alert(data.error || `Failed to ${label} item`);
       }
     } catch (error) {
       console.error(error);
+      alert(`Error trying to ${label} item`);
+    } finally {
+      setToggling(false);
+    }
+  };
+
+  const handleHardDelete = async () => {
+    if (
+      !confirm(
+        `Permanently delete "${formData.name}"? This cannot be undone. Stock must be 0 and the item must not be used in any product config.`
+      )
+    ) {
+      return;
+    }
+
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/inventory/${id}`, { method: "DELETE" });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        router.push("/inventory");
+      } else {
+        alert(data.error || "Failed to delete item");
+      }
+    } catch (error) {
+      console.error(error);
+      alert("Error deleting item");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -124,17 +165,49 @@ export default function EditInventoryItem({ params }: { params: Promise<{ id: st
         </Link>
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="px-8 py-6 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
+          <div className="px-8 py-6 border-b border-gray-100 bg-gray-50/50 flex flex-wrap justify-between items-center gap-3">
             <div>
               <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Edit Item</h1>
-              <p className="text-sm text-gray-500 mt-1">{formData.name}</p>
+              <p className="text-sm text-gray-500 mt-1 flex items-center gap-2 flex-wrap">
+                {formData.name}
+                <span
+                  className={`px-2 py-0.5 text-xs font-semibold rounded-full ${
+                    formData.isActive
+                      ? "bg-green-100 text-green-800"
+                      : "bg-gray-100 text-gray-600"
+                  }`}
+                >
+                  {formData.isActive ? "Active" : "Inactive"}
+                </span>
+                <span className="text-gray-400">Stock: {currentStock}</span>
+              </p>
             </div>
-            <button
-              onClick={handleDelete}
-              className="inline-flex items-center px-3 py-1.5 border border-red-200 text-sm font-medium rounded-lg text-red-600 bg-red-50 hover:bg-red-100 transition-colors"
-            >
-              <Trash2 className="w-4 h-4 mr-1.5" /> Deactivate
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleToggleActive}
+                disabled={toggling}
+                className={`inline-flex items-center px-3 py-1.5 border text-sm font-medium rounded-lg transition-colors disabled:opacity-50 ${
+                  formData.isActive
+                    ? "border-amber-200 text-amber-800 bg-amber-50 hover:bg-amber-100"
+                    : "border-green-200 text-green-700 bg-green-50 hover:bg-green-100"
+                }`}
+              >
+                {formData.isActive ? (
+                  <><Ban className="w-4 h-4 mr-1.5" /> Deactivate</>
+                ) : (
+                  <><RotateCcw className="w-4 h-4 mr-1.5" /> Activate</>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={handleHardDelete}
+                disabled={deleting}
+                className="inline-flex items-center px-3 py-1.5 border border-red-200 text-sm font-medium rounded-lg text-red-600 bg-red-50 hover:bg-red-100 transition-colors disabled:opacity-50"
+              >
+                <Trash2 className="w-4 h-4 mr-1.5" /> Delete
+              </button>
+            </div>
           </div>
 
           <form onSubmit={handleSubmit} className="p-8 space-y-6">
