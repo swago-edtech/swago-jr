@@ -13,6 +13,7 @@ interface CrossSellProduct {
   availableStock: number;
   label?: string;
   ageCategory?: string;
+  internationalPricing?: Record<string, { price: number; originalPrice?: number }>;
 }
 
 interface ExpressCrossSellProps {
@@ -22,7 +23,7 @@ interface ExpressCrossSellProps {
 }
 
 export default function ExpressCrossSell({ products, onAddProduct, cartProductIds }: ExpressCrossSellProps) {
-  const { formatPrice } = useCountry();
+  const { formatLocalPrice, getLocalPrice } = useCountry();
   if (!products || products.length === 0) return null;
 
   return (
@@ -33,8 +34,9 @@ export default function ExpressCrossSell({ products, onAddProduct, cartProductId
       <div className="flex gap-2 overflow-x-auto pb-3 snap-x scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0 md:flex-col md:overflow-visible md:space-y-2 md:pb-0 md:gap-0">
         {products.map((product) => {
           const isInCart = cartProductIds.includes(product._id.toString());
-          const discount = product.originalPrice
-            ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
+          const local = getLocalPrice(product);
+          const discount = local.originalPrice
+            ? Math.round(((local.originalPrice - local.price) / local.originalPrice) * 100)
             : 0;
 
           return (
@@ -64,10 +66,10 @@ export default function ExpressCrossSell({ products, onAddProduct, cartProductId
                   {product.name}
                 </h4>
                 <div className="flex flex-wrap items-baseline justify-center md:justify-start gap-1">
-                  <span className="text-[11px] md:text-sm font-black text-[#0f172a]">{formatPrice(product.price)}</span>
-                  {product.originalPrice && product.originalPrice > product.price && (
+                  <span className="text-[11px] md:text-sm font-black text-[#0f172a]">{formatLocalPrice(local.price)}</span>
+                  {local.originalPrice && local.originalPrice > local.price && (
                     <>
-                      <span className="hidden md:inline-block text-[9px] text-[#94a3b8] line-through">{formatPrice(product.originalPrice)}</span>
+                      <span className="hidden md:inline-block text-[9px] text-[#94a3b8] line-through">{formatLocalPrice(local.originalPrice)}</span>
                       <span className="text-[9px] font-black text-[#10b981]">{discount}% off</span>
                     </>
                   )}

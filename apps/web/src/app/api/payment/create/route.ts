@@ -13,6 +13,7 @@ import {
   releaseInventoryAllocation,
   InsufficientInventoryError,
 } from "@/lib/inventory-service";
+import { getProductPrice, convertToINR, convertToLocal } from "@/lib/currency";
 
 
 interface ProductDocument {
@@ -214,6 +215,8 @@ export async function POST(req: Request) {
     }
 
     // Prepare order items SECURELY
+    const currency = orderDetails.currency || "INR";
+    const exchangeRateUsed = orderDetails.exchangeRate || 1;
     let totalWeight = 0;
     const orderItems: OrderItem[] = orderDetails.cart.map((item: CartItem) => {
       const productId = item.id?.toString() || item.productId?.toString() || item._id;
@@ -223,7 +226,20 @@ export async function POST(req: Request) {
       );
 
       const dbProduct = reservation?.product as any;
-      let finalPrice = dbProduct?.price || item.price;
+      const resolvedLocal = getProductPrice(
+        {
+          price: dbProduct?.price ?? item.price,
+          originalPrice: dbProduct?.originalPrice,
+          internationalPricing: dbProduct?.internationalPricing,
+        },
+        currency,
+        exchangeRateUsed
+      );
+      // Order ledger stays in INR; fixed intl prices convert back for accounting.
+      let finalPrice =
+        currency === "INR"
+          ? dbProduct?.price || item.price
+          : convertToINR(resolvedLocal.price, exchangeRateUsed);
 
       const slugValue = item.slug || item.productId || item._id;
       // Allow price of 1 if it passed the bonus threshold check above
@@ -241,6 +257,29 @@ export async function POST(req: Request) {
       };
     });
 
+    // Local-currency merchandise total (fixed price wins over multiplier when set)
+    const localMerchandiseTotal = orderDetails.cart.reduce((sum: number, item: CartItem) => {
+      const productId = item.id?.toString() || item.productId?.toString() || item._id;
+      const reservation = reservations.find(r =>
+        r.product._id.toString() === productId ||
+        r.product.slug === productId
+      );
+      const dbProduct = reservation?.product as any;
+      const resolved = getProductPrice(
+        {
+          price: dbProduct?.price ?? item.price,
+          originalPrice: dbProduct?.originalPrice,
+          internationalPricing: dbProduct?.internationalPricing,
+        },
+        currency,
+        exchangeRateUsed
+      );
+      const slugValue = item.slug || item.productId || item._id;
+      if (item.price === 1 && BONUS_THRESHOLDS[slugValue as string]) {
+        return sum + (currency === "INR" ? 1 : convertToLocal(1, exchangeRateUsed)) * item.quantity;
+      }
+      return sum + resolved.price * item.quantity;
+    }, 0);
     const subtotal = orderItems.reduce(
       (sum: number, item: OrderItem) => sum + (item.price * item.quantity),
       0
@@ -292,8 +331,6 @@ export async function POST(req: Request) {
     }
 
     const countryCode = orderDetails.country || 'IN';
-    const currency = orderDetails.currency || 'INR';
-    const exchangeRateUsed = orderDetails.exchangeRate || 1;
 
     let shippingFee = 0;
     if (countryCode !== 'IN') {
@@ -319,6 +356,14 @@ export async function POST(req: Request) {
     }
 
     const calculatedTotal = Math.max(0, calculatedAmountAfterCoupon - swagoMoneyRedeemed + shippingFee);
+
+    const localDiscount = currency === "INR" ? discountAmount : convertToLocal(discountAmount, exchangeRateUsed);
+    const localSwago = currency === "INR" ? swagoMoneyRedeemed : convertToLocal(swagoMoneyRedeemed, exchangeRateUsed);
+    const localShipping = currency === "INR" ? shippingFee : convertToLocal(shippingFee, exchangeRateUsed);
+    const displayTotal = Math.max(
+      0,
+      localMerchandiseTotal - localDiscount - localSwago + localShipping
+    );
 
     // Verify if calculated total matches what frontend sent (optional safety check)
     if (Math.abs(calculatedTotal - totalAmount) > 1) { // 1 rupee tolerance
@@ -354,7 +399,7 @@ export async function POST(req: Request) {
       country: countryCode,
       currency: currency,
       exchangeRateUsed: exchangeRateUsed,
-      displayTotal: calculatedTotal * exchangeRateUsed,
+      displayTotal: displayTotal,
       ...(validatedCoupon && {
         couponCode: validatedCoupon.code,
         couponDetails: validatedCoupon,
@@ -430,7 +475,7 @@ export async function POST(req: Request) {
 
 
     const options = {
-      amount: Math.round((currency === "INR" ? calculatedTotal : calculatedTotal * exchangeRateUsed) * 100),
+      amount: Math.round((currency === "INR" ? calculatedTotal : displayTotal) * 100),
       currency: currency,
       receipt: orderId,  // Use our orderId as receipt
       notes: {
@@ -489,6 +534,7 @@ export async function POST(req: Request) {
         key: process.env.RAZORPAY_KEY_ID, // Add key for frontend
         orderId: orderId,
         mongoOrderId: newOrder._id.toString(),
+        currency: currency,
       });
     } catch (razorpayError) {
       // Razorpay order creation failed - mark order as failed and rollback reservations

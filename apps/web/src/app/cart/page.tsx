@@ -20,13 +20,18 @@ interface StockInfo {
 
 export default function CartPage() {
   const { cart, total, removeFromCart, increaseQty, decreaseQty, appliedCoupon, setAppliedCoupon, appliedSwagoMoney, setAppliedSwagoMoney, walletBalance, refreshCartPrices, isRefreshingCart } = useSharedContext();
-  const { formatPrice, country, isInternational } = useCountry();
+  const { formatPrice, formatLocalPrice, getLocalPrice, toLocalAmount, country, isInternational } = useCountry();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [stockInfo, setStockInfo] = useState<StockInfo>({});
   const [mounted, setMounted] = useState(false);
   const [priceChanges, setPriceChanges] = useState<CartPriceChange[]>([]);
   const [promotion, setPromotion] = useState<any>(null);
+
+  const localCartTotal = cart.reduce((s, it) => s + getLocalPrice(it).price * it.quantity, 0);
+  const localDiscount = toLocalAmount(appliedCoupon?.discount || 0);
+  const localSwago = toLocalAmount(appliedSwagoMoney || 0);
+  const localPayable = Math.max(0, localCartTotal - localDiscount - localSwago);
 
   useEffect(() => {
     fetch("/api/promotion")
@@ -252,8 +257,9 @@ export default function CartPage() {
                 const productId = getProductKey(item);
                 const stock = stockInfo[productId];
                 const isOutOfStock = false; // Stock decoupled
-                const price = typeof item.price === "number" ? item.price : 0;
-                const originalPrice = item.originalPrice || price * 1.5;
+                const local = getLocalPrice(item);
+                const price = local.price || 0;
+                const originalPrice = local.originalPrice || price * 1.5;
 
                 return (
                   <div key={productId} className="bg-white rounded-2xl border border-slate-100 p-3 sm:p-4 shadow-sm flex flex-row gap-3 sm:gap-4 overflow-hidden items-stretch">
@@ -273,8 +279,8 @@ export default function CartPage() {
                           </span>
                         </div>
                         <div className="flex flex-row sm:flex-col items-baseline sm:items-end gap-2 sm:gap-0 mt-1 sm:mt-0 w-full sm:w-auto">
-                          <span className="text-sm sm:text-lg font-black text-slate-900 tabular-nums leading-none">{formatPrice(price)}</span>
-                          <span className="text-xs text-slate-400 line-through font-bold tabular-nums sm:mt-0.5">{formatPrice(originalPrice)}</span>
+                          <span className="text-sm sm:text-lg font-black text-slate-900 tabular-nums leading-none">{formatLocalPrice(price)}</span>
+                          <span className="text-xs text-slate-400 line-through font-bold tabular-nums sm:mt-0.5">{formatLocalPrice(originalPrice)}</span>
                         </div>
                       </div>
 
@@ -298,7 +304,7 @@ export default function CartPage() {
 
                         <div className="flex flex-col items-end whitespace-nowrap">
                           <span className="hidden sm:block text-[9px] font-bold text-slate-400 tracking-widest mb-0.5">Subtotal</span>
-                          <span className="text-sm sm:text-base font-black text-slate-900 tabular-nums">{formatPrice(price * item.quantity)}</span>
+                          <span className="text-sm sm:text-base font-black text-slate-900 tabular-nums">{formatLocalPrice(price * item.quantity)}</span>
                         </div>
                       </div>
                     </div>
@@ -428,7 +434,7 @@ export default function CartPage() {
               <div className="space-y-2.5">
                 <div className="flex justify-between text-slate-500 text-xs sm:text-xs font-bold tracking-widest">
                   <span>Cart Total</span>
-                  <span className="text-slate-900 tabular-nums font-black">{formatPrice(total)}</span>
+                  <span className="text-slate-900 tabular-nums font-black">{formatLocalPrice(localCartTotal)}</span>
                 </div>
                 <div className="flex flex-col text-right">
                   <div className="flex justify-between text-slate-500 text-xs sm:text-xs font-bold tracking-widest gap-8">
@@ -440,13 +446,13 @@ export default function CartPage() {
                 {savings > 0 && (
                   <div className="flex justify-between text-slate-500 text-xs sm:text-xs font-bold tracking-widest">
                     <span>Savings</span>
-                    <span className="text-[#1EAA5F] font-black tabular-nums">-{formatPrice(savings)}</span>
+                    <span className="text-[#1EAA5F] font-black tabular-nums">-{formatLocalPrice(toLocalAmount(savings))}</span>
                   </div>
                 )}
                 {appliedSwagoMoney > 0 && (
                   <div className="flex justify-between text-slate-500 text-xs sm:text-xs font-bold tracking-widest">
                     <span>Swago Dollars</span>
-                    <span className="text-[hsl(var(--swago-purple))] font-black tabular-nums">-{formatPrice(appliedSwagoMoney)}</span>
+                    <span className="text-[hsl(var(--swago-purple))] font-black tabular-nums">-{formatLocalPrice(localSwago)}</span>
                   </div>
                 )}
 
@@ -455,8 +461,8 @@ export default function CartPage() {
                 <div className="flex justify-between items-start pt-1">
                   <span className="text-xs sm:text-sm font-black text-slate-700 tracking-tight mt-1">Estimated total</span>
                   <div className="text-right">
-                    <span className="text-xl sm:text-2xl font-black text-slate-900 tracking-tighter tabular-nums leading-none block">{formatPrice(amountAfterCoupon - appliedSwagoMoney)}</span>
-                    {(savings + appliedSwagoMoney) > 0 && <span className="text-[9px] sm:text-xs font-black text-[#1EAA5F] tracking-wider mt-1 block">You saved {formatPrice(savings + appliedSwagoMoney)}!</span>}
+                    <span className="text-xl sm:text-2xl font-black text-slate-900 tracking-tighter tabular-nums leading-none block">{formatLocalPrice(localPayable)}</span>
+                    {(savings + appliedSwagoMoney) > 0 && <span className="text-[9px] sm:text-xs font-black text-[#1EAA5F] tracking-wider mt-1 block">You saved {formatLocalPrice(toLocalAmount(savings + appliedSwagoMoney))}!</span>}
                   </div>
                 </div>
               </div>
@@ -495,8 +501,8 @@ export default function CartPage() {
           <div className="flex flex-col">
             <span className="text-xs font-bold text-slate-500 tracking-tight mb-1 leading-none">Estimated total</span>
             <div className="flex flex-col items-start gap-1">
-              <span className="text-xl font-black text-slate-900 tracking-tighter tabular-nums leading-none">{formatPrice(amountAfterCoupon - appliedSwagoMoney)}</span>
-              {(savings + appliedSwagoMoney) > 0 && <span className="text-[9px] font-black text-[#1EAA5F] tracking-wider leading-none">You saved {formatPrice(savings + appliedSwagoMoney)}!</span>}
+              <span className="text-xl font-black text-slate-900 tracking-tighter tabular-nums leading-none">{formatLocalPrice(localPayable)}</span>
+              {(savings + appliedSwagoMoney) > 0 && <span className="text-[9px] font-black text-[#1EAA5F] tracking-wider leading-none">You saved {formatLocalPrice(toLocalAmount(savings + appliedSwagoMoney))}!</span>}
             </div>
           </div>
           <button

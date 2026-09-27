@@ -4,6 +4,7 @@ import { Product, hasActiveBomConfig } from "@swago/database";
 import { connectDB } from "@swago/database";
 import mongoose from "mongoose";
 import { parseComboFields } from "@/lib/combo-units";
+import { normalizeInternationalPricing } from "@/lib/international-pricing";
 
 // GET /api/products/[id] - Get single product
 export async function GET(
@@ -132,6 +133,9 @@ export async function PUT(
     if (body.showPromotionalMessage !== undefined) updateFields.showPromotionalMessage = body.showPromotionalMessage;
     if (body.promotionalMessage !== undefined) updateFields.promotionalMessage = body.promotionalMessage;
     if (body.skills !== undefined) updateFields.skills = body.skills;
+    if (body.internationalPricing !== undefined) {
+      updateFields.internationalPricing = normalizeInternationalPricing(body.internationalPricing);
+    }
 
     // Update product
     const updatedProduct = await Product.findByIdAndUpdate(

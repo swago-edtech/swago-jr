@@ -39,6 +39,7 @@ type ProductFormData = {
   stock: number;
   lowStockThreshold: number;
   amazonSku?: string;
+  weight?: number;
   isFeatured: boolean;
   isActive: boolean;
   isCombo?: boolean;
@@ -50,7 +51,40 @@ type ProductFormData = {
   showPromotionalMessage?: boolean;
   promotionalMessage?: string;
   skills?: { title: string; image: string }[];
+  internationalPricing?: Record<string, { price: number; originalPrice?: number }>;
 };
+
+type IntlCountryOption = {
+  code: string;
+  name: string;
+  currency: string;
+  currencySymbol: string;
+  isActive: boolean;
+};
+
+function pricingMapFromInitial(
+  raw?: Record<string, { price: number; originalPrice?: number }> | Map<string, { price: number; originalPrice?: number }> | null
+): Record<string, { price: string; originalPrice: string }> {
+  const out: Record<string, { price: string; originalPrice: string }> = {};
+  if (!raw) return out;
+
+  const entries =
+    raw instanceof Map
+      ? Array.from(raw.entries())
+      : Object.entries(raw);
+
+  for (const [currency, val] of entries) {
+    if (!val) continue;
+    out[String(currency).toUpperCase()] = {
+      price: val.price != null && val.price > 0 ? String(val.price) : "",
+      originalPrice:
+        val.originalPrice != null && val.originalPrice > 0
+          ? String(val.originalPrice)
+          : "",
+    };
+  }
+  return out;
+}
 
 type ProductFormProps = {
   mode: "create" | "edit";
@@ -70,8 +104,25 @@ export default function ProductForm({ mode, initialData, productId }: ProductFor
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [intlCountries, setIntlCountries] = useState<IntlCountryOption[]>([]);
+  const [intlPricing, setIntlPricing] = useState<
+    Record<string, { price: string; originalPrice: string }>
+  >(() => pricingMapFromInitial(initialData?.internationalPricing));
 
   const [bomData, setBomData] = useState({ configured: false, stock: 0, limitingComponent: "", loading: mode === "edit" });
+
+  useEffect(() => {
+    fetch("/api/international-config")
+      .then((r) => r.json())
+      .then((data) => {
+        if (!data.success || !data.data?.supportedCountries) return;
+        const countries = (data.data.supportedCountries as IntlCountryOption[]).filter(
+          (c) => c.isActive && c.code !== "IN" && c.currency !== "INR"
+        );
+        setIntlCountries(countries);
+      })
+      .catch((err) => console.error("Failed to load international countries", err));
+  }, []);
 
   useEffect(() => {
     if (mode === "edit" && productId) {
@@ -113,6 +164,7 @@ export default function ProductForm({ mode, initialData, productId }: ProductFor
     stock: initialData?.stock?.toString() ?? "0",
     lowStockThreshold: initialData?.lowStockThreshold?.toString() ?? "10",
     amazonSku: (initialData as any)?.amazonSku ?? "",
+    weight: (initialData as any)?.weight?.toString() ?? "0",
     isFeatured: initialData?.isFeatured ?? false,
     isActive: initialData?.isActive ?? true,
     isCombo: initialData?.isCombo ?? false,
@@ -290,6 +342,7 @@ export default function ProductForm({ mode, initialData, productId }: ProductFor
         benefits: form.benefits,
         lowStockThreshold: parseInt(form.lowStockThreshold),
         amazonSku: form.amazonSku.trim().toUpperCase(),
+        weight: parseFloat(form.weight) || 0,
         isFeatured: form.isFeatured,
         isActive: form.isActive,
         isCombo: form.isCombo,
@@ -301,6 +354,19 @@ export default function ProductForm({ mode, initialData, productId }: ProductFor
         showPromotionalMessage: form.showPromotionalMessage,
         promotionalMessage: form.promotionalMessage,
         skills: skills.filter((s) => s.title && s.image),
+        internationalPricing: Object.fromEntries(
+          Object.entries(intlPricing)
+            .filter(([, v]) => v.price && parseFloat(v.price) > 0)
+            .map(([currency, v]) => [
+              currency,
+              {
+                price: parseFloat(v.price),
+                ...(v.originalPrice && parseFloat(v.originalPrice) > 0
+                  ? { originalPrice: parseFloat(v.originalPrice) }
+                  : {}),
+              },
+            ])
+        ),
       };
 
       if (!(mode === "edit" && bomData.configured)) {
@@ -486,6 +552,82 @@ export default function ProductForm({ mode, initialData, productId }: ProductFor
                   <p className="text-xs text-gray-400 mt-1">Strikethrough reference price</p>
                 </div>
               </div>
+
+              {intlCountries.length > 0 && (
+                <div className="pt-4 border-t border-gray-100 space-y-3">
+                  <div className="flex items-start gap-2">
+                    <Globe className="w-4 h-4 text-sky-600 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-800">
+                        International fixed prices
+                      </p>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        Set a direct price per country. When filled, it overrides the exchange-rate
+                        multiplier for that currency. Leave blank to use the multiplier from
+                        International Config.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    {intlCountries.map((country) => {
+                      const key = country.currency.toUpperCase();
+                      const row = intlPricing[key] || { price: "", originalPrice: "" };
+                      return (
+                        <div
+                          key={country.code}
+                          className="rounded-lg border border-gray-100 bg-gray-50/80 p-3 grid grid-cols-1 sm:grid-cols-2 gap-3"
+                        >
+                          <div className="sm:col-span-2 text-xs font-semibold text-gray-600">
+                            {country.name}{" "}
+                            <span className="font-normal text-gray-400">
+                              ({country.currency} · {country.currencySymbol})
+                            </span>
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-600 mb-1">
+                              Selling price ({country.currencySymbol})
+                            </label>
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={row.price}
+                              onChange={(e) =>
+                                setIntlPricing((prev) => ({
+                                  ...prev,
+                                  [key]: { ...row, price: e.target.value },
+                                }))
+                              }
+                              placeholder="Leave blank for multiplier"
+                              className={fieldClass()}
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-600 mb-1">
+                              Original / MRP ({country.currencySymbol}){" "}
+                              <span className="font-normal text-gray-400">(Optional)</span>
+                            </label>
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={row.originalPrice}
+                              onChange={(e) =>
+                                setIntlPricing((prev) => ({
+                                  ...prev,
+                                  [key]: { ...row, originalPrice: e.target.value },
+                                }))
+                              }
+                              placeholder="Optional"
+                              className={fieldClass()}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
@@ -996,6 +1138,25 @@ export default function ProductForm({ mode, initialData, productId }: ProductFor
                 <p className="text-xs text-gray-500 mt-1.5">
                   Paste the seller SKU from Amazon order emails so Channel Email can link sales to this
                   product. This is separate from inventory unit SKUs under Inventory → Items.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Shipping weight (kg)
+                </label>
+                <input
+                  type="number"
+                  name="weight"
+                  value={form.weight}
+                  onChange={handleChange}
+                  placeholder="0.5"
+                  min="0"
+                  step="0.01"
+                  className={fieldClass()}
+                />
+                <p className="text-xs text-gray-400 mt-1">
+                  Used for international shipping weight tiers in International Config.
                 </p>
               </div>
             </div>

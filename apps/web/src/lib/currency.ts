@@ -44,9 +44,12 @@ export function getProductPrice(
 
   if (product.internationalPricing) {
     if (product.internationalPricing instanceof Map) {
-      intlPricing = product.internationalPricing.get(currency);
+      intlPricing =
+        product.internationalPricing.get(currency) ||
+        product.internationalPricing.get(currency.toUpperCase());
     } else if (typeof product.internationalPricing === "object") {
-      intlPricing = (product.internationalPricing as Record<string, InternationalPricing>)[currency];
+      const map = product.internationalPricing as Record<string, InternationalPricing>;
+      intlPricing = map[currency] || map[currency.toUpperCase()];
     }
   }
 
