@@ -27,6 +27,8 @@ export async function findProductByIdOrSlug(id: string) {
 export async function findProductWithAvailability(id: string) {
   const product = await findProductByIdOrSlug(id);
   if (!product) return null;
-  const plain = product.toObject ? product.toObject() : product;
+  const plain = product.toObject
+    ? product.toObject({ flattenMaps: true })
+    : product;
   return withEffectiveProductStock(plain);
 }

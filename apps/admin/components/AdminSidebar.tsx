@@ -5,7 +5,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { LayoutDashboard, ShoppingBag, Package, Users, MessageSquare, X, Menu, HelpCircle, TrendingUp, Award, ChevronDown, ChevronRight, Mail, Ticket, Megaphone, Trophy, Gift, Target, GraduationCap, BarChart3, Warehouse } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, Package, Users, MessageSquare, X, Menu, HelpCircle, TrendingUp, Award, ChevronDown, ChevronRight, Mail, Ticket, Megaphone, Trophy, Gift, Target, GraduationCap, BarChart3, Warehouse, Globe } from "lucide-react";
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -32,9 +32,9 @@ const navigation = [
       { name: 'Announcement Banner', href: '/announcement' },
       { name: 'Home Pop-up', href: '/home-popup' },
       { name: 'Rush Timer Countdown', href: '/express-config' },
-      { name: 'International Config', href: '/international-config' },
     ]
   },
+  { name: 'International Config', href: '/international-config', icon: Globe },
   { name: 'Orders', href: '/orders', icon: ShoppingBag },
   { name: 'Coupons', href: '/coupons', icon: Ticket },
   { name: 'Promotions', href: '/promotions', icon: Gift },

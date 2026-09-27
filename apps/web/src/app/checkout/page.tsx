@@ -46,7 +46,7 @@ const REFERRAL_OPTIONS = [
 
 export default function CheckoutPage() {
   const { cart, total, user, isLoadingUser, clearCart, addToCart, appliedCoupon, setAppliedCoupon, appliedSwagoMoney, refreshCartPrices, isRefreshingCart } = useSharedContext();
-  const { country, formatPrice, isInternational, calculateShippingFee, calculateShippingFeeLocal } = useCountry();
+  const { country, formatPrice, formatLocalPrice, getLocalPrice, toLocalAmount, isInternational, calculateShippingFee, calculateShippingFeeLocal } = useCountry();
   const COUNTRY_FLAGS: Record<string, string> = { IN: '🇮🇳', US: '🇺🇸', CA: '🇨🇦', AE: '🇦🇪' };
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
@@ -230,7 +230,7 @@ export default function CheckoutPage() {
       const options = {
         key: data.key,
         amount: data.amount,
-        currency: "INR",
+        currency: data.currency || country.currency || "INR",
         name: "Swago Jr",
         description: `Order ${data.orderId}`,
         order_id: data.id,
@@ -366,6 +366,28 @@ export default function CheckoutPage() {
     return (discountedTotal - (appliedSwagoMoney || 0)) + shippingFee;
   }, [total, appliedCoupon, appliedSwagoMoney, shippingFee]);
 
+  const localMerchandiseTotal = useMemo(
+    () => cart.reduce((sum, item) => sum + getLocalPrice(item).price * item.quantity, 0),
+    [cart, getLocalPrice]
+  );
+  const localFinalTotal = useMemo(() => {
+    const localDiscount = toLocalAmount(appliedCoupon?.discount || 0);
+    const localSwago = toLocalAmount(appliedSwagoMoney || 0);
+    const localShipping = isInternational
+      ? calculateShippingFeeLocal(totalWeight)
+      : shippingFee;
+    return Math.max(0, localMerchandiseTotal - localDiscount - localSwago + localShipping);
+  }, [
+    localMerchandiseTotal,
+    appliedCoupon,
+    appliedSwagoMoney,
+    isInternational,
+    calculateShippingFeeLocal,
+    totalWeight,
+    shippingFee,
+    toLocalAmount,
+  ]);
+
   const progressPercent = useMemo(() => {
     const tiers = promotion?.redemptionTiers || DEFAULT_REDEMPTION_TIERS;
     const nextTier = tiers.find((t: any) => total < t.target) || tiers[tiers.length - 1];
@@ -407,7 +429,7 @@ export default function CheckoutPage() {
       <div className="bg-[hsl(var(--swago-purple))] py-3 text-center">
         <p className="text-white text-[10px] font-[1000] tracking-widest leading-tight">
           {isInternational
-            ? `International Shipping to ${country.name} — ${formatPrice(calculateShippingFeeLocal(totalWeight))}`
+            ? `International Shipping to ${country.name} — ${formatLocalPrice(calculateShippingFeeLocal(totalWeight))}`
             : 'Enjoy Free Shipping, on orders above ₹1450'
           }
         </p>
@@ -428,7 +450,7 @@ export default function CheckoutPage() {
             </svg>
           </div>
           <div className="text-lg font-black text-slate-900">
-            {formatPrice(finalTotal)}
+            {formatLocalPrice(localFinalTotal)}
           </div>
         </button>
 
@@ -630,7 +652,7 @@ export default function CheckoutPage() {
                       <p className="text-xs font-bold text-slate-700 uppercase tracking-wider">International Shipping</p>
                       <p className="text-[10px] text-slate-400 mt-0.5">via India Post (EMS/Speed Post)</p>
                     </div>
-                    <p className="text-xs font-black text-slate-800">{formatPrice(calculateShippingFeeLocal(totalWeight))}</p>
+                    <p className="text-xs font-black text-slate-800">{formatLocalPrice(calculateShippingFeeLocal(totalWeight))}</p>
                   </div>
                 ) : (
                   <>
@@ -847,9 +869,18 @@ function OrderSummary({
   cart, total, appliedCoupon, couponCode, setCouponCode, applyCoupon,
   promotion, progressPercent, nextTier, addToCart, appliedSwagoMoney, paymentMethod, finalTotal, shippingFee
 }: any) {
-  const { formatPrice, country, isInternational, calculateShippingFeeLocal } = useCountry();
+  const { formatLocalPrice, getLocalPrice, toLocalAmount, country, isInternational, calculateShippingFeeLocal } = useCountry();
   const totalWeight = useMemo(() => cart.reduce((sum: number, item: any) => sum + ((item.weight || 0) * item.quantity), 0), [cart]);
   const isAlreadyAdded = (slug: string) => cart.some((item: any) => (item.slug === slug || item._id === slug) && item.price === 1);
+
+  const localSubtotal = useMemo(
+    () => cart.reduce((sum: number, item: any) => sum + getLocalPrice(item).price * item.quantity, 0),
+    [cart, getLocalPrice]
+  );
+  const localDiscount = toLocalAmount(appliedCoupon?.discount || 0);
+  const localSwago = toLocalAmount(appliedSwagoMoney || 0);
+  const localShipping = isInternational ? calculateShippingFeeLocal(totalWeight) : shippingFee;
+  const localFinalTotal = Math.max(0, localSubtotal - localDiscount - localSwago + localShipping);
 
   return (
     <>
@@ -870,7 +901,7 @@ function OrderSummary({
               <h3 className="text-xs font-bold text-slate-800 leading-snug line-clamp-2">{item.name}</h3>
             </div>
             <div className="text-sm font-bold text-slate-900">
-              {formatPrice((item.price || 0) * item.quantity)}
+              {formatLocalPrice(getLocalPrice(item).price * item.quantity)}
             </div>
           </div>
         ))}
@@ -880,27 +911,27 @@ function OrderSummary({
       <div className="space-y-3 text-sm">
         <div className="flex justify-between text-slate-600">
           <span>Subtotal</span>
-          <span className="font-bold text-slate-900">{formatPrice(total)}</span>
+          <span className="font-bold text-slate-900">{formatLocalPrice(localSubtotal)}</span>
         </div>
         <div className="flex justify-between text-slate-600">
           <span>Shipping {isInternational ? '(International)' : paymentMethod === 'cod' ? '(COD)' : '(Online)'}</span>
-          {shippingFee === 0 ? (
+          {localShipping === 0 ? (
             <span className="text-xs font-black text-emerald-600 tracking-widest uppercase">FREE</span>
           ) : (
-            <span className="font-bold text-slate-900">{formatPrice(shippingFee)}</span>
+            <span className="font-bold text-slate-900">{formatLocalPrice(localShipping)}</span>
           )}
         </div>
         {appliedCoupon && (
           <div className="flex justify-between text-emerald-600 font-bold">
             <span>Discount ({appliedCoupon.code})</span>
-            <span>-{formatPrice(appliedCoupon.discount)}</span>
+            <span>-{formatLocalPrice(localDiscount)}</span>
           </div>
         )}
 
         {appliedSwagoMoney > 0 && (
           <div className="flex justify-between text-[hsl(var(--swago-purple))] font-bold">
             <span>Swago Dollars</span>
-            <span>-{formatPrice(appliedSwagoMoney)}</span>
+            <span>-{formatLocalPrice(localSwago)}</span>
           </div>
         )}
 
@@ -909,7 +940,7 @@ function OrderSummary({
           <div className="flex items-baseline gap-2">
             <span className="text-[10px] text-slate-500 uppercase font-black">{country.currency}</span>
             <span className="text-2xl font-black text-slate-900">
-              {formatPrice(finalTotal)}
+              {formatLocalPrice(localFinalTotal || toLocalAmount(finalTotal))}
             </span>
           </div>
         </div>

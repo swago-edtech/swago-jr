@@ -18,7 +18,12 @@ import {
 
 type CountryContextType = {
   country: CountryConfig;
+  /** Formats an INR amount into the active country currency (exchange-rate path). */
   formatPrice: (amountINR: number) => string;
+  /** Formats an amount already in the active country currency (no conversion). */
+  formatLocalPrice: (amountLocal: number) => string;
+  /** Convert an INR amount into the active local currency via exchange rate. */
+  toLocalAmount: (amountINR: number) => number;
   getLocalPrice: (product: {
     price: number;
     originalPrice?: number;
@@ -106,6 +111,19 @@ export function CountryProvider({ children }: { children: React.ReactNode }) {
     [country]
   );
 
+  const formatLocalPrice = useCallback(
+    (amountLocal: number): string => formatPriceUtil(amountLocal, country),
+    [country]
+  );
+
+  const toLocalAmount = useCallback(
+    (amountINR: number): number => {
+      if (country.currency === "INR") return amountINR;
+      return convertToLocal(amountINR, country.exchangeRate);
+    },
+    [country]
+  );
+
   const getLocalPrice = useCallback(
     (product: {
       price: number;
@@ -154,6 +172,8 @@ export function CountryProvider({ children }: { children: React.ReactNode }) {
       value={{
         country,
         formatPrice,
+        formatLocalPrice,
+        toLocalAmount,
         getLocalPrice,
         isInternational,
         shippingFee,

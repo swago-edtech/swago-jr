@@ -50,13 +50,18 @@ export default function CartSidebar() {
     isRefreshingCart
   } = useSharedContext();
 
-  const { formatPrice, country, isInternational } = useCountry();
+  const { formatPrice, formatLocalPrice, getLocalPrice, toLocalAmount, country, isInternational } = useCountry();
   const router = useRouter();
   const [stockInfo, setStockInfo] = useState<StockInfo>({});
   const [loading, setLoading] = useState(false);
   const [recommendedProducts, setRecommendedProducts] = useState<Product[]>([]);
   const [activeTab, setActiveTab] = useState('Today');
   const [sidebarPriceChanges, setSidebarPriceChanges] = useState<CartPriceChange[]>([]);
+
+  const localCartTotal = cart.reduce((s, it) => s + getLocalPrice(it).price * it.quantity, 0);
+  const localDiscount = toLocalAmount(appliedCoupon?.discount || 0);
+  const localSwago = toLocalAmount(appliedSwagoMoney || 0);
+  const localPayable = Math.max(0, localCartTotal - localDiscount - localSwago);
 
   // Coupon state
   const [couponSheetOpen, setCouponSheetOpen] = useState(false);
@@ -252,8 +257,9 @@ export default function CartSidebar() {
                   {cart.map((item) => {
                     const imageUrl = item.images?.[0] || '/images/placeholder.png';
                     const productId = getProductId(item);
-                    const price = item.price || 0;
-                    const originalPrice = item.originalPrice || price * 1.5;
+                    const local = getLocalPrice(item);
+                    const price = local.price || 0;
+                    const originalPrice = local.originalPrice || price * 1.5;
 
                     return (
                       <div key={productId} className="bg-white rounded-2xl p-2.5 border border-slate-100 flex gap-3">
@@ -264,8 +270,8 @@ export default function CartSidebar() {
                           <div className="flex justify-between items-start mb-2">
                             <h3 className="text-sm font-bold text-slate-800 leading-tight pr-4">{item.name}</h3>
                             <div className="text-right">
-                              <p className="text-sm font-black text-slate-900">{formatPrice(price)}</p>
-                              <p className="text-[11px] text-slate-400 line-through opacity-60 font-bold">{formatPrice(originalPrice)}</p>
+                              <p className="text-sm font-black text-slate-900">{formatLocalPrice(price)}</p>
+                              <p className="text-[11px] text-slate-400 line-through opacity-60 font-bold">{formatLocalPrice(originalPrice)}</p>
                             </div>
                           </div>
 
@@ -355,7 +361,7 @@ export default function CartSidebar() {
                           </div>
                           <h4 className="text-xs font-bold text-slate-800 line-clamp-1 mb-1">{p.name}</h4>
                           <div className="flex items-center gap-2 flex-wrap my-1.5">
-                            <span className="text-sm font-black text-slate-900 tracking-tight">{formatPrice(p.price)}</span>
+                            <span className="text-sm font-black text-slate-900 tracking-tight">{formatLocalPrice(getLocalPrice(p).price)}</span>
                           </div>
                           <button
                             onClick={() => addToCart(p, 1)}
@@ -418,8 +424,8 @@ export default function CartSidebar() {
                     <span className="text-sm font-black text-slate-700 tracking-tight">Estimated total</span>
                   </div>
                   <div className="text-right">
-                    <p className="text-xl font-black text-slate-900 tracking-tight leading-none mb-1">{formatPrice(((appliedCoupon ? total - appliedCoupon.discount : total) - (appliedSwagoMoney || 0)))}</p>
-                    {((appliedCoupon?.discount || 0) + (appliedSwagoMoney || 0)) > 0 && <p className="text-[10px] font-black text-[#1EAA5F] uppercase tracking-wide">You saved {formatPrice(((appliedCoupon?.discount || 0) + (appliedSwagoMoney || 0)))}!</p>}
+                    <p className="text-xl font-black text-slate-900 tracking-tight leading-none mb-1">{formatLocalPrice(localPayable)}</p>
+                    {((appliedCoupon?.discount || 0) + (appliedSwagoMoney || 0)) > 0 && <p className="text-[10px] font-black text-[#1EAA5F] uppercase tracking-wide">You saved {formatLocalPrice(toLocalAmount((appliedCoupon?.discount || 0) + (appliedSwagoMoney || 0)))}!</p>}
                   </div>
                 </div>
 

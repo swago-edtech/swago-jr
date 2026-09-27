@@ -31,13 +31,13 @@ interface RemovedItem {
 async function findProduct(productId: string) {
   // Try slug first
   let product = await Product.findOne({ slug: productId, isActive: true })
-    .select("_id name price originalPrice images stock reservedStock isActive slug")
+    .select("_id name price originalPrice images stock reservedStock isActive slug weight internationalPricing")
     .lean();
 
   // Try MongoDB _id if valid ObjectId
   if (!product && isValidObjectId(productId)) {
     product = await Product.findOne({ _id: productId, isActive: true })
-      .select("_id name price originalPrice images stock reservedStock isActive slug")
+      .select("_id name price originalPrice images stock reservedStock isActive slug weight internationalPricing")
       .lean();
   }
 
@@ -137,6 +137,8 @@ export async function POST(req: Request) {
         stock: dbProduct.stock ?? 0,
         availableStock,
         isActive: dbProduct.isActive,
+        weight: (dbProduct as any).weight || 0,
+        internationalPricing: (dbProduct as any).internationalPricing || undefined,
         quantity, // Stock decoupled: keep whatever quantity they had
       });
     }

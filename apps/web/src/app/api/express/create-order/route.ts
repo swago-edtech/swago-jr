@@ -15,6 +15,7 @@ import { validateCoupon } from "@/lib/coupon";
 import { sendOrderConfirmationEmail } from "@/lib/msg91-email";
 import { formatPhoneForStorage, verifyAccessToken } from "@/lib/msg91";
 import { z } from "zod";
+import { getProductPrice, convertToINR, convertToLocal } from "@/lib/currency";
 import {
   allocateInventoryForOrder,
   releaseInventoryAllocation,
@@ -265,14 +266,29 @@ export async function POST(req: Request) {
       BONUS_THRESHOLDS["special-edition-item"] = 1999;
     }
 
-    // Build order items using DB-verified prices
+    // Build order items using DB-verified prices (fixed intl price → INR ledger)
     let totalWeight = 0;
+    let localMerchandiseTotal = 0;
     const orderItems: OrderItem[] = reservations.map(({ product, quantity }) => {
       totalWeight += ((product as any).weight || 0) * quantity;
+      const resolvedLocal = getProductPrice(
+        {
+          price: (product as any).price,
+          originalPrice: (product as any).originalPrice,
+          internationalPricing: (product as any).internationalPricing,
+        },
+        finalCurrency,
+        exchangeRateUsed
+      );
+      localMerchandiseTotal += resolvedLocal.price * quantity;
+      const ledgerPrice =
+        finalCurrency === "INR"
+          ? (product as any).price
+          : convertToINR(resolvedLocal.price, exchangeRateUsed);
       return {
         productId: product._id.toString(),
         name: product.name,
-        price: (product as any).price,
+        price: ledgerPrice,
         quantity,
         image: (product as any).images?.[0] || "",
       };
@@ -354,6 +370,12 @@ export async function POST(req: Request) {
 
     const calculatedTotal = Math.max(0, calculatedAmountAfterCoupon + shippingFee);
 
+    const localDiscount =
+      finalCurrency === "INR" ? discountAmount : convertToLocal(discountAmount, exchangeRateUsed);
+    const localShipping =
+      finalCurrency === "INR" ? shippingFee : convertToLocal(shippingFee, exchangeRateUsed);
+    const displayTotal = Math.max(0, localMerchandiseTotal - localDiscount + localShipping);
+
     // ========================================
     // 8. CREATE ORDER (inventory allocated after creation)
     // ========================================
@@ -383,7 +405,7 @@ export async function POST(req: Request) {
       country: countryCode,
       currency: finalCurrency,
       exchangeRateUsed: exchangeRateUsed,
-      displayTotal: calculatedTotal * exchangeRateUsed,
+      displayTotal: displayTotal,
       stockReservedAt: new Date(),
       createdVia: "express",
       // ✅ UTM Tracking
@@ -456,7 +478,7 @@ export async function POST(req: Request) {
       });
 
       const razorpayOptions = {
-        amount: Math.round((finalCurrency === "INR" ? calculatedTotal : calculatedTotal * exchangeRateUsed) * 100),
+        amount: Math.round((finalCurrency === "INR" ? calculatedTotal : displayTotal) * 100),
         currency: finalCurrency,
         receipt: orderId,
         notes: {

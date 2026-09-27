@@ -21,6 +21,7 @@ import {
   AlertTriangle,
   Megaphone,
   Check,
+  ChevronDown,
 } from "lucide-react";
 import LotteryCodesManager from "@/components/LotteryCodesManager";
 import ComboProductFields from "@/components/ComboProductFields";
@@ -39,6 +40,7 @@ type ProductFormData = {
   stock: number;
   lowStockThreshold: number;
   amazonSku?: string;
+  weight?: number;
   isFeatured: boolean;
   isActive: boolean;
   isCombo?: boolean;
@@ -50,7 +52,40 @@ type ProductFormData = {
   showPromotionalMessage?: boolean;
   promotionalMessage?: string;
   skills?: { title: string; image: string }[];
+  internationalPricing?: Record<string, { price: number; originalPrice?: number }>;
 };
+
+type IntlCountryOption = {
+  code: string;
+  name: string;
+  currency: string;
+  currencySymbol: string;
+  isActive: boolean;
+};
+
+function pricingMapFromInitial(
+  raw?: Record<string, { price: number; originalPrice?: number }> | Map<string, { price: number; originalPrice?: number }> | null
+): Record<string, { price: string; originalPrice: string }> {
+  const out: Record<string, { price: string; originalPrice: string }> = {};
+  if (!raw) return out;
+
+  const entries =
+    raw instanceof Map
+      ? Array.from(raw.entries())
+      : Object.entries(raw);
+
+  for (const [currency, val] of entries) {
+    if (!val) continue;
+    out[String(currency).toUpperCase()] = {
+      price: val.price != null && val.price > 0 ? String(val.price) : "",
+      originalPrice:
+        val.originalPrice != null && val.originalPrice > 0
+          ? String(val.originalPrice)
+          : "",
+    };
+  }
+  return out;
+}
 
 type ProductFormProps = {
   mode: "create" | "edit";
@@ -70,8 +105,27 @@ export default function ProductForm({ mode, initialData, productId }: ProductFor
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [intlCountries, setIntlCountries] = useState<IntlCountryOption[]>([]);
+  const [intlPricing, setIntlPricing] = useState<
+    Record<string, { price: string; originalPrice: string }>
+  >(() => pricingMapFromInitial(initialData?.internationalPricing));
+  const [isIntlPricingExpanded, setIsIntlPricingExpanded] = useState(false);
+  const [isSkillsExpanded, setIsSkillsExpanded] = useState(false);
 
   const [bomData, setBomData] = useState({ configured: false, stock: 0, limitingComponent: "", loading: mode === "edit" });
+
+  useEffect(() => {
+    fetch("/api/international-config")
+      .then((r) => r.json())
+      .then((data) => {
+        if (!data.success || !data.data?.supportedCountries) return;
+        const countries = (data.data.supportedCountries as IntlCountryOption[]).filter(
+          (c) => c.isActive && c.code !== "IN" && c.currency !== "INR"
+        );
+        setIntlCountries(countries);
+      })
+      .catch((err) => console.error("Failed to load international countries", err));
+  }, []);
 
   useEffect(() => {
     if (mode === "edit" && productId) {
@@ -113,6 +167,7 @@ export default function ProductForm({ mode, initialData, productId }: ProductFor
     stock: initialData?.stock?.toString() ?? "0",
     lowStockThreshold: initialData?.lowStockThreshold?.toString() ?? "10",
     amazonSku: (initialData as any)?.amazonSku ?? "",
+    weight: (initialData as any)?.weight?.toString() ?? "0",
     isFeatured: initialData?.isFeatured ?? false,
     isActive: initialData?.isActive ?? true,
     isCombo: initialData?.isCombo ?? false,
@@ -290,6 +345,7 @@ export default function ProductForm({ mode, initialData, productId }: ProductFor
         benefits: form.benefits,
         lowStockThreshold: parseInt(form.lowStockThreshold),
         amazonSku: form.amazonSku.trim().toUpperCase(),
+        weight: parseFloat(form.weight) || 0,
         isFeatured: form.isFeatured,
         isActive: form.isActive,
         isCombo: form.isCombo,
@@ -301,6 +357,19 @@ export default function ProductForm({ mode, initialData, productId }: ProductFor
         showPromotionalMessage: form.showPromotionalMessage,
         promotionalMessage: form.promotionalMessage,
         skills: skills.filter((s) => s.title && s.image),
+        internationalPricing: Object.fromEntries(
+          Object.entries(intlPricing)
+            .filter(([, v]) => v.price && parseFloat(v.price) > 0)
+            .map(([currency, v]) => [
+              currency,
+              {
+                price: parseFloat(v.price),
+                ...(v.originalPrice && parseFloat(v.originalPrice) > 0
+                  ? { originalPrice: parseFloat(v.originalPrice) }
+                  : {}),
+              },
+            ])
+        ),
       };
 
       if (!(mode === "edit" && bomData.configured)) {
@@ -486,6 +555,127 @@ export default function ProductForm({ mode, initialData, productId }: ProductFor
                   <p className="text-xs text-gray-400 mt-1">Strikethrough reference price</p>
                 </div>
               </div>
+
+              {intlCountries.length > 0 && (() => {
+                const configuredCount = intlCountries.filter((c) => {
+                  const row = intlPricing[c.currency.toUpperCase()];
+                  return row && (Boolean(row.price) || Boolean(row.originalPrice));
+                }).length;
+
+                return (
+                  <div className="pt-4 border-t border-gray-100">
+                    <button
+                      type="button"
+                      onClick={() => setIsIntlPricingExpanded((prev) => !prev)}
+                      className="w-full flex items-center justify-between p-3 rounded-lg border border-gray-200/80 bg-gray-50/70 hover:bg-gray-100/80 transition-colors text-left group"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <div className="p-1.5 rounded-md bg-sky-100 text-sky-600 group-hover:bg-sky-200/70 transition-colors">
+                          <Globe className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-semibold text-gray-800">
+                              International fixed prices
+                            </span>
+                            <span className="text-[11px] text-gray-400 font-normal">
+                              (Optional)
+                            </span>
+                            {configuredCount > 0 && (
+                              <span className="text-[11px] font-semibold px-2 py-0.5 bg-sky-100 text-sky-700 rounded-full">
+                                {configuredCount} configured
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-gray-400 mt-0.5">
+                            {isIntlPricingExpanded
+                              ? "Override currency exchange multipliers with country-specific pricing"
+                              : `${intlCountries.length} countries available · Click to expand`}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-gray-400 group-hover:text-gray-600">
+                        <span className="text-xs font-medium hidden sm:inline">
+                          {isIntlPricingExpanded ? "Collapse" : "Expand"}
+                        </span>
+                        <ChevronDown
+                          className={`w-4 h-4 transition-transform duration-200 ${
+                            isIntlPricingExpanded ? "rotate-180" : ""
+                          }`}
+                        />
+                      </div>
+                    </button>
+
+                    {isIntlPricingExpanded && (
+                      <div className="space-y-3 pt-3">
+                        <p className="text-xs text-gray-500 bg-sky-50/70 border border-sky-100 rounded-lg p-2.5">
+                          Set a direct price per country. When filled, it overrides the exchange-rate
+                          multiplier for that currency. Leave blank to use the multiplier from
+                          International Config.
+                        </p>
+                        <div className="space-y-3">
+                          {intlCountries.map((country) => {
+                            const key = country.currency.toUpperCase();
+                            const row = intlPricing[key] || { price: "", originalPrice: "" };
+                            return (
+                              <div
+                                key={country.code}
+                                className="rounded-lg border border-gray-100 bg-gray-50/80 p-3 grid grid-cols-1 sm:grid-cols-2 gap-3"
+                              >
+                                <div className="sm:col-span-2 text-xs font-semibold text-gray-600">
+                                  {country.name}{" "}
+                                  <span className="font-normal text-gray-400">
+                                    ({country.currency} · {country.currencySymbol})
+                                  </span>
+                                </div>
+                                <div>
+                                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                                    Selling price ({country.currencySymbol})
+                                  </label>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={row.price}
+                                    onChange={(e) =>
+                                      setIntlPricing((prev) => ({
+                                        ...prev,
+                                        [key]: { ...row, price: e.target.value },
+                                      }))
+                                    }
+                                    placeholder="Leave blank for multiplier"
+                                    className={fieldClass()}
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                                    Original / MRP ({country.currencySymbol}){" "}
+                                    <span className="font-normal text-gray-400">(Optional)</span>
+                                  </label>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={row.originalPrice}
+                                    onChange={(e) =>
+                                      setIntlPricing((prev) => ({
+                                        ...prev,
+                                        [key]: { ...row, originalPrice: e.target.value },
+                                      }))
+                                    }
+                                    placeholder="Optional"
+                                    className={fieldClass()}
+                                  />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
 
             <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
@@ -592,138 +782,171 @@ export default function ProductForm({ mode, initialData, productId }: ProductFor
               </div>
             </div>
 
-            <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
-              <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+            <div className={`bg-white rounded-xl border border-gray-200 p-5 ${isSkillsExpanded ? "space-y-4" : ""}`}>
+              <div
+                onClick={() => setIsSkillsExpanded((prev) => !prev)}
+                className={`flex items-center justify-between cursor-pointer select-none group ${
+                  isSkillsExpanded ? "border-b border-gray-100 pb-3" : ""
+                }`}
+              >
                 <div className="flex items-center gap-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
                   <Sparkles className="w-4 h-4 text-indigo-600" />
-                  <span>Target Product Skills</span>
+                  <span className="text-gray-700 group-hover:text-gray-900 transition-colors">Target Product Skills</span>
                   <span className="text-xs font-medium px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full">
                     {skills.length}
                   </span>
+                  <span className="text-[11px] text-gray-400 font-normal lowercase tracking-normal">
+                    (optional)
+                  </span>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setSkills([...skills, { title: "", image: "" }])}
-                  className="px-3 py-1 bg-[#7C5DFA]/10 text-[#7C5DFA] rounded-full text-xs font-bold hover:bg-[#7C5DFA]/20 transition-all"
-                >
-                  + Add Skill
-                </button>
-              </div>
-
-              {skills.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {skills.map((skill, idx) => (
-                    <div
-                      key={idx}
-                      className="p-4 border border-gray-100 rounded-xl bg-gray-50/50 relative group hover:border-[#7C5DFA]/30 transition-all"
-                    >
-                      <button
-                        type="button"
-                        onClick={() => setSkills(skills.filter((_, i) => i !== idx))}
-                        className="absolute top-3 right-3 p-1 bg-white text-gray-400 hover:text-red-500 rounded-full shadow-xs opacity-0 group-hover:opacity-100 transition-opacity border border-gray-100"
-                      >
-                        <svg
-                          className="w-3 h-3"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={3}
-                            d="M6 18L18 6M6 6l12 12"
-                          />
-                        </svg>
-                      </button>
-
-                      <div className="flex gap-4 items-center">
-                        <div className="flex-none">
-                          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">
-                            Skill Icon
-                          </p>
-                          <label className="w-16 h-16 lg:w-20 lg:h-20 border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-[#7C5DFA] overflow-hidden bg-white transition-all">
-                            <input
-                              type="file"
-                              accept="image/*"
-                              onChange={(e) => handleSkillImageUpload(e, idx)}
-                              className="hidden"
-                            />
-                            {skill.image ? (
-                              <div className="relative w-full h-full">
-                                <Image
-                                  src={skill.image}
-                                  alt={skill.title}
-                                  fill
-                                  className="object-cover"
-                                />
-                                <div className="absolute inset-0 bg-black/10 opacity-0 hover:opacity-100 flex items-center justify-center transition-opacity">
-                                  <span className="text-[10px] text-white font-bold bg-black/40 px-2 py-0.5 rounded">
-                                    Change
-                                  </span>
-                                </div>
-                              </div>
-                            ) : (
-                              <div className="flex flex-col items-center text-gray-300">
-                                <svg
-                                  className="w-4 h-4 mb-0.5"
-                                  fill="none"
-                                  viewBox="0 0 24 24"
-                                  stroke="currentColor"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                                  />
-                                </svg>
-                                <span className="text-[10px] font-bold">Pick</span>
-                              </div>
-                            )}
-                          </label>
-                        </div>
-
-                        <div className="flex-grow">
-                          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">
-                            Skill Title
-                          </p>
-                          <input
-                            type="text"
-                            value={skill.title}
-                            onChange={(e) => updateSkillTitle(idx, e.target.value)}
-                            placeholder="e.g. Critical Thinking"
-                            className="w-full bg-white border border-gray-100 rounded-lg px-3 py-2 text-sm text-gray-700 focus:ring-2 focus:ring-[#7C5DFA]/20 focus:border-[#7C5DFA] transition-all outline-none"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8 bg-gray-50 rounded-xl border border-dashed border-gray-200">
-                  <svg
-                    className="w-8 h-8 text-gray-200 mx-auto mb-2"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={1}
-                      d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
-                    />
-                  </svg>
-                  <p className="text-gray-400 text-sm font-medium">No skills added yet.</p>
+                <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => setSkills([...skills, { title: "", image: "" }])}
-                    className="mt-3 text-[#7C5DFA] font-bold text-xs uppercase tracking-wider hover:underline"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSkills([...skills, { title: "", image: "" }]);
+                      setIsSkillsExpanded(true);
+                    }}
+                    className="px-3 py-1 bg-[#7C5DFA]/10 text-[#7C5DFA] rounded-full text-xs font-bold hover:bg-[#7C5DFA]/20 transition-all"
                   >
-                    + Add First Skill
+                    + Add Skill
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsSkillsExpanded((prev) => !prev);
+                    }}
+                    className="p-1 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                    aria-label={isSkillsExpanded ? "Collapse skills" : "Expand skills"}
+                  >
+                    <ChevronDown
+                      className={`w-4 h-4 transition-transform duration-200 ${
+                        isSkillsExpanded ? "rotate-180" : ""
+                      }`}
+                    />
                   </button>
                 </div>
+              </div>
+
+              {isSkillsExpanded && (
+                <>
+                  {skills.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {skills.map((skill, idx) => (
+                        <div
+                          key={idx}
+                          className="p-4 border border-gray-100 rounded-xl bg-gray-50/50 relative group hover:border-[#7C5DFA]/30 transition-all"
+                        >
+                          <button
+                            type="button"
+                            onClick={() => setSkills(skills.filter((_, i) => i !== idx))}
+                            className="absolute top-3 right-3 p-1 bg-white text-gray-400 hover:text-red-500 rounded-full shadow-xs opacity-0 group-hover:opacity-100 transition-opacity border border-gray-100"
+                          >
+                            <svg
+                              className="w-3 h-3"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={3}
+                                d="M6 18L18 6M6 6l12 12"
+                              />
+                            </svg>
+                          </button>
+
+                          <div className="flex gap-4 items-center">
+                            <div className="flex-none">
+                              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">
+                                Skill Icon
+                              </p>
+                              <label className="w-16 h-16 lg:w-20 lg:h-20 border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-[#7C5DFA] overflow-hidden bg-white transition-all">
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={(e) => handleSkillImageUpload(e, idx)}
+                                  className="hidden"
+                                />
+                                {skill.image ? (
+                                  <div className="relative w-full h-full">
+                                    <Image
+                                      src={skill.image}
+                                      alt={skill.title}
+                                      fill
+                                      className="object-cover"
+                                    />
+                                    <div className="absolute inset-0 bg-black/10 opacity-0 hover:opacity-100 flex items-center justify-center transition-opacity">
+                                      <span className="text-[10px] text-white font-bold bg-black/40 px-2 py-0.5 rounded">
+                                        Change
+                                      </span>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="flex flex-col items-center text-gray-300">
+                                    <svg
+                                      className="w-4 h-4 mb-0.5"
+                                      fill="none"
+                                      viewBox="0 0 24 24"
+                                      stroke="currentColor"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                      />
+                                    </svg>
+                                    <span className="text-[10px] font-bold">Pick</span>
+                                  </div>
+                                )}
+                              </label>
+                            </div>
+
+                            <div className="flex-grow">
+                              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">
+                                Skill Title
+                              </p>
+                              <input
+                                type="text"
+                                value={skill.title}
+                                onChange={(e) => updateSkillTitle(idx, e.target.value)}
+                                placeholder="e.g. Critical Thinking"
+                                className="w-full bg-white border border-gray-100 rounded-lg px-3 py-2 text-sm text-gray-700 focus:ring-2 focus:ring-[#7C5DFA]/20 focus:border-[#7C5DFA] transition-all outline-none"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                      <svg
+                        className="w-8 h-8 text-gray-200 mx-auto mb-2"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={1}
+                          d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                        />
+                      </svg>
+                      <p className="text-gray-400 text-sm font-medium">No skills added yet.</p>
+                      <button
+                        type="button"
+                        onClick={() => setSkills([...skills, { title: "", image: "" }])}
+                        className="mt-3 text-[#7C5DFA] font-bold text-xs uppercase tracking-wider hover:underline"
+                      >
+                        + Add First Skill
+                      </button>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -996,6 +1219,25 @@ export default function ProductForm({ mode, initialData, productId }: ProductFor
                 <p className="text-xs text-gray-500 mt-1.5">
                   Paste the seller SKU from Amazon order emails so Channel Email can link sales to this
                   product. This is separate from inventory unit SKUs under Inventory → Items.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Shipping weight (kg)
+                </label>
+                <input
+                  type="number"
+                  name="weight"
+                  value={form.weight}
+                  onChange={handleChange}
+                  placeholder="0.5"
+                  min="0"
+                  step="0.01"
+                  className={fieldClass()}
+                />
+                <p className="text-xs text-gray-400 mt-1">
+                  Used for international shipping weight tiers in International Config.
                 </p>
               </div>
             </div>

@@ -53,7 +53,7 @@ type CheckoutData = {
 
 export default function PaymentMethodPage() {
     const { cart, clearCart, total, refreshCartPrices } = useSharedContext();
-    const { formatPrice, isInternational } = useCountry();
+    const { formatPrice, isInternational, country } = useCountry();
 
     const router = useRouter();
     const [processing, setProcessing] = useState(false);
@@ -215,6 +215,9 @@ export default function PaymentMethodPage() {
                         swagoMoneyRedeemed: checkoutData.swagoMoneyRedeemed,
                         swagoMoneyKidId: checkoutData.swagoMoneyKidId,
                         finalAmount: finalAmount,
+                        country: country.code,
+                        currency: country.currency,
+                        exchangeRate: country.exchangeRate,
                     }
                 }),
             });
@@ -226,13 +229,13 @@ export default function PaymentMethodPage() {
                 return;
             }
 
-            const { id: razorpay_order_id, amount, key, orderId } = await res.json();
+            const { id: razorpay_order_id, amount, key, orderId, currency: orderCurrency } = await res.json();
 
             // Open Razorpay
             const options: RazorpayOptions = {
                 key: key,
                 amount: amount,
-                currency: "INR",
+                currency: orderCurrency || country.currency || "INR",
                 name: "Swago Jr",
                 description: `Order ${orderId}`,
                 order_id: razorpay_order_id,

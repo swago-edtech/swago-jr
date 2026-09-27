@@ -13,7 +13,7 @@ import { RiShareForwardFill } from "react-icons/ri";
 export default function ProductCard({ product }: { product: Product }) {
   const router = useRouter();
   const { cart, addToCart, addToWishlist, removeFromWishlist, isWishlisted, openCartSidebar, increaseQty, decreaseQty } = useSharedContext();
-  const { getLocalPrice, formatPrice } = useCountry();
+  const { getLocalPrice, formatLocalPrice } = useCountry();
 
   // Use MongoDB _id or slug for routing
   const productIdentifier = product._id || product.slug || '';
@@ -236,9 +236,9 @@ export default function ProductCard({ product }: { product: Product }) {
                       -{percentOff}%
                     </span>
                   )}
-                  <span className="text-base sm:text-lg font-black text-slate-900">{formatPrice(product.price)}</span>
+                  <span className="text-base sm:text-lg font-black text-slate-900">{formatLocalPrice(localPrice)}</span>
                   {localOriginalPrice && (
-                    <span className="text-[10px] sm:text-xs text-slate-400 line-through font-medium">{formatPrice(product.originalPrice || 0)}</span>
+                    <span className="text-[10px] sm:text-xs text-slate-400 line-through font-medium">{formatLocalPrice(localOriginalPrice)}</span>
                   )}
                 </div>
                 {ageCategory && (

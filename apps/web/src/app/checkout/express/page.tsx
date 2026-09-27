@@ -43,7 +43,7 @@ function ExpressCheckoutContent() {
   const utmSource = searchParams.get("utm_source") || "";
   const utmMedium = searchParams.get("utm_medium") || "";
   const utmCampaign = searchParams.get("utm_campaign") || "";
-  const { formatPrice, country, isInternational, calculateShippingFee } = useCountry();
+  const { formatPrice, formatLocalPrice, getLocalPrice, toLocalAmount, country, isInternational, calculateShippingFee, calculateShippingFeeLocal } = useCountry();
 
   // Page state
   const [loading, setLoading] = useState(true);
@@ -318,6 +318,12 @@ function ExpressCheckoutContent() {
     return subtotal >= threshold ? 0 : 50;
   }, [paymentMethod, subtotal, promotion, isInternational, calculateShippingFee, totalWeight]);
   const finalTotal = useMemo(() => Math.max(0, subtotal - discount + shippingFee), [subtotal, discount, shippingFee]);
+  const localFinalTotal = useMemo(() => {
+    const localSub = cart.reduce((s, i) => s + getLocalPrice(i).price * i.quantity, 0);
+    const localDisc = toLocalAmount(discount);
+    const localShip = isInternational ? calculateShippingFeeLocal(totalWeight) : shippingFee;
+    return Math.max(0, localSub - localDisc + localShip);
+  }, [cart, getLocalPrice, toLocalAmount, discount, isInternational, calculateShippingFeeLocal, totalWeight, shippingFee]);
 
   // ========================================
   // FORM VALIDATION
@@ -405,7 +411,7 @@ function ExpressCheckoutContent() {
 
       // Razorpay flow
       const options = {
-        key: data.razorpay.key, amount: data.razorpay.amount, currency: "INR",
+        key: data.razorpay.key, amount: data.razorpay.amount, currency: data.razorpay.currency || country?.currency || "INR",
         name: "Swago Jr", description: `Order ${data.order.orderId}`, order_id: data.razorpay.orderId,
         handler: async (response: any) => {
           setMessage("Verifying payment...");
@@ -714,7 +720,7 @@ function ExpressCheckoutContent() {
               {/* Pay Button */}
               <button onClick={handlePayNow} disabled={processing}
                 className="w-full py-3.5 bg-[hsl(var(--swago-purple))] hover:opacity-90 text-white shadow-sm shadow-[hsl(var(--swago-purple))] hover:shadow-md hover:shadow-[hsl(var(--swago-purple))] text-[13px] font-bold rounded-xl transition flex justify-center items-center tracking-widest disabled:opacity-50">
-                {processing ? "Processing..." : paymentMethod === "cod" ? `Place Order — ${formatPrice(finalTotal)}` : `Pay ${formatPrice(finalTotal)}`}
+                {processing ? "Processing..." : paymentMethod === "cod" ? `Place Order — ${formatLocalPrice(localFinalTotal)}` : `Pay ${formatLocalPrice(localFinalTotal)}`}
               </button>
 
               <footer className="pt-5 border-t border-[#e2e8f0]/80 flex flex-wrap justify-center gap-x-6 gap-y-2 text-[10px] text-[#94a3b8] tracking-widest font-bold">

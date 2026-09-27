@@ -41,7 +41,8 @@ export type Product = {
   showPromotionalMessage?: boolean;
   promotionalMessage?: string;
   skills?: { title: string; image: string }[];
-  weight?: number; // 🆕 Added weight field for shipping calculation
+  weight?: number;
+  internationalPricing?: Record<string, { price: number; originalPrice?: number }> | Map<string, { price: number; originalPrice?: number }>;
   createdAt?: string;
   updatedAt?: string;
 };
@@ -337,6 +338,10 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
               originalPrice: refreshed.originalPrice || item.originalPrice,
               slug: refreshed.slug || item.slug,
               weight: refreshed.weight !== undefined ? refreshed.weight : item.weight,
+              internationalPricing:
+                refreshed.internationalPricing !== undefined
+                  ? refreshed.internationalPricing
+                  : item.internationalPricing,
               quantity: item.quantity, // Stock decoupled
             };
           }).filter(item => item.quantity > 0);

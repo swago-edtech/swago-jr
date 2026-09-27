@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import { connectDB, InternationalConfig } from "@swago/database";
+import { requireAdmin } from "@/lib/auth";
 
 export async function GET() {
   try {
+    await requireAdmin();
     await connectDB();
     let config = await InternationalConfig.findOne({ isSingleton: true });
     
@@ -13,12 +15,16 @@ export async function GET() {
     return NextResponse.json({ success: true, data: config });
   } catch (error: any) {
     console.error("Error fetching international config:", error);
+    if (error.message === "Unauthorized - Admin access required") {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
 
 export async function PUT(req: Request) {
   try {
+    await requireAdmin();
     await connectDB();
     const { supportedCountries } = await req.json();
 
@@ -38,6 +44,9 @@ export async function PUT(req: Request) {
     return NextResponse.json({ success: true, data: config });
   } catch (error: any) {
     console.error("Error updating international config:", error);
+    if (error.message === "Unauthorized - Admin access required") {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
