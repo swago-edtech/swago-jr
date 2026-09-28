@@ -2,7 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { ExternalLink, PlayCircle } from "lucide-react";
-import { getYouTubeEmbedUrl, getYouTubeThumbnailUrl, getYouTubeVideoId, slugify } from "@swago/utils";
+import {
+  DEFAULT_HOW_TO_PLAY_DESCRIPTION,
+  getYouTubeEmbedUrl,
+  getYouTubeThumbnailUrl,
+  getYouTubeVideoId,
+  slugify,
+} from "@swago/utils";
 
 type HowToPlayVideo = {
   _id: string;
@@ -301,9 +307,14 @@ export default function HowToPlayConfigPage() {
                 value={form.description}
                 onChange={(e) => updateField("description", e.target.value)}
                 rows={3}
-                placeholder="Optional short intro shown under the video"
+                placeholder={DEFAULT_HOW_TO_PLAY_DESCRIPTION}
                 className={INPUT_CLASS}
               />
+              <p className="text-xs text-gray-500 mt-1">
+                Page header above the video. The first line is shown highlighted as the heading, the rest as the
+                description below it. Use <span className="font-mono">{"{title}"}</span> for the video title. Leave
+                empty to use the default text shown above.
+              </p>
             </div>
 
             <div className="flex items-center gap-3">

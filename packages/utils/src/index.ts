@@ -30,3 +30,6 @@ export { analyzeReviewSentiment } from './sentiment';
 
 // YouTube helpers
 export * from './youtube';
+
+// How-to-play page helpers
+export * from './how-to-play';

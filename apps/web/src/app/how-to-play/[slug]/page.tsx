@@ -1,8 +1,15 @@
 import type { Metadata } from "next";
+import { Fragment } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connectDB, HowToPlay } from "@swago/database";
-import { getYouTubeEmbedUrl } from "@swago/utils";
+import {
+  HOW_TO_PLAY_TITLE_PLACEHOLDER,
+  getHowToPlayDescription,
+  getHowToPlayDescriptionTemplate,
+  getYouTubeEmbedUrl,
+  splitHowToPlayDescription,
+} from "@swago/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -32,6 +39,16 @@ async function getHowToPlay(slug: string): Promise<HowToPlayPageData | null> {
   }
 }
 
+// Replaces {title} with the game title, optionally wrapped in a highlight span.
+function renderWithTitle(text: string, title: string, highlightClassName?: string) {
+  return text.split(HOW_TO_PLAY_TITLE_PLACEHOLDER).map((part, i) => (
+    <Fragment key={i}>
+      {i > 0 && (highlightClassName ? <span className={highlightClassName}>{title}</span> : title)}
+      {part}
+    </Fragment>
+  ));
+}
+
 export async function generateMetadata({
   params,
 }: {
@@ -46,7 +63,7 @@ export async function generateMetadata({
 
   return {
     title: `${video.title} | How to Play | Swago Jr`,
-    description: video.description || `Watch how to play ${video.title}.`,
+    description: getHowToPlayDescription(video.description, video.title).replace(/\s+/g, " "),
   };
 }
 
@@ -63,18 +80,26 @@ export default async function HowToPlayPage({
   }
 
   const product = video.productId;
+  const { heading, body } = splitHowToPlayDescription(getHowToPlayDescriptionTemplate(video.description));
 
   return (
     <div className="w-full bg-gradient-to-b from-slate-50 to-white">
-      <section className="max-w-5xl mx-auto px-4 lg:px-8 py-8 md:py-16">
-        <div className="text-center mb-6 md:mb-10">
-          <p className="text-xs md:text-sm font-bold uppercase tracking-[0.2em] text-[hsl(var(--swago-purple))]">
-            How to play
-          </p>
-          <h1 className="mt-2 text-3xl md:text-5xl font-black text-slate-900 tracking-tighter leading-tight">
-            {video.title}
-          </h1>
-        </div>
+      <section className="max-w-5xl mx-auto px-4 md:px-6 py-10 md:py-16">
+        <header className="max-w-2xl mx-auto px-2 sm:px-0 mb-8 md:mb-12 text-center text-balance">
+          <h1 className="sr-only">{video.title}</h1>
+          {heading && (
+            <p className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight leading-tight text-[hsl(var(--swago-purple))]">
+              {renderWithTitle(heading, video.title)}
+            </p>
+          )}
+          {body && (
+            <p
+              className={`${heading ? "mt-3 md:mt-4" : ""} text-base sm:text-lg md:text-xl font-medium leading-relaxed text-slate-500 whitespace-pre-line`}
+            >
+              {renderWithTitle(body, video.title, "text-[1.1em] leading-none font-bold text-[hsl(var(--swago-purple))]")}
+            </p>
+          )}
+        </header>
 
         <div className="relative aspect-video w-full overflow-hidden rounded-2xl md:rounded-3xl bg-black shadow-2xl ring-1 ring-slate-900/10">
           <iframe
@@ -87,14 +112,8 @@ export default async function HowToPlayPage({
           />
         </div>
 
-        {video.description && (
-          <p className="mt-6 md:mt-8 max-w-3xl mx-auto text-center text-slate-600 text-base md:text-lg leading-relaxed whitespace-pre-line">
-            {video.description}
-          </p>
-        )}
-
         {product?.slug && (
-          <div className="mt-8 md:mt-10 flex justify-center">
+          <div className="mt-8 md:mt-12 flex justify-center">
             <Link
               href={`/product/${product.slug}`}
               className="btn-shine inline-flex items-center gap-3 rounded-full bg-[hsl(var(--swago-purple))] pl-2 pr-6 py-2 text-white font-bold shadow-sm hover:shadow-md transition-shadow"
