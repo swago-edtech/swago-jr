@@ -39,7 +39,7 @@ export async function getRevenueAnalytics(from: string, to: string): Promise<Rev
     createdAt: { $gte: fromDate, $lte: toDate },
     status: { $nin: EXCLUDED_STATUSES },
   })
-    .select('total subtotal discount shippingFee status paymentMethod refundAmount codCollected swagoMoneyRedeemed taxCollected createdAt')
+    .select('total subtotal discount shippingFee internationalShippingFee status paymentMethod refundAmount codCollected swagoMoneyRedeemed taxCollected createdAt')
     .lean();
 
   const confirmedStatuses = ['Paid', 'Packed', 'Shipped', 'Out for Delivery', 'Delivered'];
@@ -81,6 +81,8 @@ export async function getRevenueAnalytics(from: string, to: string): Promise<Rev
 
     if (isConfirmed || order.status === 'Delivered') {
       shippingCollected += order.shippingFee || 0;
+      // International orders keep their (INR ledger) shipping in internationalShippingFee; 0 for India
+      shippingCollected += order.internationalShippingFee || 0;
       gstCollected += order.taxCollected || 0;
     }
 

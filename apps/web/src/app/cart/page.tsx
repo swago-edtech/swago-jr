@@ -20,7 +20,7 @@ interface StockInfo {
 
 export default function CartPage() {
   const { cart, total, removeFromCart, increaseQty, decreaseQty, appliedCoupon, setAppliedCoupon, appliedSwagoMoney, setAppliedSwagoMoney, walletBalance, refreshCartPrices, isRefreshingCart } = useSharedContext();
-  const { formatPrice, formatLocalPrice, getLocalPrice, toLocalAmount, country, isInternational } = useCountry();
+  const { formatPrice, formatLocalPrice, getLocalPrice, toLocalAmount, country, isInternational, resolveIntlShipping } = useCountry();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [stockInfo, setStockInfo] = useState<StockInfo>({});
@@ -204,7 +204,7 @@ export default function CartPage() {
       <div className="bg-[hsl(var(--swago-purple))] py-3 text-center">
         <p className="text-white text-[10px] font-[1000] tracking-widest leading-tight">
           {isInternational 
-            ? `International Shipping to ${country.name} — ${formatPrice(country.shippingFee)} flat rate`
+            ? `International Shipping to ${country.name} — ${cart.length > 0 ? formatLocalPrice(resolveIntlShipping(cart).feeLocal) : `${formatPrice(country.shippingFee)} flat rate`}`
             : 'Enjoy Free Shipping, on orders above ₹1450'}
         </p>
       </div>

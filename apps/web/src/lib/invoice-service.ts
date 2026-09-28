@@ -3,6 +3,7 @@ import { Order, InvoiceCounter } from '@swago/database';
 import { PassThrough } from 'stream';
 import fs from 'fs';
 import path from 'path';
+import { getInternationalOrderDisplay } from '@swago/utils';
 
 function numberToWords(num: number): string {
   if (num === 0) return 'ZERO RUPEES ONLY';
@@ -17,6 +18,14 @@ function numberToWords(num: number): string {
   str += (n[4] !== '0') ? (a[Number(n[4])] || b[Number(n[4][0])] + ' ' + a[Number(n[4][1])]) + 'HUNDRED ' : '';
   str += (n[5] !== '00') ? ((str !== '') ? 'AND ' : '') + (a[Number(n[5])] || b[Number(n[5][0])] + ' ' + a[Number(n[5][1])]) : '';
   return str.trim() + ' RUPEES ONLY';
+}
+
+/** International orders only: "USD TWELVE AND 50/100 ONLY". */
+function amountToWordsIntl(amount: number, currency: string): string {
+  const whole = Math.floor(amount);
+  const cents = Math.round((amount - whole) * 100);
+  const words = whole === 0 ? 'ZERO' : numberToWords(whole).replace(/ RUPEES ONLY$/, '');
+  return `${currency} ${words}${cents > 0 ? ` AND ${String(cents).padStart(2, '0')}/100` : ''} ONLY`;
 }
 
 export async function generateAndUploadInvoice(order: any): Promise<void> {
@@ -119,6 +128,9 @@ export async function generateAndUploadInvoice(order: any): Promise<void> {
     const invDate = new Date().toLocaleString('en-US', { day: '2-digit', month: 'short', year: 'numeric' });
     const orderDateFormatted = new Date(order.createdAt || new Date()).toLocaleString('en-US', { day: '2-digit', month: 'short', year: 'numeric' });
     const paymentStr = order.paymentMethod === 'cod' ? 'Cash on Delivery' : 'Prepaid (Razorpay)';
+    // International orders only: amounts in the charged currency. null for India (unchanged).
+    const intl = getInternationalOrderDisplay(order);
+    const cur = (n: number) => (intl ? intl.formatCode(n) : `Rs. ${n.toFixed(2)}`);
     
     doc.fontSize(9).font('Helvetica-Bold');
     doc.text(`Invoice No: `, 30, infoY, { continued: true }).font('Helvetica').text(invNo);
@@ -190,9 +202,9 @@ export async function generateAndUploadInvoice(order: any): Promise<void> {
     const itemsList = order.items || [];
     
     doc.font('Helvetica');
-    itemsList.forEach((item: any) => {
+    itemsList.forEach((item: any, itemIdx: number) => {
         const qty = item.quantity || 1;
-        const rate = item.price || 0;
+        const rate = intl ? (intl.items[itemIdx]?.localPrice || 0) : (item.price || 0);
         const itemTotal = rate * qty;
         
         const taxableVal = itemTotal / 1.05;
@@ -207,12 +219,12 @@ export async function generateAndUploadInvoice(order: any): Promise<void> {
         
         doc.text(nameText, colX.name, itemY, { width: 110 });
         doc.text(qty.toString(), colX.qty, itemY);
-        doc.text(`Rs. ${rate.toFixed(2)}`, colX.rate, itemY);
-        doc.text(`Rs. ${taxableVal.toFixed(2)}`, colX.taxVal, itemY);
+        doc.text(cur(rate), colX.rate, itemY);
+        doc.text(cur(taxableVal), colX.taxVal, itemY);
         doc.text('95049090', colX.hsn, itemY);
         doc.text('5%', colX.gst, itemY);
-        doc.text(`Rs. ${igst.toFixed(2)}`, colX.igst, itemY);
-        doc.text(`Rs. ${itemTotal.toFixed(2)}`, colX.total, itemY);
+        doc.text(cur(igst), colX.igst, itemY);
+        doc.text(cur(itemTotal), colX.total, itemY);
         
         itemY += rowHeight;
     });
@@ -223,13 +235,13 @@ export async function generateAndUploadInvoice(order: any): Promise<void> {
     doc.rect(30, itemY, 120, 20).fillAndStroke('#f3f4f6', '#f3f4f6');
     doc.fillColor('#000000').text('Total', colX.name, itemY + 5);
     
-    const grandTotal = order.total || order.items?.reduce((acc: number, cur: any) => acc + (cur.price * cur.quantity), 0) || 0;
-    const itemsTotal = itemsList.reduce((acc: number, cur: any) => acc + (cur.price * cur.quantity), 0);
+    const grandTotal = intl ? intl.totalLocal : (order.total || order.items?.reduce((acc: number, cur: any) => acc + (cur.price * cur.quantity), 0) || 0);
+    const itemsTotal = intl ? intl.subtotalLocal : itemsList.reduce((acc: number, cur: any) => acc + (cur.price * cur.quantity), 0);
     
-    doc.text(`Rs. ${itemsTotal.toFixed(2)}`, colX.rate - 10, itemY + 5);
-    doc.text(`Rs. ${totalTaxable.toFixed(2)}`, colX.taxVal, itemY + 5);
-    doc.text(`Rs. ${totalIGST.toFixed(2)}`, colX.igst - 5, itemY + 5);
-    doc.text(`Rs. ${itemsTotal.toFixed(2)}`, colX.total, itemY + 5);
+    doc.text(cur(itemsTotal), colX.rate - 10, itemY + 5);
+    doc.text(cur(totalTaxable), colX.taxVal, itemY + 5);
+    doc.text(cur(totalIGST), colX.igst - 5, itemY + 5);
+    doc.text(cur(itemsTotal), colX.total, itemY + 5);
     
     itemY += 25;
     doc.moveTo(30, itemY).lineTo(565, itemY).stroke('#000000');
@@ -242,8 +254,20 @@ export async function generateAndUploadInvoice(order: any): Promise<void> {
     
     doc.fontSize(9);
     let sY = footerY + 20;
-    doc.text('MRP Total:', sumX1, sY); doc.text(`Rs. ${itemsTotal.toFixed(2)}`, sumX2, sY); sY += 15;
+    doc.text('MRP Total:', sumX1, sY); doc.text(cur(itemsTotal), sumX2, sY); sY += 15;
     
+    if (intl) {
+        // International orders: coupon / Swago Money / shipping in the charged currency
+        if (order.discount > 0) {
+            doc.text(`Coupon (${order.couponCode || 'DISCOUNT'}):`, sumX1, sY); doc.text(`${intl.currency} - ${intl.discountLocal.toFixed(2)}`, sumX2, sY); sY += 15;
+        }
+        if (order.swagoMoneyRedeemed > 0) {
+            doc.text('Swago Money:', sumX1, sY); doc.text(`${intl.currency} - ${intl.swagoLocal.toFixed(2)}`, sumX2, sY); sY += 15;
+        }
+        if (intl.shippingLocal > 0) {
+            doc.text('Intl. Shipping:', sumX1, sY); doc.text(cur(intl.shippingLocal), sumX2, sY); sY += 15;
+        }
+    } else {
     if (order.discount > 0) {
         doc.text(`Coupon (${order.couponCode || 'DISCOUNT'}):`, sumX1, sY); doc.text(`Rs. - ${order.discount.toFixed(2)}`, sumX2, sY); sY += 15;
     }
@@ -253,28 +277,32 @@ export async function generateAndUploadInvoice(order: any): Promise<void> {
     if (order.shippingFee > 0) {
         doc.text('Shipping Fee:', sumX1, sY); doc.text(`Rs. ${order.shippingFee.toFixed(2)}`, sumX2, sY); sY += 15;
     }
+    }
     
     doc.font('Helvetica-Bold');
-    doc.text('Amount Paid:', sumX1, sY); doc.text(`Rs. ${grandTotal.toFixed(2)}`, sumX2, sY); sY += 15;
+    doc.text('Amount Paid:', sumX1, sY); doc.text(cur(grandTotal), sumX2, sY); sY += 15;
     doc.font('Helvetica');
     const finalTaxable = grandTotal / 1.05;
     const finalIGST = grandTotal - finalTaxable;
-    doc.text('Taxable Value:', sumX1, sY); doc.text(`Rs. ${finalTaxable.toFixed(2)}`, sumX2, sY); sY += 15;
-    doc.text('IGST (5%):', sumX1, sY); doc.text(`Rs. ${finalIGST.toFixed(2)}`, sumX2, sY); sY += 15;
+    doc.text('Taxable Value:', sumX1, sY); doc.text(cur(finalTaxable), sumX2, sY); sY += 15;
+    doc.text('IGST (5%):', sumX1, sY); doc.text(cur(finalIGST), sumX2, sY); sY += 15;
     
     doc.font('Helvetica-Bold');
-    doc.text('Grand Total:', sumX1, sY); doc.text(`Rs. ${grandTotal.toFixed(2)}`, sumX2, sY); sY += 15;
+    doc.text('Grand Total:', sumX1, sY); doc.text(cur(grandTotal), sumX2, sY); sY += 15;
     
     doc.rect(sumX1, sY - 5, 225, 20).fillAndStroke('#f3f4f6', '#000000');
     doc.fillColor('#000000').text('Total', sumX1 + 5, sY + 2);
-    doc.text(`Rs. ${grandTotal.toFixed(2)}`, sumX2, sY + 2);
+    doc.text(cur(grandTotal), sumX2, sY + 2);
     
     doc.font('Helvetica-Bold').fontSize(9);
     doc.text('Terms and Conditions apply', 30, footerY + 20);
     doc.moveTo(30, footerY + 35).lineTo(300, footerY + 35).lineWidth(0.5).stroke('#000000');
     
     doc.text('Amount in words', 30, footerY + 45);
-    doc.font('Helvetica').text(numberToWords(grandTotal), 30, footerY + 60, { width: 270 });
+    doc.font('Helvetica').text(intl ? amountToWordsIntl(grandTotal, intl.currency) : numberToWords(grandTotal), 30, footerY + 60, { width: 270 });
+    if (intl) {
+        doc.text(`International order (${intl.country}). Charged in ${intl.currency}; INR ledger value Rs. ${Number(order.total || 0).toFixed(2)} at 1 INR = ${intl.rate} ${intl.currency}.`, 30, doc.y + 4, { width: 270 });
+    }
     
     const lineY = doc.y + 10;
     doc.moveTo(30, lineY).lineTo(300, lineY).stroke('#000000');

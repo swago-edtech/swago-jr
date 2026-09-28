@@ -15,6 +15,23 @@ import {
   convertToLocal,
   DEFAULT_INDIA,
 } from "@/lib/currency";
+import {
+  resolveInternationalShipping,
+  type InternationalShippingMap,
+  type InternationalShippingResult,
+} from "@swago/utils";
+
+/** Loose cart-line shape accepted by resolveIntlShipping (cart items / express items). */
+export type IntlShippingCartLine = {
+  _id?: string | number;
+  id?: string | number;
+  productId?: string | number;
+  slug?: string;
+  name?: string;
+  quantity: number;
+  weight?: number;
+  internationalShipping?: InternationalShippingMap | null;
+};
 
 type CountryContextType = {
   country: CountryConfig;
@@ -34,6 +51,11 @@ type CountryContextType = {
   shippingFeeLocal: number;
   calculateShippingFee: (cartWeight: number) => number;
   calculateShippingFeeLocal: (cartWeight: number) => number;
+  /**
+   * INTERNATIONAL ONLY: product fixed shipping (once per line) + config rules on the weight of
+   * lines without a fixed fee. Callers must only use this when `isInternational` is true.
+   */
+  resolveIntlShipping: (items: IntlShippingCartLine[]) => InternationalShippingResult;
   isLoading: boolean;
 };
 
@@ -167,6 +189,22 @@ export function CountryProvider({ children }: { children: React.ReactNode }) {
     return country.currency === "INR" ? feeInINR : convertToLocal(feeInINR, country.exchangeRate);
   }, [country, calculateShippingFee]);
 
+  const resolveIntlShipping = useCallback(
+    (items: IntlShippingCartLine[]) =>
+      resolveInternationalShipping(
+        (items || []).map((item) => ({
+          productId: item._id ?? item.productId ?? item.id ?? item.slug,
+          name: item.name,
+          quantity: item.quantity,
+          weight: item.weight,
+          internationalShipping: item.internationalShipping,
+        })),
+        country,
+        country.currency
+      ),
+    [country]
+  );
+
   return (
     <CountryContext.Provider
       value={{
@@ -180,6 +218,7 @@ export function CountryProvider({ children }: { children: React.ReactNode }) {
         shippingFeeLocal,
         calculateShippingFee,
         calculateShippingFeeLocal,
+        resolveIntlShipping,
         isLoading,
       }}
     >

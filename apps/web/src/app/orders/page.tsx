@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import ReviewForm from "@/components/ReviewForm";
 import { useFormattedDate } from "@/hooks/useFormattedDate";
 import { RazorpayOptions, RazorpaySuccessResponse as RazorpayResponse, RazorpayInstance } from "@swago/types";
+import { getInternationalOrderDisplay } from "@swago/utils";
 import Image from "next/image";
 
 
@@ -18,6 +19,7 @@ type OrderItem = {
   price: number;
   productId: number | string;
   image?: string;
+  localPrice?: number; // international orders only
 };
 
 type Order = {
@@ -33,6 +35,16 @@ type Order = {
   phone?: string;
   paymentMethod?: 'razorpay' | 'cod';  // ✅ Payment method
   invoiceUrl?: string; // ✅ Invoice link
+  // International orders only (ledger stays INR; charged amount is displayTotal in currency)
+  country?: string;
+  currency?: string;
+  currencySymbol?: string;
+  exchangeRateUsed?: number;
+  displayTotal?: number;
+  discount?: number;
+  swagoMoneyRedeemed?: number;
+  internationalShippingFee?: number;
+  internationalShippingBreakdown?: { feeLocal?: number };
 };
 
 // ✅ Payment window expiry time in minutes
@@ -168,11 +180,13 @@ export default function OrdersPage() {
       const config = await configRes.json();
 
       const orderTotal = order.total || order.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+      // International orders: the Razorpay order was created in the local currency for displayTotal
+      const intlRetry = getInternationalOrderDisplay(order);
 
       const options: RazorpayOptions = {
         key: config.keyId,
-        amount: Math.round(orderTotal * 100),
-        currency: "INR",
+        amount: intlRetry ? Math.round(intlRetry.totalLocal * 100) : Math.round(orderTotal * 100),
+        currency: intlRetry ? intlRetry.currency : "INR",
         name: "Swago",
         description: `Payment for Order ${order.orderId || order._id.slice(-6)}`,
         order_id: order.razorpay_order_id,
@@ -435,6 +449,8 @@ function OrderCard({
   const { formatPrice } = useCountry();
   const isCOD = order.paymentMethod === 'cod';
   const orderTotal = getOrderTotal(order);
+  // International orders only (null for India): amounts in the charged currency
+  const intl = getInternationalOrderDisplay(order);
 
   return (
     <div className="bg-white p-6 rounded-xl shadow-sm border lg:p-0 lg:rounded-xl lg:shadow-sm lg:border-slate-200/80 lg:overflow-hidden lg:hover:shadow-md lg:transition-shadow lg:duration-200">
@@ -474,7 +490,7 @@ function OrderCard({
           <StatusBadge status={order.status} paymentMethod={order.paymentMethod} />
           <div className="text-right">
             <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Total</p>
-            <p className="text-lg xl:text-xl font-bold text-slate-900 tabular-nums">₹{orderTotal.toFixed(2)}</p>
+            <p className="text-lg xl:text-xl font-bold text-slate-900 tabular-nums">{intl ? <>{intl.format(intl.totalLocal)}</> : <>₹{orderTotal.toFixed(2)}</>}</p>
           </div>
           {order.invoiceUrl && (
             <a
@@ -597,7 +613,7 @@ function OrderCard({
                   <p className="font-medium text-slate-900 leading-snug line-clamp-2 pr-2 text-sm sm:text-base">{item.name}</p>
                   <div className="flex justify-between items-center mt-1">
                     <p className="text-xs sm:text-sm text-slate-500 font-medium">Qty: {item.quantity}</p>
-                    <p className="font-bold text-slate-900 text-sm sm:text-base">₹{item.price.toFixed(2)}</p>
+                    <p className="font-bold text-slate-900 text-sm sm:text-base">{intl ? <>{intl.format(intl.items[idx]?.localPrice ?? 0)}</> : <>₹{item.price.toFixed(2)}</>}</p>
                   </div>
                 </div>
               </div>
@@ -676,12 +692,22 @@ function OrderCard({
                 )}
               </div>
               <p className="text-sm font-medium text-slate-600 text-center tabular-nums">{item.quantity}</p>
-              <p className="text-sm text-slate-500 text-right tabular-nums">₹{item.price.toFixed(2)}</p>
-              <p className="font-semibold text-slate-900 text-right tabular-nums">₹{(item.price * item.quantity).toFixed(2)}</p>
+              <p className="text-sm text-slate-500 text-right tabular-nums">{intl ? <>{intl.format(intl.items[idx]?.localPrice ?? 0)}</> : <>₹{item.price.toFixed(2)}</>}</p>
+              <p className="font-semibold text-slate-900 text-right tabular-nums">{intl ? <>{intl.format(intl.items[idx]?.localLineTotal ?? 0)}</> : <>₹{(item.price * item.quantity).toFixed(2)}</>}</p>
             </div>
           </li>
         ))}
       </ul>
+
+      {/* International orders only: shipping line in the charged currency */}
+      {intl && (
+        <div className="mt-3 flex justify-end gap-2 text-sm text-slate-600">
+          <span>International shipping ({intl.currency}):</span>
+          <span className="font-semibold text-slate-900 tabular-nums">
+            {intl.shippingLocal === 0 ? 'FREE' : intl.format(intl.shippingLocal)}
+          </span>
+        </div>
+      )}
 
       {/* Order Total & Global Actions — mobile unchanged */}
       <div className="mt-4 pt-4 border-t flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 lg:hidden">
@@ -704,7 +730,7 @@ function OrderCard({
         <div className="flex items-center gap-2 self-end sm:self-auto">
           <span className="font-semibold text-slate-600">Order Total:</span>
           <span className="text-xl font-bold text-slate-900">
-{formatPrice(orderTotal)}
+{intl ? intl.format(intl.totalLocal) : formatPrice(orderTotal)}
           </span>
         </div>
       </div>

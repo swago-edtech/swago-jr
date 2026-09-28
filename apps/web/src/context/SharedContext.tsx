@@ -43,6 +43,8 @@ export type Product = {
   skills?: { title: string; image: string }[];
   weight?: number;
   internationalPricing?: Record<string, { price: number; originalPrice?: number }> | Map<string, { price: number; originalPrice?: number }>;
+  /** Fixed international shipping per currency (local currency, once per cart line). */
+  internationalShipping?: Record<string, { fee: number }> | Map<string, { fee: number }>;
   createdAt?: string;
   updatedAt?: string;
 };
@@ -342,6 +344,10 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
                 refreshed.internationalPricing !== undefined
                   ? refreshed.internationalPricing
                   : item.internationalPricing,
+              internationalShipping:
+                refreshed.internationalShipping !== undefined
+                  ? refreshed.internationalShipping
+                  : item.internationalShipping,
               quantity: item.quantity, // Stock decoupled
             };
           }).filter(item => item.quantity > 0);

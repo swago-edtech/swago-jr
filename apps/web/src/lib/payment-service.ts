@@ -3,6 +3,7 @@ import { sendOrderConfirmationEmail, sendAdminOrderNotificationEmail } from "./m
 import { invalidateProductCache } from "./productCache";
 import { isValidObjectId } from "mongoose";
 import { generateAndUploadInvoice } from "./invoice-service";
+import { intlConfirmationEmailOverrides, intlAdminEmailOverrides } from "./international-order-notify";
 import {
   deductInventoryForOrder,
   markInventoryAllocationConsumed,
@@ -158,6 +159,8 @@ export async function finalizeOrder({ orderIdOrMongoId, razorpayPaymentId, sourc
       city: orderObject.city,
       state: orderObject.state,
       pincode: orderObject.pincode,
+      // International orders only (no-op {} for India): local-currency amounts + symbol
+      ...intlConfirmationEmailOverrides(orderObject),
     });
 
     const adminItems = orderObject.items.map((item: { name: string; quantity: number; price: number }) => ({
@@ -182,6 +185,8 @@ export async function finalizeOrder({ orderIdOrMongoId, razorpayPaymentId, sourc
       shippingFee: (orderObject.shippingFee || 0).toFixed(2),
       items: adminItems,
       adminUrl: `https://admin.swagojr.com/orders/${orderObject._id}`,
+      // International orders only (no-op {} for India): intl shipping + charged currency
+      ...intlAdminEmailOverrides(orderObject),
     }).catch(console.error);
   } catch (error) {
     console.error(`⚠️ Failed to send confirmation email:`, error);

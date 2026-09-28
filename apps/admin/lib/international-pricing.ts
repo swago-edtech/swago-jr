@@ -39,3 +39,10 @@ export function normalizeInternationalPricing(
 
   return out;
 }
+
+/**
+ * Sanitize product internationalShipping from admin form payloads.
+ * Blank = unset (storefront uses International Config shipping); explicit 0 = free shipping.
+ */
+export { normalizeInternationalShipping } from "@swago/utils";
+export type { InternationalShippingEntry as IntlShippingEntry } from "@swago/utils";

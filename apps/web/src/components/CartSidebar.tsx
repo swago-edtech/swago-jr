@@ -50,7 +50,7 @@ export default function CartSidebar() {
     isRefreshingCart
   } = useSharedContext();
 
-  const { formatPrice, formatLocalPrice, getLocalPrice, toLocalAmount, country, isInternational } = useCountry();
+  const { formatPrice, formatLocalPrice, getLocalPrice, toLocalAmount, country, isInternational, resolveIntlShipping } = useCountry();
   const router = useRouter();
   const [stockInfo, setStockInfo] = useState<StockInfo>({});
   const [loading, setLoading] = useState(false);
@@ -222,7 +222,7 @@ export default function CartSidebar() {
                 <div className="bg-[hsl(var(--swago-purple))] py-3 text-center">
                   <p className="text-white text-[10px] font-[1000] tracking-widest leading-tight">
                     {isInternational
-                      ? `International Shipping to ${country.name} — ${formatPrice(country.shippingFee)} flat rate`
+                      ? `International Shipping to ${country.name} — ${cart.length > 0 ? formatLocalPrice(resolveIntlShipping(cart).feeLocal) : `${formatPrice(country.shippingFee)} flat rate`}`
                       : 'Enjoy Free Shipping, on orders above ₹1450'
                     }
                   </p>

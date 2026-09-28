@@ -34,6 +34,8 @@ export type AdminOrderEmailProps = {
   couponCode?: string;
   items: AdminOrderItem[];
   adminUrl: string;
+  /** International orders only: extra lines (country, charged amount/currency, rate). */
+  internationalLines?: string[];
 };
 
 export const OrderAdminNotificationEmail = ({
@@ -58,6 +60,7 @@ export const OrderAdminNotificationEmail = ({
     },
   ],
   adminUrl = "https://admin.swagojr.com",
+  internationalLines,
 }: AdminOrderEmailProps) => {
   const previewText = `New Order on Swago! - Order ID: ${orderNumber}`;
 
@@ -122,6 +125,17 @@ export const OrderAdminNotificationEmail = ({
               <br />
               <strong>Total Amount:</strong> INR {totalAmount}
             </Text>
+            {internationalLines && internationalLines.length > 0 && (
+              <Text style={detailText}>
+                <strong>International Order</strong>
+                {internationalLines.map((line, i) => (
+                  <React.Fragment key={i}>
+                    <br />
+                    {line}
+                  </React.Fragment>
+                ))}
+              </Text>
+            )}
           </Section>
         </Container>
       </Body>

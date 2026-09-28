@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import Razorpay from "razorpay";
 import mongoose from "mongoose";
 import { getLoginSession } from "@/lib/auth";
-import { connectDB, Product, Order, User, Coupon as CouponModel, Promotion, InternationalConfig } from "@swago/database";
+import { connectDB, Product, Order, User, Coupon as CouponModel, Promotion } from "@swago/database";
 import { isValidObjectId } from "mongoose";
 import { generateOrderId } from "@/lib/generateOrderId";
 import { cleanupExpiredOrders } from "@/lib/cleanupExpiredOrders";
@@ -14,6 +14,16 @@ import {
   InsufficientInventoryError,
 } from "@/lib/inventory-service";
 import { getProductPrice, convertToINR, convertToLocal } from "@/lib/currency";
+import {
+  resolveInternationalShipping,
+  computeInternationalDisplayTotal,
+  type InternationalShippingResult,
+} from "@swago/utils";
+import {
+  normalizeCountryCode,
+  resolveServerIntlCountry,
+  type ServerIntlCountry,
+} from "@/lib/international-server";
 
 
 interface ProductDocument {
@@ -47,6 +57,7 @@ interface OrderItem {
   price: number;
   quantity: number;
   image: string;
+  localPrice?: number; // international orders only
 }
 
 
@@ -82,6 +93,29 @@ export async function POST(req: Request) {
     console.log('Starting stock validation for', orderDetails.cart.length, 'items');
 
     await connectDB();
+
+    // ========================================
+    // COUNTRY / CURRENCY (server-trusted)
+    // ========================================
+    // Domestic (IN): always INR @ 1 — identical to what the storefront sends for India.
+    // International: currency + exchange rate come from InternationalConfig, never the client.
+    const countryCode = normalizeCountryCode(orderDetails.country);
+    let intlCountry: ServerIntlCountry | null = null;
+    if (countryCode !== 'IN') {
+      const resolvedCountry = await resolveServerIntlCountry(countryCode);
+      if (!resolvedCountry.ok) {
+        return NextResponse.json({ error: resolvedCountry.error, code: "COUNTRY_NOT_SUPPORTED" }, { status: 400 });
+      }
+      intlCountry = resolvedCountry.country;
+      if (
+        (orderDetails.currency && String(orderDetails.currency).toUpperCase() !== intlCountry.currency) ||
+        (orderDetails.exchangeRate && Number(orderDetails.exchangeRate) !== intlCountry.exchangeRate)
+      ) {
+        console.warn(
+          `⚠️ Client currency/rate mismatch for ${countryCode}: client=${orderDetails.currency}@${orderDetails.exchangeRate}, server=${intlCountry.currency}@${intlCountry.exchangeRate}. Using server values.`
+        );
+      }
+    }
 
     // Clean up expired orders first to release reserved stock
     await cleanupExpiredOrders();
@@ -215,9 +249,8 @@ export async function POST(req: Request) {
     }
 
     // Prepare order items SECURELY
-    const currency = orderDetails.currency || "INR";
-    const exchangeRateUsed = orderDetails.exchangeRate || 1;
-    let totalWeight = 0;
+    const currency = intlCountry ? intlCountry.currency : "INR";
+    const exchangeRateUsed = intlCountry ? intlCountry.exchangeRate : 1;
     const orderItems: OrderItem[] = orderDetails.cart.map((item: CartItem) => {
       const productId = item.id?.toString() || item.productId?.toString() || item._id;
       const reservation = reservations.find(r =>
@@ -246,14 +279,21 @@ export async function POST(req: Request) {
       if (item.price === 1 && BONUS_THRESHOLDS[slugValue as string] && nonBonusSubtotal >= BONUS_THRESHOLDS[slugValue as string]) {
         finalPrice = 1;
       }
-      totalWeight += (dbProduct?.weight || 0) * item.quantity;
-      
       return {
         productId: dbProduct?._id || item._id || item.id || 0,
         name: dbProduct?.name || item.name,
         price: finalPrice,
         quantity: item.quantity,
         image: item.image || item.images?.[0] || '',
+        // International only: unit price as charged (mirrors localMerchandiseTotal below)
+        ...(intlCountry
+          ? {
+              localPrice:
+                item.price === 1 && BONUS_THRESHOLDS[slugValue as string]
+                  ? convertToLocal(1, exchangeRateUsed)
+                  : resolvedLocal.price,
+            }
+          : {}),
       };
     });
 
@@ -330,45 +370,55 @@ export async function POST(req: Request) {
       }
     }
 
-    const countryCode = orderDetails.country || 'IN';
-
     let shippingFee = 0;
-    if (countryCode !== 'IN') {
-      const config = await InternationalConfig.findOne({ isSingleton: true }).lean() as any;
-      if (config && config.supportedCountries) {
-        const countryConfig = config.supportedCountries.find((c: any) => c.code === countryCode);
-        if (countryConfig) {
-          if (countryConfig.shippingTiers && countryConfig.shippingTiers.length > 0) {
-            const matchedTier = countryConfig.shippingTiers.find(
-              (t: any) => totalWeight >= t.minWeight && totalWeight <= t.maxWeight
-            );
-            if (matchedTier) {
-              shippingFee = matchedTier.fee;
-            } else {
-              const highestTier = [...countryConfig.shippingTiers].sort((a: any, b: any) => b.maxWeight - a.maxWeight)[0];
-              shippingFee = totalWeight > highestTier.maxWeight ? highestTier.fee : countryConfig.shippingFee;
-            }
-          } else {
-            shippingFee = countryConfig.shippingFee || 0;
-          }
-        }
-      }
+    let intlShipping: InternationalShippingResult | null = null;
+    if (intlCountry) {
+      // International only: product fixed shipping (once per line, local currency)
+      // + config weight tiers / flat fee on the weight of lines without a fixed fee.
+      intlShipping = resolveInternationalShipping(
+        reservations.map(({ product, quantity }) => ({
+          productId: product._id.toString(),
+          name: product.name,
+          quantity,
+          weight: (product as any).weight || 0,
+          internationalShipping: (product as any).internationalShipping,
+        })),
+        intlCountry,
+        currency
+      );
+      shippingFee = intlShipping.feeINR; // INR ledger
     }
 
     const calculatedTotal = Math.max(0, calculatedAmountAfterCoupon - swagoMoneyRedeemed + shippingFee);
 
     const localDiscount = currency === "INR" ? discountAmount : convertToLocal(discountAmount, exchangeRateUsed);
     const localSwago = currency === "INR" ? swagoMoneyRedeemed : convertToLocal(swagoMoneyRedeemed, exchangeRateUsed);
-    const localShipping = currency === "INR" ? shippingFee : convertToLocal(shippingFee, exchangeRateUsed);
-    const displayTotal = Math.max(
-      0,
-      localMerchandiseTotal - localDiscount - localSwago + localShipping
-    );
+    const localShipping = intlShipping ? intlShipping.feeLocal : shippingFee;
+    const displayTotal = intlCountry
+      ? // International: coupon/Swago never eat into shipping; never negative (mirrors INR ledger)
+        computeInternationalDisplayTotal({
+          localMerchandise: localMerchandiseTotal,
+          localDiscount,
+          localSwago,
+          localShipping,
+        })
+      : Math.max(
+          0,
+          localMerchandiseTotal - localDiscount - localSwago + localShipping
+        );
 
-    // Verify if calculated total matches what frontend sent (optional safety check)
-    if (Math.abs(calculatedTotal - totalAmount) > 1) { // 1 rupee tolerance
-      console.warn(`Total mismatch: frontend=${totalAmount}, backend=${calculatedTotal}`);
-      // We'll use the backend calculated total for the actual payment
+    // Verify if calculated total matches what frontend sent (optional safety check).
+    // Server totals are always what gets charged.
+    if (!intlCountry) {
+      if (Math.abs(calculatedTotal - totalAmount) > 1) { // 1 rupee tolerance
+        console.warn(`Total mismatch: frontend=${totalAmount}, backend=${calculatedTotal}`);
+        // We'll use the backend calculated total for the actual payment
+      }
+    } else if (typeof orderDetails.displayTotal === "number") {
+      // International: compare in the charged (local) currency
+      if (Math.abs(displayTotal - orderDetails.displayTotal) > 0.5) {
+        console.warn(`Intl total mismatch (${currency}): frontend=${orderDetails.displayTotal}, backend=${displayTotal}`);
+      }
     }
 
     // Create the order with Pending status
@@ -391,6 +441,9 @@ export async function POST(req: Request) {
       discount: discountAmount,
       shippingFee: countryCode === 'IN' ? shippingFee : 0,
       internationalShippingFee: countryCode !== 'IN' ? shippingFee : 0,
+      ...(intlShipping && {
+        internationalShippingBreakdown: { feeLocal: intlShipping.feeLocal, ...intlShipping.breakdown },
+      }),
       total: calculatedTotal,
       swagoMoneyRedeemed: swagoMoneyRedeemed,
       swagoMoneyKidId: user._id,
@@ -400,6 +453,7 @@ export async function POST(req: Request) {
       currency: currency,
       exchangeRateUsed: exchangeRateUsed,
       displayTotal: displayTotal,
+      ...(intlCountry?.currencySymbol && { currencySymbol: intlCountry.currencySymbol }),
       ...(validatedCoupon && {
         couponCode: validatedCoupon.code,
         couponDetails: validatedCoupon,

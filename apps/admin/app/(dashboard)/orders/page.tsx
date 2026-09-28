@@ -1,5 +1,5 @@
 import { connectDB, Order } from '@swago/database';
-import { formatPrice } from '@swago/utils';
+import { formatPrice, getInternationalOrderDisplay } from '@swago/utils';
 import Link from 'next/link';
 import OrderDateCell from './OrderDateCell'; // ✨ NEW: Client component for dates
 import { cleanupExpiredOrders } from '@/lib/cleanupExpiredOrders';
@@ -169,7 +169,7 @@ async function getOrders(searchParams: { [key: string]: string | undefined }) {
       .sort(sortConfig)
       .skip(skip)
       .limit(limit)
-      .select('orderId name phone email total status items createdAt razorpay_payment_id paymentMethod couponCode discount referralSource createdVia utm_source utm_medium utm_campaign invoiceUrl')
+      .select('orderId name phone email total status items createdAt razorpay_payment_id paymentMethod couponCode discount referralSource createdVia utm_source utm_medium utm_campaign invoiceUrl country currency currencySymbol exchangeRateUsed displayTotal internationalShippingFee internationalShippingBreakdown swagoMoneyRedeemed')
       .lean(),
     Order.countDocuments(query)
   ]);
@@ -321,6 +321,15 @@ export default async function OrdersPage(props: { searchParams?: Promise<{ [key:
                       <div className="text-sm font-medium text-gray-900">
                         {order.total ? formatPrice(order.total) : '₹0.00'}
                       </div>
+                      {(() => {
+                        // International orders only: amount actually charged, in local currency
+                        const intl = getInternationalOrderDisplay(order);
+                        return intl ? (
+                          <div className="text-xs text-sky-700 mt-0.5 font-semibold">
+                            {intl.country} · {intl.formatCode(intl.totalLocal)}
+                          </div>
+                        ) : null;
+                      })()}
                       {order.couponCode && (
                         <div className="text-xs text-green-700 mt-1 font-semibold bg-green-50 inline-block px-1.5 py-0.5 rounded border border-green-200">
                           {order.couponCode}

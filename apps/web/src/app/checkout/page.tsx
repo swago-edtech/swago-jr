@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useSharedContext, type CartItem, type Product, type CartPriceChange } from "@/context/SharedContext";
 import { useCountry } from "@/context/CountryContext";
+import { computeInternationalDisplayTotal } from "@swago/utils";
 import { useRouter } from "next/navigation";
 import Script from "next/script";
 import Image from "next/image";
@@ -46,7 +47,7 @@ const REFERRAL_OPTIONS = [
 
 export default function CheckoutPage() {
   const { cart, total, user, isLoadingUser, clearCart, addToCart, appliedCoupon, setAppliedCoupon, appliedSwagoMoney, refreshCartPrices, isRefreshingCart } = useSharedContext();
-  const { country, formatPrice, formatLocalPrice, getLocalPrice, toLocalAmount, isInternational, calculateShippingFee, calculateShippingFeeLocal } = useCountry();
+  const { country, formatPrice, formatLocalPrice, getLocalPrice, toLocalAmount, isInternational, resolveIntlShipping } = useCountry();
   const COUNTRY_FLAGS: Record<string, string> = { IN: '🇮🇳', US: '🇺🇸', CA: '🇨🇦', AE: '🇦🇪' };
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
@@ -219,7 +220,8 @@ export default function CheckoutPage() {
             swagoMoneyRedeemed: appliedSwagoMoney || 0,
             country: country.code,
             currency: country.currency,
-            exchangeRate: country.exchangeRate
+            exchangeRate: country.exchangeRate,
+            ...(isInternational ? { displayTotal: localFinalTotal } : {})
           }
         })
       });
@@ -286,7 +288,8 @@ export default function CheckoutPage() {
             swagoMoneyRedeemed: appliedSwagoMoney || 0,
             country: country.code,
             currency: country.currency,
-            exchangeRate: country.exchangeRate
+            exchangeRate: country.exchangeRate,
+            ...(isInternational ? { displayTotal: localFinalTotal } : {})
           }
         })
       });
@@ -352,14 +355,19 @@ export default function CheckoutPage() {
     }
   }, [isCodBlocked, paymentMethod]);
 
-  const totalWeight = useMemo(() => cart.reduce((sum, item) => sum + ((item.weight || 0) * item.quantity), 0), [cart]);
+
+  // International only: product fixed shipping (per line) + config rules for the rest
+  const intlShipping = useMemo(
+    () => (isInternational ? resolveIntlShipping(cart) : null),
+    [isInternational, resolveIntlShipping, cart]
+  );
 
   const shippingFee = useMemo(() => {
-    if (isInternational) return calculateShippingFee(totalWeight);
+    if (isInternational) return intlShipping?.feeINR ?? 0;
     if (paymentMethod === 'razorpay') return 0;
     const threshold = promotion?.shippingThreshold || 1450;
     return total >= threshold ? 0 : 50;
-  }, [paymentMethod, total, promotion, isInternational, calculateShippingFee, totalWeight]);
+  }, [paymentMethod, total, promotion, isInternational, intlShipping]);
 
   const finalTotal = useMemo(() => {
     const discountedTotal = appliedCoupon ? total - appliedCoupon.discount : total;
@@ -374,16 +382,23 @@ export default function CheckoutPage() {
     const localDiscount = toLocalAmount(appliedCoupon?.discount || 0);
     const localSwago = toLocalAmount(appliedSwagoMoney || 0);
     const localShipping = isInternational
-      ? calculateShippingFeeLocal(totalWeight)
+      ? intlShipping?.feeLocal ?? 0
       : shippingFee;
+    if (isInternational) {
+      return computeInternationalDisplayTotal({
+        localMerchandise: localMerchandiseTotal,
+        localDiscount,
+        localSwago,
+        localShipping,
+      });
+    }
     return Math.max(0, localMerchandiseTotal - localDiscount - localSwago + localShipping);
   }, [
     localMerchandiseTotal,
     appliedCoupon,
     appliedSwagoMoney,
     isInternational,
-    calculateShippingFeeLocal,
-    totalWeight,
+    intlShipping,
     shippingFee,
     toLocalAmount,
   ]);
@@ -429,7 +444,7 @@ export default function CheckoutPage() {
       <div className="bg-[hsl(var(--swago-purple))] py-3 text-center">
         <p className="text-white text-[10px] font-[1000] tracking-widest leading-tight">
           {isInternational
-            ? `International Shipping to ${country.name} — ${formatLocalPrice(calculateShippingFeeLocal(totalWeight))}`
+            ? `International Shipping to ${country.name} — ${formatLocalPrice(intlShipping?.feeLocal ?? 0)}`
             : 'Enjoy Free Shipping, on orders above ₹1450'
           }
         </p>
@@ -652,7 +667,7 @@ export default function CheckoutPage() {
                       <p className="text-xs font-bold text-slate-700 uppercase tracking-wider">International Shipping</p>
                       <p className="text-[10px] text-slate-400 mt-0.5">via India Post (EMS/Speed Post)</p>
                     </div>
-                    <p className="text-xs font-black text-slate-800">{formatLocalPrice(calculateShippingFeeLocal(totalWeight))}</p>
+                    <p className="text-xs font-black text-slate-800">{formatLocalPrice(intlShipping?.feeLocal ?? 0)}</p>
                   </div>
                 ) : (
                   <>
@@ -869,8 +884,11 @@ function OrderSummary({
   cart, total, appliedCoupon, couponCode, setCouponCode, applyCoupon,
   promotion, progressPercent, nextTier, addToCart, appliedSwagoMoney, paymentMethod, finalTotal, shippingFee
 }: any) {
-  const { formatLocalPrice, getLocalPrice, toLocalAmount, country, isInternational, calculateShippingFeeLocal } = useCountry();
-  const totalWeight = useMemo(() => cart.reduce((sum: number, item: any) => sum + ((item.weight || 0) * item.quantity), 0), [cart]);
+  const { formatLocalPrice, getLocalPrice, toLocalAmount, country, isInternational, resolveIntlShipping } = useCountry();
+  const intlShippingLocal = useMemo(
+    () => (isInternational ? resolveIntlShipping(cart).feeLocal : 0),
+    [isInternational, resolveIntlShipping, cart]
+  );
   const isAlreadyAdded = (slug: string) => cart.some((item: any) => (item.slug === slug || item._id === slug) && item.price === 1);
 
   const localSubtotal = useMemo(
@@ -879,8 +897,15 @@ function OrderSummary({
   );
   const localDiscount = toLocalAmount(appliedCoupon?.discount || 0);
   const localSwago = toLocalAmount(appliedSwagoMoney || 0);
-  const localShipping = isInternational ? calculateShippingFeeLocal(totalWeight) : shippingFee;
-  const localFinalTotal = Math.max(0, localSubtotal - localDiscount - localSwago + localShipping);
+  const localShipping = isInternational ? intlShippingLocal : shippingFee;
+  const localFinalTotal = isInternational
+    ? computeInternationalDisplayTotal({
+        localMerchandise: localSubtotal,
+        localDiscount,
+        localSwago,
+        localShipping,
+      })
+    : Math.max(0, localSubtotal - localDiscount - localSwago + localShipping);
 
   return (
     <>

@@ -12,6 +12,7 @@ import ExpressOrderSummary from "@/components/ExpressOrderSummary";
 import ExpressCrossSell from "@/components/ExpressCrossSell";
 import { Feedback } from "@/lib/feedback";
 import { useCountry } from "@/context/CountryContext";
+import { computeInternationalDisplayTotal } from "@swago/utils";
 import {
   COD_MAX_UNITS,
   COD_UNIT_LIMIT_MESSAGE,
@@ -33,6 +34,8 @@ interface ExpressCartItem {
   _id: string; name: string; price: number; originalPrice?: number;
   images: string[]; slug?: string; quantity: number; availableStock: number;
   weight?: number;
+  internationalPricing?: Record<string, { price: number; originalPrice?: number }>;
+  internationalShipping?: Record<string, { fee: number }>;
 }
 
 function ExpressCheckoutContent() {
@@ -43,7 +46,7 @@ function ExpressCheckoutContent() {
   const utmSource = searchParams.get("utm_source") || "";
   const utmMedium = searchParams.get("utm_medium") || "";
   const utmCampaign = searchParams.get("utm_campaign") || "";
-  const { formatPrice, formatLocalPrice, getLocalPrice, toLocalAmount, country, isInternational, calculateShippingFee, calculateShippingFeeLocal } = useCountry();
+  const { formatPrice, formatLocalPrice, getLocalPrice, toLocalAmount, country, isInternational, resolveIntlShipping } = useCountry();
 
   // Page state
   const [loading, setLoading] = useState(true);
@@ -309,21 +312,28 @@ function ExpressCheckoutContent() {
     }
   }, [isCodBlocked, paymentMethod]);
 
-  const totalWeight = useMemo(() => cart.reduce((sum, item) => sum + ((item.weight || 0) * item.quantity), 0), [cart]);
+  // International only: product fixed shipping (per line) + config rules for the rest
+  const intlShipping = useMemo(
+    () => (isInternational ? resolveIntlShipping(cart) : null),
+    [isInternational, resolveIntlShipping, cart]
+  );
 
   const shippingFee = useMemo(() => {
-    if (isInternational) return calculateShippingFee(totalWeight);
+    if (isInternational) return intlShipping?.feeINR ?? 0;
     if (paymentMethod === "razorpay") return 0;
     const threshold = promotion?.shippingThreshold || 1450;
     return subtotal >= threshold ? 0 : 50;
-  }, [paymentMethod, subtotal, promotion, isInternational, calculateShippingFee, totalWeight]);
+  }, [paymentMethod, subtotal, promotion, isInternational, intlShipping]);
   const finalTotal = useMemo(() => Math.max(0, subtotal - discount + shippingFee), [subtotal, discount, shippingFee]);
   const localFinalTotal = useMemo(() => {
     const localSub = cart.reduce((s, i) => s + getLocalPrice(i).price * i.quantity, 0);
     const localDisc = toLocalAmount(discount);
-    const localShip = isInternational ? calculateShippingFeeLocal(totalWeight) : shippingFee;
+    const localShip = isInternational ? intlShipping?.feeLocal ?? 0 : shippingFee;
+    if (isInternational) {
+      return computeInternationalDisplayTotal({ localMerchandise: localSub, localDiscount: localDisc, localShipping: localShip });
+    }
     return Math.max(0, localSub - localDisc + localShip);
-  }, [cart, getLocalPrice, toLocalAmount, discount, isInternational, calculateShippingFeeLocal, totalWeight, shippingFee]);
+  }, [cart, getLocalPrice, toLocalAmount, discount, isInternational, intlShipping, shippingFee]);
 
   // ========================================
   // FORM VALIDATION

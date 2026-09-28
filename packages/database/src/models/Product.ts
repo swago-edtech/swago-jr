@@ -179,6 +179,16 @@ const ProductSchema = new mongoose.Schema(
       default: new Map(),
     },
 
+    // Per-currency fixed international shipping (local currency, charged once per cart line).
+    // Missing entry = use InternationalConfig rules; fee 0 = free shipping for this product.
+    internationalShipping: {
+      type: Map,
+      of: new mongoose.Schema({
+        fee: { type: Number, min: 0, required: true },
+      }, { _id: false }),
+      default: new Map(),
+    },
+
     // 🆕 NEW: Promotional Message
     showPromotionalMessage: {
       type: Boolean,

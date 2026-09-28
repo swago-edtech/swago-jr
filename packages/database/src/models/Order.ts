@@ -66,6 +66,8 @@ const OrderSchema = new mongoose.Schema(
         price: Number,
         quantity: Number,
         image: String,
+        // International orders only: unit price in the order's local currency (as charged)
+        localPrice: { type: Number, required: false },
       },
     ],
     subtotal: { type: Number, required: true },
@@ -120,9 +122,13 @@ const OrderSchema = new mongoose.Schema(
     // International order tracking
     country: { type: String, default: "IN", uppercase: true },
     currency: { type: String, default: "INR", uppercase: true },
+    // International orders only: display symbol of `currency` at checkout time
+    currencySymbol: { type: String, required: false },
     displayTotal: { type: Number },
     exchangeRateUsed: { type: Number, default: 1 },
-    internationalShippingFee: { type: Number, default: 0 }
+    internationalShippingFee: { type: Number, default: 0 },
+    // Local-currency shipping + per-line source (product fixed fee vs config rules)
+    internationalShippingBreakdown: { type: mongoose.Schema.Types.Mixed }
   },
   { timestamps: true }
 );

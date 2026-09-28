@@ -7,7 +7,7 @@ import { NextResponse } from "next/server";
 import Razorpay from "razorpay";
 import mongoose from "mongoose";
 import { SignJWT } from "jose";
-import { connectDB, Product, Order, User, Coupon as CouponModel, Promotion, InternationalConfig } from "@swago/database";
+import { connectDB, Product, Order, User, Coupon as CouponModel, Promotion } from "@swago/database";
 import { isValidObjectId } from "mongoose";
 import { generateOrderId } from "@/lib/generateOrderId";
 import { cleanupExpiredOrders } from "@/lib/cleanupExpiredOrders";
@@ -16,6 +16,16 @@ import { sendOrderConfirmationEmail } from "@/lib/msg91-email";
 import { formatPhoneForStorage, verifyAccessToken } from "@/lib/msg91";
 import { z } from "zod";
 import { getProductPrice, convertToINR, convertToLocal } from "@/lib/currency";
+import {
+  resolveInternationalShipping,
+  computeInternationalDisplayTotal,
+  type InternationalShippingResult,
+} from "@swago/utils";
+import {
+  normalizeCountryCode,
+  resolveServerIntlCountry,
+  type ServerIntlCountry,
+} from "@/lib/international-server";
 import {
   allocateInventoryForOrder,
   releaseInventoryAllocation,
@@ -53,6 +63,7 @@ interface OrderItem {
   price: number;
   quantity: number;
   image: string;
+  localPrice?: number; // international orders only
 }
 
 // ✅ Input validation schema
@@ -119,9 +130,12 @@ export async function POST(req: Request) {
     const { items, customer, couponCode, paymentMethod, country, currency, exchangeRate, utm, otp, accessToken } = validation.data;
     const formattedPhone = formatPhoneForStorage(customer.phone);
 
-    const countryCode = country || 'IN';
-    const finalCurrency = currency || 'INR';
-    const exchangeRateUsed = exchangeRate || 1;
+    const countryCode = normalizeCountryCode(country);
+    // Domestic (IN): always INR @ 1. International: overwritten below from InternationalConfig
+    // (server-trusted); client-sent currency/exchangeRate are only used for a mismatch log.
+    let finalCurrency = 'INR';
+    let exchangeRateUsed = 1;
+    let intlCountry: ServerIntlCountry | null = null;
 
     // ✅ COD India-only check
     if (paymentMethod === "cod" && (countryCode !== 'IN' || !isIndianPhone(formattedPhone))) {
@@ -153,6 +167,28 @@ export async function POST(req: Request) {
     // 2. CONNECT DB & CLEANUP
     // ========================================
     await connectDB();
+
+    // ✅ International only: resolve country settings server-side (before any DB mutation)
+    if (countryCode !== 'IN') {
+      const resolvedCountry = await resolveServerIntlCountry(countryCode);
+      if (!resolvedCountry.ok) {
+        return NextResponse.json(
+          { success: false, error: resolvedCountry.error, code: "COUNTRY_NOT_SUPPORTED" },
+          { status: 400 }
+        );
+      }
+      intlCountry = resolvedCountry.country;
+      finalCurrency = intlCountry.currency;
+      exchangeRateUsed = intlCountry.exchangeRate;
+      if (
+        (currency && currency.toUpperCase() !== finalCurrency) ||
+        (exchangeRate && exchangeRate !== exchangeRateUsed)
+      ) {
+        console.warn(
+          `⚠️ [Express] Client currency/rate mismatch for ${countryCode}: client=${currency}@${exchangeRate}, server=${finalCurrency}@${exchangeRateUsed}. Using server values.`
+        );
+      }
+    }
 
     // ✅ Fetch active promotion for validation and price calculation
     const activePromotion = await Promotion.findOne().lean() as any;
@@ -267,10 +303,8 @@ export async function POST(req: Request) {
     }
 
     // Build order items using DB-verified prices (fixed intl price → INR ledger)
-    let totalWeight = 0;
     let localMerchandiseTotal = 0;
     const orderItems: OrderItem[] = reservations.map(({ product, quantity }) => {
-      totalWeight += ((product as any).weight || 0) * quantity;
       const resolvedLocal = getProductPrice(
         {
           price: (product as any).price,
@@ -291,6 +325,7 @@ export async function POST(req: Request) {
         price: ledgerPrice,
         quantity,
         image: (product as any).images?.[0] || "",
+        ...(intlCountry ? { localPrice: resolvedLocal.price } : {}),
       };
     });
 
@@ -339,26 +374,22 @@ export async function POST(req: Request) {
 
     // Shipping / COD fee calculation
     let shippingFee = 0;
-    if (countryCode !== 'IN') {
-      const config = await InternationalConfig.findOne({ isSingleton: true }).lean() as any;
-      if (config && config.supportedCountries) {
-        const countryConfig = config.supportedCountries.find((c: any) => c.code === countryCode);
-        if (countryConfig) {
-          if (countryConfig.shippingTiers && countryConfig.shippingTiers.length > 0) {
-            const matchedTier = countryConfig.shippingTiers.find(
-              (t: any) => totalWeight >= t.minWeight && totalWeight <= t.maxWeight
-            );
-            if (matchedTier) {
-              shippingFee = matchedTier.fee;
-            } else {
-              const highestTier = [...countryConfig.shippingTiers].sort((a: any, b: any) => b.maxWeight - a.maxWeight)[0];
-              shippingFee = totalWeight > highestTier.maxWeight ? highestTier.fee : countryConfig.shippingFee;
-            }
-          } else {
-            shippingFee = countryConfig.shippingFee || 0;
-          }
-        }
-      }
+    let intlShipping: InternationalShippingResult | null = null;
+    if (intlCountry) {
+      // International only: product fixed shipping (once per line, local currency)
+      // + config weight tiers / flat fee on the weight of lines without a fixed fee.
+      intlShipping = resolveInternationalShipping(
+        reservations.map(({ product, quantity }) => ({
+          productId: product._id.toString(),
+          name: product.name,
+          quantity,
+          weight: (product as any).weight || 0,
+          internationalShipping: (product as any).internationalShipping,
+        })),
+        intlCountry,
+        finalCurrency
+      );
+      shippingFee = intlShipping.feeINR; // INR ledger
     } else {
       if (paymentMethod === "razorpay") {
         shippingFee = 0;
@@ -372,9 +403,15 @@ export async function POST(req: Request) {
 
     const localDiscount =
       finalCurrency === "INR" ? discountAmount : convertToLocal(discountAmount, exchangeRateUsed);
-    const localShipping =
-      finalCurrency === "INR" ? shippingFee : convertToLocal(shippingFee, exchangeRateUsed);
-    const displayTotal = Math.max(0, localMerchandiseTotal - localDiscount + localShipping);
+    const localShipping = intlShipping ? intlShipping.feeLocal : shippingFee;
+    const displayTotal = intlCountry
+      ? // International: coupon never eats into shipping; never negative (mirrors INR ledger)
+        computeInternationalDisplayTotal({
+          localMerchandise: localMerchandiseTotal,
+          localDiscount,
+          localShipping,
+        })
+      : Math.max(0, localMerchandiseTotal - localDiscount + localShipping);
 
     // ========================================
     // 8. CREATE ORDER (inventory allocated after creation)
@@ -401,11 +438,15 @@ export async function POST(req: Request) {
       discount: discountAmount,
       shippingFee: countryCode === 'IN' ? shippingFee : 0,
       internationalShippingFee: countryCode !== 'IN' ? shippingFee : 0,
+      ...(intlShipping && {
+        internationalShippingBreakdown: { feeLocal: intlShipping.feeLocal, ...intlShipping.breakdown },
+      }),
       total: calculatedTotal,
       country: countryCode,
       currency: finalCurrency,
       exchangeRateUsed: exchangeRateUsed,
       displayTotal: displayTotal,
+      ...(intlCountry?.currencySymbol && { currencySymbol: intlCountry.currencySymbol }),
       stockReservedAt: new Date(),
       createdVia: "express",
       // ✅ UTM Tracking

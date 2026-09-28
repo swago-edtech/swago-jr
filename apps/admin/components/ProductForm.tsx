@@ -53,6 +53,7 @@ type ProductFormData = {
   promotionalMessage?: string;
   skills?: { title: string; image: string }[];
   internationalPricing?: Record<string, { price: number; originalPrice?: number }>;
+  internationalShipping?: Record<string, { fee: number }>;
 };
 
 type IntlCountryOption = {
@@ -87,6 +88,19 @@ function pricingMapFromInitial(
   return out;
 }
 
+function shippingMapFromInitial(
+  raw?: Record<string, { fee: number }> | Map<string, { fee: number }> | null
+): Record<string, string> {
+  const out: Record<string, string> = {};
+  if (!raw) return out;
+  const entries = raw instanceof Map ? Array.from(raw.entries()) : Object.entries(raw);
+  for (const [currency, val] of entries) {
+    if (!val || val.fee == null || !Number.isFinite(Number(val.fee)) || Number(val.fee) < 0) continue;
+    out[String(currency).toUpperCase()] = String(val.fee);
+  }
+  return out;
+}
+
 type ProductFormProps = {
   mode: "create" | "edit";
   initialData?: ProductFormData;
@@ -109,6 +123,10 @@ export default function ProductForm({ mode, initialData, productId }: ProductFor
   const [intlPricing, setIntlPricing] = useState<
     Record<string, { price: string; originalPrice: string }>
   >(() => pricingMapFromInitial(initialData?.internationalPricing));
+  // Per-currency fixed international shipping (blank = use International Config, 0 = free)
+  const [intlShipping, setIntlShipping] = useState<Record<string, string>>(() =>
+    shippingMapFromInitial(initialData?.internationalShipping)
+  );
   const [isIntlPricingExpanded, setIsIntlPricingExpanded] = useState(false);
   const [isSkillsExpanded, setIsSkillsExpanded] = useState(false);
 
@@ -314,6 +332,10 @@ export default function ProductForm({ mode, initialData, productId }: ProductFor
     if (images.length === 0) e.images = "At least one image is required";
     if (!bomData.configured && (form.stock === "" || parseInt(form.stock) < 0))
       e.stock = "Valid stock quantity is required";
+    const badShipping = Object.entries(intlShipping).find(
+      ([, v]) => v.trim() !== "" && (!Number.isFinite(parseFloat(v)) || parseFloat(v) < 0)
+    );
+    if (badShipping) e.internationalShipping = `Invalid shipping cost for ${badShipping[0]}`;
     if (form.isCombo) {
       const n = parseInt(form.comboUnitCount, 10);
       if (!Number.isInteger(n) || n < 2) {
@@ -369,6 +391,12 @@ export default function ProductForm({ mode, initialData, productId }: ProductFor
                   : {}),
               },
             ])
+        ),
+        // Blank = unset (use International Config); explicit 0 = free shipping for this product
+        internationalShipping: Object.fromEntries(
+          Object.entries(intlShipping)
+            .filter(([, v]) => v.trim() !== "" && Number.isFinite(parseFloat(v)) && parseFloat(v) >= 0)
+            .map(([currency, v]) => [currency, { fee: parseFloat(v) }])
         ),
       };
 
@@ -559,7 +587,11 @@ export default function ProductForm({ mode, initialData, productId }: ProductFor
               {intlCountries.length > 0 && (() => {
                 const configuredCount = intlCountries.filter((c) => {
                   const row = intlPricing[c.currency.toUpperCase()];
-                  return row && (Boolean(row.price) || Boolean(row.originalPrice));
+                  const ship = intlShipping[c.currency.toUpperCase()];
+                  return (
+                    (row && (Boolean(row.price) || Boolean(row.originalPrice))) ||
+                    (ship !== undefined && ship.trim() !== "")
+                  );
                 }).length;
 
                 return (
@@ -576,7 +608,7 @@ export default function ProductForm({ mode, initialData, productId }: ProductFor
                         <div>
                           <div className="flex items-center gap-2">
                             <span className="text-sm font-semibold text-gray-800">
-                              International fixed prices
+                              International fixed prices &amp; shipping
                             </span>
                             <span className="text-[11px] text-gray-400 font-normal">
                               (Optional)
@@ -605,13 +637,18 @@ export default function ProductForm({ mode, initialData, productId }: ProductFor
                         />
                       </div>
                     </button>
+                    {errors.internationalShipping && (
+                      <p className="text-red-500 text-xs mt-1">{errors.internationalShipping}</p>
+                    )}
 
                     {isIntlPricingExpanded && (
                       <div className="space-y-3 pt-3">
                         <p className="text-xs text-gray-500 bg-sky-50/70 border border-sky-100 rounded-lg p-2.5">
                           Set a direct price per country. When filled, it overrides the exchange-rate
                           multiplier for that currency. Leave blank to use the multiplier from
-                          International Config.
+                          International Config. Shipping cost is charged once per cart line
+                          (regardless of quantity); leave it blank to use International Config
+                          shipping, or enter 0 for free shipping on this product.
                         </p>
                         <div className="space-y-3">
                           {intlCountries.map((country) => {
@@ -620,9 +657,9 @@ export default function ProductForm({ mode, initialData, productId }: ProductFor
                             return (
                               <div
                                 key={country.code}
-                                className="rounded-lg border border-gray-100 bg-gray-50/80 p-3 grid grid-cols-1 sm:grid-cols-2 gap-3"
+                                className="rounded-lg border border-gray-100 bg-gray-50/80 p-3 grid grid-cols-1 sm:grid-cols-3 gap-3"
                               >
-                                <div className="sm:col-span-2 text-xs font-semibold text-gray-600">
+                                <div className="sm:col-span-3 text-xs font-semibold text-gray-600">
                                   {country.name}{" "}
                                   <span className="font-normal text-gray-400">
                                     ({country.currency} · {country.currencySymbol})
@@ -666,6 +703,29 @@ export default function ProductForm({ mode, initialData, productId }: ProductFor
                                     placeholder="Optional"
                                     className={fieldClass()}
                                   />
+                                </div>
+                                <div>
+                                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                                    Shipping cost ({country.currencySymbol}){" "}
+                                    <span className="font-normal text-gray-400">(Optional)</span>
+                                  </label>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={intlShipping[key] ?? ""}
+                                    onChange={(e) =>
+                                      setIntlShipping((prev) => ({
+                                        ...prev,
+                                        [key]: e.target.value,
+                                      }))
+                                    }
+                                    placeholder="Blank = config"
+                                    className={fieldClass()}
+                                  />
+                                  <p className="text-[11px] text-gray-400 mt-1">
+                                    Blank = use International Config shipping · 0 = free
+                                  </p>
                                 </div>
                               </div>
                             );

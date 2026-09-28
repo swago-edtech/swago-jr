@@ -3,7 +3,7 @@ import { requireAdmin } from "@/lib/auth";
 import { Product, getConfiguredProductIds, applyEffectiveProductStock, enrichProductAvailability, reconcileStaleProductStock } from "@swago/database";
 import { connectDB } from "@swago/database";
 import { parseComboFields } from "@/lib/combo-units";
-import { normalizeInternationalPricing } from "@/lib/international-pricing";
+import { normalizeInternationalPricing, normalizeInternationalShipping } from "@/lib/international-pricing";
 
 // GET /api/products - List all products with filters
 export async function GET(request: NextRequest) {
@@ -170,6 +170,7 @@ export async function POST(request: NextRequest) {
       promotionalMessage: body.promotionalMessage || "",
       skills: body.skills || [],
       internationalPricing: normalizeInternationalPricing(body.internationalPricing),
+      internationalShipping: normalizeInternationalShipping(body.internationalShipping),
     });
 
     return NextResponse.json({

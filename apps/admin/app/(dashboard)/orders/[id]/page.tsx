@@ -1,5 +1,5 @@
 import { connectDB, Order } from '@swago/database';
-import { formatPrice } from '@swago/utils';
+import { formatPrice, getInternationalOrderDisplay } from '@swago/utils';
 import { notFound } from 'next/navigation';
 import UpdateOrderStatus from '@/components/UpdateOrderStatus';
 import ProductCodesDisplay from '@/components/ProductCodesDisplay';
@@ -36,6 +36,8 @@ export default async function OrderDetailPage({
   const subtotal = order.subtotal || calculatedSubtotal;
   const discount = order.discount || 0;
   const total = order.total || (subtotal - discount);
+  // International orders only (null for India): charged currency + international shipping
+  const intl = getInternationalOrderDisplay(order);
 
   return (
     <div className="space-y-6">
@@ -169,6 +171,15 @@ export default async function OrderDetailPage({
                 {formatPrice(total)}
               </p>
             </div>
+            {intl && (
+              <div className="pt-3 border-t">
+                <p className="text-sm text-gray-500">International Order ({intl.country})</p>
+                <p className="text-lg font-bold text-sky-700">Charged {intl.formatCode(intl.totalLocal)}</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  Items {intl.formatCode(intl.subtotalLocal)} · Shipping {intl.formatCode(intl.shippingLocal)} · 1 INR = {intl.rate} {intl.currency}
+                </p>
+              </div>
+            )}
             
             {order.invoiceUrl && (
               <div className="pt-3 border-t">
@@ -233,6 +244,9 @@ export default async function OrderDetailPage({
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {formatPrice(price)}
+                      {intl && (
+                        <div className="text-xs text-sky-700">{intl.formatCode(intl.items[index]?.localPrice ?? 0)}</div>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {item.quantity || 0}
@@ -268,10 +282,22 @@ export default async function OrderDetailPage({
                   <span className="font-medium">-{formatPrice(discount)}</span>
                 </div>
               )}
+              {intl && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-900">International Shipping:</span>
+                  <span className="font-medium text-gray-900">{formatPrice(intl.shippingINR)}</span>
+                </div>
+              )}
               <div className="flex justify-between text-base font-semibold border-t pt-2">
                 <span className="text-gray-900">Total:</span>
                 <span className="text-gray-900">{formatPrice(total)}</span>
               </div>
+              {intl && (
+                <div className="flex justify-between text-sm text-sky-700 font-semibold">
+                  <span>Charged ({intl.currency}):</span>
+                  <span>{intl.formatCode(intl.totalLocal)}</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
