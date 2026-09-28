@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Fragment } from "react";
 import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import { notFound } from "next/navigation";
 import { connectDB, HowToPlay } from "@swago/database";
 import {
@@ -116,16 +117,24 @@ export default async function HowToPlayPage({
           <div className="mt-8 md:mt-12 flex justify-center">
             <Link
               href={`/product/${product.slug}`}
-              className="btn-shine inline-flex items-center gap-3 rounded-full bg-[hsl(var(--swago-purple))] pl-2 pr-6 py-2 text-white font-bold shadow-sm hover:shadow-md transition-shadow"
+              title={`Buy ${product.name}`}
+              aria-label={`Buy ${product.name}`}
+              className={`btn-shine inline-flex max-w-full sm:max-w-md items-center gap-3 rounded-full bg-[hsl(var(--swago-purple))] py-2 pr-5 ${product.images?.[0] ? "pl-2" : "pl-6"} text-left text-white shadow-sm hover:shadow-md transition-shadow`}
             >
               {product.images?.[0] && (
                 <img
                   src={product.images[0]}
                   alt=""
-                  className="h-10 w-10 rounded-full object-cover bg-white"
+                  className="h-10 w-10 shrink-0 rounded-full object-cover bg-white"
                 />
               )}
-              Buy {product.name}
+              <span className="flex min-w-0 flex-1 flex-col leading-tight">
+                <span className="text-[11px] font-semibold uppercase tracking-wide text-white/80">Buy now</span>
+                <span className="truncate text-sm sm:text-base font-semibold">
+                  {product.name}
+                </span>
+              </span>
+              <ArrowRight className="h-5 w-5 shrink-0" aria-hidden="true" />
             </Link>
           </div>
         )}
