@@ -16,7 +16,8 @@ const scripts = [
   '09-product-indexes.js',
   '10-productcode-indexes.js',
   '11-review-indexes.js',
-  '12-user-indexes.js'
+  '12-user-indexes.js',
+  '14-howtoplay-indexes.js'
 ];
 
 console.log('🚀 Starting Index Migration for All Models\n');
