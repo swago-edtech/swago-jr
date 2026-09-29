@@ -167,6 +167,14 @@ export async function PUT(
       );
     }
 
+    // Handle Mongoose validation errors
+    if (error.name === 'ValidationError') {
+      return NextResponse.json(
+        { error: error.message },
+        { status: 400 }
+      );
+    }
+
     return NextResponse.json(
       { error: error.message || "Failed to update product" },
       { status: 500 }

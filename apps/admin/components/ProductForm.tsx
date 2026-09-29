@@ -332,9 +332,10 @@ export default function ProductForm({ mode, initialData, productId }: ProductFor
     if (images.length === 0) e.images = "At least one image is required";
     if (!bomData.configured && (form.stock === "" || parseInt(form.stock) < 0))
       e.stock = "Valid stock quantity is required";
-    const badShipping = Object.entries(intlShipping).find(
-      ([, v]) => v.trim() !== "" && (!Number.isFinite(parseFloat(v)) || parseFloat(v) < 0)
-    );
+    const badShipping = Object.entries(intlShipping).find(([, v]) => {
+      const val = typeof v === "string" ? v.trim() : String(v ?? "").trim();
+      return val !== "" && (!Number.isFinite(parseFloat(val)) || parseFloat(val) < 0);
+    });
     if (badShipping) e.internationalShipping = `Invalid shipping cost for ${badShipping[0]}`;
     if (form.isCombo) {
       const n = parseInt(form.comboUnitCount, 10);
@@ -381,7 +382,7 @@ export default function ProductForm({ mode, initialData, productId }: ProductFor
         skills: skills.filter((s) => s.title && s.image),
         internationalPricing: Object.fromEntries(
           Object.entries(intlPricing)
-            .filter(([, v]) => v.price && parseFloat(v.price) > 0)
+            .filter(([, v]) => v && v.price && parseFloat(v.price) > 0)
             .map(([currency, v]) => [
               currency,
               {
@@ -395,12 +396,18 @@ export default function ProductForm({ mode, initialData, productId }: ProductFor
         // Blank = unset (use International Config); explicit 0 = free shipping for this product
         internationalShipping: Object.fromEntries(
           Object.entries(intlShipping)
-            .filter(([, v]) => v.trim() !== "" && Number.isFinite(parseFloat(v)) && parseFloat(v) >= 0)
-            .map(([currency, v]) => [currency, { fee: parseFloat(v) }])
+            .filter(([, v]) => {
+              const val = typeof v === "string" ? v.trim() : String(v ?? "").trim();
+              return val !== "" && Number.isFinite(parseFloat(val)) && parseFloat(val) >= 0;
+            })
+            .map(([currency, v]) => {
+              const val = typeof v === "string" ? v.trim() : String(v ?? "").trim();
+              return [currency, { fee: parseFloat(val) }];
+            })
         ),
       };
 
-      if (!(mode === "edit" && bomData.configured)) {
+      if (mode === "create") {
         payload.stock = 0;
       }
 
@@ -410,21 +417,34 @@ export default function ProductForm({ mode, initialData, productId }: ProductFor
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      const data = await res.json();
 
-      if (data.success) {
+      let data: any = null;
+      const contentType = res.headers.get("content-type") || "";
+      if (contentType.includes("application/json")) {
+        try {
+          data = await res.json();
+        } catch {
+          data = null;
+        }
+      } else {
+        const text = await res.text().catch(() => "");
+        throw new Error(text || `Server returned ${res.status} ${res.statusText}`);
+      }
+
+      if (res.ok && data?.success) {
         alert(
           mode === "create" ? "Product created successfully!" : "Product updated successfully!"
         );
         router.push("/products");
       } else {
+        const errMsg = data?.error || data?.message || `Server returned ${res.status} ${res.statusText}`;
         alert(
-          `Failed to ${mode === "create" ? "create" : "update"} product: ${data.error}`
+          `Failed to ${mode === "create" ? "create" : "update"} product: ${errMsg}`
         );
       }
-    } catch (error) {
-      console.error(error);
-      alert(`Failed to ${mode === "create" ? "create" : "update"} product`);
+    } catch (error: any) {
+      console.error("Product submission error:", error);
+      alert(`Failed to ${mode === "create" ? "create" : "update"} product: ${error?.message || "Unknown error"}`);
     } finally {
       setSubmitting(false);
     }
