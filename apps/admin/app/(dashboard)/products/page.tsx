@@ -114,8 +114,8 @@ export default function ProductsPage() {
     if (!hasConfig) {
       return <span className="px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider rounded-full bg-gray-100 text-gray-600 border border-gray-200">Not Configured</span>;
     }
-    if (stock === 0) {
-      return <span className="px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider rounded-full bg-red-100 text-red-800 border border-red-200">Out of Stock</span>;
+    if (stock <= 0) {
+      return <span className="px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider rounded-full bg-red-100 text-red-800 border border-red-200">Out of Stock{stock < 0 ? ` (${stock})` : ""}</span>;
     } else if (stock <= threshold) {
       return <span className="px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider rounded-full bg-yellow-100 text-yellow-800 border border-yellow-200">Low Stock ({stock})</span>;
     } else {

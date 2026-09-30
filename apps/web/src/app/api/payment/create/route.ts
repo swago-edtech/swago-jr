@@ -33,7 +33,6 @@ interface ProductDocument {
   stock: number;
   reservedStock?: number;
   isActive: boolean;
-  save: () => Promise<void>;
   [key: string]: unknown;
 }
 
@@ -188,10 +187,10 @@ export async function POST(req: Request) {
 // Step 2: Reserve stock for all items (only DB products)
     console.log('Stock validation passed. Reserving stock...');
 
+    // Products are plain objects (toObject with flattened maps), so reserve with an atomic update
     for (const { product, quantity } of reservations) {
-      product.reservedStock = Math.max(0, product.reservedStock || 0) + quantity;
-      await product.save();
-      console.log(`🔒 Reserved ${quantity} units of ${product.name} (total reserved: ${product.reservedStock})`);
+      await Product.updateOne({ _id: product._id }, { $inc: { reservedStock: quantity } });
+      console.log(`🔒 Reserved ${quantity} units of ${product.name}`);
     }
 
 

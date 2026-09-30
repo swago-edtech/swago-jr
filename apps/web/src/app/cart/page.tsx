@@ -8,6 +8,7 @@ import { useState, useEffect } from "react";
 import RelatedProductsCompact from "@/components/RelatedProductsCompact";
 import CouponSheet from "@/components/CouponSheet";
 import CartProgress from "@/components/CartProgress";
+import ShippingBanner from "@/components/ShippingBanner";
 import { useCountry } from "@/context/CountryContext";
 
 interface StockInfo {
@@ -20,13 +21,25 @@ interface StockInfo {
 
 export default function CartPage() {
   const { cart, total, removeFromCart, increaseQty, decreaseQty, appliedCoupon, setAppliedCoupon, appliedSwagoMoney, setAppliedSwagoMoney, walletBalance, refreshCartPrices, isRefreshingCart } = useSharedContext();
-  const { formatPrice, formatLocalPrice, getLocalPrice, toLocalAmount, country, isInternational, resolveIntlShipping } = useCountry();
+  const { formatPrice, formatLocalPrice, getLocalPrice, toLocalAmount, isInternational } = useCountry();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [stockInfo, setStockInfo] = useState<StockInfo>({});
   const [mounted, setMounted] = useState(false);
   const [priceChanges, setPriceChanges] = useState<CartPriceChange[]>([]);
   const [promotion, setPromotion] = useState<any>(null);
+
+  // Rounds like validateCoupon (lib/coupon.ts) so the savings row matches the applied discount
+  let savings = appliedCoupon?.discount || 0;
+  if (appliedCoupon?.type === 'percentage') {
+    const applicableAmount = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    savings = Math.round(applicableAmount * (appliedCoupon.value / 100));
+    if (appliedCoupon.maxDiscount && savings > appliedCoupon.maxDiscount) {
+      savings = appliedCoupon.maxDiscount;
+    }
+  } else if (appliedCoupon?.type === 'fixed') {
+    savings = appliedCoupon.value;
+  }
 
   const localCartTotal = cart.reduce((s, it) => s + getLocalPrice(it).price * it.quantity, 0);
   const localDiscount = toLocalAmount(appliedCoupon?.discount || 0);
@@ -140,18 +153,6 @@ export default function CartPage() {
     return (item.productId?.toString() || item._id?.toString() || item.id?.toString() || '');
   };
 
-  let synchronousSavings = appliedCoupon?.discount || 0;
-  if (appliedCoupon?.type === 'percentage') {
-    const applicableAmount = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    synchronousSavings = Math.floor(applicableAmount * (appliedCoupon.value / 100));
-    if (appliedCoupon.maxDiscount && synchronousSavings > appliedCoupon.maxDiscount) {
-      synchronousSavings = appliedCoupon.maxDiscount;
-    }
-  } else if (appliedCoupon?.type === 'fixed') {
-    synchronousSavings = appliedCoupon.value;
-  }
-
-  const savings = synchronousSavings;
   const amountAfterCoupon = total - savings;
   const canUseSwagoDollars = amountAfterCoupon >= 799;
   const maxSwagoDollarsAllowed = Math.trunc(amountAfterCoupon * 0.05);
@@ -201,13 +202,7 @@ export default function CartPage() {
         </div>
       </div>
 
-      <div className="bg-[hsl(var(--swago-purple))] py-3 text-center">
-        <p className="text-white text-[10px] font-[1000] tracking-widest leading-tight">
-          {isInternational 
-            ? `International Shipping to ${country.name} — ${cart.length > 0 ? formatLocalPrice(resolveIntlShipping(cart).feeLocal) : `${formatPrice(country.shippingFee)} flat rate`}`
-            : 'Enjoy Free Shipping, on orders above ₹1450'}
-        </p>
-      </div>
+      <ShippingBanner cart={cart} />
 
       <div className="container mx-auto px-4 md:px-6 py-6 lg:py-10 max-w-6xl">
         {/* Price Change Banner */}
@@ -523,6 +518,7 @@ export default function CartPage() {
         onClose={() => setCouponSheetOpen(false)}
         onApply={applyCoupon}
         total={total}
+        localTotal={localCartTotal}
         availableCoupons={availableCoupons}
         loading={couponLoading}
         error={couponError}

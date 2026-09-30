@@ -52,9 +52,7 @@ async function buildComponentTotals(
     });
 
     if (!config?.components?.length) {
-      throw new InsufficientInventoryError(
-        `${item.name || "Product"} is not configured for inventory`
-      );
+      console.warn(`⚠️ ${item.name || rawId} is not configured for inventory, skipping deduction`);
       continue;
     }
 
@@ -87,10 +85,7 @@ export async function allocateInventoryForOrder(
   }
 
   const componentTotals = await buildComponentTotals(order.items);
-  if (componentTotals.size === 0) {
-    throw new InsufficientInventoryError("No inventory components to allocate");
-    return; // No inventory components configured — skip allocation silently
-  }
+  if (componentTotals.size === 0) return;
 
   const snapshot: Array<{
     inventoryItemId: mongoose.Types.ObjectId;
@@ -108,9 +103,6 @@ export async function allocateInventoryForOrder(
       );
 
       if (!updated) {
-        throw new InsufficientInventoryError(
-          `Insufficient inventory for ${name}`
-        );
         console.warn(`⚠️ Inventory item ${name} (${itemId}) not found, skipping allocation`);
         continue;
       }

@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
       if (stockStatus === "in-stock") {
         query.currentStock = { $gt: 0 };
       } else if (stockStatus === "out-of-stock") {
-        query.currentStock = 0;
+        query.currentStock = { $lte: 0 };
       } else if (stockStatus === "low-stock") {
         query.$expr = {
           $and: [
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
       ...(hasSku ? { sku: normalizedSku } : {}),
       description,
       unit,
-      currentStock: currentStock || 0,
+      currentStock: Math.max(0, Number(currentStock) || 0),
       lowStockThreshold: lowStockThreshold || 0,
       targetQuantity: targetQuantity || 0,
       isActive: true,

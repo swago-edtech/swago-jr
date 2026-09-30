@@ -85,9 +85,14 @@ function ExpressCheckoutContent() {
   const [widgetReady, setWidgetReady] = useState(false);
   const [fetchingPincode, setFetchingPincode] = useState(false);
 
-  // Auto-fetch City and State from Pincode
+  // International addresses must be typed in; India keeps its default for the locked state dropdown
   useEffect(() => {
-    if (pincode && pincode.length === 6) {
+    setState(isInternational ? "" : "Tamil Nadu");
+  }, [isInternational]);
+
+  // Auto-fetch City and State from Pincode (India only)
+  useEffect(() => {
+    if (!isInternational && pincode && pincode.length === 6) {
       const fetchPincodeData = async () => {
         setFetchingPincode(true);
         try {
@@ -117,7 +122,7 @@ function ExpressCheckoutContent() {
       };
       fetchPincodeData();
     }
-  }, [pincode]);
+  }, [pincode, isInternational]);
   
   useEffect(() => {
     if (!scriptLoaded) return;
@@ -204,7 +209,6 @@ function ExpressCheckoutContent() {
   const increaseQty = (id: string) => {
     setCart(prev => prev.map(item => {
       if (item._id !== id) return item;
-      if (item.quantity >= item.availableStock) return item;
       return { ...item, quantity: item.quantity + 1 };
     }));
   };
@@ -345,7 +349,8 @@ function ExpressCheckoutContent() {
     if (!firstName) errs.push("firstName");
     if (!lastName) errs.push("lastName");
     if (!address) errs.push("address");
-    if (!city) errs.push("city");
+    if (!city.trim()) errs.push("city");
+    if (!state.trim()) errs.push("state");
     if (!pincode || pincode.length < 5) errs.push("pincode");
     setErrors(errs);
     if (errs.length > 0) { setMessage("Please fill in all required fields."); return false; }
@@ -645,9 +650,16 @@ function ExpressCheckoutContent() {
                       <input value={city} onChange={e => { setCity(e.target.value); setErrors(p => p.filter(f => f !== "city")); setMessage(""); }} placeholder="City" autoComplete="address-level2" className={inputClass("city")} />
                       {errors.includes("city") && <p className="text-[10px] text-red-500 font-bold mt-1">Required</p>}
                     </div>
-                    <select value={state} onChange={e => setState(e.target.value)} disabled={true} autoComplete="address-level1" className="w-full h-10 px-3 border rounded-xl text-[13px] font-medium focus:outline-none transition shadow-inner appearance-none bg-slate-100 opacity-70 cursor-not-allowed border-[#e2e8f0] text-slate-500">
-                      {INDIAN_STATES.map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
+                    {isInternational ? (
+                      <div>
+                        <input value={state} onChange={e => { setState(e.target.value); setErrors(p => p.filter(f => f !== "state")); setMessage(""); }} placeholder="State / Province" autoComplete="address-level1" className={inputClass("state")} />
+                        {errors.includes("state") && <p className="text-[10px] text-red-500 font-bold mt-1">Required</p>}
+                      </div>
+                    ) : (
+                      <select value={state} onChange={e => setState(e.target.value)} disabled={true} autoComplete="address-level1" className="w-full h-10 px-3 border rounded-xl text-[13px] font-medium focus:outline-none transition shadow-inner appearance-none bg-slate-100 opacity-70 cursor-not-allowed border-[#e2e8f0] text-slate-500">
+                        {INDIAN_STATES.map(s => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                    )}
                   </div>
                 </div>
               </section>

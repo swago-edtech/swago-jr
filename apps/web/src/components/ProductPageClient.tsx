@@ -699,11 +699,6 @@ export default function ProductPageClient({ product }: { product: Product }) {
                     +
                   </button>
                 </div>
-                {availableStock !== undefined && quantity >= availableStock && (
-                  <span className="text-xs md:text-sm text-orange-600 font-medium">
-                    Max available: {availableStock}
-                  </span>
-                )}
               </div>
             )}
 

@@ -105,25 +105,6 @@ export async function POST(req: Request) {
         });
       }
 
-      // Detect stock issues
-      if (availableStock === 0) {
-        changes.push({
-          productId,
-          productName: dbName,
-          field: "stock",
-          oldValue: quantity,
-          newValue: 0,
-        });
-      } else if (quantity > availableStock) {
-        changes.push({
-          productId,
-          productName: dbName,
-          field: "stock",
-          oldValue: quantity,
-          newValue: availableStock,
-        });
-      }
-
       // Stock decoupled: no longer detect stock issues or reduce quantity
       // Build refreshed item with current DB data
       refreshedItems.push({

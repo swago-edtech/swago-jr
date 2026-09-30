@@ -130,7 +130,7 @@ export default function InventoryStockItemsPage() {
   };
 
   const getStockBadge = (current: number, low: number, target: number) => {
-    if (current === 0) return <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-red-100 text-red-800">Out of Stock</span>;
+    if (current <= 0) return <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-red-100 text-red-800">Out of Stock</span>;
     if (current <= low) return <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">Low Stock</span>;
     if (current >= target) return <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-green-100 text-green-800">Optimal</span>;
     return <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">In Stock</span>;

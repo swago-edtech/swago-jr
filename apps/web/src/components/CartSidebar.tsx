@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import CouponSheet from "./CouponSheet";
 import CartProgress from "./CartProgress";
+import ShippingBanner from "./ShippingBanner";
 
 // Assuming this is the intended local definition or clarification for CartItem
 // The original CartItem type is imported from "@/context/SharedContext"
@@ -50,7 +51,7 @@ export default function CartSidebar() {
     isRefreshingCart
   } = useSharedContext();
 
-  const { formatPrice, formatLocalPrice, getLocalPrice, toLocalAmount, country, isInternational, resolveIntlShipping } = useCountry();
+  const { formatPrice, formatLocalPrice, getLocalPrice, toLocalAmount, isInternational } = useCountry();
   const router = useRouter();
   const [stockInfo, setStockInfo] = useState<StockInfo>({});
   const [loading, setLoading] = useState(false);
@@ -219,14 +220,7 @@ export default function CartSidebar() {
               <div className="flex-1 overflow-y-auto pb-4 scrollbar-none">
                 {/* Rewards Progress Section */}
                 <CartProgress total={total} promotionData={promotion} />
-                <div className="bg-[hsl(var(--swago-purple))] py-3 text-center">
-                  <p className="text-white text-[10px] font-[1000] tracking-widest leading-tight">
-                    {isInternational
-                      ? `International Shipping to ${country.name} — ${cart.length > 0 ? formatLocalPrice(resolveIntlShipping(cart).feeLocal) : `${formatPrice(country.shippingFee)} flat rate`}`
-                      : 'Enjoy Free Shipping, on orders above ₹1450'
-                    }
-                  </p>
-                </div>
+                <ShippingBanner cart={cart} />
 
                 {/* Price Change Notification */}
                 {sidebarPriceChanges.length > 0 && (
@@ -447,6 +441,7 @@ export default function CartSidebar() {
               onClose={() => setCouponSheetOpen(false)}
               onApply={applyCoupon}
               total={total}
+              localTotal={localCartTotal}
               availableCoupons={availableCoupons}
               loading={couponLoading}
               error={couponError}
