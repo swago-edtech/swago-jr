@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
       if (stockStatus === "in-stock") {
         query.currentStock = { $gt: 0 };
       } else if (stockStatus === "out-of-stock") {
-        query.currentStock = 0;
+        query.currentStock = { $lte: 0 };
       } else if (stockStatus === "low-stock") {
         query.$expr = {
           $and: [

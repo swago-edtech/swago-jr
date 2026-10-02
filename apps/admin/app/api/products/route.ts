@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
     // Filter by stock status
     if (stockStatus && stockStatus !== "all") {
       if (stockStatus === "out-of-stock") {
-        filter.stock = 0;
+        filter.stock = { $lte: 0 };
       } else if (stockStatus === "low-stock") {
         filter.$expr = { $lte: ["$stock", "$lowStockThreshold"] };
         filter.stock = { $gt: 0 };

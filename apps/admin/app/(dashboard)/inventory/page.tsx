@@ -5,6 +5,7 @@ import React from "react";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Search, Plus, Edit, X, Package, RotateCcw, Trash2 } from "lucide-react";
+import ManualDeductModal from "./ManualDeductModal";
 
 export default function InventoryStockItemsPage() {
   const [items, setItems] = useState<any[]>([]);
@@ -14,6 +15,8 @@ export default function InventoryStockItemsPage() {
   const [activeFilter, setActiveFilter] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
 
+  const [deductOpen, setDeductOpen] = useState(false);
+  const [deductNotice, setDeductNotice] = useState("");
   const [addStockModal, setAddStockModal] = useState<any>(null);
   const [addStockQty, setAddStockQty] = useState("");
   const [addStockReason, setAddStockReason] = useState("");
@@ -130,7 +133,7 @@ export default function InventoryStockItemsPage() {
   };
 
   const getStockBadge = (current: number, low: number, target: number) => {
-    if (current === 0) return <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-red-100 text-red-800">Out of Stock</span>;
+    if (current <= 0) return <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-red-100 text-red-800">Out of Stock</span>;
     if (current <= low) return <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">Low Stock</span>;
     if (current >= target) return <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-green-100 text-green-800">Optimal</span>;
     return <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">In Stock</span>;
@@ -143,13 +146,31 @@ export default function InventoryStockItemsPage() {
           <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Stock Items</h1>
           <p className="text-gray-500 mt-1">Manage unit-level stock for raw materials and components</p>
         </div>
-        <Link
-          href="/inventory/new"
-          className="bg-indigo-600 text-white px-5 py-2.5 rounded-xl hover:bg-indigo-700 transition font-medium inline-flex items-center shadow-sm"
-        >
-          <Plus className="w-5 h-5 mr-2" /> New Item
-        </Link>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => {
+              setDeductNotice("");
+              setDeductOpen(true);
+            }}
+            className="bg-white text-gray-800 px-5 py-2.5 rounded-xl hover:bg-gray-50 transition font-medium inline-flex items-center shadow-sm border border-gray-200"
+          >
+            Manual Deduction
+          </button>
+          <Link
+            href="/inventory/new"
+            className="bg-indigo-600 text-white px-5 py-2.5 rounded-xl hover:bg-indigo-700 transition font-medium inline-flex items-center shadow-sm"
+          >
+            <Plus className="w-5 h-5 mr-2" /> New Item
+          </Link>
+        </div>
       </div>
+
+      {deductNotice && (
+        <p className="mb-6 text-sm text-green-800 bg-green-50 border border-green-100 rounded-xl px-4 py-3">
+          Deducted {deductNotice}. Stock on this page is updated, and the change is in Transactions.
+        </p>
+      )}
 
       <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 mb-6">
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
@@ -297,6 +318,16 @@ export default function InventoryStockItemsPage() {
           </div>
         )}
       </div>
+
+      <ManualDeductModal
+        open={deductOpen}
+        onClose={() => setDeductOpen(false)}
+        onSaved={(summary) => {
+          setDeductOpen(false);
+          setDeductNotice(summary);
+          fetchItems();
+        }}
+      />
 
       {addStockModal && (
         <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">

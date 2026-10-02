@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
             },
           },
           outOfStockCount: {
-            $sum: { $cond: [{ $eq: ["$currentStock", 0] }, 1, 0] },
+            $sum: { $cond: [{ $lte: ["$currentStock", 0] }, 1, 0] },
           },
           belowTargetCount: {
             $sum: { $cond: [{ $lt: ["$currentStock", "$targetQuantity"] }, 1, 0] },
