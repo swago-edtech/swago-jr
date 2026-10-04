@@ -73,6 +73,14 @@ export default function ManualDeductModal({
   const available = products.filter((product) => !product.incomplete && product.unitsAvailable > 0);
   const unavailable = products.filter((product) => product.incomplete || product.unitsAvailable <= 0);
 
+  const MAX_NAME_LENGTH = 55;
+  const truncateProductName = (name: string) => {
+    if (!name) return "";
+    return name.length > MAX_NAME_LENGTH
+      ? `${name.slice(0, MAX_NAME_LENGTH).trimEnd()}…`
+      : name;
+  };
+
   const stockTerm = (product: ConfiguredProduct) => {
     if (product.incomplete) return "setup incomplete";
     if (product.unitsAvailable > 0) return `${product.unitsAvailable} can be made`;
@@ -161,16 +169,21 @@ export default function ManualDeductModal({
               <label className="block text-sm font-semibold text-gray-700 mb-1.5">Active product</label>
               <select
                 required
-                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none bg-white"
+                className="w-full max-w-full truncate border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none bg-white overflow-hidden text-ellipsis"
                 value={productId}
                 onChange={(e) => setProductId(e.target.value)}
+                title={selected ? selected.productName : "Choose an active product"}
               >
                 <option value="">Choose an active product</option>
                 {available.length > 0 && (
                   <optgroup label="Can still be made">
                     {available.map((product) => (
-                      <option key={product.productId} value={product.productId}>
-                        {product.productName} — {stockTerm(product)}
+                      <option
+                        key={product.productId}
+                        value={product.productId}
+                        title={`${product.productName} — ${stockTerm(product)}`}
+                      >
+                        {truncateProductName(product.productName)} — {stockTerm(product)}
                       </option>
                     ))}
                   </optgroup>
@@ -178,13 +191,23 @@ export default function ManualDeductModal({
                 {unavailable.length > 0 && (
                   <optgroup label="None left">
                     {unavailable.map((product) => (
-                      <option key={product.productId} value={product.productId}>
-                        {product.productName} — {stockTerm(product)}
+                      <option
+                        key={product.productId}
+                        value={product.productId}
+                        title={`${product.productName} — ${stockTerm(product)}`}
+                      >
+                        {truncateProductName(product.productName)} — {stockTerm(product)}
                       </option>
                     ))}
                   </optgroup>
                 )}
               </select>
+              {selected && selected.productName.length > MAX_NAME_LENGTH && (
+                <p className="text-xs text-gray-500 mt-1.5 break-words line-clamp-2 px-1" title={selected.productName}>
+                  <span className="font-medium text-gray-700">Selected: </span>
+                  {selected.productName}
+                </p>
+              )}
               <p className="text-sm text-gray-600 bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 mt-3">
                 {recommendation()}
               </p>
