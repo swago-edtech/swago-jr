@@ -669,15 +669,6 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
 
   // Cart functions
   const addToCart = (product: Product, quantity: number = 1) => {
-    const available =
-      product.availableStock ??
-      (product.stock !== undefined ? product.stock : undefined);
-
-    if (available !== undefined && available === 0) {
-      alert("This product is out of stock");
-      return;
-    }
-
     // Stock decoupled: always allow adding to cart
     setCart((prev) => {
       const productId = getProductId(product);
@@ -685,24 +676,12 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
 
       if (existing) {
         const newQuantity = existing.quantity + quantity;
-
-        if (available !== undefined && newQuantity > available) {
-          alert(`Only ${available} items available in stock`);
-          return prev;
-        }
-
         return prev.map((p) =>
           getProductId(p) === productId ? { ...p, quantity: newQuantity } : p
         );
       }
 
-      if (available !== undefined && quantity > available) {
-        alert(`Only ${available} items available in stock`);
-        return prev;
-      }
-
       Feedback.playPop();
-      return [...prev, { ...product, quantity, availableStock: available }];
       return [...prev, { ...product, quantity }];
     });
   };
@@ -719,19 +698,8 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
       if (getProductId(p) !== id.toString()) return p;
 
       // Stock decoupled: always allow increase
-      const newQuantity = p.quantity + 1;
-      const available =
-        p.availableStock ??
-        (p.stock !== undefined ? p.stock : undefined);
-
-      if (available !== undefined && newQuantity > available) {
-        alert(`Only ${available} items available in stock`);
-        return p;
-      }
-
-      
       Feedback.playPop();
-      return { ...p, quantity: newQuantity };
+      return { ...p, quantity: p.quantity + 1 };
     }));
 
   const decreaseQty = (id: number | string) => {

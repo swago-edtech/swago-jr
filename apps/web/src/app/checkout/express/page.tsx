@@ -198,7 +198,6 @@ function ExpressCheckoutContent() {
   const increaseQty = (id: string) => {
     setCart(prev => prev.map(item => {
       if (item._id !== id) return item;
-      if (item.quantity >= item.availableStock) return item;
       return { ...item, quantity: item.quantity + 1 };
     }));
   };

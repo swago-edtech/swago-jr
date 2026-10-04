@@ -765,12 +765,7 @@ export default function CheckoutPage() {
                   </div>
                 </div>
               ))}
-              {priceChangeModal.filter(c => c.field === 'stock').map((change, i) => (
-                <div key={`stock-${i}`} className="text-xs text-rose-600 font-bold">
-                  {change.productName}: {Number(change.newValue) === 0 ? 'Out of stock' : `Only ${change.newValue} available`}
-                </div>
-              ))}
-              {priceChangeModal.filter(c => c.field !== 'price' && c.field !== 'stock').map((change, i) => (
+              {priceChangeModal.filter(c => c.field !== 'price').map((change, i) => (
                 <div key={`other-${i}`} className="text-xs text-slate-500 font-medium">
                   {change.productName}: {change.field} updated
                 </div>

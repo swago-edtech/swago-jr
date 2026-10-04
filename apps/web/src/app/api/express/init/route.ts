@@ -71,13 +71,6 @@ export async function GET(request: NextRequest) {
 
     const availableStock = product.availableStock ?? 0;
 
-    if (availableStock === 0) {
-      return NextResponse.json(
-        { success: false, error: "This product is currently out of stock" },
-        { status: 400 }
-      );
-    }
-
     // ========================================
     // 2. Validate coupon (if provided)
     // ========================================
@@ -129,7 +122,8 @@ export async function GET(request: NextRequest) {
     const configuredIds = await getConfiguredProductIds();
     const crossSells = crossSellProducts
       .map((p) => enrichProductAvailability(p, configuredIds))
-      .filter((p) => p.availableStock > 0);
+      // Stock decoupled: don&#39;t filter cross-sell by stock
+      ;
 
     // ========================================
     // 4. Fetch active promotion config

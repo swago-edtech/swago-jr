@@ -6,6 +6,7 @@ import ProductConfig from "../models/ProductConfig";
 import InventoryTransaction from "../models/InventoryTransaction";
 import Order from "../models/Order";
 import { syncAffectedProducts } from "./inventory-sync";
+import { checkAndNotifyLowStock } from "./low-stock-notifier";
 
 export class InsufficientInventoryError extends Error {
   constructor(message: string) {
@@ -183,6 +184,10 @@ export async function allocateInventoryForOrder(
   if (uniqueInvIds.length > 0) {
     await syncAffectedProducts(uniqueInvIds);
   }
+  if (uniqueInvIds.length > 0) {
+    // Fire-and-forget: check if anything dropped below low-stock threshold
+    checkAndNotifyLowStock().catch(() => {});
+  }
 }
 
 export async function releaseInventoryAllocation(order: OrderLike) {
@@ -306,6 +311,9 @@ export async function deductInventoryForOrder(order: OrderLike) {
     const uniqueInvIds = [...new Set(affectedInventoryIds)];
     if (uniqueInvIds.length > 0) {
       await syncAffectedProducts(uniqueInvIds);
+    }
+    if (uniqueInvIds.length > 0) {
+      checkAndNotifyLowStock().catch(() => {});
     }
   } catch (error) {
     console.error("⚠️ Inventory deduction service error:", error);

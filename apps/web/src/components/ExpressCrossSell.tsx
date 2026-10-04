@@ -75,16 +75,14 @@ export default function ExpressCrossSell({ products, onAddProduct, cartProductId
               {/* Add Button */}
               <button
                 onClick={() => !isInCart && onAddProduct(product)}
-                disabled={isInCart || product.availableStock === 0}
+                disabled={isInCart}
                 className={`w-full md:w-[120px] px-1 py-1.5 md:py-2 rounded-lg text-[9px] md:text-[10px] font-bold uppercase tracking-wider transition-all flex-shrink-0 text-center ${
                   isInCart
                     ? "bg-[#10b981]/10 text-[#10b981] cursor-default"
-                    : product.availableStock === 0
-                    ? "bg-white text-[#94a3b8] cursor-not-allowed"
                     : "bg-[hsl(var(--swago-purple))] text-white hover:opacity-90 active:scale-95 shadow-sm"
                 }`}
               >
-                {isInCart ? "✓ Added" : product.availableStock === 0 ? "Sold Out" : "+ Add"}
+                {isInCart ? "✓ Added" : "+ Add"}
               </button>
             </div>
           );

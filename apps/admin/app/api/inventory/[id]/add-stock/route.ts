@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
-import { connectDB, InventoryItem, InventoryTransaction, syncAffectedProducts } from "@swago/database";
+import { connectDB, InventoryItem, InventoryTransaction, syncAffectedProducts, checkAndNotifyLowStock } from "@swago/database";
 
 export async function POST(
   request: NextRequest,
@@ -39,6 +39,8 @@ export async function POST(
 
     // Background sync all affected products
     await syncAffectedProducts([id]);
+    // Fire-and-forget: check low-stock thresholds (item may still be below threshold after restock)
+    checkAndNotifyLowStock().catch(() => {});
 
     return NextResponse.json({ success: true, item, transaction });
   } catch (error: any) {

@@ -7,6 +7,7 @@ import {
   InventoryItem,
   InventoryTransaction,
   syncAffectedProducts,
+  checkAndNotifyLowStock,
 } from "@swago/database";
 import { requireAdmin } from "@/lib/auth";
 
@@ -264,6 +265,8 @@ export async function POST(request: NextRequest) {
     } catch (syncError) {
       console.error("Manual deduction saved, product stock sync failed:", syncError);
     }
+    // Fire-and-forget: check low-stock thresholds
+    checkAndNotifyLowStock().catch(() => {});
 
     return NextResponse.json({
       success: true,

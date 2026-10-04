@@ -9,19 +9,10 @@ import RelatedProductsCompact from "@/components/RelatedProductsCompact";
 import CouponSheet from "@/components/CouponSheet";
 import CartProgress from "@/components/CartProgress";
 
-interface StockInfo {
-  [key: string]: {
-    available: number;
-    reserved: number;
-    total: number;
-  };
-}
-
 export default function CartPage() {
   const { cart, total, removeFromCart, increaseQty, decreaseQty, appliedCoupon, setAppliedCoupon, appliedSwagoMoney, setAppliedSwagoMoney, walletBalance, refreshCartPrices, isRefreshingCart } = useSharedContext();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [stockInfo, setStockInfo] = useState<StockInfo>({});
   const [mounted, setMounted] = useState(false);
   const [priceChanges, setPriceChanges] = useState<CartPriceChange[]>([]);
   const [promotion, setPromotion] = useState<any>(null);
@@ -107,22 +98,6 @@ export default function CartPage() {
 
   const removeCoupon = () => setAppliedCoupon(null);
 
-  useEffect(() => {
-    const fetchStock = async () => {
-      try {
-        const itemIds = cart.map((item) => item.productId || item._id || item.id);
-        if (itemIds.length === 0) return;
-        const res = await fetch(`/api/stock?ids=${itemIds.join(',')}`);
-        const data = await res.json();
-        if (data.success) {
-          setStockInfo(data.stock);
-        }
-      } catch (error) {
-        console.error('Error fetching stock:', error);
-      }
-    };
-    if (cart.length > 0) fetchStock();
-  }, [cart]);
 
   const handleCheckout = () => {
     setLoading(true);
@@ -246,8 +221,6 @@ export default function CartPage() {
               {cart.map((item) => {
                 const imageUrl = item.images?.[0] || '/images/placeholder.png';
                 const productId = getProductKey(item);
-                const stock = stockInfo[productId];
-                const isOutOfStock = false; // Stock decoupled
                 const price = typeof item.price === "number" ? item.price : 0;
                 const originalPrice = item.originalPrice || price * 1.5;
 
@@ -255,7 +228,6 @@ export default function CartPage() {
                   <div key={productId} className="bg-white rounded-2xl border border-slate-100 p-3 sm:p-4 shadow-sm flex flex-row gap-3 sm:gap-4 overflow-hidden items-stretch">
                     <Link href={`/product/${item.slug}`} className="relative w-20 h-20 sm:w-28 sm:h-28 rounded-xl bg-slate-50 flex-shrink-0 border border-slate-100 overflow-hidden group">
                       <Image src={imageUrl} alt={item.name} fill className="object-cover group-hover:scale-105 transition-transform duration-300" />
-                      {isOutOfStock && <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white text-[9px] font-black tracking-wider backdrop-blur-sm">Out of Stock</div>}
                     </Link>
 
                     <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
@@ -288,7 +260,7 @@ export default function CartPage() {
                           <div className="flex items-center bg-slate-50 rounded-lg sm:rounded-xl border border-slate-100 h-8 sm:h-10">
                             <button onClick={() => decreaseQty(productId)} className="w-8 sm:w-10 h-full flex items-center justify-center text-slate-500 hover:text-slate-900 font-bold transition-colors">−</button>
                             <span className="w-6 sm:w-8 text-center text-xs font-black text-slate-900">{item.quantity}</span>
-                            <button onClick={() => increaseQty(productId)} disabled={isOutOfStock} className="w-8 sm:w-10 h-full flex items-center justify-center text-slate-500 hover:text-slate-900 font-bold transition-colors">+</button>
+                            <button onClick={() => increaseQty(productId)} className="w-8 sm:w-10 h-full flex items-center justify-center text-slate-500 hover:text-slate-900 font-bold transition-colors">+</button>
                           </div>
                         </div>
 

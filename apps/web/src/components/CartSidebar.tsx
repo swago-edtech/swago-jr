@@ -21,15 +21,6 @@ interface LocalCartItem {
   originalPrice?: number;
   quantity: number;
   images?: string[];
-  stock?: number;
-}
-
-interface StockInfo {
-  [key: string]: {
-    available: number;
-    reserved: number;
-    total: number;
-  };
 }
 
 export default function CartSidebar() {
@@ -50,7 +41,6 @@ export default function CartSidebar() {
   } = useSharedContext();
 
   const router = useRouter();
-  const [stockInfo, setStockInfo] = useState<StockInfo>({});
   const [loading, setLoading] = useState(false);
   const [recommendedProducts, setRecommendedProducts] = useState<Product[]>([]);
   const [activeTab, setActiveTab] = useState('Today');

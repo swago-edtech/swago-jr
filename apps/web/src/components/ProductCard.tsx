@@ -20,13 +20,6 @@ export default function ProductCard({ product }: { product: Product }) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isHovering, setIsHovering] = useState(false);
 
-  const availableStock =
-    product.availableStock ??
-    (product.stock !== undefined ? product.stock : undefined);
-  const lowStockThreshold = product.lowStockThreshold ?? 10;
-  const isOutOfStock = false; // Stock decoupled: customers can always order
-  const isLowStock = false; // Stock decoupled: hide low-stock urgency
-
   // Check if item is in cart and get quantity
   const getCartItemId = (item: CartItem): string => {
     return item.productId?.toString() || item._id?.toString() || item.id?.toString() || '';
@@ -101,8 +94,6 @@ export default function ProductCard({ product }: { product: Product }) {
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-
-    if (isOutOfStock) return;
 
     console.log('🛒 Adding to cart:', product.name);
     addToCart(product);
@@ -200,17 +191,6 @@ export default function ProductCard({ product }: { product: Product }) {
                 {product.label}
               </div>
             )}
-
-            {isOutOfStock && (
-              <div className="absolute top-3 left-3 bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full z-10">
-                Out of Stock
-              </div>
-            )}
-            {isLowStock && !isOutOfStock && !product.label && (
-              <div className="absolute top-3 left-3 bg-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full z-10">
-                Only {availableStock} left!
-              </div>
-            )}
           </div>
 
           <div className="p-2 sm:p-4 flex flex-col flex-grow">
@@ -259,13 +239,9 @@ export default function ProductCard({ product }: { product: Product }) {
                 // Show "Add to Cart" button when item is NOT in cart
                 <motion.button
                   onClick={handleAddToCart}
-                  disabled={isOutOfStock}
-                  className={`w-full font-black py-3 rounded-xl text-xs tracking-widest transition-all duration-300 ${isOutOfStock
-                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                    : 'border-2 border-[hsl(var(--swago-purple))] text-[hsl(var(--swago-purple))] bg-white hover:bg-[hsl(var(--swago-purple))] hover:text-white shadow-sm'
-                    }`}
+                  className={`w-full font-black py-3 rounded-xl text-xs tracking-widest transition-all duration-300 border-2 border-[hsl(var(--swago-purple))] text-[hsl(var(--swago-purple))] bg-white hover:bg-[hsl(var(--swago-purple))] hover:text-white shadow-sm`}
                 >
-                  <span>{isOutOfStock ? 'Out of Stock' : 'Add to Cart'}</span>
+                  <span>Add to Cart</span>
                 </motion.button>
               ) : (
                 // Show quantity controls when item IS in cart
