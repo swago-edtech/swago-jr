@@ -122,6 +122,7 @@ export default function TransactionsLog() {
               <option value="addition">Additions</option>
               <option value="deduction">Deductions</option>
               <option value="adjustment">Adjustments</option>
+              <option value="discard">Discards</option>
             </select>
           </div>
 
@@ -180,13 +181,14 @@ export default function TransactionsLog() {
                       <span className={`px-2.5 py-1 inline-flex text-xs font-bold rounded-full ${
                         tx.type === 'addition' ? 'bg-green-100 text-green-800 border border-green-200' :
                         tx.type === 'deduction' ? 'bg-red-100 text-red-800 border border-red-200' :
+                        tx.type === 'discard' ? 'bg-orange-100 text-orange-800 border border-orange-200' :
                         'bg-blue-100 text-blue-800 border border-blue-200'
                       }`}>
                         {tx.type.charAt(0).toUpperCase() + tx.type.slice(1)}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-right text-gray-900">
-                      {tx.type === 'addition' ? '+' : tx.type === 'deduction' ? '-' : ''}{tx.quantity}
+                      {tx.type === 'addition' ? '+' : tx.type === 'deduction' || tx.type === 'discard' ? '-' : ''}{tx.quantity}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-mono text-gray-500">
                       {tx.previousStock} → {tx.newStock}

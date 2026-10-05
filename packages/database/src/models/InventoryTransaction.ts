@@ -13,7 +13,8 @@ const InventoryTransactionSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ["addition", "deduction", "adjustment"],
+      // "discard" = faulty/damaged units written off (not a sale)
+      enum: ["addition", "deduction", "adjustment", "discard"],
       required: true,
     },
     quantity: {

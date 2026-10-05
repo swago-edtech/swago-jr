@@ -4,7 +4,7 @@ import React from "react";
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Search, Plus, Edit, X, Package, RotateCcw, Trash2 } from "lucide-react";
+import { Search, Plus, Minus, Edit, X, Package, RotateCcw, Trash2 } from "lucide-react";
 import ManualDeductModal from "./ManualDeductModal";
 
 export default function InventoryStockItemsPage() {
@@ -21,6 +21,17 @@ export default function InventoryStockItemsPage() {
   const [addStockQty, setAddStockQty] = useState("");
   const [addStockReason, setAddStockReason] = useState("");
   const [submittingStock, setSubmittingStock] = useState(false);
+  const [stockMode, setStockMode] = useState<"restock" | "discard">("restock");
+  const [stockError, setStockError] = useState("");
+  const [stockNotice, setStockNotice] = useState("");
+
+  const openStockModal = (item: any) => {
+    setAddStockModal({ id: item._id, name: item.name, currentStock: item.currentStock ?? 0, unit: item.unit || "pcs" });
+    setAddStockQty("");
+    setAddStockReason("");
+    setStockMode("restock");
+    setStockError("");
+  };
 
   const fetchItems = async () => {
     try {
@@ -50,6 +61,7 @@ export default function InventoryStockItemsPage() {
     e.preventDefault();
     if (!addStockModal || !addStockQty) return;
     setSubmittingStock(true);
+    setStockError("");
     try {
       const res = await fetch(`/api/inventory/${addStockModal.id}/add-stock`, {
         method: "POST",
@@ -57,18 +69,26 @@ export default function InventoryStockItemsPage() {
         body: JSON.stringify({
           quantity: Number(addStockQty),
           reason: addStockReason,
+          mode: stockMode,
         }),
       });
+      const data = await res.json().catch(() => ({}));
       if (res.ok) {
+        const qty = Number(addStockQty);
+        setDeductNotice("");
+        setStockNotice(
+          `${stockMode === "discard" ? "Discarded" : "Added"} ${qty} ${addStockModal.unit} ${stockMode === "discard" ? "from" : "to"} ${addStockModal.name}.`
+        );
         setAddStockModal(null);
         setAddStockQty("");
         setAddStockReason("");
         fetchItems();
       } else {
-        alert("Failed to add stock");
+        setStockError(data.error || (stockMode === "discard" ? "Failed to discard stock" : "Failed to add stock"));
       }
     } catch (error) {
       console.error(error);
+      setStockError("Something went wrong. Please try again.");
     } finally {
       setSubmittingStock(false);
     }
@@ -132,6 +152,12 @@ export default function InventoryStockItemsPage() {
     }
   };
 
+  const isDiscard = stockMode === "discard";
+  const qtyNum = Number(addStockQty) || 0;
+  const resultingStock = addStockModal
+    ? (addStockModal.currentStock ?? 0) + (isDiscard ? -qtyNum : qtyNum)
+    : 0;
+
   const getStockBadge = (current: number, low: number, target: number) => {
     if (current <= 0) return <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-red-100 text-red-800">Out of Stock</span>;
     if (current <= low) return <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">Low Stock</span>;
@@ -151,6 +177,7 @@ export default function InventoryStockItemsPage() {
             type="button"
             onClick={() => {
               setDeductNotice("");
+              setStockNotice("");
               setDeductOpen(true);
             }}
             className="bg-white text-gray-800 px-5 py-2.5 rounded-xl hover:bg-gray-50 transition font-medium inline-flex items-center shadow-sm border border-gray-200"
@@ -169,6 +196,12 @@ export default function InventoryStockItemsPage() {
       {deductNotice && (
         <p className="mb-6 text-sm text-green-800 bg-green-50 border border-green-100 rounded-xl px-4 py-3">
           Deducted {deductNotice}. Stock on this page is updated, and the change is in Transactions.
+        </p>
+      )}
+
+      {stockNotice && (
+        <p className="mb-6 text-sm text-green-800 bg-green-50 border border-green-100 rounded-xl px-4 py-3">
+          {stockNotice} The change is in Transactions.
         </p>
       )}
 
@@ -291,7 +324,7 @@ export default function InventoryStockItemsPage() {
                       ) : (
                         <>
                           <button
-                            onClick={() => setAddStockModal({ id: item._id, name: item.name })}
+                            onClick={() => openStockModal(item)}
                             className="inline-flex items-center px-2.5 py-1.5 border border-gray-200 text-xs rounded-lg text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-300 transition-colors shadow-sm"
                           >
                             <Plus className="w-3.5 h-3.5 mr-1 text-green-600" /> Restock
@@ -324,6 +357,7 @@ export default function InventoryStockItemsPage() {
         onClose={() => setDeductOpen(false)}
         onSaved={(summary) => {
           setDeductOpen(false);
+          setStockNotice("");
           setDeductNotice(summary);
           fetchItems();
         }}
@@ -332,38 +366,72 @@ export default function InventoryStockItemsPage() {
       {addStockModal && (
         <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl transform transition-all">
-            <div className="flex justify-between items-center mb-5">
-              <h3 className="text-xl font-bold text-gray-900">Restock Item</h3>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold text-gray-900">{isDiscard ? "Discard Stock" : "Restock Item"}</h3>
               <button onClick={() => setAddStockModal(null)} className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 p-1 rounded-full transition">
                 <X className="w-5 h-5" />
               </button>
             </div>
+            <div className="grid grid-cols-2 gap-1 p-1 mb-4 bg-gray-100 rounded-xl">
+              {(["restock", "discard"] as const).map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => { setStockMode(m); setStockError(""); }}
+                  className={`inline-flex items-center justify-center py-2 text-sm font-semibold rounded-lg transition ${
+                    stockMode === m
+                      ? `bg-white shadow-sm ${m === "discard" ? "text-red-600" : "text-green-700"}`
+                      : "text-gray-500 hover:text-gray-700"
+                  }`}
+                >
+                  {m === "discard" ? <Minus className="w-4 h-4 mr-1.5" /> : <Plus className="w-4 h-4 mr-1.5" />}
+                  {m === "discard" ? "Discard" : "Restock"}
+                </button>
+              ))}
+            </div>
             <p className="text-sm text-gray-600 mb-5 pb-5 border-b border-gray-100">
-              Adding stock to <strong className="text-gray-900">{addStockModal.name}</strong>
+              {isDiscard ? "Removing faulty / damaged units from" : "Adding stock to"}{" "}
+              <strong className="text-gray-900 break-words">{addStockModal.name}</strong>
+              <span className="block mt-1 text-gray-500">
+                In stock: <strong className="text-gray-900">{addStockModal.currentStock}</strong> {addStockModal.unit}
+              </span>
             </p>
             <form onSubmit={handleAddStock} className="space-y-4">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Quantity to Add</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">{isDiscard ? "Quantity to Discard" : "Quantity to Add"}</label>
                 <input
                   type="number"
                   required
                   min="1"
-                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all outline-none"
+                  step="1"
+                  max={isDiscard ? Math.max(0, addStockModal.currentStock) : undefined}
+                  inputMode="numeric"
+                  className={`w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 focus:ring-2 ${isDiscard ? "focus:ring-red-500" : "focus:ring-indigo-500"} focus:border-transparent transition-all outline-none`}
                   value={addStockQty}
-                  onChange={(e) => setAddStockQty(e.target.value)}
-                  placeholder="e.g. 50"
+                  onChange={(e) => { setAddStockQty(e.target.value); setStockError(""); }}
+                  placeholder={isDiscard ? "e.g. 2" : "e.g. 50"}
                 />
+                {qtyNum > 0 && (
+                  <p className={`mt-1.5 text-xs ${resultingStock < 0 ? "text-red-600 font-medium" : "text-gray-500"}`}>
+                    {resultingStock < 0
+                      ? `Only ${Math.max(0, addStockModal.currentStock)} ${addStockModal.unit} in stock`
+                      : `${resultingStock} ${addStockModal.unit} after ${isDiscard ? "discard" : "restock"}`}
+                  </p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1.5">Reason / Notes (Optional)</label>
                 <textarea
-                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all outline-none"
-                  rows={3}
+                  className={`w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 focus:ring-2 ${isDiscard ? "focus:ring-red-500" : "focus:ring-indigo-500"} focus:border-transparent transition-all outline-none`}
+                  rows={isDiscard ? 2 : 3}
                   value={addStockReason}
                   onChange={(e) => setAddStockReason(e.target.value)}
-                  placeholder="e.g. New shipment received"
+                  placeholder={isDiscard ? "e.g. Not working / damaged in transit" : "e.g. New shipment received"}
                 />
               </div>
+              {stockError && (
+                <p className="text-sm text-red-700 bg-red-50 border border-red-100 rounded-xl px-4 py-2.5">{stockError}</p>
+              )}
               <div className="flex justify-end space-x-3 mt-8">
                 <button
                   type="button"
@@ -374,10 +442,12 @@ export default function InventoryStockItemsPage() {
                 </button>
                 <button
                   type="submit"
-                  disabled={submittingStock}
-                  className="px-5 py-2.5 text-sm font-medium rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 transition-colors disabled:opacity-50 shadow-sm"
+                  disabled={submittingStock || (isDiscard && resultingStock < 0)}
+                  className={`px-5 py-2.5 text-sm font-medium rounded-xl text-white transition-colors disabled:opacity-50 shadow-sm ${
+                    isDiscard ? "bg-red-600 hover:bg-red-700" : "bg-indigo-600 hover:bg-indigo-700"
+                  }`}
                 >
-                  {submittingStock ? "Saving..." : "Add Stock"}
+                  {submittingStock ? "Saving..." : isDiscard ? "Discard" : "Add Stock"}
                 </button>
               </div>
             </form>
