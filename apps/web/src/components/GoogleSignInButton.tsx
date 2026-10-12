@@ -1,5 +1,7 @@
 "use client";
 
+import { stashAttributionForOAuth } from "@/lib/auth-attribution";
+
 export const GOOGLE_OAUTH_CART_KEY = "swago_oauth_cart";
 
 type GoogleSignInButtonProps = {
@@ -15,10 +17,11 @@ export default function GoogleSignInButton({
     redirectUrl ? `?redirect=${encodeURIComponent(redirectUrl)}` : ""
   }`;
 
-  const handleClick = () => {
+const handleClick = () => {
     try {
       const cart = localStorage.getItem("swago_cart");
       if (cart) sessionStorage.setItem(GOOGLE_OAUTH_CART_KEY, cart);
+      stashAttributionForOAuth();
     } catch {
       // ignore storage failures; login still proceeds
     }

@@ -8,6 +8,7 @@ import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { HiLockClosed } from "react-icons/hi";
 import GoogleSignInButton, { GoogleAuthDivider } from "@/components/GoogleSignInButton";
+import { getAuthAttributionPayload } from "@/lib/auth-attribution";
 
 type AuthMode = "signup" | "signin";
 
@@ -374,11 +375,12 @@ export default function LoginForm() {
           const res = await fetch("/api/verify-otp", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
+body: JSON.stringify({
               accessToken,
               identifier: "+91" + phone,
               authMethod: "phone",
               localCart, // ✅ Now includes price, name, image
+              attribution: getAuthAttributionPayload(),
               ...(authMode === "signup" && { name, email }),
             }),
           });

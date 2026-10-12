@@ -21,6 +21,7 @@ import {
   SWAGO_CONTACT,
   cartUnitCount,
 } from "@/lib/cod-limits";
+import { buildOrderAttributionFields } from "@/lib/order-attribution";
 
 // ✅ Type definitions
 interface ProductDocument {
@@ -285,6 +286,19 @@ export async function POST(req: Request) {
         const calculatedTotal = Math.max(0, calculatedAmountAfterCoupon - swagoMoneyRedeemed + shippingFee);
 
         // Create the order with COD payment method
+        const attributionFields = buildOrderAttributionFields(
+            orderDetails.attribution || orderDetails.utm || {
+                utm_source: orderDetails.utm_source,
+                utm_medium: orderDetails.utm_medium,
+                utm_campaign: orderDetails.utm_campaign,
+                utm_content: orderDetails.utm_content,
+                utm_term: orderDetails.utm_term,
+                firstTouch: orderDetails.firstTouch,
+                lastTouch: orderDetails.lastTouch,
+                windowDays: orderDetails.windowDays,
+            }
+        );
+
         const newOrder = await Order.create({
             orderId: orderId,
             userId: new mongoose.Types.ObjectId(user._id),
@@ -308,6 +322,7 @@ export async function POST(req: Request) {
             swagoMoneyKidId: user._id, // ✅ Now references User directly
             stockReservedAt: new Date(),
             createdVia: 'frontend',
+            ...attributionFields,
             ...(validatedCoupon && {
                 couponCode: validatedCoupon.code,
                 couponDetails: validatedCoupon,

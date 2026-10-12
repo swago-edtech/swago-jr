@@ -17,6 +17,14 @@ import {
   cartUnitCount,
   isCodOverUnitLimit,
 } from "@/lib/cod-limits";
+import { getOrderAttributionPayload } from "@/lib/attribution";
+import {
+  trackBeginCheckout,
+  trackAddPaymentInfo,
+  trackPurchase,
+  trackPaymentFailed,
+  toGaItem,
+} from "@/lib/analytics";
 
 // ✅ States List for Dropdown
 const INDIAN_STATES = [
@@ -119,6 +127,22 @@ export default function CheckoutPage() {
     refreshCartPrices();
   }, []);
 
+  // GA4 begin_checkout once cart is ready
+  useEffect(() => {
+    if (!mounted || cart.length === 0) return;
+    try {
+      trackBeginCheckout(
+        cart.map((item) => toGaItem(item)),
+        cart.reduce((s, i) => s + i.price * i.quantity, 0),
+        appliedCoupon?.code
+      );
+    } catch {
+      // non-critical
+    }
+    // intentionally once on mount when cart available
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mounted]);
+
   const validateForm = () => {
     const newErrors: string[] = [];
     if (!email) newErrors.push("email");
@@ -194,6 +218,15 @@ export default function CheckoutPage() {
     const finalAmount = finalTotal;
 
     try {
+      const attribution = getOrderAttributionPayload();
+      try {
+        trackAddPaymentInfo(
+          cart.map((item) => toGaItem(item)),
+          finalAmount,
+          "razorpay"
+        );
+      } catch { /* non-critical */ }
+
       // Create Razorpay Order
       const res = await fetch("/api/payment/create", {
         method: "POST",
@@ -213,7 +246,9 @@ export default function CheckoutPage() {
             referralSource,
             coupon: appliedCoupon,
             finalAmount: finalAmount,
-            swagoMoneyRedeemed: appliedSwagoMoney || 0
+            swagoMoneyRedeemed: appliedSwagoMoney || 0,
+            ...attribution,
+            attribution,
           }
         })
       });
@@ -235,16 +270,33 @@ export default function CheckoutPage() {
             body: JSON.stringify({ ...response, orderId: data.orderId })
           });
           if (verifyRes.ok) {
+            try {
+              trackPurchase({
+                transactionId: data.orderId,
+                value: finalAmount,
+                items: cart.map((item) => toGaItem(item)),
+                shipping: 0,
+                coupon: appliedCoupon?.code,
+              });
+            } catch { /* non-critical */ }
             Feedback.playSuccess();
             clearCart();
             router.push("/orders");
           }
         },
         prefill: { name: `${firstName} ${lastName}`, email, contact: phone },
-        theme: { color: "#7c5dfa" }
+        theme: { color: "#7c5dfa" },
+        modal: {
+          ondismiss: () => {
+            try { trackPaymentFailed({ value: finalAmount, paymentType: "razorpay", reason: "dismissed" }); } catch { /* */ }
+          },
+        },
       };
 
       const rzp = new (window as any).Razorpay(options);
+      rzp.on("payment.failed", () => {
+        try { trackPaymentFailed({ value: finalAmount, paymentType: "razorpay", reason: "failed" }); } catch { /* */ }
+      });
       rzp.open();
     } catch (err: any) {
       setMessage(`❌ ${err.message}`);
@@ -259,6 +311,15 @@ export default function CheckoutPage() {
     const finalAmount = finalTotal;
 
     try {
+      const attribution = getOrderAttributionPayload();
+      try {
+        trackAddPaymentInfo(
+          cart.map((item) => toGaItem(item)),
+          finalAmount,
+          "cod"
+        );
+      } catch { /* non-critical */ }
+
       const res = await fetch("/api/payment/cod", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -277,12 +338,23 @@ export default function CheckoutPage() {
             referralSource,
             coupon: appliedCoupon,
             finalAmount: finalAmount,
-            swagoMoneyRedeemed: appliedSwagoMoney || 0
+            swagoMoneyRedeemed: appliedSwagoMoney || 0,
+            ...attribution,
+            attribution,
           }
         })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed");
+      try {
+        trackPurchase({
+          transactionId: data.orderId || data.order?.orderId || `cod-${Date.now()}`,
+          value: finalAmount,
+          items: cart.map((item) => toGaItem(item)),
+          shipping: shippingFee,
+          coupon: appliedCoupon?.code,
+        });
+      } catch { /* non-critical */ }
       Feedback.playSuccess();
       clearCart();
       router.push("/orders");
