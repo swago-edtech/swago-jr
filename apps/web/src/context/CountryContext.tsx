@@ -14,9 +14,12 @@ import {
   getProductPrice as getProductPriceUtil,
   convertToLocal,
   DEFAULT_INDIA,
+  DEFAULT_USD_BROWSE,
 } from "@/lib/currency";
 import {
   resolveInternationalShipping,
+  canShipToCountry,
+  UNSUPPORTED_SHIPPING_MESSAGE,
   type InternationalShippingMap,
   type InternationalShippingResult,
 } from "@swago/utils";
@@ -47,6 +50,13 @@ type CountryContextType = {
     internationalPricing?: Record<string, InternationalPricing> | Map<string, InternationalPricing>;
   }) => { price: number; originalPrice?: number };
   isInternational: boolean;
+  /**
+   * True when we fulfill orders to the visitor's country (IN / US / CA / AE).
+   * False for browse-only geos that still see USD prices.
+   */
+  canShip: boolean;
+  /** Short message shown when canShip is false. */
+  shippingRestrictionMessage: string;
   shippingFee: number;
   shippingFeeLocal: number;
   calculateShippingFee: (cartWeight: number) => number;
@@ -63,54 +73,158 @@ const CountryContext = createContext<CountryContextType | undefined>(undefined);
 
 const STORAGE_KEY = "swago_country";
 
-const getInitialCountry = (): CountryConfig => {
-  if (typeof window !== "undefined") {
-    try {
-      const saved = sessionStorage.getItem(STORAGE_KEY);
-      if (saved) return JSON.parse(saved);
-    } catch (e) {}
+type StoredCountrySession = {
+  country: CountryConfig;
+  canShip: boolean;
+  detectedCode?: string;
+};
+
+/**
+ * Browse-only visitors see the same USD prices as a US visitor:
+ * product.internationalPricing.USD first, then the US exchange-rate fallback.
+ * We mirror the active US CountryConfig currency settings so amounts match exactly.
+ */
+function buildUsdBrowseConfig(
+  detectedCode: string,
+  countries: CountryConfig[],
+  usFromConfig?: CountryConfig
+): CountryConfig {
+  const us =
+    usFromConfig ||
+    countries.find((c) => c.code === "US") ||
+    countries.find((c) => String(c.currency || "").toUpperCase() === "USD") ||
+    DEFAULT_USD_BROWSE;
+
+  const exchangeRate =
+    us.currency === "USD" && Number(us.exchangeRate) > 0
+      ? Number(us.exchangeRate)
+      : DEFAULT_USD_BROWSE.exchangeRate;
+
+  return {
+    // Keep detected ISO so session restore still marks canShip=false
+    code: detectedCode && detectedCode !== "IN" ? detectedCode : "XX",
+    name: "International",
+    // Identical USD display path to US storefront pricing
+    currency: "USD",
+    currencySymbol: us.currencySymbol || "$",
+    phonePrefix: us.phonePrefix || "+",
+    exchangeRate,
+    shippingFee: 0,
+    shippingTiers: [],
+    isDefault: false,
+    isActive: true,
+  };
+}
+
+function resolveCountrySession(
+  detectedCode: string,
+  countries: CountryConfig[]
+): StoredCountrySession {
+  const code = String(detectedCode || "IN").trim().toUpperCase() || "IN";
+  const shippable = canShipToCountry(code);
+
+  if (shippable) {
+    const match =
+      countries.find((c) => c.code === code) ||
+      (code === "IN" ? DEFAULT_INDIA : undefined) ||
+      countries.find((c) => c.isDefault) ||
+      DEFAULT_INDIA;
+    return { country: match, canShip: true, detectedCode: code };
   }
-  return DEFAULT_INDIA;
+
+  return {
+    country: buildUsdBrowseConfig(code, countries),
+    canShip: false,
+    detectedCode: code,
+  };
+}
+
+function readStoredSession(): StoredCountrySession | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const saved = sessionStorage.getItem(STORAGE_KEY);
+    if (!saved) return null;
+    const parsed = JSON.parse(saved);
+    // Legacy: plain CountryConfig
+    if (parsed && parsed.currency && parsed.code && parsed.canShip === undefined) {
+      const canShip = canShipToCountry(parsed.code);
+      if (!canShip) {
+        return {
+          country: buildUsdBrowseConfig(String(parsed.code), []),
+          canShip: false,
+          detectedCode: parsed.code,
+        };
+      }
+      return { country: parsed as CountryConfig, canShip: true, detectedCode: parsed.code };
+    }
+    if (parsed?.country?.currency && typeof parsed.canShip === "boolean") {
+      const session = parsed as StoredCountrySession;
+      // Refresh browse-only sessions so USD always mirrors current US product pricing path
+      if (!session.canShip) {
+        const code = session.detectedCode || session.country?.code || "XX";
+        return {
+          ...session,
+          country: buildUsdBrowseConfig(String(code), [], session.country?.currency === "USD" ? session.country : undefined),
+          canShip: false,
+        };
+      }
+      return session;
+    }
+  } catch (e) {}
+  return null;
+}
+
+const getInitialSession = (): StoredCountrySession => {
+  return readStoredSession() || { country: DEFAULT_INDIA, canShip: true, detectedCode: "IN" };
 };
 
 export function CountryProvider({ children }: { children: React.ReactNode }) {
-  const [country, setCountryState] = useState<CountryConfig>(getInitialCountry);
+  const [session, setSession] = useState<StoredCountrySession>(getInitialSession);
   const [isLoading, setIsLoading] = useState(true);
+
+  const country = session.country;
+  const canShip = session.canShip;
 
   useEffect(() => {
     const init = async () => {
       try {
-        const saved = sessionStorage.getItem(STORAGE_KEY);
-        if (saved) {
-          try {
-            setCountryState(JSON.parse(saved));
-            setIsLoading(false);
-            return;
-          } catch (e) {}
-        }
-
         const res = await fetch("/api/geo");
         const data = await res.json();
         const countries: CountryConfig[] = data.countries || [];
+
+        const existing = readStoredSession();
+        if (existing) {
+          // Re-bind browse-only USD to live US config so product USD prices match US visitors
+          const refreshed = existing.canShip
+            ? existing
+            : {
+                ...existing,
+                country: buildUsdBrowseConfig(
+                  existing.detectedCode || existing.country.code || "XX",
+                  countries
+                ),
+                canShip: false as const,
+              };
+          setSession(refreshed);
+          sessionStorage.setItem(STORAGE_KEY, JSON.stringify(refreshed));
+          setIsLoading(false);
+          return;
+        }
 
         let detectedCode = "IN";
         try {
           const geoRes = await fetch("https://ipwho.is/");
           const geoData = await geoRes.json();
           if (geoData.success && geoData.country_code) {
-            detectedCode = geoData.country_code.toUpperCase();
+            detectedCode = String(geoData.country_code).toUpperCase();
           }
         } catch (e) {
           console.warn("Browser geo detection failed, defaulting to IN");
         }
 
-        const detected =
-          countries.find((c) => c.code === detectedCode) ||
-          countries.find((c) => c.isDefault) ||
-          DEFAULT_INDIA;
-
-        setCountryState(detected);
-        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(detected));
+        const next = resolveCountrySession(detectedCode, countries);
+        setSession(next);
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(next));
       } catch (error) {
         console.error("Country detection failed:", error);
       } finally {
@@ -120,7 +234,6 @@ export function CountryProvider({ children }: { children: React.ReactNode }) {
 
     init();
   }, []);
-
 
   const formatPrice = useCallback(
     (amountINR: number): string => {
@@ -161,7 +274,8 @@ export function CountryProvider({ children }: { children: React.ReactNode }) {
     [country]
   );
 
-  const isInternational = country.code !== "IN";
+  // Orderable international geos only — browse-only USD is not a shippable intl checkout.
+  const isInternational = canShip && country.code !== "IN";
   const shippingFee = country.shippingFee;
   const shippingFeeLocal = useMemo(
     () =>
@@ -175,7 +289,7 @@ export function CountryProvider({ children }: { children: React.ReactNode }) {
     if (country.shippingTiers && country.shippingTiers.length > 0) {
       const tier = country.shippingTiers.find(t => cartWeight >= t.minWeight && cartWeight <= t.maxWeight);
       if (tier) return tier.fee;
-      
+
       const highestTier = [...country.shippingTiers].sort((a, b) => b.maxWeight - a.maxWeight)[0];
       if (highestTier && cartWeight > highestTier.maxWeight) {
          return highestTier.fee;
@@ -214,6 +328,8 @@ export function CountryProvider({ children }: { children: React.ReactNode }) {
         toLocalAmount,
         getLocalPrice,
         isInternational,
+        canShip,
+        shippingRestrictionMessage: UNSUPPORTED_SHIPPING_MESSAGE,
         shippingFee,
         shippingFeeLocal,
         calculateShippingFee,

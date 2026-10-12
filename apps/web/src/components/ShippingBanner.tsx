@@ -8,8 +8,26 @@ type ShippingBannerProps = {
 };
 
 export default function ShippingBanner({ cart }: ShippingBannerProps) {
-  const { country, isInternational, formatPrice, formatLocalPrice, resolveIntlShipping } = useCountry();
+  const {
+    country,
+    isInternational,
+    canShip,
+    shippingRestrictionMessage,
+    formatPrice,
+    formatLocalPrice,
+    resolveIntlShipping,
+  } = useCountry();
   const { lastCartRefreshAt } = useSharedContext();
+
+  if (!canShip) {
+    return (
+      <div className="bg-amber-500 py-3 text-center">
+        <p className="text-white text-[10px] font-[1000] tracking-widest leading-tight">
+          {shippingRestrictionMessage}
+        </p>
+      </div>
+    );
+  }
 
   let text = "Enjoy Free Shipping, on orders above ₹1450";
 

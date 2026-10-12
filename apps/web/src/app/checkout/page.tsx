@@ -65,7 +65,7 @@ function toLocalPhone(rawPhone: string, phonePrefix: string): string {
 
 export default function CheckoutPage() {
   const { cart, total, user, isLoadingUser, clearCart, addToCart, appliedCoupon, setAppliedCoupon, appliedSwagoMoney, refreshCartPrices, isRefreshingCart } = useSharedContext();
-  const { country, formatPrice, formatLocalPrice, getLocalPrice, toLocalAmount, isInternational, resolveIntlShipping } = useCountry();
+  const { country, formatPrice, formatLocalPrice, getLocalPrice, toLocalAmount, isInternational, resolveIntlShipping, canShip, shippingRestrictionMessage } = useCountry();
   const COUNTRY_FLAGS: Record<string, string> = { IN: '🇮🇳', US: '🇺🇸', CA: '🇨🇦', AE: '🇦🇪' };
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
@@ -205,6 +205,10 @@ export default function CheckoutPage() {
   };
 
   const handlePayNow = async () => {
+    if (!canShip) {
+      setMessage(shippingRestrictionMessage);
+      return;
+    }
     if (!validateForm()) return;
 
     // ✅ CRITICAL: Re-validate cart prices right before payment
@@ -847,10 +851,16 @@ export default function CheckoutPage() {
               </motion.div>
             )}
 
+            {!canShip && (
+              <div className="text-center p-3 rounded-lg text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                {shippingRestrictionMessage}
+              </div>
+            )}
+
             <button
               onClick={handlePayNow}
-              disabled={processing}
-              className="w-full h-14 btn-shine bg-[hsl(var(--swago-purple))] hover:brightness-110 text-white font-black rounded-lg text-lg tracking-widest shadow-xl shadow-[hsl(var(--swago-purple))/0.2] transition-all transform active:scale-95 disabled:opacity-50"
+              disabled={processing || !canShip}
+              className="w-full h-14 btn-shine bg-[hsl(var(--swago-purple))] hover:brightness-110 text-white font-black rounded-lg text-lg tracking-widest shadow-xl shadow-[hsl(var(--swago-purple))/0.2] transition-all transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {processing ? "Processing..." : "Pay now"}
             </button>

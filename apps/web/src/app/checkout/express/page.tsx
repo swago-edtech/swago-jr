@@ -46,7 +46,7 @@ function ExpressCheckoutContent() {
   const utmSource = searchParams.get("utm_source") || "";
   const utmMedium = searchParams.get("utm_medium") || "";
   const utmCampaign = searchParams.get("utm_campaign") || "";
-  const { formatPrice, formatLocalPrice, getLocalPrice, toLocalAmount, country, isInternational, resolveIntlShipping } = useCountry();
+  const { formatPrice, formatLocalPrice, getLocalPrice, toLocalAmount, country, isInternational, resolveIntlShipping, canShip, shippingRestrictionMessage } = useCountry();
 
   // Page state
   const [loading, setLoading] = useState(true);
@@ -361,6 +361,7 @@ function ExpressCheckoutContent() {
   // PAYMENT HANDLER
   // ========================================
   const handlePayNow = async () => {
+    if (!canShip) { setMessage(shippingRestrictionMessage); return; }
     if (!validateForm()) return;
     if (cart.length === 0) { setMessage("Your cart is empty."); return; }
 
@@ -739,9 +740,15 @@ function ExpressCheckoutContent() {
                 <ExpressOrderSummary items={cart} subtotal={subtotal} discount={discount} couponCode={dynamicCoupon.valid ? couponData.code : null} shippingFee={shippingFee} total={finalTotal} onIncreaseQty={increaseQty} onDecreaseQty={decreaseQty} onRemoveItem={removeItem} paymentMethod={paymentMethod} hideItems={true} />
               </div>
 
+              {!canShip && (
+                <div className="text-center p-3 rounded-lg text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                  {shippingRestrictionMessage}
+                </div>
+              )}
+
               {/* Pay Button */}
-              <button onClick={handlePayNow} disabled={processing}
-                className="w-full py-3.5 bg-[hsl(var(--swago-purple))] hover:opacity-90 text-white shadow-sm shadow-[hsl(var(--swago-purple))] hover:shadow-md hover:shadow-[hsl(var(--swago-purple))] text-[13px] font-bold rounded-xl transition flex justify-center items-center tracking-widest disabled:opacity-50">
+              <button onClick={handlePayNow} disabled={processing || !canShip}
+                className="w-full py-3.5 bg-[hsl(var(--swago-purple))] hover:opacity-90 text-white shadow-sm shadow-[hsl(var(--swago-purple))] hover:shadow-md hover:shadow-[hsl(var(--swago-purple))] text-[13px] font-bold rounded-xl transition flex justify-center items-center tracking-widest disabled:opacity-50 disabled:cursor-not-allowed">
                 {processing ? "Processing..." : paymentMethod === "cod" ? `Place Order — ${formatLocalPrice(localFinalTotal)}` : `Pay ${formatLocalPrice(localFinalTotal)}`}
               </button>
 

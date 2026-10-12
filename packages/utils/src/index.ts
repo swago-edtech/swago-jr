@@ -25,3 +25,6 @@ export * from "./international-shipping";
 
 // International order display helpers
 export * from "./international-order";
+
+// Shipping eligibility (browse-only vs orderable geos)
+export * from "./shipping-eligibility";

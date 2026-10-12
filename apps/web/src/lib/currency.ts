@@ -80,4 +80,22 @@ const DEFAULT_INDIA: CountryConfig = {
   exchangeRate: 1,
 };
 
-export { DEFAULT_INDIA };
+/**
+ * Browse-only fallback (non-shippable geos).
+ * Currency is always USD so getProductPrice uses product.internationalPricing.USD
+ * the same way as US visitors; exchangeRate is only the INR→USD fallback when a
+ * product has no US price set (mirrors InternationalConfig US defaults).
+ */
+const DEFAULT_USD_BROWSE: CountryConfig = {
+  code: "XX",
+  name: "International",
+  currency: "USD",
+  currencySymbol: "$",
+  phonePrefix: "+",
+  shippingFee: 0,
+  isDefault: false,
+  isActive: true,
+  exchangeRate: 0.012,
+};
+
+export { DEFAULT_INDIA, DEFAULT_USD_BROWSE };

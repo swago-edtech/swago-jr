@@ -13,7 +13,7 @@ import { RiShareForwardFill } from "react-icons/ri";
 export default function ProductCard({ product }: { product: Product }) {
   const router = useRouter();
   const { cart, addToCart, addToWishlist, removeFromWishlist, isWishlisted, openCartSidebar, increaseQty, decreaseQty } = useSharedContext();
-  const { getLocalPrice, formatLocalPrice } = useCountry();
+  const { getLocalPrice, formatLocalPrice, canShip, shippingRestrictionMessage } = useCountry();
 
   // Use MongoDB _id or slug for routing
   const productIdentifier = product._id || product.slug || '';
@@ -104,12 +104,14 @@ export default function ProductCard({ product }: { product: Product }) {
     e.preventDefault();
     e.stopPropagation();
 
-    if (isOutOfStock) return;
+    if (isOutOfStock || !canShip) return;
 
     console.log('🛒 Adding to cart:', product.name);
     addToCart(product);
     router.push("/cart");
   };
+
+  const cartDisabled = isOutOfStock || !canShip;
 
   // Handle quantity increase
   const handleIncrease = (e: React.MouseEvent) => {
@@ -257,14 +259,22 @@ export default function ProductCard({ product }: { product: Product }) {
                 </div>
               )}
 
+              {!canShip && (
+                <div className="mb-3 px-2 py-1.5 bg-amber-50 border border-amber-200 rounded-lg text-center">
+                  <span className="text-[10px] sm:text-xs font-bold text-amber-800 block leading-snug">
+                    {shippingRestrictionMessage}
+                  </span>
+                </div>
+              )}
+
               {/* Show Add to Cart OR Quantity Controls */}
-              {!isInCart ? (
-                // Show "Add to Cart" button when item is NOT in cart
+              {!isInCart || !canShip ? (
+                // Show "Add to Cart" button when item is NOT in cart (or shipping locked)
                 <motion.button
                   onClick={handleAddToCart}
-                  disabled={isOutOfStock}
-                  className={`w-full font-black py-3 rounded-xl text-xs tracking-widest transition-all duration-300 ${isOutOfStock
-                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  disabled={cartDisabled}
+                  className={`w-full font-black py-3 rounded-xl text-xs tracking-widest transition-all duration-300 ${cartDisabled
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed border-2 border-gray-100'
                     : 'border-2 border-[hsl(var(--swago-purple))] text-[hsl(var(--swago-purple))] bg-white hover:bg-[hsl(var(--swago-purple))] hover:text-white shadow-sm'
                     }`}
                 >
@@ -287,7 +297,7 @@ export default function ProductCard({ product }: { product: Product }) {
                     onClick={handleIncrease}
                     className="px-3 py-2 hover:bg-purple-100 transition text-[hsl(var(--swago-purple))] font-bold text-lg"
                     aria-label="Increase quantity"
-                    disabled={false}
+                    disabled={!canShip}
                   >
                     +
                   </button>

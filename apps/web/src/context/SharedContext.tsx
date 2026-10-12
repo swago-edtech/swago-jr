@@ -3,6 +3,7 @@
 
 import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from "react";
 import { Feedback } from "../lib/feedback";
+import { useCountry } from "@/context/CountryContext";
 
 type PopulatedOrder = {
   _id: string;
@@ -169,6 +170,7 @@ const normalizeCart = (items: any[]): CartItem[] => {
 };
 
 export function SharedProvider({ children }: { children: React.ReactNode }) {
+  const { canShip } = useCountry();
   const [cart, setCart] = useState<CartItem[]>([]);
   const [user, setUser] = useState<User | null>(null);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
@@ -685,11 +687,13 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
 
   // Cart functions
   const addToCart = (product: Product, quantity: number = 1) => {
+    if (!canShip) return;
+
     const available =
       product.availableStock ??
       (product.stock !== undefined ? product.stock : undefined);
 
-    // Stock decoupled: always allow adding to cart
+    // Stock decoupled: always allow adding to cart when shipping is available
     setCart((prev) => {
       const productId = getProductId(product);
       const existing = prev.find((p) => getProductId(p) === productId);
@@ -713,15 +717,17 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
 
   const clearCart = () => setCart([]);
 
-  const increaseQty = (id: number | string) =>
+  const increaseQty = (id: number | string) => {
+    if (!canShip) return;
     setCart((prev) => prev.map((p) => {
       if (getProductId(p) !== id.toString()) return p;
 
-      // Stock decoupled: always allow increase
+      // Stock decoupled: always allow increase when shipping is available
       const newQuantity = p.quantity + 1;
       Feedback.playPop();
       return { ...p, quantity: newQuantity };
     }));
+  };
 
   const decreaseQty = (id: number | string) => {
     Feedback.playRemove();

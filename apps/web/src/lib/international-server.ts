@@ -1,5 +1,10 @@
 import { InternationalConfig } from "@swago/database";
-import type { ShippingCountryConfig } from "@swago/utils";
+import {
+  canShipToCountry,
+  normalizeCountryCode as normalizeShipCountryCode,
+  UNSUPPORTED_SHIPPING_MESSAGE,
+  type ShippingCountryConfig,
+} from "@swago/utils";
 
 /**
  * Server-trusted country settings for INTERNATIONAL (non-IN) orders.
@@ -30,9 +35,10 @@ export type ServerIntlCountryResult =
 
 /** Normalizes a client-sent country code; missing → "IN" (legacy default). */
 export function normalizeCountryCode(raw: unknown): string {
-  const code = String(raw ?? "").trim().toUpperCase();
-  return code || "IN";
+  return normalizeShipCountryCode(raw);
 }
+
+export { canShipToCountry, UNSUPPORTED_SHIPPING_MESSAGE };
 
 /**
  * Looks up an active, non-INR country in InternationalConfig.
@@ -40,6 +46,12 @@ export function normalizeCountryCode(raw: unknown): string {
  */
 export async function resolveServerIntlCountry(countryCode: string): Promise<ServerIntlCountryResult> {
   const code = normalizeCountryCode(countryCode);
+
+  // Hard allow-list even if config is misconfigured later
+  if (!canShipToCountry(code) || code === "IN") {
+    return { ok: false, error: UNSUPPORTED_SHIPPING_MESSAGE };
+  }
+
   const config = (await InternationalConfig.findOne({ isSingleton: true }).lean()) as
     | { supportedCountries?: StoredCountry[] }
     | null;
@@ -48,7 +60,7 @@ export async function resolveServerIntlCountry(countryCode: string): Promise<Ser
   );
 
   if (!match || match.isActive === false) {
-    return { ok: false, error: `Sorry, we don't ship to ${code} yet.` };
+    return { ok: false, error: UNSUPPORTED_SHIPPING_MESSAGE };
   }
 
   const currency = String(match.currency || "").trim().toUpperCase();
