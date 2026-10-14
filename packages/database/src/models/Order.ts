@@ -109,6 +109,32 @@ const OrderSchema = new mongoose.Schema(
     utm_source: { type: String },
     utm_medium: { type: String },
     utm_campaign: { type: String },
+    utm_content: { type: String },
+    utm_term: { type: String },
+    // First / last touch snapshot (7-day window default on write)
+    attribution: {
+      firstTouch: {
+        source: String,
+        medium: String,
+        campaign: String,
+        content: String,
+        term: String,
+        landingPath: String,
+        referrer: String,
+        capturedAt: String,
+      },
+      lastTouch: {
+        source: String,
+        medium: String,
+        campaign: String,
+        content: String,
+        term: String,
+        landingPath: String,
+        referrer: String,
+        capturedAt: String,
+      },
+      windowDays: { type: Number, default: 7 },
+    },
     // ✅ NEW: Refund & COD Collection Tracking (Analytics Phase 1)
     refundAmount: { type: Number, default: 0 },
     codCollected: { type: Boolean, default: false },

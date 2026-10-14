@@ -213,6 +213,23 @@ const UserSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+
+    // First-touch acquisition snapshot (OTP / Google / Express signup)
+    acquisition: {
+      source: { type: String },
+      medium: { type: String },
+      campaign: { type: String },
+      content: { type: String },
+      term: { type: String },
+      creatorId: { type: String },
+      landingPath: { type: String },
+      referrer: { type: String },
+      capturedAt: { type: Date },
+      via: {
+        type: String,
+        enum: ["otp_phone", "otp_email", "google", "express", "unknown"],
+      },
+    },
   },
   { timestamps: true }
 );
