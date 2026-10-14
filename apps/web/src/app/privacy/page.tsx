@@ -28,11 +28,7 @@ export default function PrivacyPage() {
               This policy explains how we collect, use, and safeguard your data when you use our website and purchase our educational smart box.
             </p>
             <p className="text-slate-600">
-              <strong>Last Updated:</strong> {new Date().toLocaleDateString('en-IN', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-              })}
+              <strong>Last Updated:</strong> 14 October 2026
             </p>
           </div>
 
