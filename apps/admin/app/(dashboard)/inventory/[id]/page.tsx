@@ -335,9 +335,10 @@ export default function EditInventoryItem({ params }: { params: Promise<{ id: st
                       <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${
                         tx.type === 'addition' ? 'bg-green-100 text-green-800' :
                         tx.type === 'deduction' ? 'bg-red-100 text-red-800' :
+                        tx.type === 'discard' ? 'bg-orange-100 text-orange-800' :
                         'bg-blue-100 text-blue-800'
                       }`}>
-                        {tx.type === 'addition' ? '+' : tx.type === 'deduction' ? '-' : ''}{tx.quantity}
+                        {tx.type === 'addition' ? '+' : tx.type === 'deduction' || tx.type === 'discard' ? '-' : ''}{tx.quantity}{tx.type === 'discard' ? ' discarded' : ''}
                       </span>
                       <span className="text-xs text-gray-400">{new Date(tx.createdAt).toLocaleDateString()}</span>
                     </div>

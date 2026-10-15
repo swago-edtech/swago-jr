@@ -2,9 +2,11 @@ import { notFound } from 'next/navigation';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
+import type { ReactNode } from 'react';
 import { formatPrice } from '@swago/utils';
 import { connectDB, User, Product, LotteryCode } from '@swago/database';
 import { getAdminSession } from '@/lib/auth';
+import OrderHistoryList from './OrderHistoryList';
 import { User as UserIcon, Video, Brain, Ticket, CheckCircle2, Clock, AlertCircle, XCircle } from 'lucide-react';
 
 // Fetch user data directly from DB (no API call)
@@ -111,12 +113,80 @@ async function getUserData(userId: string) {
     gender: user.gender,
     grade: user.grade,
     dob: user.dob,
+    avatar: user.avatar,
+    address: user.address,
     ambassador: user.ambassador,
     lotteryTickets: user.lotteryTickets || [],
     claimedLotteryCount: actualClaimedLotteryCount,
     swagoMoney: user.swagoMoney || 0,
   };
 }
+
+// --- Profile details helpers ---
+const AUTH_METHOD_LABELS: Record<string, string> = {
+  phone: 'Phone OTP',
+  email: 'Email',
+  google: 'Google',
+};
+
+const GENDER_LABELS: Record<string, string> = {
+  boy: 'Boy',
+  girl: 'Girl',
+  other: 'Other',
+};
+
+const AMBASSADOR_STATUS_LABELS: Record<string, string> = {
+  not_started: 'Not started',
+  profile_created: 'Profile created',
+  entry_pending: 'Entry pending review',
+  entry_approved: 'Entry approved',
+  entry_rejected: 'Entry rejected',
+  brand_ambassador: 'Brand ambassador',
+};
+
+// e.g. "12 Mar 2017". DOB is stored as UTC midnight of the picked date, so format it in UTC.
+function formatDate(value: string | Date | null | undefined, timeZone = 'Asia/Kolkata'): string | null {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone });
+}
+
+function isHttpUrl(value: unknown): value is string {
+  return typeof value === 'string' && /^https?:\/\//i.test(value.trim());
+}
+
+// Only http(s) links are clickable (these URLs are user-entered).
+function renderLink(url?: string | null): ReactNode {
+  if (!url) return null;
+  if (!isHttpUrl(url)) return url;
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      title={url}
+      className="block truncate text-indigo-600 hover:underline"
+    >
+      {url.replace(/^https?:\/\/(www\.)?/i, '')}
+    </a>
+  );
+}
+
+function Field({ label, children, className = '' }: { label: string; children?: ReactNode; className?: string }) {
+  const isEmpty = children === null || children === undefined || children === '';
+  return (
+    <div className={`min-w-0 ${className}`}>
+      <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">{label}</dt>
+      <dd className="mt-1 text-sm text-gray-900 break-words">
+        {isEmpty ? <span className="text-gray-400">—</span> : children}
+      </dd>
+    </div>
+  );
+}
+
+const FULL_ROW = 'sm:col-span-2 lg:col-span-3 xl:col-span-4';
+const FIELD_GRID = 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-6 gap-y-4';
 
 // Helper to format time ago
 function getTimeAgo(dateString: string | Date | null): string {
@@ -303,6 +373,18 @@ export default async function UserDetailPage({
   }
   // ---------------------------------------------
 
+  // --- Profile details (display only) ---
+  const amb = user.ambassador || {};
+  const badges: Array<{ name?: string; awardedAt?: string }> = Array.isArray(amb.badges) ? amb.badges : [];
+  const isBrandAmbassador =
+    amb.status === 'brand_ambassador' || badges.some((b) => b?.name === 'Brand Ambassador');
+  const instagramUsername: string | undefined =
+    amb.entryChallenge?.instagramUsername || amb.brainGym?.instagramUsername;
+  // Avatar is either an absolute URL (Google profile picture) or a storefront-relative path
+  // like /images/kid_boy1.png that admin can't serve — show the image only for absolute URLs.
+  const avatarIsUrl = isHttpUrl(user.avatar);
+  // ---------------------------------------------
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -324,6 +406,91 @@ export default async function UserDetailPage({
         >
           ← Back to Users
         </Link>
+      </div>
+
+      {/* Profile Details */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+          <h2 className="text-lg font-semibold text-gray-900">Profile details</h2>
+          <p className="text-sm text-gray-500 mt-0.5">Details entered by the user on the storefront.</p>
+        </div>
+
+        <div className="p-6 space-y-6">
+          <dl className={FIELD_GRID}>
+            <Field label="Avatar">
+              {user.avatar ? (
+                avatarIsUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={user.avatar}
+                    alt="Avatar"
+                    referrerPolicy="no-referrer"
+                    className="w-10 h-10 rounded-full object-cover border border-gray-200 bg-gray-100"
+                  />
+                ) : (
+                  <span className="text-gray-600">
+                    Storefront default ({String(user.avatar).split('/').pop()})
+                  </span>
+                )
+              ) : null}
+            </Field>
+            <Field label="Name">{user.name}</Field>
+            <Field label="Phone">{user.phone}</Field>
+            <Field label="Email">{user.email}</Field>
+            <Field label="Login method">
+              {user.authMethod ? AUTH_METHOD_LABELS[user.authMethod] || user.authMethod : null}
+            </Field>
+            <Field label="Age">{typeof user.age === 'number' ? `${user.age} yrs` : null}</Field>
+            <Field label="Date of birth">{formatDate(user.dob, 'UTC')}</Field>
+            <Field label="Gender">{user.gender ? GENDER_LABELS[user.gender] || user.gender : null}</Field>
+            <Field label="Grade">{user.grade}</Field>
+            <Field label="Joined">{formatDate(user.createdAt)}</Field>
+            <Field label="Last updated">{formatDate(user.updatedAt)}</Field>
+            <Field label="Address / City" className={FULL_ROW}>
+              {user.address ? <span className="whitespace-pre-line">{user.address}</span> : null}
+            </Field>
+          </dl>
+
+          <div className="border-t border-gray-100 pt-6">
+            <h3 className="text-sm font-semibold text-gray-900 mb-4">Ambassador program</h3>
+            <dl className={FIELD_GRID}>
+              <Field label="Status">
+                {amb.status ? AMBASSADOR_STATUS_LABELS[amb.status] || amb.status : null}
+              </Field>
+              <Field label="Enrolled">{amb.isAmbassador ? 'Yes' : 'No'}</Field>
+              <Field label="Brand ambassador">{isBrandAmbassador ? 'Yes' : 'No'}</Field>
+              <Field label="Joined program">{formatDate(amb.joinedAt)}</Field>
+              <Field label="Instagram username">
+                {instagramUsername ? `@${instagramUsername.replace(/^@/, '')}` : null}
+              </Field>
+              <Field label="Total earnings">
+                {typeof amb.totalEarnings === 'number' ? `${amb.totalEarnings} SD` : null}
+              </Field>
+              <Field label="Entry reel">{renderLink(amb.entryChallenge?.reelUrl)}</Field>
+              <Field label="Brain Gym reel">{renderLink(amb.brainGym?.reelUrl)}</Field>
+              <Field label="Brain Gym answer" className={FULL_ROW}>
+                {amb.brainGym?.answer ? (
+                  <span className="whitespace-pre-line">{amb.brainGym.answer}</span>
+                ) : null}
+              </Field>
+              <Field label="Badges" className={FULL_ROW}>
+                {badges.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {badges.map((badge, idx) => (
+                      <span
+                        key={`${badge?.name}-${idx}`}
+                        title={formatDate(badge?.awardedAt) ? `Awarded ${formatDate(badge?.awardedAt)}` : undefined}
+                        className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-100"
+                      >
+                        {badge?.name || 'Unnamed badge'}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+              </Field>
+            </dl>
+          </div>
+        </div>
       </div>
 
       {/* Challenges & Milestones Timelines Section */}
@@ -450,13 +617,23 @@ export default async function UserDetailPage({
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="relative w-16 h-16 flex-shrink-0 bg-gray-100 rounded">
-                          <Image
-                            src={item.image}
-                            alt={item.name}
-                            fill
-                            className="object-cover rounded"
-                            sizes="64px"
-                          />
+                          {typeof item.image === 'string' && item.image.trim() ? (
+                            <Image
+                              src={item.image}
+                              alt={(typeof item.name === 'string' && item.name.trim()) || 'Product image'}
+                              fill
+                              className="object-cover rounded"
+                              sizes="64px"
+                            />
+                          ) : (
+                            <div
+                              role="img"
+                              aria-label="No product image"
+                              className="w-full h-full flex items-center justify-center rounded text-[10px] text-gray-400"
+                            >
+                              No image
+                            </div>
+                          )}
                         </div>
                         <div>
                           <div className="text-sm font-medium text-gray-900 line-clamp-2">
@@ -506,47 +683,7 @@ export default async function UserDetailPage({
           </h2>
         </div>
 
-        {orders.length === 0 ? (
-          <div className="px-6 py-8 text-center text-gray-500">
-            No orders yet
-          </div>
-        ) : (
-          <div className="divide-y divide-gray-200">
-            {orders.map((order: any) => (
-              <Link
-                key={order._id}
-                href={`/orders/${order._id}`}
-                className="block px-6 py-4 hover:bg-gray-50 transition-colors"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm font-medium text-gray-900">
-                        Order #{order._id.slice(-8)}
-                      </span>
-                      <StatusBadge status={order.status} />
-                    </div>
-                    <div className="mt-1 text-sm text-gray-500">
-                      {new Date(order.createdAt).toLocaleDateString('en-IN', {
-                        day: '2-digit',
-                        month: 'short',
-                        year: 'numeric',
-                      })}
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-sm font-semibold text-gray-900">
-                      {formatPrice(order.total || 0)}
-                    </div>
-                    <div className="text-xs text-blue-600 mt-1">
-                      View Details →
-                    </div>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
+        <OrderHistoryList orders={orders} />
       </div>
 
       {/* Wishlist Section */}
@@ -575,24 +712,5 @@ export default async function UserDetailPage({
         )}
       </div>
     </div>
-  );
-}
-
-// Status badge component
-function StatusBadge({ status }: { status: string }) {
-  const statusConfig: Record<string, { bg: string; text: string; label: string }> = {
-    pending: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Pending' },
-    confirmed: { bg: 'bg-blue-100', text: 'text-blue-800', label: 'Confirmed' },
-    shipped: { bg: 'bg-purple-100', text: 'text-purple-800', label: 'Shipped' },
-    delivered: { bg: 'bg-green-100', text: 'text-green-800', label: 'Delivered' },
-    cancelled: { bg: 'bg-red-100', text: 'text-red-800', label: 'Cancelled' },
-  };
-
-  const config = statusConfig[status] || statusConfig.pending;
-
-  return (
-    <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${config.bg} ${config.text}`}>
-      {config.label}
-    </span>
   );
 }

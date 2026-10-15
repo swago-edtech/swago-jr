@@ -6,6 +6,7 @@ import {
   InventoryTransaction,
   ProductConfig,
   syncAffectedProducts,
+  checkAndNotifyLowStock,
 } from "@swago/database";
 
 export async function GET(
@@ -65,6 +66,8 @@ export async function PUT(
     }
 
     await syncAffectedProducts([id]);
+    // Fire-and-forget: threshold may have been raised, making existing stock critical
+    checkAndNotifyLowStock().catch(() => {});
 
     return NextResponse.json({ success: true, item });
   } catch (error: any) {

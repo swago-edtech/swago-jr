@@ -22,13 +22,6 @@ export default function ProductCard({ product }: { product: Product }) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isHovering, setIsHovering] = useState(false);
 
-  const availableStock =
-    product.availableStock ??
-    (product.stock !== undefined ? product.stock : undefined);
-  const lowStockThreshold = product.lowStockThreshold ?? 10;
-  const isOutOfStock = false; // Stock decoupled: customers can always order
-  const isLowStock = false; // Stock decoupled: hide low-stock urgency
-
   // Check if item is in cart and get quantity
   const getCartItemId = (item: CartItem): string => {
     return item.productId?.toString() || item._id?.toString() || item.id?.toString() || '';
@@ -104,14 +97,14 @@ export default function ProductCard({ product }: { product: Product }) {
     e.preventDefault();
     e.stopPropagation();
 
-    if (isOutOfStock || !canShip) return;
+    if (!canShip) return;
 
     console.log('🛒 Adding to cart:', product.name);
     addToCart(product);
     router.push("/cart");
   };
 
-  const cartDisabled = isOutOfStock || !canShip;
+  const cartDisabled = !canShip;
 
   // Handle quantity increase
   const handleIncrease = (e: React.MouseEvent) => {
@@ -205,17 +198,6 @@ export default function ProductCard({ product }: { product: Product }) {
                 {product.label}
               </div>
             )}
-
-            {isOutOfStock && (
-              <div className="absolute top-3 left-3 bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full z-10">
-                Out of Stock
-              </div>
-            )}
-            {isLowStock && !isOutOfStock && !product.label && (
-              <div className="absolute top-3 left-3 bg-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full z-10">
-                Only {availableStock} left!
-              </div>
-            )}
           </div>
 
           <div className="p-2 sm:p-4 flex flex-col flex-grow">
@@ -278,7 +260,7 @@ export default function ProductCard({ product }: { product: Product }) {
                     : 'border-2 border-[hsl(var(--swago-purple))] text-[hsl(var(--swago-purple))] bg-white hover:bg-[hsl(var(--swago-purple))] hover:text-white shadow-sm'
                     }`}
                 >
-                  <span>{isOutOfStock ? 'Out of Stock' : 'Add to Cart'}</span>
+                  <span>Add to Cart</span>
                 </motion.button>
               ) : (
                 // Show quantity controls when item IS in cart

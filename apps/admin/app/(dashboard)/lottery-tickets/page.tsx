@@ -20,6 +20,32 @@ type Ticket = {
   } | null;
 };
 
+type ProductOption = {
+  _id: string;
+  productName: string;
+  shortForms: string[];
+  count: number;
+};
+
+type Filters = {
+  productId: string;
+  range: string; // "" | today | 7d | 30d | month | custom
+  from: string;
+  to: string;
+  contact: string; // "" | phone | email
+};
+
+const EMPTY_FILTERS: Filters = { productId: "", range: "", from: "", to: "", contact: "" };
+
+const selectClass =
+  "px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all";
+
+// Long product titles ("Seek Rush | Focus Building ...") → "Seek Rush", capped with an ellipsis
+function shortProductName(name: string, max = 32) {
+  const base = (name || "").split("|")[0].trim() || name || "";
+  return base.length > max ? `${base.slice(0, max - 1).trimEnd()}…` : base;
+}
+
 type PaginationMeta = {
   currentPage: number;
   totalPages: number;
@@ -39,8 +65,11 @@ export default function LotteryTicketsPage() {
     totalCount: 0,
     limit: 20,
   });
+  const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
+  const [products, setProducts] = useState<ProductOption[]>([]);
+  const [overallCount, setOverallCount] = useState(0);
 
-  const fetchTickets = useCallback(async (targetPage: number, searchVal: string) => {
+  const fetchTickets = useCallback(async (targetPage: number, searchVal: string, f: Filters) => {
     try {
       setLoading(true);
       const params = new URLSearchParams({
@@ -49,6 +78,15 @@ export default function LotteryTicketsPage() {
       });
       if (searchVal) {
         params.set("search", searchVal);
+      }
+      if (f.productId) params.set("productId", f.productId);
+      if (f.contact) params.set("contact", f.contact);
+      if (f.range) {
+        params.set("range", f.range);
+        if (f.range === "custom") {
+          if (f.from) params.set("from", f.from);
+          if (f.to) params.set("to", f.to);
+        }
       }
 
       const res = await fetch(`/api/lottery-tickets?${params.toString()}`);
@@ -59,6 +97,8 @@ export default function LotteryTicketsPage() {
         if (data.pagination) {
           setPagination(data.pagination);
         }
+        setProducts(data.products || []);
+        setOverallCount(data.overallCount ?? 0);
       }
     } catch (error) {
       console.error("Error fetching tickets:", error);
@@ -68,8 +108,16 @@ export default function LotteryTicketsPage() {
   }, []);
 
   useEffect(() => {
-    fetchTickets(page, activeSearch);
-  }, [page, activeSearch, fetchTickets]);
+    fetchTickets(page, activeSearch, filters);
+  }, [page, activeSearch, filters, fetchTickets]);
+
+  const updateFilter = (patch: Partial<Filters>) => {
+    setFilters((prev) => ({ ...prev, ...patch }));
+    setPage(1);
+  };
+
+  const hasActiveFilters = Boolean(filters.productId || filters.range || filters.contact);
+  const isNarrowed = hasActiveFilters || Boolean(activeSearch);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,7 +149,7 @@ export default function LotteryTicketsPage() {
           <div className="flex items-center gap-2.5">
             <h1 className="text-2xl font-bold text-gray-900">All Redeemed Tickets</h1>
             <span className="px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 text-xs font-semibold border border-blue-100">
-              {pagination.totalCount} Total
+              {isNarrowed ? `${pagination.totalCount} of ${overallCount}` : `${pagination.totalCount} Total`}
             </span>
           </div>
           <p className="text-sm text-gray-500 mt-0.5">
@@ -110,7 +158,7 @@ export default function LotteryTicketsPage() {
         </div>
 
         <button
-          onClick={() => fetchTickets(page, activeSearch)}
+          onClick={() => fetchTickets(page, activeSearch, filters)}
           disabled={loading}
           className="self-start sm:self-auto p-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors flex items-center gap-1.5 text-xs font-medium"
         >
@@ -120,8 +168,18 @@ export default function LotteryTicketsPage() {
       </div>
 
       <div className="bg-white rounded-xl border border-gray-200 p-4">
-        <form onSubmit={handleSearchSubmit} className="flex gap-2">
-          <div className="relative flex-1">
+        {/*
+          Phone: 2-col grid (search full width, product full width, date + contact side by side).
+          Tablet (sm–lg): search on its own row, filters wrap on the row below, Search button pushed right.
+          Desktop (lg+): everything on one line; wrapping is only allowed when the custom date inputs are shown.
+        */}
+        <form
+          onSubmit={handleSearchSubmit}
+          className={`grid grid-cols-2 grid-flow-row-dense gap-2 sm:flex sm:flex-wrap sm:items-center ${
+            filters.range === "custom" ? "" : "lg:flex-nowrap"
+          }`}
+        >
+          <div className="relative col-span-2 min-w-0 sm:flex-[1_1_100%] lg:flex-[1_1_0%] lg:min-w-[260px]">
             <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-3" />
             <input
               type="text"
@@ -140,9 +198,82 @@ export default function LotteryTicketsPage() {
               </button>
             )}
           </div>
+
+          <select
+            value={filters.productId}
+            onChange={(e) => updateFilter({ productId: e.target.value })}
+            title={products.find((p) => p._id === filters.productId)?.productName || "All products"}
+            className={`${selectClass} col-span-2 w-full min-w-0 sm:w-auto sm:max-w-[260px] truncate lg:w-[200px] lg:min-w-[120px] xl:w-[240px]`}
+          >
+            <option value="">All products</option>
+            {products.map((p) => (
+              <option key={p._id} value={p._id} title={p.productName}>
+                {shortProductName(p.productName)}
+                {p.shortForms?.length ? ` (${p.shortForms.join(", ")})` : ""} · {p.count}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={filters.range}
+            onChange={(e) => updateFilter({ range: e.target.value })}
+            aria-label="Redeemed date"
+            className={`${selectClass} w-full min-w-0 sm:w-auto`}
+          >
+            <option value="">All time</option>
+            <option value="today">Today</option>
+            <option value="7d">Last 7 days</option>
+            <option value="30d">Last 30 days</option>
+            <option value="month">This month</option>
+            <option value="custom">Custom range</option>
+          </select>
+
+          {filters.range === "custom" && (
+            <div className="col-span-2 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 sm:flex sm:shrink-0">
+              <input
+                type="date"
+                value={filters.from}
+                max={filters.to || undefined}
+                onChange={(e) => updateFilter({ from: e.target.value })}
+                aria-label="Redeemed from"
+                className={`${selectClass} w-full min-w-0 sm:w-auto`}
+              />
+              <span className="text-xs text-gray-400">to</span>
+              <input
+                type="date"
+                value={filters.to}
+                min={filters.from || undefined}
+                onChange={(e) => updateFilter({ to: e.target.value })}
+                aria-label="Redeemed to"
+                className={`${selectClass} w-full min-w-0 sm:w-auto`}
+              />
+            </div>
+          )}
+
+          <select
+            value={filters.contact}
+            onChange={(e) => updateFilter({ contact: e.target.value })}
+            aria-label="Contact"
+            className={`${selectClass} w-full min-w-0 sm:w-auto`}
+          >
+            <option value="">Any contact</option>
+            <option value="phone">Has phone</option>
+            <option value="email">Has email</option>
+          </select>
+
+          {hasActiveFilters && (
+            <button
+              type="button"
+              onClick={() => updateFilter(EMPTY_FILTERS)}
+              className="col-span-2 justify-self-end whitespace-nowrap shrink-0 text-xs font-medium text-blue-600 hover:text-blue-700 px-1"
+            >
+              Clear filters
+            </button>
+          )}
+
           <button
             type="submit"
-            className="px-5 py-2.5 bg-blue-600 text-white font-medium text-sm rounded-lg hover:bg-blue-700 transition-colors"
+            className="col-span-2 shrink-0 px-5 py-2.5 bg-blue-600 text-white font-medium text-sm rounded-lg hover:bg-blue-700 transition-colors sm:ml-auto lg:ml-0"
           >
             Search
           </button>
@@ -162,7 +293,9 @@ export default function LotteryTicketsPage() {
             <p className="text-gray-400 text-xs mt-1">
               {activeSearch
                 ? `No results matching "${activeSearch}". Try another search term.`
-                : "No lottery codes have been redeemed yet."}
+                : hasActiveFilters
+                  ? "No tickets match the selected filters."
+                  : "No lottery codes have been redeemed yet."}
             </p>
           </div>
         ) : (

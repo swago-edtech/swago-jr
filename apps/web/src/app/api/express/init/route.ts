@@ -121,7 +121,9 @@ export async function GET(request: NextRequest) {
 
     const configuredIds = await getConfiguredProductIds();
     const crossSells = crossSellProducts
-      .map((p) => enrichProductAvailability(p, configuredIds));
+      .map((p) => enrichProductAvailability(p, configuredIds))
+      // Stock decoupled: don't filter cross-sell by stock
+      ;
 
     // ========================================
     // 4. Fetch active promotion config
