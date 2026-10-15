@@ -21,13 +21,15 @@ interface StockInfo {
 
 export default function CartPage() {
   const { cart, total, removeFromCart, increaseQty, decreaseQty, appliedCoupon, setAppliedCoupon, appliedSwagoMoney, setAppliedSwagoMoney, walletBalance, refreshCartPrices, isRefreshingCart } = useSharedContext();
-  const { formatPrice, formatLocalPrice, getLocalPrice, toLocalAmount, isInternational, canShip, shippingRestrictionMessage } = useCountry();
+  const { formatPrice, formatLocalPrice, getLocalPrice, toLocalAmount, isInternational, resolveIntlShipping, canShip, shippingRestrictionMessage } = useCountry();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [stockInfo, setStockInfo] = useState<StockInfo>({});
   const [mounted, setMounted] = useState(false);
   const [priceChanges, setPriceChanges] = useState<CartPriceChange[]>([]);
   const [promotion, setPromotion] = useState<any>(null);
+
+  const intlShipping = isInternational ? resolveIntlShipping(cart).feeLocal : 0;
 
   // Rounds like validateCoupon (lib/coupon.ts) so the savings row matches the applied discount
   let savings = appliedCoupon?.discount || 0;
@@ -44,7 +46,7 @@ export default function CartPage() {
   const localCartTotal = cart.reduce((s, it) => s + getLocalPrice(it).price * it.quantity, 0);
   const localDiscount = toLocalAmount(appliedCoupon?.discount || 0);
   const localSwago = toLocalAmount(appliedSwagoMoney || 0);
-  const localPayable = Math.max(0, localCartTotal - localDiscount - localSwago);
+  const localPayable = Math.max(0, localCartTotal - localDiscount - localSwago + (isInternational ? intlShipping : 0));
 
   useEffect(() => {
     fetch("/api/promotion")
@@ -434,10 +436,20 @@ export default function CartPage() {
                 </div>
                 <div className="flex flex-col text-right">
                   <div className="flex justify-between text-slate-500 text-xs sm:text-xs font-bold tracking-widest gap-8">
-                    <span>Shipping Fee</span>
-                    <span className="text-[#1EAA5F] font-black">FREE*</span>
+                    <span>Shipping Fee {isInternational ? '(International)' : ''}</span>
+                    {isInternational ? (
+                      intlShipping > 0 ? (
+                        <span className="text-slate-900 tabular-nums font-black">{formatLocalPrice(intlShipping)}</span>
+                      ) : (
+                        <span className="text-[#1EAA5F] font-black">FREE</span>
+                      )
+                    ) : (
+                      <span className="text-[#1EAA5F] font-black">FREE*</span>
+                    )}
                   </div>
-                  <span className="text-[10px] text-slate-400 font-bold mt-1 tracking-tight">*On Online Orders</span>
+                  {!isInternational && (
+                    <span className="text-[10px] text-slate-400 font-bold mt-1 tracking-tight">*On Online Orders</span>
+                  )}
                 </div>
                 {savings > 0 && (
                   <div className="flex justify-between text-slate-500 text-xs sm:text-xs font-bold tracking-widest">

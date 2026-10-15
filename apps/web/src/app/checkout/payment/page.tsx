@@ -53,7 +53,7 @@ type CheckoutData = {
 
 export default function PaymentMethodPage() {
     const { cart, clearCart, total, refreshCartPrices } = useSharedContext();
-    const { formatPrice, isInternational, country, canShip, shippingRestrictionMessage } = useCountry();
+    const { formatPrice, formatLocalPrice, isInternational, resolveIntlShipping, country, canShip, shippingRestrictionMessage } = useCountry();
 
     const router = useRouter();
     const [processing, setProcessing] = useState(false);
@@ -511,9 +511,17 @@ export default function PaymentMethodPage() {
 
                                 <div className="flex justify-between text-slate-600">
                                     <span>Shipping</span>
-                                    <span className="text-green-600 font-medium">FREE*</span>
+                                    {isInternational ? (
+                                        resolveIntlShipping(cart).feeLocal > 0 ? (
+                                            <span className="font-bold text-slate-900">{formatLocalPrice(resolveIntlShipping(cart).feeLocal)}</span>
+                                        ) : (
+                                            <span className="text-green-600 font-medium">FREE</span>
+                                        )
+                                    ) : (
+                                        <span className="text-green-600 font-medium">FREE*</span>
+                                    )}
                                 </div>
-                                <p className="text-[10px] text-slate-400 text-right font-bold tracking-tight">*Free on Online Pay / COD above {formatPrice(1450)}</p>
+                                {!isInternational && <p className="text-[10px] text-slate-400 text-right font-bold tracking-tight">*Free on Online Pay / COD above {formatPrice(1450)}</p>}
 
                                 <div className="border-t pt-3 flex justify-between text-xl font-bold">
                                     <span>Total</span>

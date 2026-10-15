@@ -73,10 +73,15 @@ const CountryContext = createContext<CountryContextType | undefined>(undefined);
 
 const STORAGE_KEY = "swago_country";
 
+// Re-run geo detection after this TTL so the country doesn't get stuck in the browser session forever.
+const SESSION_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
 type StoredCountrySession = {
   country: CountryConfig;
   canShip: boolean;
   detectedCode?: string;
+  /** Epoch ms when geo detection last ran; missing = legacy session (treated as stale). */
+  detectedAt?: number;
 };
 
 /**
@@ -175,7 +180,7 @@ function readStoredSession(): StoredCountrySession | null {
 }
 
 const getInitialSession = (): StoredCountrySession => {
-  return readStoredSession() || { country: DEFAULT_INDIA, canShip: true, detectedCode: "IN" };
+  return readStoredSession() || { country: DEFAULT_INDIA, canShip: true, detectedCode: "IN", detectedAt: Date.now() };
 };
 
 export function CountryProvider({ children }: { children: React.ReactNode }) {
@@ -193,7 +198,9 @@ export function CountryProvider({ children }: { children: React.ReactNode }) {
         const countries: CountryConfig[] = data.countries || [];
 
         const existing = readStoredSession();
-        if (existing) {
+        const isStale =
+          !existing?.detectedAt || Date.now() - existing.detectedAt > SESSION_TTL_MS;
+        if (existing && !isStale) {
           // Re-bind browse-only USD to live US config so product USD prices match US visitors
           const refreshed = existing.canShip
             ? existing
@@ -211,7 +218,13 @@ export function CountryProvider({ children }: { children: React.ReactNode }) {
           return;
         }
 
-        let detectedCode = "IN";
+        // No session, or it's stale (including legacy sessions saved before the TTL was added):
+        // re-detect the country so geo changes are picked up instead of staying stuck.
+        if (existing && isStale) {
+          console.log("🌍 Country session stale, re-detecting geo...");
+        }
+
+        let detectedCode = existing?.detectedCode || "IN";
         try {
           const geoRes = await fetch("https://ipwho.is/");
           const geoData = await geoRes.json();
@@ -219,12 +232,15 @@ export function CountryProvider({ children }: { children: React.ReactNode }) {
             detectedCode = String(geoData.country_code).toUpperCase();
           }
         } catch (e) {
-          console.warn("Browser geo detection failed, defaulting to IN");
+          // Keep the previous detected code on failure so a stale re-detect never
+          // flips an international visitor to India / INR pricing.
+          console.warn("Browser geo detection failed, keeping previous country");
         }
 
         const next = resolveCountrySession(detectedCode, countries);
-        setSession(next);
-        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+        const stored = { ...next, detectedAt: Date.now() };
+        setSession(stored);
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
       } catch (error) {
         console.error("Country detection failed:", error);
       } finally {

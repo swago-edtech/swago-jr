@@ -351,7 +351,9 @@ function ExpressCheckoutContent() {
     if (!address) errs.push("address");
     if (!city.trim()) errs.push("city");
     if (!state.trim()) errs.push("state");
-    if (!pincode || pincode.length < 5) errs.push("pincode");
+    // UAE postal code is optional in practice; keep required for IN/US/CA
+    const postalRequired = !(isInternational && country?.code === "AE");
+    if (postalRequired && (!pincode || pincode.length < 5)) errs.push("pincode");
     setErrors(errs);
     if (errs.length > 0) { setMessage("Please fill in all required fields."); return false; }
     return true;
@@ -638,7 +640,7 @@ function ExpressCheckoutContent() {
                     {errors.includes("address") && <p className="text-[10px] text-red-500 font-bold mt-1">Required</p>}
                   </div>
                   <div className="relative">
-                    <input value={pincode} maxLength={6} onChange={e => { const val = e.target.value.replace(/\D/g, '').slice(0, 6); setPincode(val); setErrors(p => p.filter(f => f !== "pincode")); setMessage(""); }} placeholder="PIN code" autoComplete="postal-code" className={`${inputClass("pincode")} ${fetchingPincode ? 'pr-10' : ''}`} />
+                    <input value={pincode} maxLength={isInternational ? 10 : 6} onChange={e => { const val = isInternational ? e.target.value.slice(0, 10) : e.target.value.replace(/\D/g, '').slice(0, 6); setPincode(val); setErrors(p => p.filter(f => f !== "pincode")); setMessage(""); }} placeholder={isInternational ? 'Postal / ZIP code' : 'PIN code'} autoComplete="postal-code" className={`${inputClass("pincode")} ${fetchingPincode ? 'pr-10' : ''}`} />
                     {fetchingPincode && (
                       <div className="absolute right-3 top-[20px] -translate-y-1/2">
                         <div className="w-4 h-4 border-2 border-[hsl(var(--swago-purple))] border-t-transparent rounded-full animate-spin" />

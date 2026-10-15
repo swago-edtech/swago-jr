@@ -182,7 +182,8 @@ export default function CheckoutPage() {
     if (!address) newErrors.push("address");
     if (!city.trim()) newErrors.push("city");
     if (!state.trim()) newErrors.push("state");
-    if (!pincode) newErrors.push("pincode");
+    // UAE postal code is optional in practice; keep required for IN/US/CA
+    if (!(isInternational && country.code === "AE") && !pincode) newErrors.push("pincode");
     const isPhoneValid = isInternational ? phone.length >= 6 && phone.length <= 14 : phone.length === 10;
     if (!isPhoneValid) newErrors.push("phone");
     if (!age) newErrors.push("age");

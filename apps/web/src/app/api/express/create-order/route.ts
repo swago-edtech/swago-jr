@@ -79,7 +79,7 @@ const expressOrderSchema = z.object({
     address: z.string().min(1, "Address is required"),
     city: z.string().min(1, "City is required"),
     state: z.string().min(1, "State is required"),
-    pincode: z.string().min(5, "Valid pincode is required"),
+    pincode: z.string().optional(),
     age: z.string().optional(),
   }),
   couponCode: z.string().optional(),
@@ -131,6 +131,15 @@ export async function POST(req: Request) {
     const formattedPhone = formatPhoneForStorage(customer.phone);
 
     const countryCode = normalizeCountryCode(country);
+
+    // UAE postal code is optional in practice; require a valid one elsewhere
+    if (countryCode !== "AE" && (!customer.pincode || customer.pincode.trim().length < 5)) {
+      return NextResponse.json(
+        { success: false, error: "Valid pincode is required" },
+        { status: 400 }
+      );
+    }
+
     // Domestic (IN): always INR @ 1. International: overwritten below from InternationalConfig
     // (server-trusted); client-sent currency/exchangeRate are only used for a mismatch log.
     let finalCurrency = 'INR';
