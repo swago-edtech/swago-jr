@@ -8,30 +8,36 @@ import { useState, useEffect } from "react";
 import RelatedProductsCompact from "@/components/RelatedProductsCompact";
 import CouponSheet from "@/components/CouponSheet";
 import CartProgress from "@/components/CartProgress";
+import ShippingBanner from "@/components/ShippingBanner";
 import { useCountry } from "@/context/CountryContext";
-
-interface StockInfo {
-  [key: string]: {
-    available: number;
-    reserved: number;
-    total: number;
-  };
-}
 
 export default function CartPage() {
   const { cart, total, removeFromCart, increaseQty, decreaseQty, appliedCoupon, setAppliedCoupon, appliedSwagoMoney, setAppliedSwagoMoney, walletBalance, refreshCartPrices, isRefreshingCart } = useSharedContext();
-  const { formatPrice, formatLocalPrice, getLocalPrice, toLocalAmount, country, isInternational } = useCountry();
+  const { formatPrice, formatLocalPrice, getLocalPrice, toLocalAmount, isInternational, resolveIntlShipping, canShip, shippingRestrictionMessage } = useCountry();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [stockInfo, setStockInfo] = useState<StockInfo>({});
   const [mounted, setMounted] = useState(false);
   const [priceChanges, setPriceChanges] = useState<CartPriceChange[]>([]);
   const [promotion, setPromotion] = useState<any>(null);
 
+  const intlShipping = isInternational ? resolveIntlShipping(cart).feeLocal : 0;
+
+  // Rounds like validateCoupon (lib/coupon.ts) so the savings row matches the applied discount
+  let savings = appliedCoupon?.discount || 0;
+  if (appliedCoupon?.type === 'percentage') {
+    const applicableAmount = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    savings = Math.round(applicableAmount * (appliedCoupon.value / 100));
+    if (appliedCoupon.maxDiscount && savings > appliedCoupon.maxDiscount) {
+      savings = appliedCoupon.maxDiscount;
+    }
+  } else if (appliedCoupon?.type === 'fixed') {
+    savings = appliedCoupon.value;
+  }
+
   const localCartTotal = cart.reduce((s, it) => s + getLocalPrice(it).price * it.quantity, 0);
   const localDiscount = toLocalAmount(appliedCoupon?.discount || 0);
   const localSwago = toLocalAmount(appliedSwagoMoney || 0);
-  const localPayable = Math.max(0, localCartTotal - localDiscount - localSwago);
+  const localPayable = Math.max(0, localCartTotal - localDiscount - localSwago + (isInternational ? intlShipping : 0));
 
   useEffect(() => {
     fetch("/api/promotion")
@@ -114,24 +120,9 @@ export default function CartPage() {
 
   const removeCoupon = () => setAppliedCoupon(null);
 
-  useEffect(() => {
-    const fetchStock = async () => {
-      try {
-        const itemIds = cart.map((item) => item.productId || item._id || item.id);
-        if (itemIds.length === 0) return;
-        const res = await fetch(`/api/stock?ids=${itemIds.join(',')}`);
-        const data = await res.json();
-        if (data.success) {
-          setStockInfo(data.stock);
-        }
-      } catch (error) {
-        console.error('Error fetching stock:', error);
-      }
-    };
-    if (cart.length > 0) fetchStock();
-  }, [cart]);
 
   const handleCheckout = () => {
+    if (!canShip) return;
     setLoading(true);
     router.push("/checkout");
   };
@@ -140,18 +131,6 @@ export default function CartPage() {
     return (item.productId?.toString() || item._id?.toString() || item.id?.toString() || '');
   };
 
-  let synchronousSavings = appliedCoupon?.discount || 0;
-  if (appliedCoupon?.type === 'percentage') {
-    const applicableAmount = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    synchronousSavings = Math.floor(applicableAmount * (appliedCoupon.value / 100));
-    if (appliedCoupon.maxDiscount && synchronousSavings > appliedCoupon.maxDiscount) {
-      synchronousSavings = appliedCoupon.maxDiscount;
-    }
-  } else if (appliedCoupon?.type === 'fixed') {
-    synchronousSavings = appliedCoupon.value;
-  }
-
-  const savings = synchronousSavings;
   const amountAfterCoupon = total - savings;
   const canUseSwagoDollars = amountAfterCoupon >= 799;
   const maxSwagoDollarsAllowed = Math.trunc(amountAfterCoupon * 0.05);
@@ -201,13 +180,7 @@ export default function CartPage() {
         </div>
       </div>
 
-      <div className="bg-[hsl(var(--swago-purple))] py-3 text-center">
-        <p className="text-white text-[10px] font-[1000] tracking-widest leading-tight">
-          {isInternational 
-            ? `International Shipping to ${country.name} — ${formatPrice(country.shippingFee)} flat rate`
-            : 'Enjoy Free Shipping, on orders above ₹1450'}
-        </p>
-      </div>
+      <ShippingBanner cart={cart} />
 
       <div className="container mx-auto px-4 md:px-6 py-6 lg:py-10 max-w-6xl">
         {/* Price Change Banner */}
@@ -255,8 +228,7 @@ export default function CartPage() {
               {cart.map((item) => {
                 const imageUrl = item.images?.[0] || '/images/placeholder.png';
                 const productId = getProductKey(item);
-                const stock = stockInfo[productId];
-                const isOutOfStock = false; // Stock decoupled
+                // Stock decoupled: no stock gating on the cart
                 const local = getLocalPrice(item);
                 const price = local.price || 0;
                 const originalPrice = local.originalPrice || price * 1.5;
@@ -265,7 +237,6 @@ export default function CartPage() {
                   <div key={productId} className="bg-white rounded-2xl border border-slate-100 p-3 sm:p-4 shadow-sm flex flex-row gap-3 sm:gap-4 overflow-hidden items-stretch">
                     <Link href={`/product/${item.slug}`} className="relative w-20 h-20 sm:w-28 sm:h-28 rounded-xl bg-slate-50 flex-shrink-0 border border-slate-100 overflow-hidden group">
                       <Image src={imageUrl} alt={item.name} fill className="object-cover group-hover:scale-105 transition-transform duration-300" />
-                      {isOutOfStock && <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white text-[9px] font-black tracking-wider backdrop-blur-sm">Out of Stock</div>}
                     </Link>
 
                     <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
@@ -298,7 +269,7 @@ export default function CartPage() {
                           <div className="flex items-center bg-slate-50 rounded-lg sm:rounded-xl border border-slate-100 h-8 sm:h-10">
                             <button onClick={() => decreaseQty(productId)} className="w-8 sm:w-10 h-full flex items-center justify-center text-slate-500 hover:text-slate-900 font-bold transition-colors">−</button>
                             <span className="w-6 sm:w-8 text-center text-xs font-black text-slate-900">{item.quantity}</span>
-                            <button onClick={() => increaseQty(productId)} disabled={isOutOfStock} className="w-8 sm:w-10 h-full flex items-center justify-center text-slate-500 hover:text-slate-900 font-bold transition-colors">+</button>
+                            <button onClick={() => increaseQty(productId)} className="w-8 sm:w-10 h-full flex items-center justify-center text-slate-500 hover:text-slate-900 font-bold transition-colors">+</button>
                           </div>
                         </div>
 
@@ -438,10 +409,20 @@ export default function CartPage() {
                 </div>
                 <div className="flex flex-col text-right">
                   <div className="flex justify-between text-slate-500 text-xs sm:text-xs font-bold tracking-widest gap-8">
-                    <span>Shipping Fee</span>
-                    <span className="text-[#1EAA5F] font-black">FREE*</span>
+                    <span>Shipping Fee {isInternational ? '(International)' : ''}</span>
+                    {isInternational ? (
+                      intlShipping > 0 ? (
+                        <span className="text-slate-900 tabular-nums font-black">{formatLocalPrice(intlShipping)}</span>
+                      ) : (
+                        <span className="text-[#1EAA5F] font-black">FREE</span>
+                      )
+                    ) : (
+                      <span className="text-[#1EAA5F] font-black">FREE*</span>
+                    )}
                   </div>
-                  <span className="text-[10px] text-slate-400 font-bold mt-1 tracking-tight">*On Online Orders</span>
+                  {!isInternational && (
+                    <span className="text-[10px] text-slate-400 font-bold mt-1 tracking-tight">*On Online Orders</span>
+                  )}
                 </div>
                 {savings > 0 && (
                   <div className="flex justify-between text-slate-500 text-xs sm:text-xs font-bold tracking-widest">
@@ -467,10 +448,16 @@ export default function CartPage() {
                 </div>
               </div>
 
+              {!canShip && (
+                <p className="text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 mt-2 leading-snug">
+                  {shippingRestrictionMessage}
+                </p>
+              )}
+
               <button
                 onClick={handleCheckout}
-                disabled={loading}
-                className="w-full bg-[hsl(var(--swago-purple))] text-white font-black py-4 px-6 rounded-xl text-sm hover:opacity-90 transition-opacity transform active:scale-[0.98] tracking-[0.15em] mt-3 flex items-center justify-between group disabled:opacity-75 disabled:cursor-not-allowed"
+                disabled={loading || !canShip}
+                className="w-full bg-[hsl(var(--swago-purple))] text-white font-black py-4 px-6 rounded-xl text-sm hover:opacity-90 transition-opacity transform active:scale-[0.98] tracking-[0.15em] mt-3 flex items-center justify-between group disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <span className="ml-1 tracking-widest">Proceed</span>
                 <div className="bg-white/20 p-1.5 rounded-lg group-hover:translate-x-1 transition-transform">
@@ -507,8 +494,8 @@ export default function CartPage() {
           </div>
           <button
             onClick={handleCheckout}
-            disabled={loading}
-            className="flex-[1.5] bg-[hsl(var(--swago-purple))] text-white font-black h-12 rounded-xl active:scale-[0.98] transition-transform text-xs tracking-[0.1em] flex items-center justify-center gap-2 disabled:opacity-75"
+            disabled={loading || !canShip}
+            className="flex-[1.5] bg-[hsl(var(--swago-purple))] text-white font-black h-12 rounded-xl active:scale-[0.98] transition-transform text-xs tracking-[0.1em] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Checkout
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
@@ -523,6 +510,7 @@ export default function CartPage() {
         onClose={() => setCouponSheetOpen(false)}
         onApply={applyCoupon}
         total={total}
+        localTotal={localCartTotal}
         availableCoupons={availableCoupons}
         loading={couponLoading}
         error={couponError}

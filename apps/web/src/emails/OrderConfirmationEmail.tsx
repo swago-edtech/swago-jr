@@ -39,6 +39,10 @@ export interface OrderConfirmationEmailProps {
   city: string;
   state: string;
   pincode: string;
+  /** International orders only: symbol of the charged currency (amounts are then local). Default ₹. */
+  currencySymbol?: string;
+  /** International orders only: label for the shipping row. Default "Shipping". */
+  shippingLabel?: string;
 }
 
 // Ensure the styles are perfectly responsive
@@ -59,7 +63,10 @@ export default function OrderConfirmationEmail({
   city,
   state,
   pincode,
+  currencySymbol = '₹',
+  shippingLabel = 'Shipping',
 }: OrderConfirmationEmailProps) {
+  const sym = currencySymbol;
   const logoUrl =
     'https://gateway.pinata.cloud/ipfs/bafybeihlhw37q43gmnxgpdynjymvkxgtga4acaqa7df2va2gx7rkpd3dcq';
 
@@ -149,7 +156,7 @@ export default function OrderConfirmationEmail({
                     <Text style={itemSub}>Qty: {item.quantity}</Text>
                   </Column>
                   <Column style={itemCalcCol}>
-                    <Text style={itemTotalCalc}>₹{(Number(item.price) * Number(item.quantity)).toFixed(2)}</Text>
+                    <Text style={itemTotalCalc}>{sym}{(Number(item.price) * Number(item.quantity)).toFixed(2)}</Text>
                   </Column>
                 </Row>
               )) : (
@@ -164,7 +171,7 @@ export default function OrderConfirmationEmail({
                   <Text style={billingKey}>Subtotal</Text>
                 </Column>
                 <Column style={alignRight}>
-                  <Text style={billingValue}>₹{Number(subtotal).toFixed(2)}</Text>
+                  <Text style={billingValue}>{sym}{Number(subtotal).toFixed(2)}</Text>
                 </Column>
               </Row>
 
@@ -174,7 +181,7 @@ export default function OrderConfirmationEmail({
                     <Text style={billingKey}>Discount</Text>
                   </Column>
                   <Column style={alignRight}>
-                    <Text style={billingDiscount}>- ₹{Number(discount).toFixed(2)}</Text>
+                    <Text style={billingDiscount}>{`- ${sym}`}{Number(discount).toFixed(2)}</Text>
                   </Column>
                 </Row>
               )}
@@ -185,17 +192,17 @@ export default function OrderConfirmationEmail({
                     <Text style={billingKey}>Swago Money Applied</Text>
                   </Column>
                   <Column style={alignRight}>
-                    <Text style={billingDiscount}>- ₹{Number(swagoMoneyRedeemed).toFixed(2)}</Text>
+                    <Text style={billingDiscount}>{`- ${sym}`}{Number(swagoMoneyRedeemed).toFixed(2)}</Text>
                   </Column>
                 </Row>
               )}
 
               <Row style={billingRow}>
                 <Column>
-                  <Text style={billingKey}>Shipping</Text>
+                  <Text style={billingKey}>{shippingLabel}</Text>
                 </Column>
                 <Column style={alignRight}>
-                  <Text style={billingValue}>{Number(shipping) === 0 ? 'Free' : `₹${Number(shipping).toFixed(2)}`}</Text>
+                  <Text style={billingValue}>{Number(shipping) === 0 ? 'Free' : `${sym}${Number(shipping).toFixed(2)}`}</Text>
                 </Column>
               </Row>
 
@@ -206,14 +213,14 @@ export default function OrderConfirmationEmail({
                   <Text style={finalTotalKey}>{totalAmountLabel}</Text>
                 </Column>
                 <Column style={alignRight}>
-                  <Text style={finalTotalValue}>₹{Number(totalAmount).toFixed(2)}</Text>
+                  <Text style={finalTotalValue}>{sym}{Number(totalAmount).toFixed(2)}</Text>
                 </Column>
               </Row>
 
               {totalDiscount > 0 && (
                 <Section style={savingsBadgeContainer}>
                   <Text style={savingsBadgeText}>
-                    🎉 Awesome! You saved ₹{totalDiscount.toFixed(2)} on this order.
+                    {`🎉 Awesome! You saved ${sym}`}{totalDiscount.toFixed(2)}{' on this order.'}
                   </Text>
                 </Section>
               )}

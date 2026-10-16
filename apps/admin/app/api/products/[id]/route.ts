@@ -4,7 +4,7 @@ import { Product, hasActiveBomConfig } from "@swago/database";
 import { connectDB } from "@swago/database";
 import mongoose from "mongoose";
 import { parseComboFields } from "@/lib/combo-units";
-import { normalizeInternationalPricing } from "@/lib/international-pricing";
+import { normalizeInternationalPricing, normalizeInternationalShipping } from "@/lib/international-pricing";
 
 // GET /api/products/[id] - Get single product
 export async function GET(
@@ -136,6 +136,9 @@ export async function PUT(
     if (body.internationalPricing !== undefined) {
       updateFields.internationalPricing = normalizeInternationalPricing(body.internationalPricing);
     }
+    if (body.internationalShipping !== undefined) {
+      updateFields.internationalShipping = normalizeInternationalShipping(body.internationalShipping);
+    }
 
     // Update product
     const updatedProduct = await Product.findByIdAndUpdate(
@@ -160,6 +163,14 @@ export async function PUT(
     if (error.code === 11000) {
       return NextResponse.json(
         { error: "A product with similar name already exists" },
+        { status: 400 }
+      );
+    }
+
+    // Handle Mongoose validation errors
+    if (error.name === 'ValidationError') {
+      return NextResponse.json(
+        { error: error.message },
         { status: 400 }
       );
     }

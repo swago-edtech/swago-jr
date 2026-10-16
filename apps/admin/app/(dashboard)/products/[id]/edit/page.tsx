@@ -30,6 +30,7 @@ type Product = {
   promotionalMessage?: string;
   skills?: { title: string; image: string }[];
   internationalPricing?: Record<string, { price: number; originalPrice?: number }>;
+  internationalShipping?: Record<string, { fee: number }>;
 };
 
 export default function EditProductPage() {

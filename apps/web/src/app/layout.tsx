@@ -28,15 +28,15 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="en" className={poppins.variable} suppressHydrationWarning>
       <body className="flex flex-col min-h-screen bg-gray-50 font-poppins" suppressHydrationWarning>
-        <SharedProvider>
-          <CountryProvider>
+        <CountryProvider>
+          <SharedProvider>
             <Suspense fallback={<div className="flex-grow" />}>
               <LayoutUI isBlogOnly={isBlogOnly}>
                 {children}
               </LayoutUI>
             </Suspense>
-          </CountryProvider>
-        </SharedProvider>
+          </SharedProvider>
+        </CountryProvider>
 
         {/* Google Analytics Component */}
         <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || ""} />

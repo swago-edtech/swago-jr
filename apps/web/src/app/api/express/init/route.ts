@@ -71,13 +71,6 @@ export async function GET(request: NextRequest) {
 
     const availableStock = product.availableStock ?? 0;
 
-    if (availableStock === 0) {
-      return NextResponse.json(
-        { success: false, error: "This product is currently out of stock" },
-        { status: 400 }
-      );
-    }
-
     // ========================================
     // 2. Validate coupon (if provided)
     // ========================================
@@ -122,14 +115,15 @@ export async function GET(request: NextRequest) {
       isFeatured: true,
       _id: { $ne: product._id },
     })
-      .select("_id name price originalPrice images slug stock reservedStock label rating numReviews ageCategory weight internationalPricing")
+      .select("_id name price originalPrice images slug stock reservedStock label rating numReviews ageCategory weight internationalPricing internationalShipping")
       .limit(4)
       .lean() as unknown as ProductDocument[];
 
     const configuredIds = await getConfiguredProductIds();
     const crossSells = crossSellProducts
       .map((p) => enrichProductAvailability(p, configuredIds))
-      .filter((p) => p.availableStock > 0);
+      // Stock decoupled: don't filter cross-sell by stock
+      ;
 
     // ========================================
     // 4. Fetch active promotion config
@@ -188,6 +182,7 @@ export async function GET(request: NextRequest) {
         skills: product.skills,
         weight: (product as any).weight || 0,
         internationalPricing: (product as any).internationalPricing || undefined,
+        internationalShipping: (product as { internationalShipping?: unknown }).internationalShipping || undefined,
         availableStock,
       },
       coupon: couponData,

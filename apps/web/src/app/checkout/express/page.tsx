@@ -12,6 +12,7 @@ import ExpressOrderSummary from "@/components/ExpressOrderSummary";
 import ExpressCrossSell from "@/components/ExpressCrossSell";
 import { Feedback } from "@/lib/feedback";
 import { useCountry } from "@/context/CountryContext";
+import { computeInternationalDisplayTotal } from "@swago/utils";
 import {
   COD_MAX_UNITS,
   COD_UNIT_LIMIT_MESSAGE,
@@ -33,6 +34,8 @@ interface ExpressCartItem {
   _id: string; name: string; price: number; originalPrice?: number;
   images: string[]; slug?: string; quantity: number; availableStock: number;
   weight?: number;
+  internationalPricing?: Record<string, { price: number; originalPrice?: number }>;
+  internationalShipping?: Record<string, { fee: number }>;
 }
 
 function ExpressCheckoutContent() {
@@ -43,7 +46,7 @@ function ExpressCheckoutContent() {
   const utmSource = searchParams.get("utm_source") || "";
   const utmMedium = searchParams.get("utm_medium") || "";
   const utmCampaign = searchParams.get("utm_campaign") || "";
-  const { formatPrice, formatLocalPrice, getLocalPrice, toLocalAmount, country, isInternational, calculateShippingFee, calculateShippingFeeLocal } = useCountry();
+  const { formatPrice, formatLocalPrice, getLocalPrice, toLocalAmount, country, isInternational, resolveIntlShipping, canShip, shippingRestrictionMessage } = useCountry();
 
   // Page state
   const [loading, setLoading] = useState(true);
@@ -82,9 +85,14 @@ function ExpressCheckoutContent() {
   const [widgetReady, setWidgetReady] = useState(false);
   const [fetchingPincode, setFetchingPincode] = useState(false);
 
-  // Auto-fetch City and State from Pincode
+  // International addresses must be typed in; India keeps its default for the locked state dropdown
   useEffect(() => {
-    if (pincode && pincode.length === 6) {
+    setState(isInternational ? "" : "Tamil Nadu");
+  }, [isInternational]);
+
+  // Auto-fetch City and State from Pincode (India only)
+  useEffect(() => {
+    if (!isInternational && pincode && pincode.length === 6) {
       const fetchPincodeData = async () => {
         setFetchingPincode(true);
         try {
@@ -114,7 +122,7 @@ function ExpressCheckoutContent() {
       };
       fetchPincodeData();
     }
-  }, [pincode]);
+  }, [pincode, isInternational]);
   
   useEffect(() => {
     if (!scriptLoaded) return;
@@ -201,7 +209,6 @@ function ExpressCheckoutContent() {
   const increaseQty = (id: string) => {
     setCart(prev => prev.map(item => {
       if (item._id !== id) return item;
-      if (item.quantity >= item.availableStock) return item;
       return { ...item, quantity: item.quantity + 1 };
     }));
   };
@@ -309,21 +316,28 @@ function ExpressCheckoutContent() {
     }
   }, [isCodBlocked, paymentMethod]);
 
-  const totalWeight = useMemo(() => cart.reduce((sum, item) => sum + ((item.weight || 0) * item.quantity), 0), [cart]);
+  // International only: product fixed shipping (per line) + config rules for the rest
+  const intlShipping = useMemo(
+    () => (isInternational ? resolveIntlShipping(cart) : null),
+    [isInternational, resolveIntlShipping, cart]
+  );
 
   const shippingFee = useMemo(() => {
-    if (isInternational) return calculateShippingFee(totalWeight);
+    if (isInternational) return intlShipping?.feeINR ?? 0;
     if (paymentMethod === "razorpay") return 0;
     const threshold = promotion?.shippingThreshold || 1450;
     return subtotal >= threshold ? 0 : 50;
-  }, [paymentMethod, subtotal, promotion, isInternational, calculateShippingFee, totalWeight]);
+  }, [paymentMethod, subtotal, promotion, isInternational, intlShipping]);
   const finalTotal = useMemo(() => Math.max(0, subtotal - discount + shippingFee), [subtotal, discount, shippingFee]);
   const localFinalTotal = useMemo(() => {
     const localSub = cart.reduce((s, i) => s + getLocalPrice(i).price * i.quantity, 0);
     const localDisc = toLocalAmount(discount);
-    const localShip = isInternational ? calculateShippingFeeLocal(totalWeight) : shippingFee;
+    const localShip = isInternational ? intlShipping?.feeLocal ?? 0 : shippingFee;
+    if (isInternational) {
+      return computeInternationalDisplayTotal({ localMerchandise: localSub, localDiscount: localDisc, localShipping: localShip });
+    }
     return Math.max(0, localSub - localDisc + localShip);
-  }, [cart, getLocalPrice, toLocalAmount, discount, isInternational, calculateShippingFeeLocal, totalWeight, shippingFee]);
+  }, [cart, getLocalPrice, toLocalAmount, discount, isInternational, intlShipping, shippingFee]);
 
   // ========================================
   // FORM VALIDATION
@@ -335,8 +349,11 @@ function ExpressCheckoutContent() {
     if (!firstName) errs.push("firstName");
     if (!lastName) errs.push("lastName");
     if (!address) errs.push("address");
-    if (!city) errs.push("city");
-    if (!pincode || pincode.length < 5) errs.push("pincode");
+    if (!city.trim()) errs.push("city");
+    if (!state.trim()) errs.push("state");
+    // UAE postal code is optional in practice; keep required for IN/US/CA
+    const postalRequired = !(isInternational && country?.code === "AE");
+    if (postalRequired && (!pincode || pincode.length < 5)) errs.push("pincode");
     setErrors(errs);
     if (errs.length > 0) { setMessage("Please fill in all required fields."); return false; }
     return true;
@@ -346,6 +363,7 @@ function ExpressCheckoutContent() {
   // PAYMENT HANDLER
   // ========================================
   const handlePayNow = async () => {
+    if (!canShip) { setMessage(shippingRestrictionMessage); return; }
     if (!validateForm()) return;
     if (cart.length === 0) { setMessage("Your cart is empty."); return; }
 
@@ -622,7 +640,7 @@ function ExpressCheckoutContent() {
                     {errors.includes("address") && <p className="text-[10px] text-red-500 font-bold mt-1">Required</p>}
                   </div>
                   <div className="relative">
-                    <input value={pincode} maxLength={6} onChange={e => { const val = e.target.value.replace(/\D/g, '').slice(0, 6); setPincode(val); setErrors(p => p.filter(f => f !== "pincode")); setMessage(""); }} placeholder="PIN code" autoComplete="postal-code" className={`${inputClass("pincode")} ${fetchingPincode ? 'pr-10' : ''}`} />
+                    <input value={pincode} maxLength={isInternational ? 10 : 6} onChange={e => { const val = isInternational ? e.target.value.slice(0, 10) : e.target.value.replace(/\D/g, '').slice(0, 6); setPincode(val); setErrors(p => p.filter(f => f !== "pincode")); setMessage(""); }} placeholder={isInternational ? 'Postal / ZIP code' : 'PIN code'} autoComplete="postal-code" className={`${inputClass("pincode")} ${fetchingPincode ? 'pr-10' : ''}`} />
                     {fetchingPincode && (
                       <div className="absolute right-3 top-[20px] -translate-y-1/2">
                         <div className="w-4 h-4 border-2 border-[hsl(var(--swago-purple))] border-t-transparent rounded-full animate-spin" />
@@ -635,9 +653,16 @@ function ExpressCheckoutContent() {
                       <input value={city} onChange={e => { setCity(e.target.value); setErrors(p => p.filter(f => f !== "city")); setMessage(""); }} placeholder="City" autoComplete="address-level2" className={inputClass("city")} />
                       {errors.includes("city") && <p className="text-[10px] text-red-500 font-bold mt-1">Required</p>}
                     </div>
-                    <select value={state} onChange={e => setState(e.target.value)} disabled={true} autoComplete="address-level1" className="w-full h-10 px-3 border rounded-xl text-[13px] font-medium focus:outline-none transition shadow-inner appearance-none bg-slate-100 opacity-70 cursor-not-allowed border-[#e2e8f0] text-slate-500">
-                      {INDIAN_STATES.map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
+                    {isInternational ? (
+                      <div>
+                        <input value={state} onChange={e => { setState(e.target.value); setErrors(p => p.filter(f => f !== "state")); setMessage(""); }} placeholder="State / Province" autoComplete="address-level1" className={inputClass("state")} />
+                        {errors.includes("state") && <p className="text-[10px] text-red-500 font-bold mt-1">Required</p>}
+                      </div>
+                    ) : (
+                      <select value={state} onChange={e => setState(e.target.value)} disabled={true} autoComplete="address-level1" className="w-full h-10 px-3 border rounded-xl text-[13px] font-medium focus:outline-none transition shadow-inner appearance-none bg-slate-100 opacity-70 cursor-not-allowed border-[#e2e8f0] text-slate-500">
+                        {INDIAN_STATES.map(s => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                    )}
                   </div>
                 </div>
               </section>
@@ -717,9 +742,15 @@ function ExpressCheckoutContent() {
                 <ExpressOrderSummary items={cart} subtotal={subtotal} discount={discount} couponCode={dynamicCoupon.valid ? couponData.code : null} shippingFee={shippingFee} total={finalTotal} onIncreaseQty={increaseQty} onDecreaseQty={decreaseQty} onRemoveItem={removeItem} paymentMethod={paymentMethod} hideItems={true} />
               </div>
 
+              {!canShip && (
+                <div className="text-center p-3 rounded-lg text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                  {shippingRestrictionMessage}
+                </div>
+              )}
+
               {/* Pay Button */}
-              <button onClick={handlePayNow} disabled={processing}
-                className="w-full py-3.5 bg-[hsl(var(--swago-purple))] hover:opacity-90 text-white shadow-sm shadow-[hsl(var(--swago-purple))] hover:shadow-md hover:shadow-[hsl(var(--swago-purple))] text-[13px] font-bold rounded-xl transition flex justify-center items-center tracking-widest disabled:opacity-50">
+              <button onClick={handlePayNow} disabled={processing || !canShip}
+                className="w-full py-3.5 bg-[hsl(var(--swago-purple))] hover:opacity-90 text-white shadow-sm shadow-[hsl(var(--swago-purple))] hover:shadow-md hover:shadow-[hsl(var(--swago-purple))] text-[13px] font-bold rounded-xl transition flex justify-center items-center tracking-widest disabled:opacity-50 disabled:cursor-not-allowed">
                 {processing ? "Processing..." : paymentMethod === "cod" ? `Place Order — ${formatLocalPrice(localFinalTotal)}` : `Pay ${formatLocalPrice(localFinalTotal)}`}
               </button>
 

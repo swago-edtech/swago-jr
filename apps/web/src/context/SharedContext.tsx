@@ -3,6 +3,7 @@
 
 import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from "react";
 import { Feedback } from "../lib/feedback";
+import { useCountry } from "@/context/CountryContext";
 
 type PopulatedOrder = {
   _id: string;
@@ -43,6 +44,8 @@ export type Product = {
   skills?: { title: string; image: string }[];
   weight?: number;
   internationalPricing?: Record<string, { price: number; originalPrice?: number }> | Map<string, { price: number; originalPrice?: number }>;
+  /** Fixed international shipping per currency (local currency, once per cart line). */
+  internationalShipping?: Record<string, { fee: number }> | Map<string, { fee: number }>;
   createdAt?: string;
   updatedAt?: string;
 };
@@ -167,6 +170,7 @@ const normalizeCart = (items: any[]): CartItem[] => {
 };
 
 export function SharedProvider({ children }: { children: React.ReactNode }) {
+  const { canShip } = useCountry();
   const [cart, setCart] = useState<CartItem[]>([]);
   const [user, setUser] = useState<User | null>(null);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
@@ -342,6 +346,10 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
                 refreshed.internationalPricing !== undefined
                   ? refreshed.internationalPricing
                   : item.internationalPricing,
+              internationalShipping:
+                refreshed.internationalShipping !== undefined
+                  ? refreshed.internationalShipping
+                  : item.internationalShipping,
               quantity: item.quantity, // Stock decoupled
             };
           }).filter(item => item.quantity > 0);
@@ -679,41 +687,26 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
 
   // Cart functions
   const addToCart = (product: Product, quantity: number = 1) => {
+    if (!canShip) return;
+
     const available =
       product.availableStock ??
       (product.stock !== undefined ? product.stock : undefined);
 
-    if (available !== undefined && available === 0) {
-      alert("This product is out of stock");
-      return;
-    }
-
-    // Stock decoupled: always allow adding to cart
+    // Stock decoupled: always allow adding to cart when shipping is available
     setCart((prev) => {
       const productId = getProductId(product);
       const existing = prev.find((p) => getProductId(p) === productId);
 
       if (existing) {
         const newQuantity = existing.quantity + quantity;
-
-        if (available !== undefined && newQuantity > available) {
-          alert(`Only ${available} items available in stock`);
-          return prev;
-        }
-
         return prev.map((p) =>
           getProductId(p) === productId ? { ...p, quantity: newQuantity } : p
         );
       }
 
-      if (available !== undefined && quantity > available) {
-        alert(`Only ${available} items available in stock`);
-        return prev;
-      }
-
       Feedback.playPop();
       return [...prev, { ...product, quantity, availableStock: available }];
-      return [...prev, { ...product, quantity }];
     });
   };
 
@@ -724,25 +717,17 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
 
   const clearCart = () => setCart([]);
 
-  const increaseQty = (id: number | string) =>
+  const increaseQty = (id: number | string) => {
+    if (!canShip) return;
     setCart((prev) => prev.map((p) => {
       if (getProductId(p) !== id.toString()) return p;
 
-      // Stock decoupled: always allow increase
+      // Stock decoupled: always allow increase when shipping is available
       const newQuantity = p.quantity + 1;
-      const available =
-        p.availableStock ??
-        (p.stock !== undefined ? p.stock : undefined);
-
-      if (available !== undefined && newQuantity > available) {
-        alert(`Only ${available} items available in stock`);
-        return p;
-      }
-
-      
       Feedback.playPop();
       return { ...p, quantity: newQuantity };
     }));
+  };
 
   const decreaseQty = (id: number | string) => {
     Feedback.playRemove();

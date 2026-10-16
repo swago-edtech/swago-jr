@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useSharedContext, type CartItem, type Product, type CartPriceChange } from "@/context/SharedContext";
 import { useCountry } from "@/context/CountryContext";
+import { computeInternationalDisplayTotal } from "@swago/utils";
 import { useRouter } from "next/navigation";
 import Script from "next/script";
 import Image from "next/image";
@@ -10,6 +11,7 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { RiInformationLine, RiSearchLine, RiShoppingBag3Line } from "react-icons/ri";
 import CartProgress from "@/components/CartProgress";
+import ShippingBanner from "@/components/ShippingBanner";
 import { Feedback } from "@/lib/feedback";
 import {
   COD_MAX_UNITS,
@@ -44,9 +46,26 @@ const REFERRAL_OPTIONS = [
   "Friend or Family"
 ];
 
+function getZipLookupPath(countryCode: string, postalCode: string): string | null {
+  const code = postalCode.trim().toUpperCase();
+  if (countryCode === "US" && /^\d{5}$/.test(code)) return `us/${code}`;
+  if (countryCode === "CA" && /^[A-Z]\d[A-Z]/.test(code)) return `ca/${code.slice(0, 3)}`;
+  return null;
+}
+
+function toLocalPhone(rawPhone: string, phonePrefix: string): string {
+  const digits = rawPhone.replace(/\D/g, "");
+  const prefixDigits = phonePrefix.replace(/\D/g, "");
+  const hasPrefix = rawPhone.trim().startsWith("+") || digits.length > 10;
+  if (hasPrefix && prefixDigits && digits.startsWith(prefixDigits)) {
+    return digits.slice(prefixDigits.length);
+  }
+  return digits;
+}
+
 export default function CheckoutPage() {
   const { cart, total, user, isLoadingUser, clearCart, addToCart, appliedCoupon, setAppliedCoupon, appliedSwagoMoney, refreshCartPrices, isRefreshingCart } = useSharedContext();
-  const { country, formatPrice, formatLocalPrice, getLocalPrice, toLocalAmount, isInternational, calculateShippingFee, calculateShippingFeeLocal } = useCountry();
+  const { country, formatPrice, formatLocalPrice, getLocalPrice, toLocalAmount, isInternational, resolveIntlShipping, canShip, shippingRestrictionMessage } = useCountry();
   const COUNTRY_FLAGS: Record<string, string> = { IN: '🇮🇳', US: '🇺🇸', CA: '🇨🇦', AE: '🇦🇪' };
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
@@ -68,6 +87,8 @@ export default function CheckoutPage() {
   const [errors, setErrors] = useState<string[]>([]);
   const [priceChangeModal, setPriceChangeModal] = useState<CartPriceChange[] | null>(null);
   const [fetchingPincode, setFetchingPincode] = useState(false);
+  const phonePrefix = country.phonePrefix || "+91";
+  const fullPhone = `${phonePrefix}${phone}`;
 
   // Auto-fetch City and State from Pincode (India only)
   useEffect(() => {
@@ -103,6 +124,34 @@ export default function CheckoutPage() {
     }
   }, [pincode, isInternational]);
 
+  // International addresses must be typed in; India keeps its default for the locked state dropdown
+  useEffect(() => {
+    setState(isInternational ? "" : "Tamil Nadu");
+  }, [isInternational]);
+
+  // Auto-fill from postal code outside India where a free lookup exists (US: city + state, CA: province)
+  useEffect(() => {
+    if (!isInternational) return;
+    const lookupPath = getZipLookupPath(country.code, pincode);
+    if (!lookupPath) return;
+
+    const controller = new AbortController();
+    setFetchingPincode(true);
+    fetch(`https://api.zippopotam.us/${lookupPath}`, { signal: controller.signal })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        const place = data?.places?.[0];
+        if (!place) return;
+        if (place.state) setState(place.state);
+        if (country.code === "US" && place["place name"]) setCity(place["place name"]);
+        setErrors((prev) => prev.filter((e) => e !== "city" && e !== "state" && e !== "pincode"));
+      })
+      .catch(() => {})
+      .finally(() => setFetchingPincode(false));
+
+    return () => controller.abort();
+  }, [pincode, isInternational, country.code]);
+
   // Redirect if not logged in
   useEffect(() => {
     if (!isLoadingUser && !user) {
@@ -110,12 +159,15 @@ export default function CheckoutPage() {
     }
     if (user) {
       setEmail(user.email || "");
-      setPhone(user.phone || "");
       const nameParts = (user.name || "").split(" ");
       setFirstName(nameParts[0] || "");
       setLastName(nameParts.slice(1).join(" ") || "");
     }
   }, [user, isLoadingUser, router]);
+
+  useEffect(() => {
+    if (user) setPhone(toLocalPhone(user.phone || "", phonePrefix));
+  }, [user, phonePrefix]);
 
   // Refresh cart prices on checkout page mount
   useEffect(() => {
@@ -128,9 +180,12 @@ export default function CheckoutPage() {
     if (!firstName) newErrors.push("firstName");
     if (!lastName) newErrors.push("lastName");
     if (!address) newErrors.push("address");
-    if (!city) newErrors.push("city");
-    if (!pincode) newErrors.push("pincode");
-    if (!phone) newErrors.push("phone");
+    if (!city.trim()) newErrors.push("city");
+    if (!state.trim()) newErrors.push("state");
+    // UAE postal code is optional in practice; keep required for IN/US/CA
+    if (!(isInternational && country.code === "AE") && !pincode) newErrors.push("pincode");
+    const isPhoneValid = isInternational ? phone.length >= 6 && phone.length <= 14 : phone.length === 10;
+    if (!isPhoneValid) newErrors.push("phone");
     if (!age) newErrors.push("age");
     if (!referralSource) newErrors.push("referralSource");
 
@@ -139,8 +194,8 @@ export default function CheckoutPage() {
       const missingFields = [];
       if (newErrors.includes("email")) missingFields.push("Email");
       if (newErrors.includes("firstName") || newErrors.includes("lastName")) missingFields.push("Full Name");
-      if (newErrors.includes("address") || newErrors.includes("city") || newErrors.includes("pincode")) missingFields.push("Complete Address");
-      if (newErrors.includes("phone")) missingFields.push("Phone Number");
+      if (["address", "city", "state", "pincode"].some((field) => newErrors.includes(field))) missingFields.push("Complete Address");
+      if (newErrors.includes("phone")) missingFields.push("Valid Phone Number");
       if (newErrors.includes("age")) missingFields.push("Child's Age");
       if (newErrors.includes("referralSource")) missingFields.push("How you heard about us");
       
@@ -151,6 +206,10 @@ export default function CheckoutPage() {
   };
 
   const handlePayNow = async () => {
+    if (!canShip) {
+      setMessage(shippingRestrictionMessage);
+      return;
+    }
     if (!validateForm()) return;
 
     // ✅ CRITICAL: Re-validate cart prices right before payment
@@ -206,7 +265,7 @@ export default function CheckoutPage() {
           orderDetails: {
             name: `${firstName} ${lastName}`,
             email,
-            phone,
+            phone: fullPhone,
             address,
             city,
             state,
@@ -219,7 +278,8 @@ export default function CheckoutPage() {
             swagoMoneyRedeemed: appliedSwagoMoney || 0,
             country: country.code,
             currency: country.currency,
-            exchangeRate: country.exchangeRate
+            exchangeRate: country.exchangeRate,
+            ...(isInternational ? { displayTotal: localFinalTotal } : {})
           }
         })
       });
@@ -246,7 +306,7 @@ export default function CheckoutPage() {
             router.push("/orders");
           }
         },
-        prefill: { name: `${firstName} ${lastName}`, email, contact: phone },
+        prefill: { name: `${firstName} ${lastName}`, email, contact: fullPhone },
         theme: { color: "#7c5dfa" }
       };
 
@@ -273,7 +333,7 @@ export default function CheckoutPage() {
           orderDetails: {
             name: `${firstName} ${lastName}`,
             email,
-            phone,
+            phone: fullPhone,
             address,
             city,
             state,
@@ -286,7 +346,8 @@ export default function CheckoutPage() {
             swagoMoneyRedeemed: appliedSwagoMoney || 0,
             country: country.code,
             currency: country.currency,
-            exchangeRate: country.exchangeRate
+            exchangeRate: country.exchangeRate,
+            ...(isInternational ? { displayTotal: localFinalTotal } : {})
           }
         })
       });
@@ -352,14 +413,20 @@ export default function CheckoutPage() {
     }
   }, [isCodBlocked, paymentMethod]);
 
-  const totalWeight = useMemo(() => cart.reduce((sum, item) => sum + ((item.weight || 0) * item.quantity), 0), [cart]);
+
+  // International only: product fixed shipping (per line) + config rules for the rest
+  const intlShipping = useMemo(
+    () => (isInternational ? resolveIntlShipping(cart) : null),
+    [isInternational, resolveIntlShipping, cart]
+  );
+  const intlShippingLocal = intlShipping?.feeLocal ?? 0;
 
   const shippingFee = useMemo(() => {
-    if (isInternational) return calculateShippingFee(totalWeight);
+    if (isInternational) return intlShipping?.feeINR ?? 0;
     if (paymentMethod === 'razorpay') return 0;
     const threshold = promotion?.shippingThreshold || 1450;
     return total >= threshold ? 0 : 50;
-  }, [paymentMethod, total, promotion, isInternational, calculateShippingFee, totalWeight]);
+  }, [paymentMethod, total, promotion, isInternational, intlShipping]);
 
   const finalTotal = useMemo(() => {
     const discountedTotal = appliedCoupon ? total - appliedCoupon.discount : total;
@@ -373,17 +440,22 @@ export default function CheckoutPage() {
   const localFinalTotal = useMemo(() => {
     const localDiscount = toLocalAmount(appliedCoupon?.discount || 0);
     const localSwago = toLocalAmount(appliedSwagoMoney || 0);
-    const localShipping = isInternational
-      ? calculateShippingFeeLocal(totalWeight)
-      : shippingFee;
+    const localShipping = isInternational ? intlShippingLocal : shippingFee;
+    if (isInternational) {
+      return computeInternationalDisplayTotal({
+        localMerchandise: localMerchandiseTotal,
+        localDiscount,
+        localSwago,
+        localShipping,
+      });
+    }
     return Math.max(0, localMerchandiseTotal - localDiscount - localSwago + localShipping);
   }, [
     localMerchandiseTotal,
     appliedCoupon,
     appliedSwagoMoney,
     isInternational,
-    calculateShippingFeeLocal,
-    totalWeight,
+    intlShippingLocal,
     shippingFee,
     toLocalAmount,
   ]);
@@ -426,14 +498,7 @@ export default function CheckoutPage() {
     <div className="min-h-screen bg-white flex flex-col font-sans">
       <Script src="https://checkout.razorpay.com/v1/checkout.js" />
 
-      <div className="bg-[hsl(var(--swago-purple))] py-3 text-center">
-        <p className="text-white text-[10px] font-[1000] tracking-widest leading-tight">
-          {isInternational
-            ? `International Shipping to ${country.name} — ${formatLocalPrice(calculateShippingFeeLocal(totalWeight))}`
-            : 'Enjoy Free Shipping, on orders above ₹1450'
-          }
-        </p>
-      </div>
+      <ShippingBanner cart={cart} />
 
 
       {/* Mobile Sticky Order Summary Toggle */}
@@ -536,7 +601,7 @@ export default function CheckoutPage() {
                     onChange={(e) => { setAge(e.target.value); if (errors.includes("age")) { setErrors(errors.filter(f => f !== "age")); setMessage(""); } }}
                     className={`w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-[hsl(var(--swago-purple))] outline-none text-sm bg-white shadow-sm appearance-none ${errors.includes("age") ? 'border-red-500 bg-red-50 text-red-900' : 'border-slate-200'}`}
                   >
-                    <option value="" disabled>Child's Age</option>
+                    <option value="" disabled>Child&apos;s Age *</option>
                     {[...Array(9)].map((_, i) => (
                       <option key={i + 6} value={i + 6}>{i + 6} Years</option>
                     ))}
@@ -564,7 +629,7 @@ export default function CheckoutPage() {
                       onChange={(e) => { const val = isInternational ? e.target.value.slice(0, 10) : e.target.value.replace(/\D/g, '').slice(0, 6); setPincode(val); if (errors.includes("pincode")) { setErrors(errors.filter(f => f !== "pincode")); setMessage(""); } }}
                       className={`w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-[hsl(var(--swago-purple))] outline-none text-sm shadow-sm ${errors.includes("pincode") ? 'border-red-500 bg-red-50 placeholder-red-300' : 'border-slate-200'} ${fetchingPincode ? 'pr-10' : ''}`}
                     />
-                    {fetchingPincode && !isInternational && (
+                    {fetchingPincode && (
                       <div className="absolute right-4 top-[24px] -translate-y-1/2">
                         <div className="w-4 h-4 border-2 border-[hsl(var(--swago-purple))] border-t-transparent rounded-full animate-spin" />
                       </div>
@@ -585,9 +650,10 @@ export default function CheckoutPage() {
                       <input
                         placeholder="State / Province"
                         value={state}
-                        onChange={(e) => setState(e.target.value)}
-                        className="w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-[hsl(var(--swago-purple))] outline-none text-sm shadow-sm border-slate-200"
+                        onChange={(e) => { setState(e.target.value); if (errors.includes("state")) { setErrors(errors.filter(f => f !== "state")); setMessage(""); } }}
+                        className={`w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-[hsl(var(--swago-purple))] outline-none text-sm shadow-sm ${errors.includes("state") ? 'border-red-500 bg-red-50 placeholder-red-300' : 'border-slate-200'}`}
                       />
+                      {errors.includes("state") && <p className="text-[10px] text-red-500 font-bold">State / Province is needed</p>}
                     </div>
                   ) : (
                     <select
@@ -601,15 +667,30 @@ export default function CheckoutPage() {
                   )}
                 </div>
 
-                <div className="relative flex flex-col gap-1">
-                  <input
-                    placeholder="Phone"
-                    value={phone}
-                    onChange={(e) => { setPhone(e.target.value); if (errors.includes("phone")) { setErrors(errors.filter(f => f !== "phone")); setMessage(""); } }}
-                    className={`w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-[hsl(var(--swago-purple))] outline-none text-sm shadow-sm pr-10 ${errors.includes("phone") ? 'border-red-500 bg-red-50 placeholder-red-300' : 'border-slate-200'}`}
-                  />
-                  <RiInformationLine className="absolute right-4 top-[24px] -translate-y-1/2 text-slate-400 cursor-help" />
-                  {errors.includes("phone") && <p className="text-[10px] text-red-500 font-bold">Phone number is needed</p>}
+                <div className="flex flex-col gap-1">
+                  <div className="flex gap-2">
+                    <div className="h-12 w-16 flex-shrink-0 border border-slate-200 rounded-md bg-slate-100/70 shadow-sm flex items-center justify-center text-sm font-bold text-slate-700">
+                      {phonePrefix}
+                    </div>
+                    <div className="relative flex-1">
+                      <input
+                        type="tel"
+                        inputMode="numeric"
+                        autoComplete="tel-national"
+                        placeholder="Phone number"
+                        value={phone}
+                        maxLength={isInternational ? 14 : 10}
+                        onChange={(e) => { setPhone(e.target.value.replace(/\D/g, "").slice(0, isInternational ? 14 : 10)); if (errors.includes("phone")) { setErrors(errors.filter(f => f !== "phone")); setMessage(""); } }}
+                        className={`w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-[hsl(var(--swago-purple))] outline-none text-sm shadow-sm pr-10 ${errors.includes("phone") ? 'border-red-500 bg-red-50 placeholder-red-300' : 'border-slate-200'}`}
+                      />
+                      <RiInformationLine className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 cursor-help" />
+                    </div>
+                  </div>
+                  {errors.includes("phone") && (
+                    <p className="text-[10px] text-red-500 font-bold">
+                      {isInternational ? "Enter a valid phone number" : "Enter a valid 10-digit phone number"}
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-2 pt-2">
@@ -627,7 +708,9 @@ export default function CheckoutPage() {
 
             {/* Referral Section */}
             <section>
-              <h2 className="text-lg font-semibold text-slate-800 mb-3">Where did you hear about us?</h2>
+              <h2 className="text-lg font-semibold text-slate-800 mb-3">
+                Where did you hear about us? <span className="text-rose-400">*</span>
+              </h2>
               <div className="flex flex-wrap gap-2">
                 {REFERRAL_OPTIONS.map(option => (
                   <button
@@ -648,11 +731,12 @@ export default function CheckoutPage() {
               <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 flex flex-col gap-2">
                 {isInternational ? (
                   <div className="flex justify-between items-center">
-                    <div>
-                      <p className="text-xs font-bold text-slate-700 uppercase tracking-wider">International Shipping</p>
-                      <p className="text-[10px] text-slate-400 mt-0.5">via India Post (EMS/Speed Post)</p>
-                    </div>
-                    <p className="text-xs font-black text-slate-800">{formatLocalPrice(calculateShippingFeeLocal(totalWeight))}</p>
+                    <p className="text-xs font-bold text-slate-700 uppercase tracking-wider">International Shipping</p>
+                    {intlShippingLocal > 0 ? (
+                      <p className="text-xs font-black text-slate-800">{formatLocalPrice(intlShippingLocal)}</p>
+                    ) : (
+                      <p className="text-xs font-black text-emerald-600">FREE SHIPPING</p>
+                    )}
                   </div>
                 ) : (
                   <>
@@ -768,18 +852,24 @@ export default function CheckoutPage() {
               </motion.div>
             )}
 
+            {!canShip && (
+              <div className="text-center p-3 rounded-lg text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                {shippingRestrictionMessage}
+              </div>
+            )}
+
             <button
               onClick={handlePayNow}
-              disabled={processing}
-              className="w-full h-14 btn-shine bg-[hsl(var(--swago-purple))] hover:brightness-110 text-white font-black rounded-lg text-lg tracking-widest shadow-xl shadow-[hsl(var(--swago-purple))/0.2] transition-all transform active:scale-95 disabled:opacity-50"
+              disabled={processing || !canShip}
+              className="w-full h-14 btn-shine bg-[hsl(var(--swago-purple))] hover:brightness-110 text-white font-black rounded-lg text-lg tracking-widest shadow-xl shadow-[hsl(var(--swago-purple))/0.2] transition-all transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {processing ? "Processing..." : "Pay now"}
             </button>
 
             <footer className="pt-8 border-t flex flex-wrap gap-x-6 gap-y-2 text-[10px] text-[hsl(var(--swago-purple))] tracking-widest font-black">
-              <Link href="/refund-policy" className="hover:underline">Refund policy</Link>
-              <Link href="/privacy-policy" className="hover:underline">Privacy policy</Link>
-              <Link href="/terms-of-service" className="hover:underline">Terms of service</Link>
+              <Link href="/cancellation-policy" className="hover:underline">Cancellation policy</Link>
+              <Link href="/privacy" className="hover:underline">Privacy policy</Link>
+              <Link href="/terms" className="hover:underline">Terms of service</Link>
             </footer>
           </div>
         </div>
@@ -828,12 +918,7 @@ export default function CheckoutPage() {
                   </div>
                 </div>
               ))}
-              {priceChangeModal.filter(c => c.field === 'stock').map((change, i) => (
-                <div key={`stock-${i}`} className="text-xs text-rose-600 font-bold">
-                  {change.productName}: {Number(change.newValue) === 0 ? 'Out of stock' : `Only ${change.newValue} available`}
-                </div>
-              ))}
-              {priceChangeModal.filter(c => c.field !== 'price' && c.field !== 'stock').map((change, i) => (
+              {priceChangeModal.filter(c => c.field !== 'price').map((change, i) => (
                 <div key={`other-${i}`} className="text-xs text-slate-500 font-medium">
                   {change.productName}: {change.field} updated
                 </div>
@@ -869,8 +954,11 @@ function OrderSummary({
   cart, total, appliedCoupon, couponCode, setCouponCode, applyCoupon,
   promotion, progressPercent, nextTier, addToCart, appliedSwagoMoney, paymentMethod, finalTotal, shippingFee
 }: any) {
-  const { formatLocalPrice, getLocalPrice, toLocalAmount, country, isInternational, calculateShippingFeeLocal } = useCountry();
-  const totalWeight = useMemo(() => cart.reduce((sum: number, item: any) => sum + ((item.weight || 0) * item.quantity), 0), [cart]);
+  const { formatLocalPrice, getLocalPrice, toLocalAmount, country, isInternational, resolveIntlShipping } = useCountry();
+  const intlShippingLocal = useMemo(
+    () => (isInternational ? resolveIntlShipping(cart).feeLocal : 0),
+    [isInternational, resolveIntlShipping, cart]
+  );
   const isAlreadyAdded = (slug: string) => cart.some((item: any) => (item.slug === slug || item._id === slug) && item.price === 1);
 
   const localSubtotal = useMemo(
@@ -879,8 +967,15 @@ function OrderSummary({
   );
   const localDiscount = toLocalAmount(appliedCoupon?.discount || 0);
   const localSwago = toLocalAmount(appliedSwagoMoney || 0);
-  const localShipping = isInternational ? calculateShippingFeeLocal(totalWeight) : shippingFee;
-  const localFinalTotal = Math.max(0, localSubtotal - localDiscount - localSwago + localShipping);
+  const localShipping = isInternational ? intlShippingLocal : shippingFee;
+  const localFinalTotal = isInternational
+    ? computeInternationalDisplayTotal({
+        localMerchandise: localSubtotal,
+        localDiscount,
+        localSwago,
+        localShipping,
+      })
+    : Math.max(0, localSubtotal - localDiscount - localSwago + localShipping);
 
   return (
     <>

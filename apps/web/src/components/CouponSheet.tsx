@@ -18,6 +18,8 @@ interface CouponSheetProps {
   onClose: () => void;
   onApply: (code: string) => Promise<void>;
   total: number;
+  /** Cart value in the visitor's currency, as shown in the cart (fixed international prices included). */
+  localTotal: number;
   availableCoupons: Coupon[];
   loading?: boolean;
   error?: string;
@@ -28,12 +30,13 @@ export default function CouponSheet({
   onClose,
   onApply,
   total,
+  localTotal,
   availableCoupons,
   loading,
   error
 }: CouponSheetProps) {
   const [couponInput, setCouponInput] = useState('');
-  const { formatPrice } = useCountry();
+  const { formatPrice, formatLocalPrice } = useCountry();
 
   const handleApplyClick = () => {
     if (couponInput.trim()) {
@@ -71,7 +74,7 @@ export default function CouponSheet({
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-white rounded-t-[2.5rem]">
               <div>
                 <h3 className="text-base font-black text-slate-900 tracking-tight">Coupons & Offers</h3>
-                <p className="text-[10px] text-slate-400 font-bold mt-0.5">Cart value · {formatPrice(total)}</p>
+                <p className="text-[10px] text-slate-400 font-bold mt-0.5">Cart value · {formatLocalPrice(localTotal)}</p>
               </div>
               <button onClick={onClose} className="w-9 h-9 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">

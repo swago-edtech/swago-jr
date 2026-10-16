@@ -13,7 +13,7 @@ import { RiShareForwardFill } from "react-icons/ri";
 export default function ProductCard({ product }: { product: Product }) {
   const router = useRouter();
   const { cart, addToCart, addToWishlist, removeFromWishlist, isWishlisted, openCartSidebar, increaseQty, decreaseQty } = useSharedContext();
-  const { getLocalPrice, formatLocalPrice } = useCountry();
+  const { getLocalPrice, formatLocalPrice, canShip, shippingRestrictionMessage } = useCountry();
 
   // Use MongoDB _id or slug for routing
   const productIdentifier = product._id || product.slug || '';
@@ -21,13 +21,6 @@ export default function ProductCard({ product }: { product: Product }) {
 
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isHovering, setIsHovering] = useState(false);
-
-  const availableStock =
-    product.availableStock ??
-    (product.stock !== undefined ? product.stock : undefined);
-  const lowStockThreshold = product.lowStockThreshold ?? 10;
-  const isOutOfStock = false; // Stock decoupled: customers can always order
-  const isLowStock = false; // Stock decoupled: hide low-stock urgency
 
   // Check if item is in cart and get quantity
   const getCartItemId = (item: CartItem): string => {
@@ -104,12 +97,14 @@ export default function ProductCard({ product }: { product: Product }) {
     e.preventDefault();
     e.stopPropagation();
 
-    if (isOutOfStock) return;
+    if (!canShip) return;
 
     console.log('🛒 Adding to cart:', product.name);
     addToCart(product);
     router.push("/cart");
   };
+
+  const cartDisabled = !canShip;
 
   // Handle quantity increase
   const handleIncrease = (e: React.MouseEvent) => {
@@ -203,17 +198,6 @@ export default function ProductCard({ product }: { product: Product }) {
                 {product.label}
               </div>
             )}
-
-            {isOutOfStock && (
-              <div className="absolute top-3 left-3 bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full z-10">
-                Out of Stock
-              </div>
-            )}
-            {isLowStock && !isOutOfStock && !product.label && (
-              <div className="absolute top-3 left-3 bg-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full z-10">
-                Only {availableStock} left!
-              </div>
-            )}
           </div>
 
           <div className="p-2 sm:p-4 flex flex-col flex-grow">
@@ -257,18 +241,26 @@ export default function ProductCard({ product }: { product: Product }) {
                 </div>
               )}
 
+              {!canShip && (
+                <div className="mb-3 px-2 py-1.5 bg-amber-50 border border-amber-200 rounded-lg text-center">
+                  <span className="text-[10px] sm:text-xs font-bold text-amber-800 block leading-snug">
+                    {shippingRestrictionMessage}
+                  </span>
+                </div>
+              )}
+
               {/* Show Add to Cart OR Quantity Controls */}
-              {!isInCart ? (
-                // Show "Add to Cart" button when item is NOT in cart
+              {!isInCart || !canShip ? (
+                // Show "Add to Cart" button when item is NOT in cart (or shipping locked)
                 <motion.button
                   onClick={handleAddToCart}
-                  disabled={isOutOfStock}
-                  className={`w-full font-black py-3 rounded-xl text-xs tracking-widest transition-all duration-300 ${isOutOfStock
-                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  disabled={cartDisabled}
+                  className={`w-full font-black py-3 rounded-xl text-xs tracking-widest transition-all duration-300 ${cartDisabled
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed border-2 border-gray-100'
                     : 'border-2 border-[hsl(var(--swago-purple))] text-[hsl(var(--swago-purple))] bg-white hover:bg-[hsl(var(--swago-purple))] hover:text-white shadow-sm'
                     }`}
                 >
-                  <span>{isOutOfStock ? 'Out of Stock' : 'Add to Cart'}</span>
+                  <span>Add to Cart</span>
                 </motion.button>
               ) : (
                 // Show quantity controls when item IS in cart
@@ -287,7 +279,7 @@ export default function ProductCard({ product }: { product: Product }) {
                     onClick={handleIncrease}
                     className="px-3 py-2 hover:bg-purple-100 transition text-[hsl(var(--swago-purple))] font-bold text-lg"
                     aria-label="Increase quantity"
-                    disabled={false}
+                    disabled={!canShip}
                   >
                     +
                   </button>

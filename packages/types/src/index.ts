@@ -19,6 +19,11 @@ export interface Product {
   isCombo?: boolean;
   comboUnitCount?: number;
   comboProductIds?: string[];
+  weight?: number;
+  /** Keyed by currency code (e.g. USD). */
+  internationalPricing?: Record<string, InternationalPricing>;
+  /** Keyed by currency code (e.g. USD). Missing = use InternationalConfig shipping. */
+  internationalShipping?: Record<string, InternationalShipping>;
   slug: string;
   createdAt: Date;
   updatedAt: Date;
@@ -360,6 +365,11 @@ export interface CountryConfig {
 export interface InternationalPricing {
   price: number;
   originalPrice?: number;
+}
+
+/** Fixed per-product international shipping, in the map key's local currency. */
+export interface InternationalShipping {
+  fee: number;
 }
 
 export { };

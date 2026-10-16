@@ -119,7 +119,7 @@ export default async function ReturnGiftsPage() {
           <div className="lg:w-2/5 bg-gradient-to-br from-purple-50 to-pink-50 border-r border-gray-100 p-8 lg:p-12 text-gray-900 flex flex-col justify-center">
             <h2 className="text-3xl md:text-4xl font-bold mb-6 text-gray-900">Planning a Birthday Party? 🎈</h2>
             <p className="text-lg text-gray-600 mb-10">
-              Tell us your <span className="font-bold text-gray-900 underline decoration-wavy decoration-pink-300">number of kids, age group & budget</span> — we'll help you find the perfect return gifts.
+              Tell us your <span className="font-bold text-gray-900">number of kids, age group & budget</span> we'll help you find the perfect return gifts.
             </p>
             
             <div className="bg-white/70 p-5 sm:p-6 rounded-2xl backdrop-blur-sm border border-white mb-6 shadow-sm">

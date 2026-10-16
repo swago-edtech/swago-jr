@@ -53,7 +53,7 @@ type CheckoutData = {
 
 export default function PaymentMethodPage() {
     const { cart, clearCart, total, refreshCartPrices } = useSharedContext();
-    const { formatPrice, isInternational, country } = useCountry();
+    const { formatPrice, formatLocalPrice, isInternational, resolveIntlShipping, country, canShip, shippingRestrictionMessage } = useCountry();
 
     const router = useRouter();
     const [processing, setProcessing] = useState(false);
@@ -133,6 +133,10 @@ export default function PaymentMethodPage() {
 
     // Handle Razorpay payment
     const handlePayOnline = async () => {
+        if (!canShip) {
+            setMessage(shippingRestrictionMessage);
+            return;
+        }
         if (!form || !checkoutData) return;
 
         // Check if Razorpay script is loaded
@@ -318,6 +322,10 @@ export default function PaymentMethodPage() {
 
     // Handle COD order
     const handleCOD = async () => {
+        if (!canShip) {
+            setMessage(shippingRestrictionMessage);
+            return;
+        }
         if (!form || !checkoutData) return;
 
         // Defense in depth — UI also disables COD when blocked
@@ -503,9 +511,17 @@ export default function PaymentMethodPage() {
 
                                 <div className="flex justify-between text-slate-600">
                                     <span>Shipping</span>
-                                    <span className="text-green-600 font-medium">FREE*</span>
+                                    {isInternational ? (
+                                        resolveIntlShipping(cart).feeLocal > 0 ? (
+                                            <span className="font-bold text-slate-900">{formatLocalPrice(resolveIntlShipping(cart).feeLocal)}</span>
+                                        ) : (
+                                            <span className="text-green-600 font-medium">FREE</span>
+                                        )
+                                    ) : (
+                                        <span className="text-green-600 font-medium">FREE*</span>
+                                    )}
                                 </div>
-                                <p className="text-[10px] text-slate-400 text-right font-bold tracking-tight">*Free on Online Pay / COD above {formatPrice(1450)}</p>
+                                {!isInternational && <p className="text-[10px] text-slate-400 text-right font-bold tracking-tight">*Free on Online Pay / COD above {formatPrice(1450)}</p>}
 
                                 <div className="border-t pt-3 flex justify-between text-xl font-bold">
                                     <span>Total</span>
@@ -535,12 +551,18 @@ export default function PaymentMethodPage() {
                             </div>
                         )}
 
+                        {!canShip && (
+                            <div className="p-4 rounded-xl mb-6 text-center font-medium bg-amber-50 text-amber-800 border border-amber-200">
+                                {shippingRestrictionMessage}
+                            </div>
+                        )}
+
                         {/* Payment Options */}
                         <div className="space-y-4">
                             {/* Pay Online Card */}
                             <button
                                 onClick={handlePayOnline}
-                                disabled={processing}
+                                disabled={processing || !canShip}
                                 className="w-full bg-white rounded-2xl shadow-lg border-2 border-transparent hover:border-green-500 p-6 text-left transition-all duration-200 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed group"
                             >
                                 <div className="flex items-start gap-4">
@@ -570,8 +592,8 @@ export default function PaymentMethodPage() {
                             {/* COD Card */}
                             <button
                                 type="button"
-                                onClick={() => !isCodBlocked && handleCOD()}
-                                disabled={processing || isCodBlocked}
+                                onClick={() => canShip && !isCodBlocked && handleCOD()}
+                                disabled={processing || isCodBlocked || !canShip}
                                 className={`w-full rounded-2xl shadow-lg border-2 p-6 text-left transition-all duration-200 group ${
                                     isCodBlocked
                                         ? "bg-slate-50 border-slate-200 opacity-60 cursor-not-allowed"

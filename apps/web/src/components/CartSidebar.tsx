@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import CouponSheet from "./CouponSheet";
 import CartProgress from "./CartProgress";
+import ShippingBanner from "./ShippingBanner";
 
 // Assuming this is the intended local definition or clarification for CartItem
 // The original CartItem type is imported from "@/context/SharedContext"
@@ -22,15 +23,6 @@ interface LocalCartItem {
   originalPrice?: number;
   quantity: number;
   images?: string[];
-  stock?: number;
-}
-
-interface StockInfo {
-  [key: string]: {
-    available: number;
-    reserved: number;
-    total: number;
-  };
 }
 
 export default function CartSidebar() {
@@ -50,9 +42,8 @@ export default function CartSidebar() {
     isRefreshingCart
   } = useSharedContext();
 
-  const { formatPrice, formatLocalPrice, getLocalPrice, toLocalAmount, country, isInternational } = useCountry();
+  const { formatPrice, formatLocalPrice, getLocalPrice, toLocalAmount, isInternational, canShip, shippingRestrictionMessage } = useCountry();
   const router = useRouter();
-  const [stockInfo, setStockInfo] = useState<StockInfo>({});
   const [loading, setLoading] = useState(false);
   const [recommendedProducts, setRecommendedProducts] = useState<Product[]>([]);
   const [activeTab, setActiveTab] = useState('Today');
@@ -158,6 +149,7 @@ export default function CartSidebar() {
   }, [isCartSidebarOpen, cart]);
 
   const handleCheckout = () => {
+    if (!canShip) return;
     closeCartSidebar();
     router.push("/cart");
   };
@@ -219,14 +211,7 @@ export default function CartSidebar() {
               <div className="flex-1 overflow-y-auto pb-4 scrollbar-none">
                 {/* Rewards Progress Section */}
                 <CartProgress total={total} promotionData={promotion} />
-                <div className="bg-[hsl(var(--swago-purple))] py-3 text-center">
-                  <p className="text-white text-[10px] font-[1000] tracking-widest leading-tight">
-                    {isInternational
-                      ? `International Shipping to ${country.name} — ${formatPrice(country.shippingFee)} flat rate`
-                      : 'Enjoy Free Shipping, on orders above ₹1450'
-                    }
-                  </p>
-                </div>
+                <ShippingBanner cart={cart} />
 
                 {/* Price Change Notification */}
                 {sidebarPriceChanges.length > 0 && (
@@ -364,8 +349,12 @@ export default function CartSidebar() {
                             <span className="text-sm font-black text-slate-900 tracking-tight">{formatLocalPrice(getLocalPrice(p).price)}</span>
                           </div>
                           <button
-                            onClick={() => addToCart(p, 1)}
-                            className="w-full py-2 rounded-lg border-2 border-[#1EAA5F] text-[#1EAA5F] text-[10px] font-black uppercase tracking-widest hover:bg-[#1EAA5F] hover:text-white transition-all flex items-center justify-center"
+                            onClick={() => canShip && addToCart(p, 1)}
+                            disabled={!canShip}
+                            className={`w-full py-2 rounded-lg border-2 text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center ${canShip
+                              ? 'border-[#1EAA5F] text-[#1EAA5F] hover:bg-[#1EAA5F] hover:text-white'
+                              : 'border-slate-200 text-slate-400 cursor-not-allowed bg-slate-50'
+                              }`}
                           >
                             + ADD
                           </button>
@@ -429,9 +418,16 @@ export default function CartSidebar() {
                   </div>
                 </div>
 
+                {!canShip && (
+                  <p className="text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 leading-snug text-center">
+                    {shippingRestrictionMessage}
+                  </p>
+                )}
+
                 <button
                   onClick={handleCheckout}
-                  className="w-full bg-[#61498C] text-white font-black py-4.5 px-6 rounded-2xl text-base shadow-xl shadow-purple-100 hover:bg-[#533d7a] transition-all transform active:scale-[0.98] flex items-center justify-center uppercase tracking-[0.2em]"
+                  disabled={!canShip}
+                  className="w-full bg-[#61498C] text-white font-black py-4.5 px-6 rounded-2xl text-base shadow-xl shadow-purple-100 hover:bg-[#533d7a] transition-all transform active:scale-[0.98] flex items-center justify-center uppercase tracking-[0.2em] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#61498C]"
                 >
                   Checkout
                 </button>
@@ -447,6 +443,7 @@ export default function CartSidebar() {
               onClose={() => setCouponSheetOpen(false)}
               onApply={applyCoupon}
               total={total}
+              localTotal={localCartTotal}
               availableCoupons={availableCoupons}
               loading={couponLoading}
               error={couponError}

@@ -1,6 +1,6 @@
 # Swago Jr. - Monorepo
 
-Welcome to the **Swago Jr.** official repository. This is a full-stack, high-performance e-commerce platform designed for children, featuring a unique Ambassador Program, Lottery mechanics, and a secure shopping experience..
+Welcome to the **Swago Jr.** official repository. This is a full-stack, high-performance e-commerce platform designed for children, featuring a unique Ambassador Program, Lottery mechanics, and a secure shopping experience
 
 ---
 

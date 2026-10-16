@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useMemo } from "react";
 import { useCountry } from "@/context/CountryContext";
+import { computeInternationalDisplayTotal } from "@swago/utils";
 
 interface ExpressCartItem {
   _id: string;
@@ -13,6 +14,7 @@ interface ExpressCartItem {
   slug?: string;
   quantity: number;
   internationalPricing?: Record<string, { price: number; originalPrice?: number }>;
+  internationalShipping?: Record<string, { fee: number }>;
   weight?: number;
 }
 
@@ -51,7 +53,7 @@ export default function ExpressOrderSummary({
     toLocalAmount,
     country,
     isInternational,
-    calculateShippingFeeLocal,
+    resolveIntlShipping,
   } = useCountry();
   const currency = country?.currency || "INR";
 
@@ -61,11 +63,11 @@ export default function ExpressOrderSummary({
   );
   const localDiscount = toLocalAmount(discount || 0);
   const localShipping = isInternational
-    ? calculateShippingFeeLocal(
-        items.reduce((s, item) => s + (item.weight || 0) * item.quantity, 0)
-      )
+    ? resolveIntlShipping(items).feeLocal
     : shippingFee;
-  const localTotal = Math.max(0, localSubtotal - localDiscount + localShipping);
+  const localTotal = isInternational
+    ? computeInternationalDisplayTotal({ localMerchandise: localSubtotal, localDiscount, localShipping })
+    : Math.max(0, localSubtotal - localDiscount + localShipping);
 
   return (
     <div className="space-y-3">
