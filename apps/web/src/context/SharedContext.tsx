@@ -4,6 +4,7 @@
 import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from "react";
 import { Feedback } from "../lib/feedback";
 import { useCountry } from "@/context/CountryContext";
+import { trackAddToCart, trackRemoveFromCart, toGaItem } from "../lib/analytics";
 
 type PopulatedOrder = {
   _id: string;
@@ -708,11 +709,27 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
       Feedback.playPop();
       return [...prev, { ...product, quantity, availableStock: available }];
     });
+    try {
+      const gaItem = toGaItem({ ...product, quantity });
+      trackAddToCart(gaItem);
+    } catch {
+      // non-critical
+    }
   };
 
   const removeFromCart = (id: number | string) => {
     Feedback.playRemove();
-    setCart((prev) => prev.filter((p) => getProductId(p) !== id.toString()));
+    setCart((prev) => {
+      const removing = prev.find((p) => getProductId(p) === id.toString());
+      if (removing) {
+        try {
+          trackRemoveFromCart(toGaItem(removing));
+        } catch {
+          // non-critical
+        }
+      }
+      return prev.filter((p) => getProductId(p) !== id.toString());
+    });
   };
 
   const clearCart = () => setCart([]);

@@ -24,6 +24,7 @@ import {
   resolveServerIntlCountry,
   type ServerIntlCountry,
 } from "@/lib/international-server";
+import { buildOrderAttributionFields } from "@/lib/order-attribution";
 
 
 interface ProductDocument {
@@ -421,6 +422,19 @@ export async function POST(req: Request) {
     }
 
     // Create the order with Pending status
+    const attributionFields = buildOrderAttributionFields(
+      orderDetails.attribution || orderDetails.utm || {
+        utm_source: orderDetails.utm_source,
+        utm_medium: orderDetails.utm_medium,
+        utm_campaign: orderDetails.utm_campaign,
+        utm_content: orderDetails.utm_content,
+        utm_term: orderDetails.utm_term,
+        firstTouch: orderDetails.firstTouch,
+        lastTouch: orderDetails.lastTouch,
+        windowDays: orderDetails.windowDays,
+      }
+    );
+
     const newOrder = await Order.create({
       orderId: orderId,
       userId: new mongoose.Types.ObjectId(user._id),
@@ -448,6 +462,7 @@ export async function POST(req: Request) {
       swagoMoneyKidId: user._id,
       stockReservedAt: new Date(),
       paymentAttempts: 0,
+      ...attributionFields,
       country: countryCode,
       currency: currency,
       exchangeRateUsed: exchangeRateUsed,

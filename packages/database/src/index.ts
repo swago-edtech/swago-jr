@@ -34,6 +34,7 @@ export { default as InventoryTransaction } from './models/InventoryTransaction';
 export { default as ChannelEmailConfig } from './models/ChannelEmailConfig';
 export { default as ChannelOrderEvent } from './models/ChannelOrderEvent';
 export { default as HowToPlay } from './models/HowToPlay';
+export { default as InfluencerCreator } from './models/InfluencerCreator';
 export * from './services/low-stock-notifier';
 
 // Export database connection

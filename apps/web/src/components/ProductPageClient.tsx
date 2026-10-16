@@ -12,6 +12,7 @@ import ReviewList from "./ReviewList";
 import RelatedProducts from "./RelatedProducts";
 import { AiFillHeart, AiOutlineHeart } from "react-icons/ai";
 import { RiShareForwardFill } from "react-icons/ri";
+import { trackViewItem, toGaItem } from "@/lib/analytics";
 
 const BulletPoint = () => (
   <span className="w-1.5 h-1.5 rounded-full bg-black flex-shrink-0 mt-[0.6rem]" />
@@ -263,6 +264,14 @@ export default function ProductPageClient({ product }: { product: Product }) {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  useEffect(() => {
+    try {
+      trackViewItem(toGaItem(product), product.price);
+    } catch {
+      // non-critical
+    }
+  }, [product]);
 
   // Get product identifier for routing - always use MongoDB _id or slug
   const getProductNumericId = (product: any): number | null => {
