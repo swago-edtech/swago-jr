@@ -17,6 +17,8 @@
     "build:admin": "NODE_OPTIONS=\"--max-old-space-size=2560\" pnpm --filter admin build",
     "start:web": "TZ=Asia/Kolkata concurrently -n web,channel-email -c blue,green \"pnpm --filter web start\" \"pnpm worker:channel-email\"",
     "start:admin": "TZ=Asia/Kolkata pnpm --filter admin start",
+    "start:staging-web": "TZ=Asia/Kolkata HOSTNAME=0.0.0.0 pnpm --filter web start",
+    "start:staging-admin": "TZ=Asia/Kolkata HOSTNAME=0.0.0.0 pnpm --filter admin start",
     "start": "concurrently -n web,admin -c blue,magenta \"pnpm start:web\" \"pnpm start:admin\"",
     "start:web-only": "TZ=Asia/Kolkata pnpm --filter web start",
     "lint": "pnpm --recursive run lint",
