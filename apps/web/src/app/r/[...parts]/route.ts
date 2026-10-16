@@ -40,9 +40,9 @@ function cleanSegment(value: string | undefined): string {
  */
 export async function GET(
   request: NextRequest,
-  context: { params: Promise<{ parts?: string[] }> | { parts?: string[] } }
+  { params }: { params: Promise<{ parts?: string[] }> }
 ) {
-  const resolved = await context.params;
+  const resolved = await params;
   const parts = Array.isArray(resolved?.parts) ? resolved.parts : [];
   const creatorId = cleanSegment(parts[0]);
   const placementFromPath = cleanSegment(parts[1]);
