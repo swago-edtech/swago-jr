@@ -226,7 +226,7 @@ export default function ProductPageClient({ product }: { product: Product }) {
   const [quantity, setQuantity] = useState(1);
   const [openAccordion, setOpenAccordion] = useState<string | null>("description");
   const { cart, addToCart, isWishlisted, addToWishlist, removeFromWishlist, user, openCartSidebar, increaseQty, decreaseQty } = useSharedContext();
-  const { formatLocalPrice, getLocalPrice, canShip, shippingRestrictionMessage } = useCountry();
+  const { formatLocalPrice, getLocalPrice, canShip, shippingRestrictionMessage, country } = useCountry();
   const localPricing = getLocalPrice(product as any);
   const displayPrice = localPricing.price;
   const displayOriginalPrice = localPricing.originalPrice;
@@ -637,8 +637,8 @@ export default function ProductPageClient({ product }: { product: Product }) {
               )}
             </div>
 
-            {/* Promotional Message */}
-            {product.showPromotionalMessage && product.promotionalMessage && (
+            {/* Promotional Message — India only (INR/coupon messaging) */}
+            {country.code === "IN" && product.showPromotionalMessage && product.promotionalMessage && (
               <div className="mb-4 mt-2 px-4 py-2.5 bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 rounded-xl shadow-sm">
                 <p className="text-sm md:text-base font-bold text-blue-800 flex items-center gap-2">
                   <span className="animate-pulse">✨</span> {product.promotionalMessage}

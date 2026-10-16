@@ -13,7 +13,7 @@ import { RiShareForwardFill } from "react-icons/ri";
 export default function ProductCard({ product }: { product: Product }) {
   const router = useRouter();
   const { cart, addToCart, addToWishlist, removeFromWishlist, isWishlisted, openCartSidebar, increaseQty, decreaseQty } = useSharedContext();
-  const { getLocalPrice, formatLocalPrice, canShip, shippingRestrictionMessage } = useCountry();
+  const { getLocalPrice, formatLocalPrice, canShip, shippingRestrictionMessage, country } = useCountry();
 
   // Use MongoDB _id or slug for routing
   const productIdentifier = product._id || product.slug || '';
@@ -232,8 +232,8 @@ export default function ProductCard({ product }: { product: Product }) {
                 )}
               </div>
 
-              {/* Promotional Message */}
-              {product.showPromotionalMessage && product.promotionalMessage && (
+              {/* Promotional Message — India only (INR/coupon messaging) */}
+              {country.code === "IN" && product.showPromotionalMessage && product.promotionalMessage && (
                 <div className="mb-3 px-2 py-1.5 bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 rounded-lg text-center shadow-sm">
                   <span className="text-[10px] sm:text-xs lg:text-sm font-bold text-blue-800 block">
                     {product.promotionalMessage}
