@@ -9,9 +9,6 @@ const nextConfig: NextConfig = {
     optimizePackageImports: ["lucide-react", "react-icons"],
   },
 
-  // Standalone output for Docker — bundles only the files needed at runtime
-  output: 'standalone',
-
   // Tell Next.js to transpile our shared packages
   transpilePackages: ['@swago/utils', '@swago/database', '@swago/types'],
 

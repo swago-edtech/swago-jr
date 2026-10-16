@@ -120,10 +120,14 @@ jobs:
             pnpm install --frozen-lockfile
 
             echo "=== Restarting PM2 processes ==="
-            pm2 restart swago-web 2>/dev/null || \
+            # Force HOSTNAME=0.0.0.0 so Next.js binds to all interfaces
+            # (EC2 sets HOSTNAME to the private IP, making it unreachable via Nginx)
+            export HOSTNAME=0.0.0.0
+
+            pm2 restart swago-web --update-env 2>/dev/null || \
               pm2 start pnpm --name swago-web --cwd "$APP_DIR" -- start:web
 
-            pm2 restart swago-admin 2>/dev/null || \
+            pm2 restart swago-admin --update-env 2>/dev/null || \
               pm2 start pnpm --name swago-admin --cwd "$APP_DIR" -- start:admin
 
             pm2 save
