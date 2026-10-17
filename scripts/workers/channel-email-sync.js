@@ -46,6 +46,8 @@ async function syncViaHttp() {
 }
 
 let inFlight = false;
+let lastReconnectWarnAt = 0;
+const RECONNECT_WARN_EVERY_MS = 30 * 60 * 1000; // once per 30 min while disconnected
 
 async function tick() {
   if (inFlight) {
@@ -54,13 +56,25 @@ async function tick() {
   }
   inFlight = true;
   const started = Date.now();
-  console.log(`[channel-email-worker] sync start ${new Date().toISOString()}`);
   try {
     const result = await syncViaHttp();
-    console.log(
-      `[channel-email-worker] sync ok in ${Date.now() - started}ms`,
-      result
-    );
+    if (result && result.needsReconnect) {
+      const now = Date.now();
+      if (now - lastReconnectWarnAt >= RECONNECT_WARN_EVERY_MS) {
+        lastReconnectWarnAt = now;
+        console.warn(
+          `[channel-email-worker] Gmail needs reconnect once (not a deploy wipe):`,
+          result.message || "Connect Gmail in Admin → Channel Email"
+        );
+      }
+    } else {
+      lastReconnectWarnAt = 0;
+      console.log(
+        `[channel-email-worker] sync ok in ${Date.now() - started}ms`,
+        `processed=${result?.processed ?? "?"} skipped=${result?.skipped ?? "?"}`,
+        result?.message || ""
+      );
+    }
   } catch (error) {
     console.error(
       `[channel-email-worker] sync failed in ${Date.now() - started}ms`,

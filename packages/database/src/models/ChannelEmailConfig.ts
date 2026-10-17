@@ -6,6 +6,9 @@ const ChannelEmailConfigSchema = new mongoose.Schema(
     isEnabled: { type: Boolean, default: true },
     connectedEmail: { type: String, default: "" },
     refreshToken: { type: String, default: "" },
+    // Set when Google rejects the refresh token (invalid_grant). Cleared on successful reconnect.
+    authError: { type: String, default: "" },
+    authErrorAt: { type: Date },
     senderAllowlist: {
       type: [String],
       default: [

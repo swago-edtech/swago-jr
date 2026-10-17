@@ -59,6 +59,8 @@ export async function completeGmailOAuth(code: string, redirectUri: string) {
   config.refreshToken = tokens.refresh_token;
   config.connectedEmail = profile.data.emailAddress || "";
   config.isEnabled = true;
+  config.authError = "";
+  config.authErrorAt = null;
   await config.save();
   return sanitizeChannelConfig(config);
 }
@@ -69,6 +71,8 @@ export async function disconnectGmail() {
   config.refreshToken = "";
   config.connectedEmail = "";
   config.isEnabled = false;
+  config.authError = "";
+  config.authErrorAt = null;
   await config.save();
   return sanitizeChannelConfig(config);
 }
@@ -89,6 +93,9 @@ export function sanitizeChannelConfig(config: any) {
     isEnabled: plain.isEnabled,
     connectedEmail: plain.connectedEmail || "",
     isConnected: Boolean(plain.refreshToken && plain.connectedEmail),
+    authError: plain.authError || "",
+    authErrorAt: plain.authErrorAt || null,
+    needsReconnect: Boolean(plain.authError) || Boolean(plain.connectedEmail && !plain.refreshToken),
     senderAllowlist: plain.senderAllowlist || [],
     productAliases: (plain.productAliases || []).map((alias: any) => ({
       alias: alias.alias,
@@ -97,6 +104,58 @@ export function sanitizeChannelConfig(config: any) {
     })),
     lastHistoryId: plain.lastHistoryId || "",
     lastSyncedAt: plain.lastSyncedAt || null,
+  };
+}
+
+function isGoogleInvalidGrant(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const err = error as {
+    code?: number | string;
+    message?: string;
+    response?: { data?: { error?: string; error_description?: string } };
+    errors?: Array<{ message?: string }>;
+  };
+  const msg = String(err.message || "").toLowerCase();
+  const apiError = String(err.response?.data?.error || "").toLowerCase();
+  const apiDesc = String(err.response?.data?.error_description || "").toLowerCase();
+  const nested = String(err.errors?.[0]?.message || "").toLowerCase();
+  return (
+    apiError === "invalid_grant" ||
+    msg.includes("invalid_grant") ||
+    apiDesc.includes("invalid_grant") ||
+    nested.includes("invalid_grant") ||
+    (Number(err.code) === 400 && (msg.includes("invalid_grant") || apiError === "invalid_grant"))
+  );
+}
+
+const RECONNECT_MESSAGE =
+  "Gmail access expired or was revoked. Connect Gmail once in Admin → Channel Email. Deploys do not clear the token.";
+
+/**
+ * When Google permanently rejects the stored refresh token, clear it and stop
+ * throwing so the cron/worker does not spam stack traces every few minutes.
+ * Keeps connectedEmail so admin still shows which inbox to reconnect.
+ * Admin must Connect Gmail once; deploy alone never requires reconnect.
+ */
+async function markGmailNeedsReconnect(config: any, error: unknown) {
+  const detail =
+    error instanceof Error ? error.message : "Google rejected the Gmail refresh token";
+  const alreadyMarked = !config.refreshToken && Boolean(config.authError);
+  if (!alreadyMarked) {
+    config.refreshToken = "";
+    // Keep connectedEmail so UI can show which inbox was linked
+    config.authError = RECONNECT_MESSAGE;
+    config.authErrorAt = new Date();
+    await config.save();
+    console.warn(
+      `[channel-email] refresh token invalid_grant — marked needs reconnect (${detail})`
+    );
+  }
+  return {
+    processed: 0,
+    skipped: 0,
+    needsReconnect: true,
+    message: config.authError || RECONNECT_MESSAGE,
   };
 }
 
@@ -534,7 +593,14 @@ async function applyCancellation(event: any, reasonId: string) {
   await event.save();
 }
 
-export async function runChannelEmailSync(limit = 25) {
+export type ChannelEmailSyncResult = {
+  processed: number;
+  skipped: number;
+  message: string;
+  needsReconnect?: boolean;
+};
+
+export async function runChannelEmailSync(limit = 25): Promise<ChannelEmailSyncResult> {
   await connectDB();
   const config = await getOrCreateChannelEmailConfig();
 
@@ -542,7 +608,15 @@ export async function runChannelEmailSync(limit = 25) {
     return { processed: 0, skipped: 0, message: "Channel email sync is disabled" };
   }
   if (!config.refreshToken) {
-    return { processed: 0, skipped: 0, message: "Gmail is not connected" };
+    const needsReconnect = Boolean(config.authError || config.connectedEmail);
+    return {
+      processed: 0,
+      skipped: 0,
+      needsReconnect,
+      message: needsReconnect
+        ? config.authError || RECONNECT_MESSAGE
+        : "Gmail is not connected",
+    };
   }
 
   const oauth = getGoogleOAuthClient(process.env.GOOGLE_REDIRECT_URI);
@@ -552,17 +626,43 @@ export async function runChannelEmailSync(limit = 25) {
   const allowlist = config.senderAllowlist || [];
   // First sync: initialize lastSyncedAt to now and return — no historical email processing
   if (!config.lastSyncedAt) {
+    try {
+      // Touch Gmail once so a dead token fails immediately instead of looking "initialized"
+      await gmail.users.getProfile({ userId: "me" });
+    } catch (error) {
+      if (isGoogleInvalidGrant(error)) {
+        return markGmailNeedsReconnect(config, error);
+      }
+      throw error;
+    }
     config.lastSyncedAt = new Date(Date.now() - 300_000);
+    config.authError = "";
+    config.authErrorAt = null;
     await config.save();
     return { processed: 0, skipped: 0, message: "Sync initialized — tracking emails from now onwards" };
   }
 
   const query = buildSenderQuery(allowlist, config.lastSyncedAt);
-  const listed = await gmail.users.messages.list({
-    userId: "me",
-    q: query,
-    maxResults: limit,
-  });
+  let listed;
+  try {
+    listed = await gmail.users.messages.list({
+      userId: "me",
+      q: query,
+      maxResults: limit,
+    });
+  } catch (error) {
+    if (isGoogleInvalidGrant(error)) {
+      return markGmailNeedsReconnect(config, error);
+    }
+    throw error;
+  }
+
+  // Token worked — clear any prior reconnect flag
+  if (config.authError) {
+    config.authError = "";
+    config.authErrorAt = null;
+    await config.save();
+  }
 
   const messages = listed.data.messages || [];
   const catalog = (await Product.find({ isActive: true })
@@ -586,11 +686,19 @@ export async function runChannelEmailSync(limit = 25) {
       continue;
     }
 
-    const full = await gmail.users.messages.get({
-      userId: "me",
-      id: message.id,
-      format: "full",
-    });
+    let full;
+    try {
+      full = await gmail.users.messages.get({
+        userId: "me",
+        id: message.id,
+        format: "full",
+      });
+    } catch (error) {
+      if (isGoogleInvalidGrant(error)) {
+        return markGmailNeedsReconnect(config, error);
+      }
+      throw error;
+    }
 
     const headers = (full.data.payload?.headers || []) as GmailHeader[];
     const subject = headerValue(headers, "Subject");
