@@ -28,6 +28,7 @@ type Product = {
   numReviews?: number;
   showPromotionalMessage?: boolean;
   promotionalMessage?: string;
+  promotionalMessagesByCountry?: Record<string, { enabled: boolean; message: string }> | Map<string, { enabled: boolean; message: string }>;
   skills?: { title: string; image: string }[];
   internationalPricing?: Record<string, { price: number; originalPrice?: number }>;
   internationalShipping?: Record<string, { fee: number }>;

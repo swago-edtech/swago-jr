@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Product, CartItem, useSharedContext } from "@/context/SharedContext";
 import { useCountry } from "@/context/CountryContext";
+import { resolveProductPromoBanner } from "@/lib/product-promo-banner";
 import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
@@ -131,6 +132,8 @@ export default function ProductCard({ product }: { product: Product }) {
     ? Math.round(((localOriginalPrice - localPrice) / localOriginalPrice) * 100)
     : 0;
 
+  const promoBannerMessage = resolveProductPromoBanner(product, country?.code);
+
   const displayName = product.name;
 
   // Build product URL (support both slug and id)
@@ -232,11 +235,11 @@ export default function ProductCard({ product }: { product: Product }) {
                 )}
               </div>
 
-              {/* Promotional Message — India only (INR/coupon messaging) */}
-              {country.code === "IN" && product.showPromotionalMessage && product.promotionalMessage && (
+              {/* Promotional Message — per-country admin config */}
+              {promoBannerMessage && (
                 <div className="mb-3 px-2 py-1.5 bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 rounded-lg text-center shadow-sm">
                   <span className="text-[10px] sm:text-xs lg:text-sm font-bold text-blue-800 block">
-                    {product.promotionalMessage}
+                    {promoBannerMessage}
                   </span>
                 </div>
               )}

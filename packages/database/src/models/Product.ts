@@ -188,7 +188,7 @@ const ProductSchema = new mongoose.Schema(
       default: new Map(),
     },
 
-    // 🆕 NEW: Promotional Message
+    // Legacy promotional message (kept for backward compatibility; prefer promotionalMessagesByCountry)
     showPromotionalMessage: {
       type: Boolean,
       default: false
@@ -198,7 +198,17 @@ const ProductSchema = new mongoose.Schema(
       type: String,
       trim: true,
       default: ""
-    }
+    },
+
+    // Per-country product promo banner (keyed by ISO country code, e.g. IN, US, CA, AE)
+    promotionalMessagesByCountry: {
+      type: Map,
+      of: new mongoose.Schema({
+        enabled: { type: Boolean, default: false },
+        message: { type: String, trim: true, default: "" },
+      }, { _id: false }),
+      default: new Map(),
+    },
 
   },
   {

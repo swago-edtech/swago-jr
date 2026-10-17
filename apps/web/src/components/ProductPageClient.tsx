@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useSharedContext, Product, CartItem } from "@/context/SharedContext";
 import { useCountry } from "@/context/CountryContext";
+import { resolveProductPromoBanner } from "@/lib/product-promo-banner";
 import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
@@ -314,6 +315,8 @@ export default function ProductPageClient({ product }: { product: Product }) {
   const percentOff = originalPrice
     ? Math.round(((originalPrice - displayPrice) / originalPrice) * 100)
     : 0;
+
+  const promoBannerMessage = resolveProductPromoBanner(product, country?.code);
 
 
 
@@ -637,11 +640,11 @@ export default function ProductPageClient({ product }: { product: Product }) {
               )}
             </div>
 
-            {/* Promotional Message — India only (INR/coupon messaging) */}
-            {country.code === "IN" && product.showPromotionalMessage && product.promotionalMessage && (
+            {/* Promotional Message — per-country admin config */}
+            {promoBannerMessage && (
               <div className="mb-4 mt-2 px-4 py-2.5 bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 rounded-xl shadow-sm">
                 <p className="text-sm md:text-base font-bold text-blue-800 flex items-center gap-2">
-                  <span className="animate-pulse">✨</span> {product.promotionalMessage}
+                  <span className="animate-pulse">✨</span> {promoBannerMessage}
                 </p>
               </div>
             )}
