@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "NODE_OPTIONS=\"--max-old-space-size=2560\" next build --webpack",
+    "build": "cross-env NODE_OPTIONS=--max-old-space-size=2560 next build --webpack",
     "start": "next start",
     "lint": "eslint"
   },
@@ -57,6 +57,7 @@
     "@types/react": "^19.2.9",
     "@types/react-dom": "^19",
     "eslint": "^9",
+    "cross-env": "^10.1.0",
     "eslint-config-next": "15.5.3",
     "tailwindcss": "^4",
     "typescript": "^5"
