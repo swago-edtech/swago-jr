@@ -46,3 +46,42 @@ export function normalizeInternationalPricing(
  */
 export { normalizeInternationalShipping } from "@swago/utils";
 export type { InternationalShippingEntry as IntlShippingEntry } from "@swago/utils";
+
+export type CountryPromoEntry = {
+  enabled: boolean;
+  message: string;
+};
+
+/**
+ * Sanitize product promotionalMessagesByCountry from admin form payloads.
+ * Keyed by ISO country code (IN, US, …). Empty messages with enabled=false are dropped.
+ */
+export function normalizePromotionalMessagesByCountry(
+  input: unknown
+): Record<string, CountryPromoEntry> {
+  if (!input || typeof input !== "object" || Array.isArray(input)) {
+    return {};
+  }
+
+  const out: Record<string, CountryPromoEntry> = {};
+
+  for (const [rawKey, rawVal] of Object.entries(input as Record<string, unknown>)) {
+    const code = String(rawKey || "")
+      .trim()
+      .toUpperCase();
+    if (!code || code.length > 8) continue;
+    if (!rawVal || typeof rawVal !== "object" || Array.isArray(rawVal)) continue;
+
+    const val = rawVal as Record<string, unknown>;
+    const message = String(val.message ?? "").trim().slice(0, 280);
+    const enabled = Boolean(val.enabled) && message.length > 0;
+
+    // Keep disabled entries with text so admins can re-enable without retyping;
+    // drop fully empty disabled rows.
+    if (!enabled && !message) continue;
+
+    out[code] = { enabled, message };
+  }
+
+  return out;
+}

@@ -18,6 +18,7 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    // Soft success for needsReconnect — no 500 / stack spam. Service logs once when marking.
     const result = await runChannelEmailSync();
     return NextResponse.json({ success: true, ...result });
   } catch (error) {

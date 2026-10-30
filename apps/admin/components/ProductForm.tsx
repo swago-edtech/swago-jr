@@ -51,6 +51,7 @@ type ProductFormData = {
   numReviews?: number;
   showPromotionalMessage?: boolean;
   promotionalMessage?: string;
+  promotionalMessagesByCountry?: Record<string, { enabled: boolean; message: string }> | Map<string, { enabled: boolean; message: string }>;
   skills?: { title: string; image: string }[];
   internationalPricing?: Record<string, { price: number; originalPrice?: number }>;
   internationalShipping?: Record<string, { fee: number }>;
@@ -101,6 +102,36 @@ function shippingMapFromInitial(
   return out;
 }
 
+function promoMapFromInitial(
+  raw?:
+    | Record<string, { enabled?: boolean; message?: string }>
+    | Map<string, { enabled?: boolean; message?: string }>
+    | null,
+  legacy?: { show?: boolean; message?: string }
+): Record<string, { enabled: boolean; message: string }> {
+  const out: Record<string, { enabled: boolean; message: string }> = {};
+  if (raw) {
+    const entries = raw instanceof Map ? Array.from(raw.entries()) : Object.entries(raw);
+    for (const [code, val] of entries) {
+      if (!val) continue;
+      const key = String(code).toUpperCase();
+      const message = String(val.message ?? "").trim();
+      out[key] = {
+        enabled: Boolean(val.enabled) && message.length > 0,
+        message,
+      };
+    }
+  }
+  // Seed India from legacy fields when map has no IN entry yet
+  if (!out.IN && legacy?.message) {
+    out.IN = {
+      enabled: Boolean(legacy.show),
+      message: String(legacy.message).trim(),
+    };
+  }
+  return out;
+}
+
 type ProductFormProps = {
   mode: "create" | "edit";
   initialData?: ProductFormData;
@@ -127,6 +158,15 @@ export default function ProductForm({ mode, initialData, productId }: ProductFor
   const [intlShipping, setIntlShipping] = useState<Record<string, string>>(() =>
     shippingMapFromInitial(initialData?.internationalShipping)
   );
+  const [promoByCountry, setPromoByCountry] = useState<
+    Record<string, { enabled: boolean; message: string }>
+  >(() =>
+    promoMapFromInitial(initialData?.promotionalMessagesByCountry, {
+      show: initialData?.showPromotionalMessage,
+      message: initialData?.promotionalMessage,
+    })
+  );
+  const [promoCountries, setPromoCountries] = useState<IntlCountryOption[]>([]);
   const [isIntlPricingExpanded, setIsIntlPricingExpanded] = useState(false);
   const [isSkillsExpanded, setIsSkillsExpanded] = useState(false);
 
@@ -137,10 +177,23 @@ export default function ProductForm({ mode, initialData, productId }: ProductFor
       .then((r) => r.json())
       .then((data) => {
         if (!data.success || !data.data?.supportedCountries) return;
-        const countries = (data.data.supportedCountries as IntlCountryOption[]).filter(
-          (c) => c.isActive && c.code !== "IN" && c.currency !== "INR"
+        const all = data.data.supportedCountries as IntlCountryOption[];
+        // Pricing/shipping: non-India active countries only
+        setIntlCountries(
+          all.filter((c) => c.isActive && c.code !== "IN" && c.currency !== "INR")
         );
-        setIntlCountries(countries);
+        // Promo banners: all active countries including India
+        const promoList = all.filter((c) => c.isActive && c.code);
+        setPromoCountries(promoList);
+        // Ensure every active country has a row in local state
+        setPromoByCountry((prev) => {
+          const next = { ...prev };
+          for (const c of promoList) {
+            const code = String(c.code).toUpperCase();
+            if (!next[code]) next[code] = { enabled: false, message: "" };
+          }
+          return next;
+        });
       })
       .catch((err) => console.error("Failed to load international countries", err));
   }, []);
@@ -377,8 +430,10 @@ export default function ProductForm({ mode, initialData, productId }: ProductFor
         label: form.label,
         rating: parseFloat(form.rating) || 0,
         numReviews: parseInt(form.numReviews) || 0,
-        showPromotionalMessage: form.showPromotionalMessage,
-        promotionalMessage: form.promotionalMessage,
+        // Keep legacy IN fields in sync for older storefront fallbacks
+        showPromotionalMessage: Boolean(promoByCountry.IN?.enabled),
+        promotionalMessage: promoByCountry.IN?.message || "",
+        promotionalMessagesByCountry: promoByCountry,
         skills: skills.filter((s) => s.title && s.image),
         internationalPricing: Object.fromEntries(
           Object.entries(intlPricing)
@@ -1364,36 +1419,85 @@ export default function ProductForm({ mode, initialData, productId }: ProductFor
             <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
               <div className="flex items-center gap-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
                 <Megaphone className="w-4 h-4 text-red-500" />
-                <span>Promotional Announcement</span>
+                <span>Promotional Announcement (by country)</span>
               </div>
+              <p className="text-xs text-gray-500 leading-relaxed">
+                Control the blue promo banner on product cards and product pages per visitor country.
+                Enable a country and set its message — only visitors from that country will see it.
+                Countries come from International Config (active list).
+              </p>
               <div className="space-y-3">
-                <label className="flex items-center gap-3 p-3 rounded-lg border border-gray-100 hover:bg-gray-50/80 transition-colors cursor-pointer">
-                  <input
-                    type="checkbox"
-                    name="showPromotionalMessage"
-                    checked={form.showPromotionalMessage}
-                    onChange={handleChange}
-                    className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                  />
-                  <span className="text-sm font-medium text-gray-700">
-                    Display promotional message banner on cards & product page
-                  </span>
-                </label>
-                {form.showPromotionalMessage && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Banner Text
-                    </label>
-                    <input
-                      type="text"
-                      name="promotionalMessage"
-                      value={form.promotionalMessage}
-                      onChange={handleChange}
-                      placeholder="e.g., Buy any 2 | Get FLAT 10% OFF Use Code: BYOB10"
-                      className={fieldClass()}
-                    />
-                  </div>
-                )}
+                {(promoCountries.length > 0
+                  ? promoCountries
+                  : [{ code: "IN", name: "India", currency: "INR", currencySymbol: "₹", isActive: true }]
+                ).map((c) => {
+                  const code = String(c.code).toUpperCase();
+                  const row = promoByCountry[code] || { enabled: false, message: "" };
+                  return (
+                    <div
+                      key={code}
+                      className={`p-3 rounded-lg border transition-colors space-y-2 ${
+                        row.enabled
+                          ? "border-blue-200 bg-blue-50/40"
+                          : "border-gray-100 bg-gray-50/40"
+                      }`}
+                    >
+                      <label className="flex items-center justify-between gap-3 cursor-pointer">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="text-xs font-black uppercase tracking-wide text-gray-700 bg-white border border-gray-200 px-2 py-0.5 rounded">
+                            {code}
+                          </span>
+                          <span className="text-sm font-medium text-gray-800 truncate">
+                            {c.name}
+                          </span>
+                        </div>
+                        <div className="relative inline-flex items-center shrink-0">
+                          <input
+                            type="checkbox"
+                            className="sr-only peer"
+                            checked={row.enabled}
+                            onChange={(e) => {
+                              const enabled = e.target.checked;
+                              setPromoByCountry((prev) => ({
+                                ...prev,
+                                [code]: {
+                                  enabled,
+                                  message: prev[code]?.message || "",
+                                },
+                              }));
+                            }}
+                          />
+                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600" />
+                        </div>
+                      </label>
+                      <input
+                        type="text"
+                        value={row.message}
+                        onChange={(e) => {
+                          const message = e.target.value;
+                          setPromoByCountry((prev) => ({
+                            ...prev,
+                            [code]: {
+                              enabled: Boolean(prev[code]?.enabled),
+                              message,
+                            },
+                          }));
+                        }}
+                        placeholder={
+                          code === "IN"
+                            ? "e.g. Save 26% on SWAGO Smart Play Combo - No Coupon Needed"
+                            : `e.g. Promo message for ${c.name} visitors`
+                        }
+                        className={fieldClass()}
+                      />
+                      {row.enabled && !row.message.trim() && (
+                        <p className="text-[11px] text-amber-600 font-medium">
+                          Add message text or this country will stay hidden on the storefront.
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>

@@ -46,6 +46,8 @@ type ConfigState = {
   isEnabled: boolean;
   isConnected: boolean;
   connectedEmail: string;
+  needsReconnect: boolean;
+  authError: string;
   senderAllowlist: string[];
   productAliases: Alias[];
   lastSyncedAt: string | null;
@@ -146,6 +148,8 @@ function ChannelEmailPageInner() {
     isEnabled: true,
     isConnected: false,
     connectedEmail: "",
+    needsReconnect: false,
+    authError: "",
     senderAllowlist: [],
     productAliases: [],
     lastSyncedAt: null,
@@ -174,6 +178,8 @@ function ChannelEmailPageInner() {
       isEnabled: Boolean(next.isEnabled),
       isConnected: Boolean(next.isConnected),
       connectedEmail: next.connectedEmail || "",
+      needsReconnect: Boolean(next.needsReconnect),
+      authError: next.authError || "",
       senderAllowlist: next.senderAllowlist || [],
       productAliases: aliases,
       lastSyncedAt: next.lastSyncedAt || null,
@@ -249,11 +255,16 @@ function ChannelEmailPageInner() {
     }
   }, [searchParams, showMessage]);
 
-  const isSetupComplete = Boolean(config.isConnected && config.senderAllowlist.length > 0);
+  // Tracked emails stay visible even when token dies (needsReconnect).
+  // Only block the table for true first-time setup (no Gmail + no senders).
+  const canShowEvents = Boolean(
+    (config.isConnected || config.needsReconnect || config.connectedEmail) &&
+      config.senderAllowlist.length > 0
+  );
 
   useEffect(() => {
-    if (!loading && !isSetupComplete) setSettingsOpen(true);
-  }, [loading, isSetupComplete]);
+    if (!loading && (!canShowEvents || config.needsReconnect)) setSettingsOpen(true);
+  }, [loading, canShowEvents, config.needsReconnect]);
 
   const persistSettings = async (overrides?: {
     isEnabled?: boolean;
@@ -333,7 +344,15 @@ function ChannelEmailPageInner() {
     try {
       const res = await fetch("/api/channel-email/sync", { method: "POST" });
       const data = await res.json();
-      showMessage(data.message || data.error || "Sync finished", data.success ? "info" : "error");
+      if (data.needsReconnect) {
+        showMessage(
+          data.message ||
+            "Gmail access expired or was revoked. Connect Gmail once — deploys do not wipe the token.",
+          "error"
+        );
+      } else {
+        showMessage(data.message || data.error || "Sync finished", data.success ? "info" : "error");
+      }
       await load();
     } finally {
       setSyncing(false);
@@ -457,7 +476,7 @@ function ChannelEmailPageInner() {
 
       {message && (
         <div
-          className={`rounded-xl px-4 py-3 text-sm border ${
+          className={`rounded-lg px-3 py-2 text-sm border ${
             messageType === "error"
               ? "bg-rose-50 text-rose-800 border-rose-200"
               : messageType === "success"
@@ -469,17 +488,20 @@ function ChannelEmailPageInner() {
         </div>
       )}
 
-      {!isSetupComplete && (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-900">
-          <p className="font-semibold">Finish setup to start syncing</p>
-          <ol className="mt-2 list-decimal list-inside space-y-1 text-amber-800">
-            {!config.isConnected && <li>Connect the Gmail inbox that receives Amazon order mail.</li>}
-            {!config.senderAllowlist.length && (
-              <li>Add Amazon sender addresses (e.g. auto-confirm@amazon.in).</li>
-            )}
-            <li>Optionally add product aliases, then click Check mail now.</li>
-          </ol>
-        </div>
+      {config.needsReconnect && (
+        <p className="text-sm text-rose-700">
+          Gmail access expired —{" "}
+          <button type="button" onClick={connectGmail} className="underline font-medium hover:text-rose-900">
+            reconnect once
+          </button>
+          {config.connectedEmail ? ` (${config.connectedEmail})` : ""}. Deploys do not clear the token.
+        </p>
+      )}
+
+      {!canShowEvents && !config.needsReconnect && (
+        <p className="text-sm text-amber-800">
+          Finish setup in Settings: connect Gmail and add Amazon sender addresses.
+        </p>
       )}
 
       {/* Tracked emails — primary */}
@@ -523,7 +545,7 @@ function ChannelEmailPageInner() {
           </div>
         </div>
 
-        {!isSetupComplete ? (
+        {!canShowEvents ? (
           <div className="px-5 py-14 text-center text-slate-500 text-sm">
             Complete setup in Settings below, then check mail to see tracked emails here.
           </div>
@@ -798,9 +820,11 @@ function ChannelEmailPageInner() {
             <div className="min-w-0">
               <h2 className="font-semibold text-slate-900">Connection & settings</h2>
               <p className="text-xs text-slate-500 truncate">
-                {config.isConnected
-                  ? `Gmail · ${config.connectedEmail}`
-                  : "Gmail not connected"}
+                {config.needsReconnect
+                  ? `Needs reconnect${config.connectedEmail ? ` · ${config.connectedEmail}` : ""}`
+                  : config.isConnected
+                    ? `Gmail · ${config.connectedEmail}`
+                    : "Gmail not connected"}
                 {" · "}
                 {config.senderAllowlist.length} sender
                 {config.senderAllowlist.length === 1 ? "" : "s"}
@@ -826,13 +850,20 @@ function ChannelEmailPageInner() {
                   <h3 className="font-medium text-slate-900">Gmail</h3>
                 </div>
                 <div
-                  className={`rounded-xl border px-3 py-3 text-sm ${
-                    config.isConnected
-                      ? "bg-emerald-50 border-emerald-200 text-emerald-900"
-                      : "bg-slate-50 border-slate-200 text-slate-600"
+                  className={`rounded-xl border px-3 py-2.5 text-sm ${
+                    config.needsReconnect
+                      ? "bg-rose-50 border-rose-200 text-rose-900"
+                      : config.isConnected
+                        ? "bg-emerald-50 border-emerald-200 text-emerald-900"
+                        : "bg-slate-50 border-slate-200 text-slate-600"
                   }`}
                 >
-                  {config.isConnected ? (
+                  {config.needsReconnect ? (
+                    <p className="text-sm">
+                      Needs reconnect
+                      {config.connectedEmail ? ` · ${config.connectedEmail}` : ""}
+                    </p>
+                  ) : config.isConnected ? (
                     <div className="flex items-start gap-2">
                       <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" />
                       <div>
@@ -850,9 +881,13 @@ function ChannelEmailPageInner() {
                     className="inline-flex items-center gap-2 border border-slate-300 rounded-xl px-3.5 py-2 text-sm font-medium text-slate-900 hover:bg-slate-50"
                   >
                     <Link2 className="h-4 w-4" />
-                    {config.isConnected ? "Reconnect" : "Connect Gmail"}
+                    {config.needsReconnect
+                      ? "Reconnect Gmail"
+                      : config.isConnected
+                        ? "Reconnect"
+                        : "Connect Gmail"}
                   </button>
-                  {config.isConnected && (
+                  {(config.isConnected || config.needsReconnect) && (
                     <button
                       onClick={disconnectGmail}
                       disabled={disconnecting}

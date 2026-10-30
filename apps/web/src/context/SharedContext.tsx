@@ -42,6 +42,10 @@ export type Product = {
   numReviews?: number;
   showPromotionalMessage?: boolean;
   promotionalMessage?: string;
+  /** Per-country promo banner. Keyed by ISO country code (IN, US, …). */
+  promotionalMessagesByCountry?:
+    | Record<string, { enabled?: boolean; message?: string }>
+    | Map<string, { enabled?: boolean; message?: string }>;
   skills?: { title: string; image: string }[];
   weight?: number;
   internationalPricing?: Record<string, { price: number; originalPrice?: number }> | Map<string, { price: number; originalPrice?: number }>;

@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Product, CartItem, useSharedContext } from "@/context/SharedContext";
 import { useCountry } from "@/context/CountryContext";
+import { resolveProductPromoBanner } from "@/lib/product-promo-banner";
 import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
@@ -13,7 +14,7 @@ import { RiShareForwardFill } from "react-icons/ri";
 export default function ProductCard({ product }: { product: Product }) {
   const router = useRouter();
   const { cart, addToCart, addToWishlist, removeFromWishlist, isWishlisted, openCartSidebar, increaseQty, decreaseQty } = useSharedContext();
-  const { getLocalPrice, formatLocalPrice, canShip, shippingRestrictionMessage } = useCountry();
+  const { getLocalPrice, formatLocalPrice, canShip, shippingRestrictionMessage, country } = useCountry();
 
   // Use MongoDB _id or slug for routing
   const productIdentifier = product._id || product.slug || '';
@@ -131,6 +132,8 @@ export default function ProductCard({ product }: { product: Product }) {
     ? Math.round(((localOriginalPrice - localPrice) / localOriginalPrice) * 100)
     : 0;
 
+  const promoBannerMessage = resolveProductPromoBanner(product, country?.code);
+
   const displayName = product.name;
 
   // Build product URL (support both slug and id)
@@ -232,11 +235,11 @@ export default function ProductCard({ product }: { product: Product }) {
                 )}
               </div>
 
-              {/* Promotional Message */}
-              {product.showPromotionalMessage && product.promotionalMessage && (
+              {/* Promotional Message — per-country admin config */}
+              {promoBannerMessage && (
                 <div className="mb-3 px-2 py-1.5 bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 rounded-lg text-center shadow-sm">
                   <span className="text-[10px] sm:text-xs lg:text-sm font-bold text-blue-800 block">
-                    {product.promotionalMessage}
+                    {promoBannerMessage}
                   </span>
                 </div>
               )}
