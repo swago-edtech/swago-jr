@@ -63,6 +63,9 @@ const ChannelOrderEventSchema = new mongoose.Schema(
     failureKind: { type: String, default: "" },
     /** Short claim while "Cut missing items" runs on an applied event (prevents double clicks) */
     recheckLockAt: { type: Date, default: null },
+    /** Set once the one-time old-order backfill reconciled this event (re-runs skip it). */
+    backfilledAt: { type: Date, default: null },
+    backfillNote: { type: String, default: "" },
     /** Admin decisions on this event (who/when/what) */
     auditLog: [
       {

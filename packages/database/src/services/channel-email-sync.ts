@@ -5,6 +5,9 @@ import Product from "../models/Product";
 import ChannelEmailConfig from "../models/ChannelEmailConfig";
 import ChannelOrderEvent from "../models/ChannelOrderEvent";
 import ChannelApplyLock from "../models/ChannelApplyLock";
+import InventoryTransaction from "../models/InventoryTransaction";
+import ProductConfig from "../models/ProductConfig";
+import { reconcileOrder, netCutByComponent, type BomLine, type ReconcileLine } from "./channel-reconcile";
 import {
   matchChannelProducts,
   deductInventoryForChannelItems,
@@ -1212,83 +1215,236 @@ export function computeMissingLines(
   return [...merged.values()];
 }
 
-/** Every product id already cut for this order, including this event's own (legacy) cut. */
-async function cutProductIdsIncludingOwn(event: any): Promise<Set<string>> {
-  const cut = await alreadyCutProductIds(event);
-  for (const m of event.matchedItems || []) cut.add(String(m.productId || ""));
-  for (const key of event.appliedKeys || []) {
-    const pid = String(key).split("|").pop();
-    if (pid) cut.add(pid);
+/** Read-only: fetch the original email body from Gmail by message id ("" when not possible). */
+async function fetchGmailBodyText(messageId: string): Promise<string> {
+  if (!messageId) return "";
+  const config = await getOrCreateChannelEmailConfig();
+  if (!config?.refreshToken) return "";
+  try {
+    const oauth = getGoogleOAuthClient(process.env.GOOGLE_REDIRECT_URI);
+    oauth.setCredentials({ refresh_token: config.refreshToken });
+    const gmail = google.gmail({ version: "v1", auth: oauth });
+    const full = await gmail.users.messages.get({ userId: "me", id: messageId, format: "full" });
+    return extractTextFromPayload(full.data.payload).slice(0, 20000);
+  } catch (error) {
+    console.error("[channel-email] Gmail re-fetch failed:", error instanceof Error ? error.message : error);
+    return "";
   }
-  const own = (await ChannelApplyLock.find({ eventId: event._id }).select("productId").lean()) as Array<{
-    productId?: string;
-  }>;
-  for (const l of own) cut.add(String(l.productId || ""));
-  cut.delete("");
-  return cut;
 }
 
-/** Read-only preview: re-parse the saved email and list products that were never cut. No writes. */
-export async function recheckChannelEvent(eventId: string) {
+function reasonIdFor(event: any): string {
+  return event.externalOrderId
+    ? `CH-${event.externalOrderId}`
+    : `CH-MSG-${String(event.gmailMessageId || "").slice(-8)}`;
+}
+
+export type RecheckItemRow = {
+  title: string;
+  sku: string;
+  quantity: number;
+  productId: string;
+  productName: string;
+  matchType: string;
+  /** true when the SKU/title did not match any active product */
+  unmatched: boolean;
+};
+
+export type RecheckPreviewResult = {
+  orderId: string;
+  expected: number | null;
+  parsedLines: number;
+  parsedQuantity: number;
+  parseMethod: string;
+  /** where the email text came from */
+  bodySource: "stored" | "gmail" | "none";
+  items: RecheckItemRow[];
+  /** per product: expected / already cut / missing / extra */
+  lines: ReconcileLine[];
+  alreadyCut: Array<{ productId: string; productName: string; quantity: number }>;
+  missing: Array<{ productId: string; productName: string; quantity: number }>;
+  /** cut more than the email says (possible double deduction) - manual review only */
+  overCut: Array<{ productId: string; productName: string; quantity: number }>;
+  /** inventory deducted under this order id that no listed product explains */
+  unexplained: Array<{ inventoryItemId: string; inventoryItemName: string; quantity: number }>;
+  unmatched: string[];
+  /** reasons the automatic cut is not safe (shown to admin) */
+  blockers: string[];
+  emailMissingProduct: boolean;
+  manualAllowance: number;
+};
+
+/**
+ * Re-parse the ORIGINAL email (stored body, else Gmail by message id), match every SKU,
+ * and compare with what was actually deducted for this order (InventoryTransaction rows
+ * under the order's reason id; falls back to locks / recorded rows). No writes.
+ */
+async function buildOrderReconciliation(
+  event: any,
+  opts: { allowGmail?: boolean } = {}
+): Promise<RecheckPreviewResult & { _body: string }> {
+  const config = await getOrCreateChannelEmailConfig();
+  const subject = event.subject || "";
+  const catalog = (await Product.find({ isActive: true }).select("_id name slug").lean()) as any[];
+  const catalogForAi = catalog.map((p) => ({ id: String(p._id), name: p.name, slug: p.slug }));
+
+  let body = String(event.rawText || "");
+  let bodySource: RecheckPreviewResult["bodySource"] = body.trim() ? "stored" : "none";
+  let extracted = await extractOrderFromEmail(subject, body, catalogForAi);
+  const subjectN = itemsSoldFromSubject(subject);
+  const isShort = (ex: ExtractedOrder) => {
+    const exp = ex.expectedItemCount ?? subjectN;
+    return !ex.items.length || !checkItemCount(ex.items, exp).ok;
+  };
+  if (isShort(extracted) && opts.allowGmail !== false && event.gmailMessageId) {
+    const fresh = await fetchGmailBodyText(String(event.gmailMessageId));
+    if (fresh.trim()) {
+      const ex2 = await extractOrderFromEmail(subject, fresh, catalogForAi);
+      if (!isShort(ex2) || ex2.items.length > extracted.items.length) {
+        extracted = ex2;
+        body = fresh;
+        bodySource = "gmail";
+      }
+    }
+  }
+
+  const expected =
+    extracted.expectedItemCount ??
+    subjectN ??
+    (typeof event.extracted?.expectedItemCount === "number" ? event.extracted.expectedItemCount : null);
+  const count = checkItemCount(extracted.items || [], expected);
+
+  // Match each item on its own so every row shows its own match / unmatched SKU
+  const items: RecheckItemRow[] = [];
+  for (const item of extracted.items || []) {
+    const { matched } = await matchChannelProducts([item], config?.productAliases || []);
+    const m = matched[0];
+    items.push({
+      title: item.title,
+      sku: item.sku || "",
+      quantity: Math.max(1, Number(item.quantity) || 1),
+      productId: m ? String(m.productId) : "",
+      productName: m?.productName || "",
+      matchType: m?.matchType || "",
+      unmatched: !m,
+    });
+  }
+  const unmatched = items.filter((i) => i.unmatched).map((i) => (i.sku ? `${i.sku} (${i.title.slice(0, 60)})` : i.title));
+
+  // What was recorded as cut for this order (all applied events + locks)
+  const orderKey = orderKeyFor(event);
+  const recorded = new Map<string, number>();
+  const names = new Map<string, string>();
+  const locks = (await ChannelApplyLock.find({ _id: { $regex: `^${escapeRegex(orderKey)}\\|` } })
+    .select("productId quantity eventId")
+    .lean()) as Array<{ productId?: string; quantity?: number; eventId?: unknown }>;
+  const lockedEventIds = new Set(locks.map((l) => String(l.eventId || "")));
+  for (const l of locks) {
+    const id = String(l.productId || "");
+    if (id) recorded.set(id, (recorded.get(id) || 0) + Math.max(0, Number(l.quantity) || 0));
+  }
+  const related = (event.externalOrderId
+    ? await ChannelOrderEvent.find({ externalOrderId: event.externalOrderId, eventType: "order", status: "applied" })
+        .select("_id matchedItems appliedKeys")
+        .lean()
+    : [event.toObject ? event.toObject() : event]) as any[];
+  for (const row of related) {
+    for (const m of row.matchedItems || []) names.set(String(m.productId), m.productName);
+    // Legacy rows (no per-product locks): their matchedItems were all cut
+    if ((row.appliedKeys || []).length || lockedEventIds.has(String(row._id))) continue;
+    for (const m of row.matchedItems || []) {
+      const id = String(m.productId || "");
+      if (id) recorded.set(id, (recorded.get(id) || 0) + Math.max(1, Number(m.quantity) || 1));
+    }
+  }
+
+  // Ground truth: inventory transactions under this order's reason id
+  const txs = (await InventoryTransaction.find({ orderId: reasonIdFor(event) })
+    .select("inventoryItemId inventoryItemName type quantity")
+    .lean()) as any[];
+  const invNames = new Map<string, string>(txs.map((t) => [String(t.inventoryItemId), t.inventoryItemName || ""]));
+  const netCut = txs.length ? netCutByComponent(txs) : null;
+
+  const wanted = items
+    .filter((i) => i.productId)
+    .map((i) => ({ productId: i.productId, productName: i.productName, quantity: i.quantity }));
+  for (const w of wanted) names.set(w.productId, w.productName);
+  const others = [...recorded.keys()].map((id) => ({ productId: id, productName: names.get(id) || id }));
+  const productIds = [...new Set([...wanted.map((w) => w.productId), ...recorded.keys()])].filter((id) =>
+    mongoose.isValidObjectId(id)
+  );
+  const configs = (await ProductConfig.find({ productId: { $in: productIds }, isActive: true })
+    .select("productId components")
+    .lean()) as any[];
+  const boms: Record<string, BomLine[]> = {};
+  for (const c of configs) {
+    boms[String(c.productId)] = (c.components || []).map((x: any) => ({
+      inventoryItemId: String(x.inventoryItemId),
+      quantity: Number(x.quantity) || 0,
+    }));
+  }
+  const { lines, unexplained } = reconcileOrder({ wanted, others, recorded, boms, netCut });
+  for (const l of lines) if (!l.productName || l.productName === l.productId) l.productName = names.get(l.productId) || l.productId;
+
+  const blockers: string[] = [];
+  if (!items.length) blockers.push("Could not read any item from the email (stored body empty and Gmail re-fetch failed)");
+  if (unmatched.length) blockers.push(`SKU not matched to an active product: ${unmatched.join(", ")}`);
+  if (!count.ok) blockers.push(count.note);
+
+  const missing = lines.filter((l) => l.missingQty > 0).map((l) => ({ productId: l.productId, productName: l.productName, quantity: l.missingQty }));
+  const overCut = lines.filter((l) => l.extraQty > 0).map((l) => ({ productId: l.productId, productName: l.productName, quantity: l.extraQty }));
+  const cutTotal = lines.reduce((s, l) => s + Math.min(l.cutQty, l.expectedQty), 0);
+  const missingTotal = missing.reduce((s, m) => s + m.quantity, 0);
+  const emailShort = typeof expected === "number" && count.parsedQuantity < expected;
+
+  return {
+    _body: body,
+    orderId: event.externalOrderId || "",
+    expected,
+    parsedLines: count.parsedLines,
+    parsedQuantity: count.parsedQuantity,
+    parseMethod: extracted.parseMethod || "none",
+    bodySource,
+    items,
+    lines,
+    alreadyCut: lines.filter((l) => l.cutQty > 0).map((l) => ({ productId: l.productId, productName: l.productName, quantity: l.cutQty })),
+    missing,
+    overCut,
+    unexplained: unexplained.map((u) => ({ ...u, inventoryItemName: invNames.get(u.inventoryItemId) || u.inventoryItemId })),
+    unmatched,
+    blockers,
+    emailMissingProduct: emailShort,
+    manualAllowance:
+      typeof expected === "number" && emailShort ? Math.max(0, expected - cutTotal - missingTotal) : 0,
+  };
+}
+
+/** Read-only preview for "Re-check items". No writes. */
+export async function recheckChannelEvent(eventId: string): Promise<RecheckPreviewResult> {
   await connectDB();
   const event: any = await ChannelOrderEvent.findById(eventId);
   if (!event) throw new Error("Channel event not found");
   if (event.status !== "applied" || event.eventType === "cancel") {
     throw new Error("Only applied (Stock cut) orders can be re-checked");
   }
-  const config = await getOrCreateChannelEmailConfig();
-  const catalog = (await Product.find({}).select("_id name slug").lean()) as any[];
-  const subject = event.subject || "";
-  const body = event.rawText || "";
-  const extracted = await extractOrderFromEmail(
-    subject,
-    body,
-    catalog.map((p) => ({ id: String(p._id), name: p.name, slug: p.slug }))
-  );
-  const expected =
-    extracted.expectedItemCount ??
-    itemsSoldFromSubject(subject) ??
-    (typeof event.extracted?.expectedItemCount === "number" ? event.extracted.expectedItemCount : null);
-  const count = checkItemCount(extracted.items || [], expected);
-  const { matched, unmatched } = await matchChannelProducts(
-    extracted.items || [],
-    config?.productAliases || []
-  );
-  const cut = await cutProductIdsIncludingOwn(event);
-  const missing = computeMissingLines(matched, cut);
-  const names = new Map<string, string>();
-  for (const m of event.matchedItems || []) names.set(String(m.productId), m.productName);
-  for (const m of matched) names.set(String(m.productId), m.productName);
-  const cutQty = (event.matchedItems || []).reduce((s: number, m: any) => s + (Number(m.quantity) || 1), 0);
-  const emailShort = typeof expected === "number" && count.parsedQuantity < expected;
-  return {
-    expected,
-    parsedLines: count.parsedLines,
-    parsedQuantity: count.parsedQuantity,
-    parseMethod: extracted.parseMethod || "none",
-    items: (extracted.items || []).map((i) => ({ title: i.title, quantity: i.quantity, sku: i.sku || "" })),
-    alreadyCut: [...cut].map((id) => ({ productId: id, productName: names.get(id) || id })),
-    missing,
-    unmatched,
-    emailMissingProduct: emailShort,
-    // how many units the admin may still add by hand (never more than the email says)
-    manualAllowance:
-      typeof expected === "number"
-        ? Math.max(0, expected - cutQty - missing.reduce((s, m) => s + m.quantity, 0))
-        : 0,
-  };
+  const { _body, ...preview } = await buildOrderReconciliation(event, { allowGmail: true });
+  void _body;
+  return preview;
 }
 
 const RECHECK_STALE_MS = 10 * 60 * 1000;
 
 /**
- * Cut only products that were never cut for this applied order. `lines` comes from the preview
- * or from admin picks; every line is re-validated against the server's already-cut set and locks.
+ * Cut ONLY the missing quantity for an applied order. The server recomputes what is missing
+ * (client lines only choose which products); every cut takes a ChannelApplyLock first:
+ * `<order>|<product>` when nothing was locked yet, else `<order>|<product>|topup`. A product
+ * that already has both locks is never cut again. Manual picks (product not in the email) are
+ * allowed only within the email's unaccounted units.
  */
 export async function cutMissingChannelItems(
   eventId: string,
   lines: Array<{ productId: string; quantity: number }>,
-  by = ""
+  by = "",
+  opts: { action?: string } = {}
 ) {
   await connectDB();
   if (!Array.isArray(lines) || !lines.length) throw new Error("Nothing to cut");
@@ -1314,76 +1470,90 @@ export async function cutMissingChannelItems(
     ChannelOrderEvent.updateOne({ _id: claimed._id }, { $set: { recheckLockAt: null } });
 
   const acquired: string[] = [];
+  let deducted = false;
   try {
-    const expected =
-      itemsSoldFromSubject(claimed.subject || "") ??
-      (typeof claimed.extracted?.expectedItemCount === "number" ? claimed.extracted.expectedItemCount : null);
-    const cutQty = (claimed.matchedItems || []).reduce((s: number, m: any) => s + (Number(m.quantity) || 1), 0);
+    const recon = await buildOrderReconciliation(claimed, { allowGmail: true });
+    const missingById = new Map(recon.missing.map((m) => [m.productId, m]));
+    const inEmail = new Set(recon.lines.filter((l) => l.expectedQty > 0).map((l) => l.productId));
+    let manualLeft = recon.manualAllowance;
 
     const wanted: ChannelMatchedItem[] = [];
+    const skipped: string[] = [];
     for (const line of lines) {
       const id = String(line?.productId || "");
       if (!mongoose.isValidObjectId(id)) throw new Error("Invalid product");
-      const qty = Math.floor(Number(line.quantity) || 0);
-      if (qty < 1 || qty > 50) throw new Error("Quantity must be 1-50");
+      const asked = Math.floor(Number(line.quantity) || 0);
+      if (asked < 1 || asked > 50) throw new Error("Quantity must be 1-50");
+      const miss = missingById.get(id);
+      if (miss) {
+        wanted.push({ productId: id, productName: miss.productName, quantity: Math.min(asked, miss.quantity), matchType: "recheck" });
+        continue;
+      }
+      if (inEmail.has(id) || recon.lines.some((l) => l.productId === id && l.cutQty > 0)) {
+        skipped.push(recon.lines.find((l) => l.productId === id)?.productName || id);
+        continue;
+      }
+      // Manual pick for a product the email doesn't list
       const product: any = await Product.findById(id).select("_id name").lean();
       if (!product) throw new Error("Product not found");
-      wanted.push({ productId: id, productName: product.name, quantity: qty, matchType: "recheck" });
+      if (asked > manualLeft) {
+        throw new Error(`Email says ${recon.expected ?? "?"} item(s); at most ${manualLeft} more can be picked by hand`);
+      }
+      manualLeft -= asked;
+      wanted.push({ productId: id, productName: product.name, quantity: asked, matchType: "recheck_manual" });
     }
-    const cut = await cutProductIdsIncludingOwn(claimed);
-    const missing = computeMissingLines(wanted, cut);
-    const skipped = wanted.filter((w) => cut.has(w.productId)).map((w) => w.productName);
-    if (!missing.length) {
-      await unclaim();
-      throw new Error(`Already cut for this order: ${skipped.join(", ") || "all products"}. Nothing cut.`);
-    }
-    const addQty = missing.reduce((s, m) => s + m.quantity, 0);
-    if (typeof expected === "number" && cutQty + addQty > expected) {
-      throw new Error(`Email says ${expected} item(s); ${cutQty} already cut, so at most ${Math.max(0, expected - cutQty)} more`);
+    if (!wanted.length) {
+      throw new Error(`Nothing missing for this order${skipped.length ? ` (already cut: ${skipped.join(", ")})` : ""}. Nothing cut.`);
     }
 
     const orderKey = orderKeyFor(claimed);
     const toApply: ChannelMatchedItem[] = [];
-    for (const item of missing) {
-      const key = `${orderKey}|${item.productId}`;
-      try {
-        await ChannelApplyLock.create({
-          _id: key,
-          externalOrderId: claimed.externalOrderId || "",
-          productId: item.productId,
-          eventId: claimed._id,
-          quantity: item.quantity,
-        });
-        acquired.push(key);
-        toApply.push(item);
-      } catch (error: any) {
-        if (error?.code === 11000) {
-          skipped.push(item.productName);
-          continue;
+    for (const item of wanted) {
+      let got = "";
+      for (const key of [`${orderKey}|${item.productId}`, `${orderKey}|${item.productId}|topup`]) {
+        try {
+          await ChannelApplyLock.create({
+            _id: key,
+            externalOrderId: claimed.externalOrderId || "",
+            productId: item.productId,
+            eventId: claimed._id,
+            quantity: item.quantity,
+          });
+          got = key;
+          break;
+        } catch (error: any) {
+          if (error?.code !== 11000) throw error;
         }
-        throw error;
+      }
+      if (got) {
+        acquired.push(got);
+        toApply.push(item);
+      } else {
+        skipped.push(`${item.productName} (already topped up once - fix by hand)`);
       }
     }
     if (!toApply.length) {
       throw new Error(`Already cut for this order: ${skipped.join(", ")}. Nothing cut.`);
     }
 
-    const reasonId = claimed.externalOrderId ? `CH-${claimed.externalOrderId}` : `CH-MSG-${String(claimed.gmailMessageId).slice(-8)}`;
     let snapshot: ChannelSnapshotLineLike[] = [];
     let partialMsg = "";
     try {
-      snapshot = await deductInventoryForChannelItems(toApply, reasonId);
+      deducted = true;
+      snapshot = await deductInventoryForChannelItems(toApply, reasonIdFor(claimed));
     } catch (error) {
       if (error instanceof ChannelPartialDeductionError) {
         // Some lines were cut: keep locks (never re-cut) and record exactly what was cut.
         snapshot = error.partialSnapshot;
         partialMsg = error.message;
       } else {
+        deducted = false;
         throw error;
       }
     }
 
     const note = toApply.map((i) => `${i.productName} x${i.quantity}`).join(", ");
+    const action = opts.action || "cut_missing";
     await ChannelOrderEvent.updateOne(
       { _id: claimed._id },
       {
@@ -1392,13 +1562,14 @@ export async function cutMissingChannelItems(
           inventorySnapshot: { $each: snapshot },
           appliedKeys: { $each: acquired },
           auditLog: audit(
-            partialMsg ? "cut_missing_partial" : "cut_missing",
+            partialMsg ? `${action}_partial` : action,
             by,
             partialMsg ? `${note} - PARTLY cut (${partialMsg}); check inventory` : note
           ),
         },
         $set: {
           recheckLockAt: null,
+          ...(recon.bodySource === "gmail" && !String(claimed.rawText || "").trim() ? { rawText: recon._body } : {}),
           error: partialMsg
             ? `Missing items only partly cut (${partialMsg}). Locked so they are never re-cut; fix stock manually.`
             : skipped.length
@@ -1412,11 +1583,119 @@ export async function cutMissingChannelItems(
   } catch (error) {
     const msg = error instanceof Error ? error.message : "";
     if (!msg.startsWith("Only partly cut")) {
-      await releaseLocks(acquired);
+      if (!deducted) await releaseLocks(acquired);
       await unclaim();
     }
     throw error;
   }
+}
+
+// ---------------------------------------------------------------------------
+// One-time backfill of old applied orders (dry-run first, then apply)
+// ---------------------------------------------------------------------------
+
+export type BackfillRow = {
+  eventId: string;
+  orderId: string;
+  subject: string;
+  receivedAt: string | null;
+  bodySource: string;
+  missing: Array<{ productName: string; quantity: number }>;
+  overCut: Array<{ productName: string; quantity: number }>;
+  unexplained: Array<{ inventoryItemName: string; quantity: number }>;
+  blockers: string[];
+  /** cut = will cut missing; ok = nothing to do; review = needs a human (not auto-fixed) */
+  action: "cut" | "ok" | "review";
+  result?: string;
+};
+
+/**
+ * Scan applied Amazon order events not yet backfilled, re-parse each original email and cut
+ * ONLY missing quantities. Idempotent: per-product locks + inventory-based "already cut" make a
+ * second cut impossible, and clean orders get `backfilledAt` so re-runs skip them.
+ * Over-cut (double deduction) is only reported, never auto-restored.
+ */
+export async function backfillChannelOrders(opts: { apply?: boolean; by?: string; limit?: number } = {}) {
+  await connectDB();
+  const limit = Math.min(Math.max(Number(opts.limit) || 300, 1), 1000);
+  const events = (await ChannelOrderEvent.find({
+    eventType: "order",
+    status: "applied",
+    $or: [{ backfilledAt: null }, { backfilledAt: { $exists: false } }],
+  })
+    .sort({ receivedAt: 1, createdAt: 1 })
+    .limit(limit)) as any[];
+
+  const seenOrders = new Set<string>();
+  const rows: BackfillRow[] = [];
+  for (const event of events) {
+    const key = orderKeyFor(event);
+    if (seenOrders.has(key)) continue; // one reconciliation per marketplace order
+    seenOrders.add(key);
+    let recon: Awaited<ReturnType<typeof buildOrderReconciliation>>;
+    try {
+      recon = await buildOrderReconciliation(event, { allowGmail: true });
+    } catch (error) {
+      rows.push({
+        eventId: String(event._id), orderId: event.externalOrderId || "", subject: event.subject || "",
+        receivedAt: event.receivedAt ? new Date(event.receivedAt).toISOString() : null, bodySource: "none",
+        missing: [], overCut: [], unexplained: [],
+        blockers: [error instanceof Error ? error.message : "Re-check failed"], action: "review",
+      });
+      continue;
+    }
+    const needsReview = recon.blockers.length > 0 || recon.overCut.length > 0 || recon.unexplained.length > 0;
+    const row: BackfillRow = {
+      eventId: String(event._id),
+      orderId: recon.orderId,
+      subject: event.subject || "",
+      receivedAt: event.receivedAt ? new Date(event.receivedAt).toISOString() : null,
+      bodySource: recon.bodySource,
+      missing: recon.missing.map((m) => ({ productName: m.productName, quantity: m.quantity })),
+      overCut: recon.overCut.map((m) => ({ productName: m.productName, quantity: m.quantity })),
+      unexplained: recon.unexplained.map((u) => ({ inventoryItemName: u.inventoryItemName, quantity: u.quantity })),
+      blockers: recon.blockers,
+      action: recon.blockers.length ? "review" : recon.missing.length ? "cut" : needsReview ? "review" : "ok",
+    };
+    rows.push(row);
+    if (!opts.apply) continue;
+
+    try {
+      if (row.action === "cut") {
+        await cutMissingChannelItems(
+          String(event._id),
+          recon.missing.map((m) => ({ productId: m.productId, quantity: m.quantity })),
+          opts.by || "backfill",
+          { action: "backfill_cut" }
+        );
+        row.result = `Cut ${row.missing.map((m) => `${m.productName} x${m.quantity}`).join(", ")}`;
+      } else {
+        row.result = row.action === "ok" ? "Nothing missing" : "Left for manual review";
+      }
+      // Mark clean orders done (every event of this order) so the backfill never touches them again
+      if (!recon.blockers.length && !recon.overCut.length && !recon.unexplained.length) {
+        const filter = event.externalOrderId
+          ? { externalOrderId: event.externalOrderId, eventType: "order", status: "applied" }
+          : { _id: event._id };
+        await ChannelOrderEvent.updateMany(filter, {
+          $set: { backfilledAt: new Date(), backfillNote: row.result },
+          $push: { auditLog: audit("backfill", opts.by || "backfill", row.result) },
+        });
+      }
+    } catch (error) {
+      row.action = "review";
+      row.result = `Error: ${error instanceof Error ? error.message : "failed"}`;
+    }
+  }
+
+  const summary = {
+    scanned: rows.length,
+    toCut: rows.filter((r) => r.action === "cut").length,
+    ok: rows.filter((r) => r.action === "ok").length,
+    review: rows.filter((r) => r.action === "review").length,
+    applied: !!opts.apply,
+  };
+  return { summary, rows };
 }
 
 type ChannelSnapshotLineLike = { inventoryItemId: any; inventoryItemName: string; quantity: number };

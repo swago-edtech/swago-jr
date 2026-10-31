@@ -6,6 +6,7 @@ import InventoryTransaction from "../models/InventoryTransaction";
 import ProductConfig from "../models/ProductConfig";
 import { InsufficientInventoryError } from "./inventory-order";
 import { syncAffectedProducts } from "./inventory-sync";
+import { skuEquals } from "./channel-reconcile";
 
 export type ChannelMatchedItem = {
   productId: string;
@@ -186,7 +187,7 @@ export async function matchChannelProducts(
     if (skuClean) {
       // 1) Exact product-level Amazon SKU (set on product edit page) wins
       const byAmazonSku = products.filter(
-        (p) => String(p.amazonSku || "").trim().toUpperCase() === skuClean
+        (p) => skuEquals(p.amazonSku, skuClean)
       );
       if (byAmazonSku.length === 1) {
         matched.push({

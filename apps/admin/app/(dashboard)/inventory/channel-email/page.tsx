@@ -75,9 +75,14 @@ type RecheckPreview = {
   parsedLines: number;
   parsedQuantity: number;
   parseMethod: string;
-  items: Array<{ title: string; quantity: number; sku?: string }>;
-  alreadyCut: Array<{ productId: string; productName: string }>;
+  bodySource?: string;
+  items: Array<{ title: string; quantity: number; sku?: string; productId?: string; productName?: string; unmatched?: boolean }>;
+  lines?: Array<{ productId: string; productName: string; expectedQty: number; cutQty: number; missingQty: number; extraQty: number }>;
+  alreadyCut: Array<{ productId: string; productName: string; quantity?: number }>;
   missing: Array<{ productId: string; productName: string; quantity: number }>;
+  overCut?: Array<{ productId: string; productName: string; quantity: number }>;
+  unexplained?: Array<{ inventoryItemName: string; quantity: number }>;
+  blockers?: string[];
   unmatched: string[];
   emailMissingProduct: boolean;
   manualAllowance: number;
@@ -115,11 +120,58 @@ function RecheckPanel({
         Email says {preview.expected ?? "?"} item(s); parsed {preview.parsedLines} line(s) / qty{" "}
         {preview.parsedQuantity} ({preview.parseMethod}).
       </p>
-      <p className="mt-1">
-        Already cut: {preview.alreadyCut.map((c) => c.productName).join(", ") || "-"}
-      </p>
+      {preview.bodySource === "gmail" ? <p className="mt-1 text-slate-500">Email re-read from Gmail.</p> : null}
+      <table className="mt-2 w-full text-left">
+        <thead className="text-slate-500">
+          <tr>
+            <th className="pr-2 font-medium">SKU</th>
+            <th className="pr-2 font-medium">Product</th>
+            <th className="pr-2 font-medium">Email qty</th>
+            <th className="pr-2 font-medium">Already cut</th>
+            <th className="font-medium">Missing</th>
+          </tr>
+        </thead>
+        <tbody>
+          {preview.items.map((it, i) => {
+            const line = it.unmatched ? undefined : preview.lines?.find((l) => l.productId === it.productId);
+            return (
+              <tr key={i} className={it.unmatched ? "text-rose-700" : ""}>
+                <td className="pr-2 font-mono">{it.sku || "-"}</td>
+                <td className="pr-2">{it.unmatched ? "NOT MATCHED" : it.productName}</td>
+                <td className="pr-2">{it.quantity}</td>
+                <td className="pr-2">{line ? line.cutQty : "?"}</td>
+                <td>{line ? line.missingQty : "?"}</td>
+              </tr>
+            );
+          })}
+          {(preview.lines || [])
+            .filter((l) => l.expectedQty === 0)
+            .map((l) => (
+              <tr key={l.productId} className="text-amber-800">
+                <td className="pr-2">-</td>
+                <td className="pr-2">{l.productName} (not in email)</td>
+                <td className="pr-2">0</td>
+                <td className="pr-2">{l.cutQty}</td>
+                <td>0</td>
+              </tr>
+            ))}
+        </tbody>
+      </table>
       {preview.unmatched.length ? (
-        <p className="mt-1 text-amber-800">Not matched to a product: {preview.unmatched.join(", ")}</p>
+        <p className="mt-1 font-medium text-rose-700">
+          SKU not matched to an active product: {preview.unmatched.join(", ")}. Set the product&apos;s Amazon SKU (or an alias), then Re-check again.
+        </p>
+      ) : null}
+      {preview.overCut?.length ? (
+        <p className="mt-1 font-medium text-rose-700">
+          Cut MORE than the email says (possible double deduction, check by hand):{" "}
+          {preview.overCut.map((o) => `${o.productName} +${o.quantity}`).join(", ")}
+        </p>
+      ) : null}
+      {preview.unexplained?.length ? (
+        <p className="mt-1 text-amber-800">
+          Extra stock deducted under this order: {preview.unexplained.map((u) => `${u.inventoryItemName} x${u.quantity}`).join(", ")}
+        </p>
       ) : null}
       {preview.missing.length ? (
         <div className="mt-2">
@@ -145,7 +197,13 @@ function RecheckPanel({
           </button>
         </div>
       ) : (
-        <p className="mt-1 text-emerald-700">No missing products found in the email.</p>
+        <p className={`mt-1 ${preview.unmatched.length || preview.blockers?.length ? "text-amber-800" : "text-emerald-700"}`}>
+          {preview.unmatched.length
+            ? "Nothing cut automatically - some SKUs are not matched (see above)."
+            : preview.blockers?.length
+              ? preview.blockers.join(". ")
+              : "All matched products are fully cut."}
+        </p>
       )}
       {preview.emailMissingProduct && preview.manualAllowance > 0 ? (
         <div className="mt-3">
@@ -189,6 +247,72 @@ function RecheckPanel({
             </button>
           </div>
         </div>
+      ) : null}
+    </div>
+  );
+}
+
+type BackfillResult = {
+  summary: { scanned: number; toCut: number; ok: number; review: number; applied: boolean };
+  rows: Array<{
+    eventId: string;
+    orderId: string;
+    action: "cut" | "ok" | "review";
+    missing: Array<{ productName: string; quantity: number }>;
+    overCut: Array<{ productName: string; quantity: number }>;
+    blockers: string[];
+    result?: string;
+  }>;
+};
+
+function BackfillPanel({
+  result,
+  busy,
+  onApply,
+  onClose,
+}: {
+  result: BackfillResult;
+  busy: boolean;
+  onApply: () => void;
+  onClose: () => void;
+}) {
+  const s = result.summary;
+  const rows = result.rows.filter((r) => r.action !== "ok" || r.result);
+  return (
+    <div className="mx-5 my-3 rounded-lg border border-indigo-200 bg-indigo-50/50 p-3 text-xs text-slate-800">
+      <div className="flex items-center justify-between">
+        <p className="font-semibold text-slate-900">
+          {s.applied ? "Backfill done" : "Backfill preview (nothing changed yet)"}: {s.scanned} order(s), {s.toCut} to cut,{" "}
+          {s.ok} already correct, {s.review} need review
+        </p>
+        <button type="button" onClick={onClose} className="text-slate-500 hover:text-slate-800">
+          Close
+        </button>
+      </div>
+      {rows.length ? (
+        <ul className="mt-2 max-h-64 space-y-1 overflow-y-auto">
+          {rows.map((r) => (
+            <li key={r.eventId} className={r.action === "review" ? "text-amber-800" : ""}>
+              <span className="font-mono">{r.orderId || r.eventId}</span>:{" "}
+              {r.missing.length ? `missing ${r.missing.map((m) => `${m.productName} x${m.quantity}`).join(", ")}` : "nothing missing"}
+              {r.overCut.length ? (
+                <span className="text-rose-700"> | DOUBLE CUT? {r.overCut.map((m) => `${m.productName} +${m.quantity}`).join(", ")} (fix by hand)</span>
+              ) : null}
+              {r.blockers.length ? ` | ${r.blockers.join("; ")}` : ""}
+              {r.result ? ` -> ${r.result}` : ""}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {!s.applied && s.toCut > 0 ? (
+        <button
+          type="button"
+          disabled={busy}
+          onClick={onApply}
+          className="mt-2 rounded-lg bg-indigo-600 px-3 py-1.5 font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
+        >
+          {busy ? "Applying..." : `Cut missing stock for ${s.toCut} order(s)`}
+        </button>
       ) : null}
     </div>
   );
@@ -460,6 +584,8 @@ function ChannelEmailPageInner() {
   const [aliasesOpen, setAliasesOpen] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [rechecks, setRechecks] = useState<Record<string, RecheckPreview>>({});
+  const [backfill, setBackfill] = useState<BackfillResult | null>(null);
+  const [backfilling, setBackfilling] = useState(false);
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState<"info" | "success" | "error">("info");
   const [config, setConfig] = useState<ConfigState>({
@@ -661,6 +787,33 @@ function ChannelEmailPageInner() {
   const saveAll = async () => {
     const ok = await persistSettings();
     if (ok) showMessage("Settings saved.", "success");
+  };
+
+  const runBackfill = async (apply: boolean) => {
+    if (
+      apply &&
+      !window.confirm(
+        "Cut ONLY the missing stock listed in the preview? Each product is locked per order, so nothing can be cut twice. Double cuts are not restored automatically."
+      )
+    )
+      return;
+    setBackfilling(true);
+    try {
+      const res = await fetch("/api/channel-email/backfill", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ apply }),
+      });
+      const data = await res.json();
+      if (!data.success) {
+        showMessage(data.error || "Backfill failed", "error");
+        return;
+      }
+      setBackfill({ summary: data.summary, rows: data.rows || [] });
+      if (apply) load();
+    } finally {
+      setBackfilling(false);
+    }
   };
 
   const runSync = async () => {
@@ -896,6 +1049,14 @@ function ChannelEmailPageInner() {
             >
               N-item orders to re-check
             </button>
+            <button
+              type="button"
+              disabled={backfilling}
+              onClick={() => runBackfill(false)}
+              className="text-xs font-medium px-2.5 py-1 rounded-full border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+            >
+              {backfilling ? "Checking..." : "Backfill old orders"}
+            </button>
             {(["pending_review", "applied", "restored", "ignored"] as const).map((status) =>
               statusCounts[status] ? (
                 <button
@@ -928,6 +1089,14 @@ function ChannelEmailPageInner() {
           </div>
         </div>
 
+        {backfill ? (
+          <BackfillPanel
+            result={backfill}
+            busy={backfilling}
+            onApply={() => runBackfill(true)}
+            onClose={() => setBackfill(null)}
+          />
+        ) : null}
         {!canShowEvents ? (
           <div className="px-5 py-14 text-center text-slate-500 text-sm">
             Complete setup in Settings below, then check mail to see tracked emails here.

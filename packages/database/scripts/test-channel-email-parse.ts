@@ -13,6 +13,7 @@ import {
   buildExtractionPrompt,
 } from "../src/services/channel-email-parse";
 import { remainingAfterCut, mergeSnapshotLines } from "../src/services/channel-inventory";
+import { reconcileOrder, netCutByComponent, skuEquals } from "../src/services/channel-reconcile";
 import { withManualMatch, computeMissingLines, needsItemRecheck, itemsSoldFromSubject } from "../src/services/channel-email-sync";
 
 const subject = "Sold, ship now: 2 items sold - Order 408-1234567-1234567";
@@ -196,6 +197,148 @@ t("re-check button shows only for applied N>1 orders", () => {
   assert.ok(!needsItemRecheck({ status: "applied", eventType: "order", subject: "Sold, ship now: SKU 403-1-2", extracted: {} }));
   assert.ok(!needsItemRecheck({ status: "pending_review", eventType: "order", subject: "2 items sold" }));
   assert.ok(!needsItemRecheck({ status: "applied", eventType: "cancel", subject: "2 items sold" }));
+});
+
+// ---------------------------------------------------------------------------
+// Real "Sold, ship now: 2 items sold" email (order 408-5251000-7343559)
+// ---------------------------------------------------------------------------
+const realBody = `Order Details
+Order ID: 408-5251000-7343559
+Order date: 28/10/2026
+Please ship this order using: Standard Shipping
+Collect on Delivery prepaid: INR 0.00
+Collect on Delivery amount: INR 1888.84
+
+Ship by: 30/10/2026
+Item: Swago Seek Rush - Fast-Paced Spot-It Board Game for Kids, Teens & Adults | Educational Brain Training Game for Focus & Memory | Ages 6+ | Family, Party & Game Night| 2-4 Players| Gift for Boys & Girls
+Condition: New
+SKU: SWG-OBG-SSR-01-6Y
+Quantity: 1
+Price: INR 895.24
+Tax: INR 44.76
+Amazon fees: -INR 56.64
+Collect on Delivery fees: INR 3.75
+
+Ship by: 30/10/2026
+Item: Swago Scarf Dumb Charades - Confidence-Building Acting & Guessing Card Game for Kids & Teens | Family,Party & Game Night Fun | Educational Learning Game | Ages 6+ | 2-12 Players |Gift for Boys & Girls
+Condition: New
+SKU: SWG-GAG-SDC-01-6Y
+Quantity: 1
+Price: INR 895.24
+Tax: INR 44.76
+Amazon fees: -INR 56.64
+Collect on Delivery fees: INR 3.75`;
+const realSubject = "Sold, ship now: 2 items sold";
+
+function expectReal(body: string, qty: [number, number] = [1, 1]) {
+  const r = parseAmazonOrderFormat(body, realSubject);
+  assert.ok(r, "parser returned null");
+  assert.equal(r!.externalOrderId, "408-5251000-7343559");
+  assert.deepEqual(
+    r!.items.map((i) => [i.sku, i.quantity]),
+    [
+      ["SWG-OBG-SSR-01-6Y", qty[0]],
+      ["SWG-GAG-SDC-01-6Y", qty[1]],
+    ]
+  );
+  assert.match(r!.items[0].title, /^Swago Seek Rush/);
+  assert.match(r!.items[1].title, /^Swago Scarf Dumb Charades/);
+  assert.ok(checkItemCount(r!.items, extractExpectedItemCount(realSubject, body)).ok || qty[1] !== 1);
+}
+
+t("real 2-item email: both SKUs (with SWG- prefix), qty 1 each", () => expectReal(realBody));
+t("real email with CRLF line endings", () => expectReal(realBody.replace(/\n/g, "\r\n")));
+t("real email with extra whitespace / tabs / nbsp", () =>
+  expectReal(realBody.split("\n").map((l) => `  \t${l.replace(/: /g, ":\u00a0 ")}  `).join("\n"))
+);
+t("real email as HTML table (htmlToText)", () => {
+  const html =
+    "<html><body><table>" +
+    realBody
+      .split("\n")
+      .map((l) => {
+        const i = l.indexOf(":");
+        return i > 0
+          ? `<tr><td><b>${l.slice(0, i + 1)}</b></td><td>${l.slice(i + 1).replace(/&/g, "&amp;")}</td></tr>`
+          : `<tr><td>&nbsp;</td></tr>`;
+      })
+      .join("\r\n") +
+    "</table></body></html>";
+  expectReal(htmlToText(html));
+});
+t("real email, qty 1 + 2 per SKU", () => {
+  const body2 = realBody.replace(/(SWG-GAG-SDC-01-6Y\nQuantity: )1/, "$12");
+  expectReal(body2, [1, 2]);
+  const r = parseAmazonOrderFormat(body2, "Sold, ship now: 3 items sold")!;
+  assert.ok(checkItemCount(r.items, 3).ok);
+});
+t("SKU compare: exact, trimmed, case-insensitive, no prefix guessing", () => {
+  assert.ok(skuEquals(" swg-gag-sdc-01-6y ", "SWG-GAG-SDC-01-6Y"));
+  assert.ok(!skuEquals("GAG-SDC-01-6Y", "SWG-GAG-SDC-01-6Y"));
+  assert.ok(!skuEquals("", ""));
+});
+
+const bomA = [{ inventoryItemId: "iA", quantity: 1 }];
+const bomB = [{ inventoryItemId: "iB", quantity: 1 }];
+const wantAB = [
+  { productId: "pA", productName: "Seek Rush", quantity: 1 },
+  { productId: "pB", productName: "Dumb Charades", quantity: 1 },
+];
+t("reconcile: old order where only Seek Rush was cut -> Charades x1 missing", () => {
+  const net = netCutByComponent([{ inventoryItemId: "iA", type: "deduction", quantity: 1 }]);
+  const { lines } = reconcileOrder({ wanted: wantAB, recorded: new Map([["pA", 1]]), boms: { pA: bomA, pB: bomB }, netCut: net });
+  assert.deepEqual(lines.map((l) => [l.productId, l.cutQty, l.missingQty, l.extraQty]), [["pA", 1, 0, 0], ["pB", 0, 1, 0]]);
+});
+t("reconcile: recorded says both cut but inventory shows only one -> inventory wins", () => {
+  const net = netCutByComponent([{ inventoryItemId: "iA", type: "deduction", quantity: 1 }]);
+  const { lines } = reconcileOrder({ wanted: wantAB, recorded: new Map([["pA", 1], ["pB", 1]]), boms: { pA: bomA, pB: bomB }, netCut: net });
+  assert.equal(lines.find((l) => l.productId === "pB")!.missingQty, 1);
+});
+t("reconcile: double deduction of Seek Rush reported as extra, Charades missing", () => {
+  const net = netCutByComponent([
+    { inventoryItemId: "iA", type: "deduction", quantity: 1 },
+    { inventoryItemId: "iA", type: "deduction", quantity: 1 },
+  ]);
+  const { lines } = reconcileOrder({ wanted: wantAB, recorded: new Map(), boms: { pA: bomA, pB: bomB }, netCut: net });
+  assert.deepEqual(lines.map((l) => [l.productId, l.cutQty, l.missingQty, l.extraQty]), [["pA", 2, 0, 1], ["pB", 0, 1, 0]]);
+});
+t("reconcile: qty 1 + 2 with 1 + 1 cut -> only 1 more of B; restores are netted", () => {
+  const net = netCutByComponent([
+    { inventoryItemId: "iA", type: "deduction", quantity: 1 },
+    { inventoryItemId: "iB", type: "deduction", quantity: 2 },
+    { inventoryItemId: "iB", type: "addition", quantity: 1 },
+  ]);
+  const { lines } = reconcileOrder({
+    wanted: [wantAB[0], { ...wantAB[1], quantity: 2 }],
+    recorded: new Map(),
+    boms: { pA: bomA, pB: bomB },
+    netCut: net,
+  });
+  assert.deepEqual(lines.map((l) => [l.missingQty, l.extraQty]), [[0, 0], [1, 0]]);
+});
+t("reconcile: fully cut -> nothing missing (idempotent second run)", () => {
+  const net = netCutByComponent([
+    { inventoryItemId: "iA", type: "deduction", quantity: 1 },
+    { inventoryItemId: "iB", type: "deduction", quantity: 1 },
+  ]);
+  const { lines, unexplained } = reconcileOrder({ wanted: wantAB, recorded: new Map(), boms: { pA: bomA, pB: bomB }, netCut: net });
+  assert.ok(lines.every((l) => l.missingQty === 0 && l.extraQty === 0));
+  assert.equal(unexplained.length, 0);
+});
+t("reconcile: product cut but not in email is listed (expected 0, extra)", () => {
+  const net = netCutByComponent([{ inventoryItemId: "iC", type: "deduction", quantity: 1 }]);
+  const { lines } = reconcileOrder({
+    wanted: [wantAB[0]],
+    others: [{ productId: "pC", productName: "Wrong" }],
+    recorded: new Map([["pC", 1]]),
+    boms: { pA: bomA, pC: [{ inventoryItemId: "iC", quantity: 1 }] },
+    netCut: net,
+  });
+  assert.deepEqual(lines.map((l) => [l.productId, l.missingQty, l.extraQty]), [["pA", 1, 0], ["pC", 0, 1]]);
+});
+t("reconcile: no inventory rows -> falls back to recorded quantities", () => {
+  const { lines } = reconcileOrder({ wanted: wantAB, recorded: new Map([["pA", 1]]), boms: { pA: bomA, pB: bomB }, netCut: null });
+  assert.deepEqual(lines.map((l) => [l.missingQty, l.source]), [[0, "recorded"], [1, "recorded"]]);
 });
 
 console.log(`\n${pass} tests passed`);

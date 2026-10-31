@@ -44,4 +44,5 @@ export * from './services/inventory-order';
 export * from './services/channel-inventory';
 export * from './services/channel-email-sync';
 export * from './services/channel-email-parse';
+export * from './services/channel-reconcile';
 export * from './services/google-signin';
