@@ -11,7 +11,7 @@ const ChannelOrderEventSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["pending_review", "applied", "restored", "ignored", "failed", "skipped"],
+      enum: ["pending_review", "processing", "applied", "restored", "ignored", "failed", "skipped"],
       default: "pending_review",
     },
     externalOrderId: { type: String, default: "", index: true },
@@ -27,9 +27,21 @@ const ChannelOrderEventSchema = new mongoose.Schema(
           title: { type: String, default: "" },
           quantity: { type: Number, default: 1 },
           sku: { type: String, default: "" },
+          price: { type: String, default: "" },
         },
       ],
+      // Optional parse details shown in admin (all backward compatible)
+      parseMethod: { type: String, default: "" }, // regex | subject | ai | none
+      expectedItemCount: { type: Number, default: null },
+      parsedItemCount: { type: Number, default: null },
+      parsedQuantity: { type: Number, default: null },
+      shipBy: { type: String, default: "" },
+      orderDate: { type: String, default: "" },
     },
+    /** "<orderId>|<productId>" keys this event cut stock for (see ChannelApplyLock). */
+    appliedKeys: [{ type: String }],
+    /** Products skipped because an earlier event already cut stock for them. */
+    skippedDuplicates: [{ type: String }],
     matchedItems: [
       {
         productId: { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
@@ -47,6 +59,19 @@ const ChannelOrderEventSchema = new mongoose.Schema(
       },
     ],
     error: { type: String, default: "" },
+    /** Why a failed event failed: "partial" (some lines cut, see inventorySnapshot) | "interrupted" (lock held, unknown) */
+    failureKind: { type: String, default: "" },
+    /** Short claim while "Cut missing items" runs on an applied event (prevents double clicks) */
+    recheckLockAt: { type: Date, default: null },
+    /** Admin decisions on this event (who/when/what) */
+    auditLog: [
+      {
+        action: { type: String, default: "" },
+        by: { type: String, default: "" },
+        at: { type: Date, default: Date.now },
+        note: { type: String, default: "" },
+      },
+    ],
   },
   { timestamps: true }
 );

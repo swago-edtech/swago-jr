@@ -30,9 +30,20 @@ type ChannelEvent = {
   extracted?: {
     confidence?: number;
     reasoning?: string;
-    items?: Array<{ title: string; quantity: number }>;
+    items?: Array<{ title: string; quantity: number; sku?: string; price?: string }>;
+    parseMethod?: string;
+    expectedItemCount?: number | null;
+    parsedItemCount?: number;
+    parsedQuantity?: number;
+    shipBy?: string;
+    orderDate?: string;
   };
+  appliedKeys?: string[];
+  skippedDuplicates?: string[];
+  failureKind?: string;
+  auditLog?: Array<{ action: string; by?: string; at?: string; note?: string }>;
   matchedItems?: Array<{
+    productId?: string;
     productName: string;
     quantity: number;
     extractedTitle?: string;
@@ -53,6 +64,308 @@ type ConfigState = {
   lastSyncedAt: string | null;
 };
 
+function formatShortDate(value?: string) {
+  if (!value) return "-";
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? String(value) : d.toLocaleDateString();
+}
+
+type RecheckPreview = {
+  expected: number | null;
+  parsedLines: number;
+  parsedQuantity: number;
+  parseMethod: string;
+  items: Array<{ title: string; quantity: number; sku?: string }>;
+  alreadyCut: Array<{ productId: string; productName: string }>;
+  missing: Array<{ productId: string; productName: string; quantity: number }>;
+  unmatched: string[];
+  emailMissingProduct: boolean;
+  manualAllowance: number;
+};
+
+function needsRecheck(event: ChannelEvent): boolean {
+  if (event.status !== "applied" || event.eventType === "cancel") return false;
+  const m = String(event.subject || "").match(/(\d+)\s+items?\s+sold/i);
+  if (m && Number(m[1]) > 1) return true;
+  const expected = event.extracted?.expectedItemCount;
+  return typeof expected === "number" && expected > 1;
+}
+
+function RecheckPanel({
+  event,
+  preview,
+  products,
+  onAction,
+}: {
+  event: ChannelEvent;
+  preview: RecheckPreview;
+  products: ProductOption[];
+  onAction: EventActionFn;
+}) {
+  const [pickId, setPickId] = useState("");
+  const [pickQty, setPickQty] = useState(1);
+  const cutLines = (lines: Array<{ productId: string; quantity: number }>, label: string) =>
+    window.confirm(
+      `This will cut stock for: ${label}. Products already cut for this order are never cut again. Continue?`
+    ) && onAction(event._id, "cut_missing", { lines });
+  return (
+    <div className="mb-3 rounded-lg border border-indigo-200 bg-indigo-50/50 p-3 text-xs text-slate-800">
+      <p className="font-semibold text-slate-900">Re-check result</p>
+      <p className="mt-1">
+        Email says {preview.expected ?? "?"} item(s); parsed {preview.parsedLines} line(s) / qty{" "}
+        {preview.parsedQuantity} ({preview.parseMethod}).
+      </p>
+      <p className="mt-1">
+        Already cut: {preview.alreadyCut.map((c) => c.productName).join(", ") || "-"}
+      </p>
+      {preview.unmatched.length ? (
+        <p className="mt-1 text-amber-800">Not matched to a product: {preview.unmatched.join(", ")}</p>
+      ) : null}
+      {preview.missing.length ? (
+        <div className="mt-2">
+          <p className="font-medium">Missing (not cut yet):</p>
+          <ul className="ml-4 list-disc">
+            {preview.missing.map((m) => (
+              <li key={m.productId}>
+                {m.productName} x{m.quantity}
+              </li>
+            ))}
+          </ul>
+          <button
+            type="button"
+            onClick={() =>
+              cutLines(
+                preview.missing.map((m) => ({ productId: m.productId, quantity: m.quantity })),
+                preview.missing.map((m) => `${m.productName} x${m.quantity}`).join(", ")
+              )
+            }
+            className="mt-2 rounded-lg bg-indigo-600 px-3 py-1.5 font-semibold text-white hover:bg-indigo-700"
+          >
+            Cut missing items
+          </button>
+        </div>
+      ) : (
+        <p className="mt-1 text-emerald-700">No missing products found in the email.</p>
+      )}
+      {preview.emailMissingProduct && preview.manualAllowance > 0 ? (
+        <div className="mt-3">
+          <p className="text-amber-800">
+            Email doesn&apos;t list the missing product. Pick it ({preview.manualAllowance} unit(s) unaccounted):
+          </p>
+          <div className="mt-1 flex flex-wrap items-center gap-2">
+            <select
+              value={pickId}
+              onChange={(e) => setPickId(e.target.value)}
+              className="max-w-[240px] rounded border border-slate-300 bg-white px-1.5 py-1"
+            >
+              <option value="">Pick product...</option>
+              {products.map((p) => (
+                <option key={p._id} value={p._id}>
+                  {p.name}
+                  {p.isActive ? "" : " (inactive)"}
+                </option>
+              ))}
+            </select>
+            <input
+              type="number"
+              min={1}
+              max={preview.manualAllowance}
+              value={pickQty}
+              onChange={(e) => setPickQty(Math.max(1, Number(e.target.value) || 1))}
+              className="w-16 rounded border border-slate-300 bg-white px-1.5 py-1"
+            />
+            <button
+              type="button"
+              disabled={!pickId}
+              onClick={() =>
+                cutLines(
+                  [{ productId: pickId, quantity: pickQty }],
+                  `${products.find((p) => p._id === pickId)?.name || "product"} x${pickQty}`
+                )
+              }
+              className="rounded-lg bg-indigo-600 px-3 py-1.5 font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
+            >
+              Cut picked product
+            </button>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+type EventActionFn = (id: string, action: string, extra?: Record<string, unknown>) => Promise<void>;
+
+function OrderDetails({
+  event,
+  products,
+  onAction,
+}: {
+  event: ChannelEvent;
+  products: ProductOption[];
+  onAction: EventActionFn;
+}) {
+  const canPick = event.status === "pending_review" && event.eventType !== "cancel";
+  const matchFor = (title: string) =>
+    (event.matchedItems || []).find((m) => (m.extractedTitle || "") === title);
+  const isFailed = event.status === "failed";
+  const interrupted = isFailed && event.failureKind === "interrupted";
+  const ex = event.extracted || {};
+  const items = ex.items || [];
+  const parsedLines = ex.parsedItemCount ?? items.length;
+  const parsedQty = ex.parsedQuantity ?? items.reduce((s, i) => s + (Number(i.quantity) || 0), 0);
+  const expected = ex.expectedItemCount;
+  const mismatch =
+    typeof expected === "number" && expected !== parsedLines && expected !== parsedQty;
+  const reason =
+    event.status === "pending_review" || event.status === "skipped" || event.status === "failed"
+      ? event.error || ex.reasoning || ""
+      : "";
+  return (
+    <div className="mb-4 rounded-xl border border-slate-200 bg-white p-3 text-sm">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Order ID</p>
+          <p className="font-mono text-slate-900 break-all">{event.externalOrderId || "-"}</p>
+        </div>
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Items expected / parsed</p>
+          <p className={mismatch ? "font-semibold text-rose-700" : "text-slate-900"}>
+            {typeof expected === "number" ? expected : "?"} / {parsedLines}
+            {parsedQty !== parsedLines ? ` (qty ${parsedQty})` : ""}
+          </p>
+        </div>
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Ship by</p>
+          <p className="text-slate-900">{formatShortDate(ex.shipBy)}</p>
+        </div>
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Order date</p>
+          <p className="text-slate-900">{formatShortDate(ex.orderDate)}</p>
+        </div>
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Parse method</p>
+          <p className="text-slate-900">{ex.parseMethod || "-"}</p>
+        </div>
+      </div>
+      {items.length > 0 && (
+        <div className="mt-3 overflow-x-auto">
+          <table className="min-w-full text-xs">
+            <thead>
+              <tr className="text-left text-slate-500">
+                <th className="py-1 pr-3 font-medium">Title</th>
+                <th className="py-1 pr-3 font-medium">SKU</th>
+                <th className="py-1 pr-3 font-medium">Qty</th>
+                <th className="py-1 pr-3 font-medium">Price</th>
+                <th className="py-1 font-medium">Product</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((item, i) => (
+                <tr key={i} className="border-t border-slate-100 text-slate-800">
+                  <td className="py-1 pr-3">{item.title || "-"}</td>
+                  <td className="py-1 pr-3 font-mono">{item.sku || "-"}</td>
+                  <td className="py-1 pr-3">{item.quantity}</td>
+                  <td className="py-1 pr-3">{item.price || "-"}</td>
+                  <td className="py-1 min-w-[160px]">
+                    {canPick ? (
+                      <select
+                        className="w-full max-w-[220px] rounded border border-slate-300 bg-white px-1.5 py-1 text-xs"
+                        value={String(matchFor(item.title)?.productId || "")}
+                        onChange={(e) =>
+                          e.target.value &&
+                          onAction(event._id, "assign_product", { itemIndex: i, productId: e.target.value })
+                        }
+                      >
+                        <option value="">Pick product...</option>
+                        {products.map((p) => (
+                          <option key={p._id} value={p._id}>
+                            {p.name}
+                            {p.isActive ? "" : " (inactive)"}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      matchFor(item.title)?.productName || "-"
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {reason ? (
+        <p className="mt-2 text-xs text-amber-800">
+          {event.status === "skipped" ? "Skipped: " : event.status === "failed" ? "Failed: " : "Needs confirm: "}
+          {reason}
+        </p>
+      ) : null}
+      {event.skippedDuplicates?.length ? (
+        <p className="mt-1 text-xs text-slate-500">
+          Already cut earlier for this order (not deducted again): {event.skippedDuplicates.length} product(s)
+        </p>
+      ) : null}
+      {isFailed && event.inventorySnapshot?.length ? (
+        <p className="mt-1 text-xs text-slate-700">
+          Already cut:{" "}
+          {event.inventorySnapshot
+            .map((s) => `${s.inventoryItemName || "item"} x${s.quantity ?? 0}`)
+            .join(", ")}
+        </p>
+      ) : null}
+      {isFailed && (
+        <div className="mt-2 flex flex-wrap gap-2">
+          {interrupted ? (
+            <>
+              <button
+                type="button"
+                onClick={() =>
+                  window.confirm(
+                    "Only do this if inventory history shows stock WAS cut for this order. No stock will change. Continue?"
+                  ) && onAction(event._id, "mark_applied")
+                }
+                className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-700"
+              >
+                Mark as applied (stock was cut)
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  window.confirm(
+                    "Only do this if stock was NOT cut. Locks are released and the email goes back to Needs confirm; confirming it will cut stock. Continue?"
+                  ) && onAction(event._id, "release_retry")
+                }
+                className="rounded-lg border border-rose-300 bg-white px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-50"
+              >
+                Release &amp; retry
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={() => onAction(event._id, "apply")}
+              className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-700"
+            >
+              {event.failureKind === "partial" ? "Retry remaining lines" : "Retry"}
+            </button>
+          )}
+        </div>
+      )}
+      {event.auditLog?.length ? (
+        <ul className="mt-2 space-y-0.5 text-[11px] text-slate-500">
+          {event.auditLog.map((a, i) => (
+            <li key={i}>
+              {a.at ? new Date(a.at).toLocaleString("en-IN") : ""} - {a.action} by {a.by || "admin"}
+              {a.note ? ` (${a.note})` : ""}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  );
+}
+
 const STATUS_META: Record<string, { label: string; className: string }> = {
   pending_review: {
     label: "Needs confirm",
@@ -69,6 +382,10 @@ const STATUS_META: Record<string, { label: string; className: string }> = {
   ignored: {
     label: "Ignored",
     className: "bg-slate-100 text-slate-600 border-slate-200",
+  },
+  processing: {
+    label: "Processing",
+    className: "bg-indigo-50 text-indigo-800 border-indigo-200",
   },
   failed: {
     label: "Failed",
@@ -142,6 +459,7 @@ function ChannelEmailPageInner() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [aliasesOpen, setAliasesOpen] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [rechecks, setRechecks] = useState<Record<string, RecheckPreview>>({});
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState<"info" | "success" | "error">("info");
   const [config, setConfig] = useState<ConfigState>({
@@ -158,6 +476,8 @@ function ChannelEmailPageInner() {
   const [products, setProducts] = useState<ProductOption[]>([]);
   const [events, setEvents] = useState<ChannelEvent[]>([]);
   const [statusFilter, setStatusFilter] = useState("pending_review");
+  const [searchInput, setSearchInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, totalPages: 1 });
   const [statusCounts, setStatusCounts] = useState<Record<string, number>>({});
@@ -193,7 +513,11 @@ function ChannelEmailPageInner() {
       const [configRes, productsRes, eventsRes] = await Promise.all([
         fetch("/api/channel-email/config"),
         fetch("/api/products"),
-        fetch(`/api/channel-email/events?status=${statusFilter}&page=${page}&limit=20`),
+        fetch(
+          `/api/channel-email/events?status=${statusFilter}&page=${page}&limit=20${
+            searchQuery ? `&q=${encodeURIComponent(searchQuery)}` : ""
+          }`
+        ),
       ]);
       const configData = await configRes.json();
       const productsData = await productsRes.json();
@@ -222,7 +546,7 @@ function ChannelEmailPageInner() {
     } finally {
       setLoading(false);
     }
-  }, [applyConfig, statusFilter, page]);
+  }, [applyConfig, statusFilter, page, searchQuery]);
 
   useEffect(() => {
     load();
@@ -230,7 +554,7 @@ function ChannelEmailPageInner() {
 
   useEffect(() => {
     setPage(1);
-  }, [statusFilter]);
+  }, [statusFilter, searchQuery]);
 
   useEffect(() => {
     const oauthErrors: Record<string, string> = {
@@ -395,15 +719,39 @@ function ChannelEmailPageInner() {
     }
   };
 
-  const eventAction = async (id: string, action: "apply" | "ignore" | "rematch") => {
+  const eventAction = async (id: string, action: string, extra?: Record<string, unknown>) => {
     const res = await fetch(`/api/channel-email/events/${id}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action }),
+      body: JSON.stringify({ action, ...(extra || {}) }),
     });
     const data = await res.json();
     if (!data.success) {
       showMessage(data.error || "Action failed", "error");
+    } else if (action === "recheck") {
+      setRechecks((r) => ({ ...r, [id]: data.preview }));
+      setExpandedId(id);
+      showMessage(
+        data.preview?.missing?.length
+          ? `${data.preview.missing.length} missing product(s) found. Review and cut below.`
+          : "Re-check done. See the result below.",
+        "success"
+      );
+      return;
+    } else if (action === "cut_missing") {
+      setRechecks((r) => {
+        const next = { ...r };
+        delete next[id];
+        return next;
+      });
+      showMessage("Missing items cut and recorded on this order.", "success");
+    } else if (action === "assign_product") {
+      showMessage("Product linked. Click Confirm order to cut stock.", "success");
+    } else if (action === "mark_applied" || action === "release_retry") {
+      showMessage(
+        action === "mark_applied" ? "Marked as applied (no stock change)." : "Locks released; back in Needs confirm.",
+        "success"
+      );
     } else if (action === "rematch") {
       const matched = data.event?.matchedItems?.length || 0;
       showMessage(
@@ -515,6 +863,39 @@ function ChannelEmailPageInner() {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                setSearchQuery(searchInput.trim());
+              }}
+              className="flex items-center gap-1 w-full sm:w-auto"
+            >
+              <input
+                type="search"
+                value={searchInput}
+                onChange={(e) => {
+                  setSearchInput(e.target.value);
+                  if (!e.target.value) setSearchQuery("");
+                }}
+                placeholder="Search order ID"
+                className="border border-slate-300 rounded-lg px-2.5 py-1.5 text-sm text-slate-900 w-full sm:w-44"
+              />
+              <button
+                type="submit"
+                className="border border-slate-300 rounded-lg px-2.5 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
+              >
+                Search
+              </button>
+            </form>
+            <button
+              type="button"
+              onClick={() => setStatusFilter("recheck")}
+              className={`text-xs font-medium px-2.5 py-1 rounded-full border bg-indigo-50 text-indigo-800 border-indigo-200 ${
+                statusFilter === "recheck" ? "ring-2 ring-indigo-300" : ""
+              }`}
+            >
+              N-item orders to re-check
+            </button>
             {(["pending_review", "applied", "restored", "ignored"] as const).map((status) =>
               statusCounts[status] ? (
                 <button
@@ -539,7 +920,9 @@ function ChannelEmailPageInner() {
               <option value="restored">Stock returned</option>
               <option value="ignored">Ignored</option>
               <option value="failed">Failed</option>
+              <option value="processing">Processing</option>
               <option value="skipped">Skipped</option>
+              <option value="recheck">N-item orders to re-check</option>
               <option value="all">All</option>
             </select>
           </div>
@@ -702,6 +1085,27 @@ function ChannelEmailPageInner() {
                                 </button>
                               )}
                             </div>
+                          ) : needsRecheck(event) ? (
+                            <div className="inline-flex flex-wrap items-center justify-end gap-2">
+                              <span className="inline-flex items-center rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-500">
+                                Done
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => eventAction(event._id, "recheck")}
+                                className="inline-flex items-center rounded-lg border border-indigo-300 bg-white px-2.5 py-1 text-xs font-semibold text-indigo-700 hover:bg-indigo-50"
+                              >
+                                Re-check items
+                              </button>
+                            </div>
+                          ) : event.status === "failed" ? (
+                            <button
+                              type="button"
+                              onClick={() => setExpandedId(event._id)}
+                              className="inline-flex items-center rounded-lg border border-rose-300 bg-white px-2.5 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-50"
+                            >
+                              See details
+                            </button>
                           ) : (
                             <span className="inline-flex items-center rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-500">
                               Done
@@ -712,6 +1116,15 @@ function ChannelEmailPageInner() {
                       {open && (
                         <tr className="border-b border-slate-100 bg-slate-50/50">
                           <td colSpan={7} className="px-4 md:px-8 py-4">
+                            {rechecks[event._id] && (
+                              <RecheckPanel
+                                event={event}
+                                preview={rechecks[event._id]}
+                                products={products}
+                                onAction={eventAction}
+                              />
+                            )}
+                            <OrderDetails event={event} products={products} onAction={eventAction} />
                             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 text-sm">
                               <div>
                                 <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 mb-1">

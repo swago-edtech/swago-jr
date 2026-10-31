@@ -10,8 +10,21 @@ export async function GET(request: NextRequest) {
     const status = request.nextUrl.searchParams.get("status");
     const page = Math.max(1, Number(request.nextUrl.searchParams.get("page") || 1));
     const limit = Math.min(50, Math.max(10, Number(request.nextUrl.searchParams.get("limit") || 20)));
-    const filter: Record<string, string> = {};
-    if (status && status !== "all") {
+    const q = String(request.nextUrl.searchParams.get("q") || "").trim().slice(0, 80);
+    const filter: Record<string, unknown> = {};
+    if (q) {
+      // Search by marketplace order id (or subject) across all statuses
+      const rx = { $regex: q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), $options: "i" };
+      filter.$or = [{ externalOrderId: rx }, { subject: rx }];
+    } else if (status === "recheck") {
+      // Applied multi-item orders ("2 items sold" or more) that the old parser may have cut only partly
+      filter.status = "applied";
+      filter.eventType = { $ne: "cancel" };
+      filter.$or = [
+        { subject: { $regex: "([2-9]|\\d{2,})\\s+items?\\s+sold", $options: "i" } },
+        { "extracted.expectedItemCount": { $gt: 1 } },
+      ];
+    } else if (status && status !== "all") {
       filter.status = status;
     }
 

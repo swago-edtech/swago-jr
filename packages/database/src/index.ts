@@ -33,6 +33,7 @@ export { default as ProductConfig } from './models/ProductConfig';
 export { default as InventoryTransaction } from './models/InventoryTransaction';
 export { default as ChannelEmailConfig } from './models/ChannelEmailConfig';
 export { default as ChannelOrderEvent } from './models/ChannelOrderEvent';
+export { default as ChannelApplyLock } from './models/ChannelApplyLock';
 export { default as HowToPlay } from './models/HowToPlay';
 export * from './services/low-stock-notifier';
 
@@ -42,4 +43,5 @@ export * from './services/inventory-sync';
 export * from './services/inventory-order';
 export * from './services/channel-inventory';
 export * from './services/channel-email-sync';
+export * from './services/channel-email-parse';
 export * from './services/google-signin';

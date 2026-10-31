@@ -1,5 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { applyChannelEvent, ignoreChannelEvent, rematchChannelEvent } from "@swago/database";
+import {
+  applyChannelEvent,
+  assignChannelEventProduct,
+  cutMissingChannelItems,
+  recheckChannelEvent,
+  ignoreChannelEvent,
+  rematchChannelEvent,
+  resolveInterruptedChannelEvent,
+} from "@swago/database";
 import { requireAdmin } from "@/lib/auth";
 
 export async function POST(
@@ -7,17 +15,40 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireAdmin();
+    const session = await requireAdmin();
+    const by = session?.email || session?.userId || "admin";
     const { id } = await params;
     const body = await request.json();
     const action = body.action;
 
     if (action === "apply") {
-      const event = await applyChannelEvent(id);
+      const event = await applyChannelEvent(id, by);
       return NextResponse.json({ success: true, event });
     }
     if (action === "rematch") {
       const event = await rematchChannelEvent(id);
+      return NextResponse.json({ success: true, event });
+    }
+    if (action === "mark_applied" || action === "release_retry") {
+      const event = await resolveInterruptedChannelEvent(id, action, by);
+      return NextResponse.json({ success: true, event });
+    }
+    if (action === "assign_product") {
+      const event = await assignChannelEventProduct(
+        id,
+        Number(body.itemIndex),
+        String(body.productId || ""),
+        by
+      );
+      return NextResponse.json({ success: true, event });
+    }
+    if (action === "recheck") {
+      const preview = await recheckChannelEvent(id);
+      return NextResponse.json({ success: true, preview });
+    }
+    if (action === "cut_missing") {
+      const lines = Array.isArray(body.lines) ? body.lines : [];
+      const event = await cutMissingChannelItems(id, lines, by);
       return NextResponse.json({ success: true, event });
     }
     if (action === "ignore") {
