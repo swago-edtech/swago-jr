@@ -109,10 +109,15 @@ function RecheckPanel({
 }) {
   const [pickId, setPickId] = useState("");
   const [pickQty, setPickQty] = useState(1);
-  const cutLines = (lines: Array<{ productId: string; quantity: number }>, label: string) =>
-    window.confirm(
-      `This will cut stock for: ${label}. Products already cut for this order are never cut again. Continue?`
-    ) && onAction(event._id, "cut_missing", { lines });
+  // One request at a time; the server re-checks the whole order and rejects a cut when nothing is missing
+  const [cutting, setCutting] = useState(false);
+  const blocked = !!preview.blockers?.length || !!preview.unmatched.length;
+  const cutLines = (lines: Array<{ productId: string; quantity: number }>, label: string) => {
+    if (cutting || blocked) return;
+    if (!window.confirm(`This will cut stock for: ${label}. The order is synced as a whole; nothing already cut is cut again. Continue?`)) return;
+    setCutting(true);
+    Promise.resolve(onAction(event._id, "cut_missing", { lines })).finally(() => setCutting(false));
+  };
   return (
     <div className="mb-3 rounded-lg border border-indigo-200 bg-indigo-50/50 p-3 text-xs text-slate-800">
       <p className="font-semibold text-slate-900">Re-check result</p>
@@ -173,7 +178,7 @@ function RecheckPanel({
           Extra stock deducted under this order: {preview.unexplained.map((u) => `${u.inventoryItemName} x${u.quantity}`).join(", ")}
         </p>
       ) : null}
-      {preview.missing.length ? (
+      {preview.missing.length && !blocked ? (
         <div className="mt-2">
           <p className="font-medium">Missing (not cut yet):</p>
           <ul className="ml-4 list-disc">
@@ -191,9 +196,10 @@ function RecheckPanel({
                 preview.missing.map((m) => `${m.productName} x${m.quantity}`).join(", ")
               )
             }
-            className="mt-2 rounded-lg bg-indigo-600 px-3 py-1.5 font-semibold text-white hover:bg-indigo-700"
+            disabled={cutting}
+            className="mt-2 rounded-lg bg-indigo-600 px-3 py-1.5 font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
           >
-            Cut missing items
+            {cutting ? "Cutting..." : "Cut missing items"}
           </button>
         </div>
       ) : (
@@ -205,7 +211,7 @@ function RecheckPanel({
               : "All matched products are fully cut."}
         </p>
       )}
-      {preview.emailMissingProduct && preview.manualAllowance > 0 ? (
+      {preview.emailMissingProduct && preview.manualAllowance > 0 && !blocked ? (
         <div className="mt-3">
           <p className="text-amber-800">
             Email doesn&apos;t list the missing product. Pick it ({preview.manualAllowance} unit(s) unaccounted):
@@ -234,7 +240,7 @@ function RecheckPanel({
             />
             <button
               type="button"
-              disabled={!pickId}
+              disabled={!pickId || cutting}
               onClick={() =>
                 cutLines(
                   [{ productId: pickId, quantity: pickQty }],
@@ -253,7 +259,7 @@ function RecheckPanel({
 }
 
 type BackfillResult = {
-  summary: { scanned: number; toCut: number; ok: number; review: number; applied: boolean };
+  summary: { scanned: number; toCut: number; ok: number; review: number; applied: boolean; duplicates?: number };
   rows: Array<{
     eventId: string;
     orderId: string;
@@ -262,6 +268,9 @@ type BackfillResult = {
     overCut: Array<{ productName: string; quantity: number }>;
     blockers: string[];
     result?: string;
+    desired?: Array<{ productName: string; quantity: number }>;
+    duplicates?: number;
+    emails?: number;
   }>;
 };
 
@@ -282,8 +291,8 @@ function BackfillPanel({
     <div className="mx-5 my-3 rounded-lg border border-indigo-200 bg-indigo-50/50 p-3 text-xs text-slate-800">
       <div className="flex items-center justify-between">
         <p className="font-semibold text-slate-900">
-          {s.applied ? "Backfill done" : "Backfill preview (nothing changed yet)"}: {s.scanned} order(s), {s.toCut} to cut,{" "}
-          {s.ok} already correct, {s.review} need review
+          {s.applied ? "Repair done" : "Repair preview (nothing changed yet)"}: {s.scanned} order(s), {s.toCut} to fix,{" "}
+          {s.ok} already correct, {s.review} need review, {s.duplicates ?? 0} duplicate email(s)
         </p>
         <button type="button" onClick={onClose} className="text-slate-500 hover:text-slate-800">
           Close
@@ -293,10 +302,12 @@ function BackfillPanel({
         <ul className="mt-2 max-h-64 space-y-1 overflow-y-auto">
           {rows.map((r) => (
             <li key={r.eventId} className={r.action === "review" ? "text-amber-800" : ""}>
-              <span className="font-mono">{r.orderId || r.eventId}</span>:{" "}
-              {r.missing.length ? `missing ${r.missing.map((m) => `${m.productName} x${m.quantity}`).join(", ")}` : "nothing missing"}
+              <span className="font-mono">{r.orderId || r.eventId}</span>
+              {r.emails && r.emails > 1 ? ` (${r.emails} emails)` : ""}:{" "}
+              {r.desired?.length ? `order = ${r.desired.map((d) => `${d.productName} x${d.quantity}`).join(", ")} | ` : ""}
+              {r.missing.length ? `cut ${r.missing.map((m) => `${m.productName} x${m.quantity}`).join(", ")}` : "nothing to cut"}
               {r.overCut.length ? (
-                <span className="text-rose-700"> | DOUBLE CUT? {r.overCut.map((m) => `${m.productName} +${m.quantity}`).join(", ")} (fix by hand)</span>
+                <span className="text-rose-700"> | return over-cut {r.overCut.map((m) => `${m.productName} x${m.quantity}`).join(", ")}</span>
               ) : null}
               {r.blockers.length ? ` | ${r.blockers.join("; ")}` : ""}
               {r.result ? ` -> ${r.result}` : ""}
@@ -311,7 +322,7 @@ function BackfillPanel({
           onClick={onApply}
           className="mt-2 rounded-lg bg-indigo-600 px-3 py-1.5 font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
         >
-          {busy ? "Applying..." : `Cut missing stock for ${s.toCut} order(s)`}
+          {busy ? "Applying..." : `Fix stock for ${s.toCut} order(s)`}
         </button>
       ) : null}
     </div>
@@ -793,16 +804,17 @@ function ChannelEmailPageInner() {
     if (
       apply &&
       !window.confirm(
-        "Cut ONLY the missing stock listed in the preview? Each product is locked per order, so nothing can be cut twice. Double cuts are not restored automatically."
+        "Fix the orders listed in the preview? Over-cut stock is returned and missing stock is cut, per order. Each order is re-checked on the server and can only be fixed once."
       )
     )
       return;
+    const orderIds = apply ? (backfill?.rows || []).filter((r) => r.action !== "review").map((r) => r.orderId) : [];
     setBackfilling(true);
     try {
       const res = await fetch("/api/channel-email/backfill", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ apply }),
+        body: JSON.stringify(apply ? { apply, confirm: "REPAIR", orderIds } : {}),
       });
       const data = await res.json();
       if (!data.success) {

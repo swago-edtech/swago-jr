@@ -15,6 +15,10 @@ const ChannelOrderEventSchema = new mongoose.Schema(
       default: "pending_review",
     },
     externalOrderId: { type: String, default: "", index: true },
+    /** Normalised order id (ChannelOrder._id) */
+    orderKey: { type: String, default: "", index: true },
+    /** Another event of the same order (same Gmail message stored twice, or a re-sent email) */
+    duplicateOf: { type: mongoose.Schema.Types.ObjectId, ref: "ChannelOrderEvent", default: null },
     fromEmail: { type: String, default: "" },
     subject: { type: String, default: "" },
     receivedAt: { type: Date },

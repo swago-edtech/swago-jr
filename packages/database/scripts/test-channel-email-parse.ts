@@ -4,6 +4,12 @@
  */
 import assert from "node:assert/strict";
 import {
+  channelOrderKey,
+  mergeOrderDesired,
+  planLedgerDeltas,
+  planOrderRepair,
+} from "../src/services/channel-ledger";
+import {
   parseAmazonOrderFormat,
   parseSoldShipNowSubject,
   htmlToText,
@@ -11,6 +17,8 @@ import {
   checkItemCount,
   extractExpectedItemCount,
   buildExtractionPrompt,
+  normalizeChannelOrderId,
+  extractOrderId,
 } from "../src/services/channel-email-parse";
 import { remainingAfterCut, mergeSnapshotLines } from "../src/services/channel-inventory";
 import { reconcileOrder, netCutByComponent, skuEquals } from "../src/services/channel-reconcile";
@@ -339,6 +347,55 @@ t("reconcile: product cut but not in email is listed (expected 0, extra)", () =>
 t("reconcile: no inventory rows -> falls back to recorded quantities", () => {
   const { lines } = reconcileOrder({ wanted: wantAB, recorded: new Map([["pA", 1]]), boms: { pA: bomA, pB: bomB }, netCut: null });
   assert.deepEqual(lines.map((l) => [l.missingQty, l.source]), [[0, "recorded"], [1, "recorded"]]);
+});
+
+// --- order ledger / repair (duplicate emails, re-runs, over-cut detection) ---
+t("normalizeChannelOrderId: variants of one order give one key", () => {
+  for (const raw of [" 404-2651233-0702734", "#404-2651233-0702734", "Order ID: 404-2651233-0702734.", "404-2651233-0702734\n"]) {
+    assert.equal(normalizeChannelOrderId(raw), "404-2651233-0702734");
+  }
+  assert.equal(channelOrderKey({ externalOrderId: "", gmailMessageId: "abc" }), "MSG-abc");
+});
+t("extractOrderId: canonical Amazon id wins over a labelled non-order number", () => {
+  assert.equal(extractOrderId("Sold, ship now", "Reference #: 12345\nOrder ID: 171-0812902-6377936"), "171-0812902-6377936");
+});
+const pS = { productId: "pS", productName: "SSR", quantity: 2 };
+const bomS = [{ inventoryItemId: "iS", inventoryItemName: "SSR comp", quantity: 1 }];
+t("ledger: duplicate emails of one order -> desired is MAX, not the sum", () => {
+  const d = mergeOrderDesired([[pS], [pS]]);
+  assert.equal(d.get("pS")?.quantity, 2);
+});
+t("ledger: second sync / re-run of same order -> zero deltas", () => {
+  const d = mergeOrderDesired([[pS]]);
+  assert.deepEqual(planLedgerDeltas(d, new Map()).map((x) => x.delta), [2]);
+  assert.equal(planLedgerDeltas(d, new Map([["pS", { quantity: 2 }]])).length, 0);
+  assert.equal(planLedgerDeltas(mergeOrderDesired([[pS], [pS]]), new Map([["pS", { quantity: 2 }]])).length, 0);
+});
+t("ledger: cancel -> restore exactly what was cut", () => {
+  assert.deepEqual(planLedgerDeltas(new Map(), new Map([["pS", { quantity: 2 }]])).map((x) => x.delta), [-2]);
+});
+const dupEvents = [
+  { _id: "e1", gmailMessageId: "m1", eventType: "order", status: "applied", receivedAt: "2026-10-20", matchedItems: [pS], extracted: { expectedItemCount: 2 } },
+  { _id: "e2", gmailMessageId: "m1", eventType: "order", status: "applied", receivedAt: "2026-10-20", matchedItems: [pS], extracted: { expectedItemCount: 2 } },
+];
+const cut = (q: number) => ({ inventoryItemId: "iS", inventoryItemName: "SSR comp", type: "deduction", quantity: q });
+t("repair: same Gmail message stored twice and cut twice -> over-cut detected, duplicate marked", () => {
+  const row = planOrderRepair({ orderId: "407-9483322-7505929", events: dupEvents, txs: [cut(1), cut(1), cut(1), cut(1)], boms: { pS: bomS } });
+  assert.equal(row.action, "fix");
+  assert.deepEqual(row.toRestore.map((c) => [c.inventoryItemId, c.quantity]), [["iS", 2]]);
+  assert.equal(row.toCut.length, 0);
+  assert.deepEqual(row.duplicateEventIds, ["e2"]);
+});
+t("repair: re-run after the fix -> nothing to do (idempotent)", () => {
+  const txs = [cut(1), cut(1), cut(1), cut(1), { inventoryItemId: "iS", inventoryItemName: "SSR comp", type: "addition", quantity: 2 }];
+  const row = planOrderRepair({ orderId: "407-9483322-7505929", events: dupEvents, txs, boms: { pS: bomS } });
+  assert.equal(row.action, "ok");
+  assert.equal(row.toRestore.length + row.toCut.length, 0);
+});
+t("repair: under-cut (missing item of a 2-item mail) -> cut only the gap", () => {
+  const ev = [{ ...dupEvents[0], reparsed: [pS] }];
+  const row = planOrderRepair({ orderId: "402-6452600-0272365", events: ev, txs: [cut(1)], boms: { pS: bomS } });
+  assert.deepEqual(row.toCut.map((c) => c.quantity), [1]);
 });
 
 console.log(`\n${pass} tests passed`);

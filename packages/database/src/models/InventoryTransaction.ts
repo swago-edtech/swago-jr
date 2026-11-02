@@ -50,6 +50,14 @@ const InventoryTransactionSchema = new mongoose.Schema(
       type: String,
       default: "system",
     },
+    /** Channel stock ledger row this move belongs to ("<order>|<product>" or "<order>|repair") */
+    channelLedgerKey: {
+      type: String,
+    },
+    /** Ledger operation id (verifies interrupted moves) */
+    channelOpId: {
+      type: String,
+    },
   },
   { timestamps: true }
 );
@@ -57,6 +65,7 @@ const InventoryTransactionSchema = new mongoose.Schema(
 InventoryTransactionSchema.index({ inventoryItemId: 1, createdAt: -1 });
 InventoryTransactionSchema.index({ orderId: 1 });
 InventoryTransactionSchema.index({ type: 1 });
+InventoryTransactionSchema.index({ channelOpId: 1 }, { sparse: true });
 
 export default mongoose.models.InventoryTransaction ||
   mongoose.model("InventoryTransaction", InventoryTransactionSchema);

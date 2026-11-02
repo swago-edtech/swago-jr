@@ -43,6 +43,16 @@ const InventoryItemSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    /**
+     * Idempotency tokens of channel-order stock moves, written in the SAME atomic update as the
+     * `$inc` on currentStock (see channel-ledger moveComponents). Lets a crashed move be retried
+     * without cutting twice. Capped; hidden from normal reads.
+     */
+    channelOps: {
+      type: [{ _id: false, t: String, q: Number, at: Date }],
+      default: undefined,
+      select: false,
+    },
   },
   { timestamps: true }
 );

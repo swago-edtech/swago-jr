@@ -84,6 +84,18 @@ export function extractTextFromPayload(payload: any): string {
   return "";
 }
 
+/** Both bodies of a Gmail payload (plain + HTML-as-text), so the parser can use whichever lists every item. */
+export function extractBodiesFromPayload(payload: any): { plain: string; html: string } {
+  if (!payload) return { plain: "", html: "" };
+  const plain: string[] = [];
+  collectParts(payload, "text/plain", plain);
+  const html: string[] = [];
+  collectParts(payload, "text/html", html);
+  let htmlText = html.length ? htmlToText(html.join("\n")) : "";
+  if (!plain.length && !html.length && payload.body?.data) htmlText = htmlToText(decodeBase64Url(payload.body.data));
+  return { plain: plain.join("\n").trim(), html: htmlText.trim() };
+}
+
 export function normalizeLoose(value: string) {
   return String(value || "")
     .toLowerCase()
@@ -191,12 +203,25 @@ export function parseAmazonOrderItems(body: string): ParsedItem[] {
 }
 
 export function extractOrderId(subject: string, body: string): string {
+  // Canonical Amazon id first (subject or body), so every email of an order gets the SAME key
+  const any = `${subject}\n${body}`.match(AMAZON_ORDER_ID);
+  if (any) return normalizeChannelOrderId(any[1]);
   const labelled = String(body || "").match(
     /Order\s*(?:ID|#|Number)\s*[:#]?\s*([A-Z0-9][A-Z0-9\-]{4,})/i
   );
-  if (labelled) return labelled[1].trim();
-  const any = `${body}\n${subject}`.match(AMAZON_ORDER_ID);
-  return any ? any[1] : "";
+  return labelled ? normalizeChannelOrderId(labelled[1]) : "";
+}
+
+/**
+ * One key per marketplace order: the canonical "123-1234567-1234567" when present,
+ * else the trimmed upper-cased token. Used for ChannelOrder._id and ledger keys.
+ */
+export function normalizeChannelOrderId(raw: unknown): string {
+  const s = String(raw ?? "").trim().toUpperCase();
+  // Amazon ids: 3-7-7 digits; accept space / dash / en-dash separators (or none) and rebuild canonically
+  const m = s.match(/(?<!\d)(\d{3})[\s\-\u2010-\u2015]*(\d{7})[\s\-\u2010-\u2015]*(\d{7})(?!\d)/);
+  if (m) return `${m[1]}-${m[2]}-${m[3]}`;
+  return s.replace(/^#/, "").replace(/\s+/g, "");
 }
 
 /** "Sold, ship now: 2 items sold" / "You have sold 2 items" -> 2 */
@@ -358,4 +383,4 @@ export function parseExtractedOrder(content: string, fallback: ExtractedOrder): 
   } catch {
     return fallback;
   }
-}
+}

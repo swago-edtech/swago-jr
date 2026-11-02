@@ -437,72 +437,10 @@ export async function deductInventoryForChannelItems(
   reasonId: string,
   alreadyCut: ChannelSnapshotLine[] = []
 ): Promise<ChannelSnapshotLine[]> {
-  await connectDB();
-
-  const fullTotals = await computeChannelDeductionTotals(items);
-  if (fullTotals.size === 0) {
-    throw new InsufficientInventoryError("No inventory components to allocate");
-  }
-  const prior = (alreadyCut || []).filter((l) => l && l.inventoryItemId);
-  const totals = remainingAfterCut(fullTotals, prior);
-  if (totals.size === 0) return mergeSnapshotLines(prior);
-
-  // Validate every component exists BEFORE any write, so a missing item cannot leave stock half cut.
-  const existingCount = await InventoryItem.countDocuments({ _id: { $in: [...totals.keys()] } });
-  if (existingCount !== totals.size) {
-    const missing = [...totals.values()].map((t) => t.name).join(", ");
-    throw new InsufficientInventoryError(`Inventory item missing for one of: ${missing}`);
-  }
-
-  const snapshot: ChannelSnapshotLine[] = [];
-  const affectedInventoryIds: string[] = [];
-
-  try {
-    for (const [itemId, { quantity, name }] of totals) {
-      const updated = await InventoryItem.findOneAndUpdate(
-        { _id: itemId },
-        { $inc: { currentStock: -quantity } },
-        { new: true }
-      );
-
-      if (!updated) {
-        throw new InsufficientInventoryError(`Insufficient inventory for ${name}`);
-      }
-
-      affectedInventoryIds.push(itemId);
-      snapshot.push({
-        inventoryItemId: updated._id,
-        inventoryItemName: updated.name,
-        quantity,
-      });
-
-      await InventoryTransaction.create({
-        inventoryItemId: updated._id,
-        inventoryItemName: updated.name,
-        type: "deduction",
-        quantity,
-        previousStock: updated.currentStock + quantity,
-        newStock: updated.currentStock,
-        orderId: reasonId,
-        productName: items.map((i) => i.productName).join(", "),
-        reason: `Channel email order ${reasonId}`,
-        performedBy: "channel-email",
-      });
-    }
-  } catch (error) {
-    // Writes already started: tell the caller exactly what was cut so it never re-cuts blindly.
-    if (snapshot.length) {
-      await syncAffectedProducts([...new Set(affectedInventoryIds)]).catch(() => undefined);
-      throw new ChannelPartialDeductionError(
-        error instanceof Error ? error.message : "Inventory update interrupted",
-        mergeSnapshotLines(prior, snapshot)
-      );
-    }
-    throw error;
-  }
-
-  await syncAffectedProducts([...new Set(affectedInventoryIds)]);
-  return mergeSnapshotLines(prior, snapshot);
+  // Retired: every channel-order stock change goes through syncChannelOrderStock (order ledger).
+  void items;
+  void alreadyCut;
+  throw new Error(`deductInventoryForChannelItems is retired (${reasonId}); use the channel order ledger`);
 }
 /** Thrown when some (not all) inventory lines were already deducted. */
 export class ChannelPartialDeductionError extends Error {
@@ -518,35 +456,7 @@ export async function restoreInventoryFromChannelSnapshot(
   snapshot: ChannelSnapshotLine[],
   reasonId: string
 ): Promise<void> {
-  if (!snapshot?.length) return;
-  await connectDB();
-
-  const affectedInventoryIds: string[] = [];
-
-  for (const line of snapshot) {
-    const invItem = await InventoryItem.findById(line.inventoryItemId);
-    if (!invItem) continue;
-
-    const previousStock = invItem.currentStock;
-    invItem.currentStock = previousStock + line.quantity;
-    await invItem.save();
-    affectedInventoryIds.push(line.inventoryItemId.toString());
-
-    await InventoryTransaction.create({
-      inventoryItemId: line.inventoryItemId,
-      inventoryItemName: line.inventoryItemName || invItem.name,
-      type: "addition",
-      quantity: line.quantity,
-      previousStock,
-      newStock: invItem.currentStock,
-      orderId: reasonId,
-      productName: "",
-      reason: `Channel email cancel/restore ${reasonId}`,
-      performedBy: "channel-email",
-    });
-  }
-
-  if (affectedInventoryIds.length) {
-    await syncAffectedProducts([...new Set(affectedInventoryIds)]);
-  }
+  // Retired: cancellations restore through syncChannelOrderStock (order ledger).
+  void snapshot;
+  throw new Error(`restoreInventoryFromChannelSnapshot is retired (${reasonId}); use the channel order ledger`);
 }

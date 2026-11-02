@@ -4,15 +4,11 @@ import connectDB from "../connection";
 import Product from "../models/Product";
 import ChannelEmailConfig from "../models/ChannelEmailConfig";
 import ChannelOrderEvent from "../models/ChannelOrderEvent";
-import ChannelApplyLock from "../models/ChannelApplyLock";
 import InventoryTransaction from "../models/InventoryTransaction";
 import ProductConfig from "../models/ProductConfig";
 import { reconcileOrder, netCutByComponent, type BomLine, type ReconcileLine } from "./channel-reconcile";
 import {
   matchChannelProducts,
-  deductInventoryForChannelItems,
-  restoreInventoryFromChannelSnapshot,
-  planChannelDeduction,
   type ChannelMatchedItem,
   ChannelPartialDeductionError,
 } from "./channel-inventory";
@@ -21,6 +17,8 @@ import {
   type ParsedItem,
   type CountCheck,
   extractTextFromPayload,
+  extractBodiesFromPayload,
+  normalizeChannelOrderId,
   enrichItemsWithSkuHints,
   parseSoldShipNowSubject,
   parseAmazonOrderFormat,
@@ -32,6 +30,20 @@ import {
   buildExtractionPrompt,
   parseExtractedOrder,
 } from "./channel-email-parse";
+import {
+  channelOrderKey,
+  recordChannelOrderSource,
+  setChannelOrderCancelled,
+  setChannelOrderManualLines,
+  syncChannelOrderStock,
+  getOrderLedger,
+  findOrderEvents,
+  buildRowForOrder,
+  reasonIdsForEvents,
+  repairChannelOrders,
+  type OrderLine,
+  type OrderRepairRow,
+} from "./channel-ledger";
 const GMAIL_SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"];
 
 type ProductCatalogLean = {
@@ -387,47 +399,35 @@ function mismatchMessage(count: CountCheck) {
   return `${count.note}. Not cutting stock automatically - check the email and confirm.`;
 }
 
+/** Normalised per-ORDER key (was the raw stored id, so variants of one id never matched). */
 function orderKeyFor(event: any): string {
-  return event.externalOrderId ? String(event.externalOrderId) : `MSG-${event.gmailMessageId}`;
+  return channelOrderKey(event);
 }
 
-/** Product ids that already had stock cut for this marketplace order (locks + older applied rows). */
-async function alreadyCutProductIds(event: any): Promise<Set<string>> {
-  const cut = new Set<string>();
-  const orderKey = orderKeyFor(event);
-  const locks = (await ChannelApplyLock.find({ _id: { $regex: `^${escapeRegex(orderKey)}\\|` } })
-    .select("productId eventId")
-    .lean()) as Array<{ productId?: string; eventId?: unknown }>;
-  for (const lock of locks) {
-    if (String(lock.eventId || "") !== String(event._id)) cut.add(String(lock.productId || ""));
-  }
-  if (event.externalOrderId) {
-    // Rows applied before per-product locks existed
-    const legacy = (await ChannelOrderEvent.find({
-      _id: { $ne: event._id },
-      externalOrderId: event.externalOrderId,
-      eventType: "order",
-      status: "applied",
-    })
-      .select("matchedItems")
-      .lean()) as Array<{ matchedItems?: Array<{ productId?: unknown }> }>;
-    for (const row of legacy) {
-      for (const item of row.matchedItems || []) cut.add(String(item.productId || ""));
-    }
-  }
-  cut.delete("");
-  return cut;
+/**
+ * Deterministic event _id from the Gmail message id. ChannelOrderEvent's unique index on
+ * gmailMessageId was never created in production (connectDB sets autoIndex:false and no index
+ * script covers it), so two concurrent syncs could store the same message twice. `_id` is always
+ * unique, so this makes a second insert of the same message fail with E11000.
+ */
+export function eventIdForMessage(messageId: string): mongoose.Types.ObjectId | undefined {
+  const id = String(messageId || "").toLowerCase();
+  if (/^[0-9a-f]{1,24}$/.test(id)) return new mongoose.Types.ObjectId(id.padStart(24, "0"));
+  return undefined;
 }
 
 function escapeRegex(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-async function releaseLocks(keys: string[]) {
-  if (keys.length) await ChannelApplyLock.deleteMany({ _id: { $in: keys } });
-}
 
 const PROCESSING_STALE_MS = 10 * 60 * 1000;
+const SYNC_OVERLAP_MS = 6 * 60 * 60 * 1000;
+/** New (not yet stored) messages handled per run; the rest wait for the next run (window not moved). */
+const MAX_NEW_PER_SYNC = 200;
+/** Ids are cheap to list; this is only a runaway guard. */
+const MAX_LISTED_IDS = 20000;
+const BODY_LIMIT = 60000;
 
 /**
  * Atomically move the event pending_review/failed -> processing. Only the run that wins
@@ -448,187 +448,50 @@ async function claimEventForApply(eventId: unknown) {
 }
 
 /**
- * Cut stock for every matched product of this event, at most once per
- * (marketplace order id + product), even across concurrent runs or duplicate emails.
+ * Record this email on its ORDER and bring the order's stock to "desired" via the ledger
+ * (desired = MAX over the order's emails, minus what the ledger says is already cut).
+ * A duplicate / re-sent email of an already-cut order therefore cuts nothing.
  */
-async function applyMatchedOrder(event: any, reasonId: string) {
+async function applyMatchedOrder(event: any, _reasonId: string, opts: { by?: string; admin?: boolean } = {}) {
+  void _reasonId;
   const claimed: any = await claimEventForApply(event._id);
   if (!claimed) {
     // Another run is applying (or already applied) this event
     return ChannelOrderEvent.findById(event._id);
   }
-
-  // Resuming a partly-cut failure: our own locks are expected and the recorded lines are NOT re-cut.
-  const resumePartial = claimed.failureKind === "partial";
-  const priorCut = resumePartial
-    ? (claimed.toObject().inventorySnapshot || []).filter((l: any) => l?.inventoryItemId)
-    : [];
-
-  const orderKey = orderKeyFor(claimed);
-  const perProduct = new Map<string, ChannelMatchedItem>();
-  for (const item of claimed.matchedItems || []) {
-    const productId = String(item.productId || "");
-    if (!productId) continue;
-    const existing = perProduct.get(productId);
-    const quantity = Math.max(1, Number(item.quantity) || 1);
-    if (existing) {
-      existing.quantity += quantity;
-    } else {
-      perProduct.set(productId, {
-        productId,
-        productName: item.productName,
-        quantity,
-        extractedTitle: item.extractedTitle,
-        matchType: item.matchType,
-      });
-    }
+  const lines = (claimed.matchedItems || [])
+    .filter((m: any) => m?.productId)
+    .map((m: any) => ({ productId: String(m.productId), productName: m.productName || "", quantity: Math.max(1, Number(m.quantity) || 1) }));
+  const orderKey = await recordChannelOrderSource(claimed, lines, { trusted: true, by: opts.by || "auto" });
+  if (opts.admin) await setChannelOrderCancelled(orderKey, false);
+  const r = await syncChannelOrderStock(orderKey, { by: opts.by || "channel-email" });
+  const mine = new Set(lines.map((l: any) => l.productId));
+  const cutHere = r.cut.filter((c) => mine.has(c.productId));
+  const notCut = lines.filter((l: any) => !cutHere.some((c) => c.productId === l.productId)).map((l: any) => l.productName || l.productId);
+  let set: Record<string, unknown>;
+  if (r.status === "needs_repair" || r.status === "busy" || r.status === "review") {
+    set = { status: "pending_review", failureKind: "", error: r.note };
+  } else if (r.status === "error" && !r.cut.length) {
+    set = { status: "failed", failureKind: "", error: r.note };
+  } else if (r.cut.length) {
+    set = {
+      status: "applied",
+      failureKind: "",
+      orderKey,
+      inventorySnapshot: r.snapshot,
+      skippedDuplicates: notCut,
+      error: r.status === "error" ? r.note : notCut.length ? `Already cut for this order: ${notCut.join(", ")}` : "",
+    };
+  } else {
+    set = {
+      status: "skipped",
+      failureKind: "",
+      orderKey,
+      skippedDuplicates: notCut,
+      error: "Same order already cut (duplicate email) - nothing cut again",
+    };
   }
-
-  const alreadyCut = await alreadyCutProductIds(claimed);
-  const toApply: ChannelMatchedItem[] = [];
-  const skipped: string[] = [];
-  const interrupted: string[] = [];
-  const acquired: string[] = [];
-  const newlyAcquired: string[] = [];
-  let deductStarted = false;
-
-  try {
-    for (const [productId, item] of perProduct) {
-      if (alreadyCut.has(productId)) {
-        skipped.push(item.productName || productId);
-        continue;
-      }
-      const key = `${orderKey}|${productId}`;
-      try {
-        await ChannelApplyLock.create({
-          _id: key,
-          externalOrderId: claimed.externalOrderId || "",
-          productId,
-          eventId: claimed._id,
-          quantity: item.quantity,
-        });
-        acquired.push(key);
-        newlyAcquired.push(key);
-        toApply.push(item);
-      } catch (error: any) {
-        if (error?.code === 11000) {
-          const holder = (await ChannelApplyLock.findById(key).select("eventId").lean()) as {
-            eventId?: unknown;
-          } | null;
-          const ours = holder && String(holder.eventId || "") === String(claimed._id);
-          if (ours && resumePartial) {
-            acquired.push(key);
-            toApply.push(item);
-          } else if (ours) {
-            // Our own lock from an earlier attempt that crashed mid-apply: stock may already be cut.
-            interrupted.push(item.productName || productId);
-          } else {
-            skipped.push(item.productName || productId);
-          }
-          continue;
-        }
-        throw error;
-      }
-    }
-
-    if (interrupted.length) {
-      // Never guess: admin decides (Mark as applied / Release & retry).
-      await releaseLocks(newlyAcquired);
-      return ChannelOrderEvent.findByIdAndUpdate(
-        claimed._id,
-        {
-          $set: {
-            status: "failed",
-            failureKind: "interrupted",
-            error: `An earlier apply was interrupted; stock may already be cut for: ${interrupted.join(
-              ", "
-            )}. Check inventory history, then choose "Mark as applied" or "Release & retry".`,
-            skippedDuplicates: skipped,
-          },
-        },
-        { new: true }
-      );
-    }
-
-    if (!toApply.length) {
-      return ChannelOrderEvent.findByIdAndUpdate(
-        claimed._id,
-        {
-          $set: {
-            status: "skipped",
-            failureKind: "",
-            error: skipped.length
-              ? `Order already applied (stock already cut for: ${skipped.join(", ")})`
-              : "No matched products to apply",
-            skippedDuplicates: skipped,
-          },
-        },
-        { new: true }
-      );
-    }
-
-    deductStarted = true;
-    const snapshot = await deductInventoryForChannelItems(toApply, reasonId, priorCut);
-    return ChannelOrderEvent.findByIdAndUpdate(
-      claimed._id,
-      {
-        $set: {
-          status: "applied",
-          failureKind: "",
-          inventorySnapshot: snapshot,
-          appliedKeys: acquired,
-          skippedDuplicates: skipped,
-          error: skipped.length ? `Skipped (already cut earlier): ${skipped.join(", ")}` : "",
-        },
-      },
-      { new: true }
-    );
-  } catch (error) {
-    if (error instanceof ChannelPartialDeductionError) {
-      // Some stock WAS cut: keep the locks, record exactly what was cut; Retry cuts only the rest.
-      await ChannelOrderEvent.updateOne(
-        { _id: claimed._id },
-        {
-          $set: {
-            status: "failed",
-            failureKind: "partial",
-            inventorySnapshot: error.partialSnapshot,
-            appliedKeys: acquired,
-            error: `Stock was only partly cut (${error.message}). Retry cuts only the remaining lines.`,
-          },
-        }
-      );
-      throw error;
-    }
-    if (resumePartial) {
-      // Prior cut lines are still recorded and locked; nothing new was cut. Stay retryable.
-      await releaseLocks(newlyAcquired);
-      await ChannelOrderEvent.updateOne(
-        { _id: claimed._id },
-        {
-          $set: {
-            status: "failed",
-            failureKind: "partial",
-            error: `Retry failed (${error instanceof Error ? error.message : "error"}). Already-cut lines kept; nothing re-cut.`,
-          },
-        }
-      );
-      throw error;
-    }
-    // deduct validates before any write, so nothing was cut: release and let admin fix + Confirm.
-    await releaseLocks(acquired);
-    await ChannelOrderEvent.updateOne(
-      { _id: claimed._id },
-      {
-        $set: {
-          status: deductStarted ? "failed" : "pending_review",
-          failureKind: "",
-          error: error instanceof Error ? error.message : "Failed to update inventory",
-        },
-      }
-    );
-    throw error;
-  }
+  return ChannelOrderEvent.findByIdAndUpdate(claimed._id, { $set: set }, { new: true });
 }
 
 /** Products of this order whose stock was already returned (cancelled earlier). */
@@ -670,61 +533,13 @@ export async function resolveInterruptedChannelEvent(
   );
   if (!claimed) throw new Error("This event is not waiting for an interrupted-apply decision");
 
-  try {
-    const locks = (await ChannelApplyLock.find({ eventId: claimed._id })
-      .select("_id productId")
-      .lean()) as Array<{ _id: string; productId?: string }>;
-    const keys = locks.map((l) => String(l._id));
-
-    if (choice === "mark_applied") {
-      const lockedProducts = new Set(locks.map((l) => String(l.productId || "")));
-      const qty = new Map<string, ChannelMatchedItem>();
-      for (const m of claimed.matchedItems || []) {
-        const id = String(m.productId || "");
-        if (!lockedProducts.has(id)) continue;
-        const prev = qty.get(id);
-        const q = Math.max(1, Number(m.quantity) || 1);
-        if (prev) prev.quantity += q;
-        else qty.set(id, { productId: id, productName: m.productName, quantity: q });
-      }
-      const snapshot = qty.size ? await planChannelDeduction([...qty.values()]) : [];
-      return ChannelOrderEvent.findByIdAndUpdate(
-        claimed._id,
-        {
-          $set: {
-            status: "applied",
-            failureKind: "",
-            inventorySnapshot: snapshot,
-            appliedKeys: keys,
-            error: "Marked as applied by admin (stock was already cut; no inventory change made)",
-          },
-          $push: { auditLog: audit("mark_applied", by, `locks: ${keys.join(", ")}`) },
-        },
-        { new: true }
-      );
-    }
-
-    await releaseLocks(keys);
-    return ChannelOrderEvent.findByIdAndUpdate(
-      claimed._id,
-      {
-        $set: {
-          status: "pending_review",
-          failureKind: "",
-          error:
-            "Locks released by admin. Check inventory history for this order before you Confirm - Confirm will cut stock.",
-        },
-        $push: { auditLog: audit("release_retry", by, `released: ${keys.join(", ")}`) },
-      },
-      { new: true }
-    );
-  } catch (error) {
-    await ChannelOrderEvent.updateOne(
-      { _id: claimed._id, status: "processing" },
-      { $set: { status: "failed", failureKind: "interrupted" } }
-    );
-    throw error;
-  }
+  // Both choices now go through the order ledger: it replays/checks interrupted moves itself and
+  // adopts stock the old code cut, so there is no "release and cut again" path any more.
+  await ChannelOrderEvent.updateOne(
+    { _id: claimed._id },
+    { $set: { status: "pending_review", failureKind: "" }, $push: { auditLog: audit(choice, by, "resolved via order ledger") } }
+  );
+  return applyMatchedOrder(claimed, "", { by: by || "admin" });
 }
 
 /** Pure: replace the match for one extracted item with an admin-picked product. */
@@ -799,52 +614,37 @@ export async function assignChannelEventProduct(
   if (!updated) throw new Error("Email changed status, reload and try again");
   return updated;
 }
-async function applyCancellation(event: any, reasonId: string) {
+/**
+ * Cancellation: the order's desired quantity becomes 0 and the ledger sync returns exactly what is
+ * still cut (old orders are first adopted from their actual stock moves). Idempotent: a second
+ * cancel email returns nothing.
+ */
+async function applyCancellation(event: any, _reasonId: string) {
+  void _reasonId;
   if (!event.externalOrderId) {
     event.status = "pending_review";
     event.error = "Cancellation email has no marketplace order id";
     await event.save();
     return;
   }
-
-  // An order may have been applied across several events (one per product).
-  const originals = await ChannelOrderEvent.find({
-    externalOrderId: event.externalOrderId,
-    eventType: "order",
-    status: "applied",
-  }).sort({ createdAt: -1 });
-
-  if (!originals.length) {
+  const orderKey = orderKeyFor(event);
+  await setChannelOrderCancelled(orderKey, true);
+  const r = await syncChannelOrderStock(orderKey, { by: "channel-email" });
+  event.orderKey = orderKey;
+  if (r.status !== "synced") {
     event.status = "pending_review";
-    event.error = "No applied channel order found to restore";
-    await event.save();
-    return;
-  }
-
-  const restored: any[] = [];
-  for (const original of originals) {
-    // Atomic applied -> restored so two cancel mails cannot both restore stock
-    const claimed: any = await ChannelOrderEvent.findOneAndUpdate(
-      { _id: original._id, status: "applied" },
-      { $set: { status: "restored" } },
-      { new: true }
+    event.error = r.note || "Could not return stock";
+  } else if (r.restored.length) {
+    event.status = "restored";
+    event.error = "";
+    await ChannelOrderEvent.updateMany(
+      { orderKey, eventType: "order", status: "applied" },
+      { $set: { status: "restored" } }
     );
-    if (!claimed?.inventorySnapshot?.length) continue;
-    await restoreInventoryFromChannelSnapshot(claimed.inventorySnapshot, reasonId);
-    await releaseLocks((claimed.appliedKeys || []).map(String));
-    restored.push(...claimed.inventorySnapshot);
-  }
-
-  if (!restored.length) {
+  } else {
     event.status = "skipped";
-    event.error = "Stock for this order was already returned";
-    await event.save();
-    return;
+    event.error = "Nothing to return for this order (already returned, or never cut)";
   }
-
-  event.status = "restored";
-  event.inventorySnapshot = restored;
-  event.error = "";
   await event.save();
 }
 export type ChannelEmailSyncResult = {
@@ -896,14 +696,29 @@ export async function runChannelEmailSync(limit = 25): Promise<ChannelEmailSyncR
     return { processed: 0, skipped: 0, message: "Sync initialized — tracking emails from now onwards" };
   }
 
-  const query = buildSenderQuery(allowlist, config.lastSyncedAt);
-  let listed;
+  // Overlap the window: Gmail can index a message late. Already-seen ids are skipped cheaply.
+  const syncStartedAt = new Date();
+  const since = new Date(new Date(config.lastSyncedAt).getTime() - SYNC_OVERLAP_MS);
+  const query = buildSenderQuery(allowlist, since);
+  const listedMessages: Array<{ id?: string | null }> = [];
+  let complete = true;
   try {
-    listed = await gmail.users.messages.list({
-      userId: "me",
-      q: query,
-      maxResults: limit,
-    });
+    // Page through EVERY match (was: first `limit` only, then lastSyncedAt moved on -> mails lost)
+    let pageToken: string | undefined;
+    do {
+      const page = await gmail.users.messages.list({
+        userId: "me",
+        q: query,
+        maxResults: Math.min(100, Math.max(limit, 25)),
+        pageToken,
+      });
+      listedMessages.push(...(page.data.messages || []));
+      pageToken = page.data.nextPageToken || undefined;
+      if (listedMessages.length >= MAX_LISTED_IDS) {
+        complete = !pageToken;
+        break;
+      }
+    } while (pageToken);
   } catch (error) {
     if (isGoogleInvalidGrant(error)) {
       return markGmailNeedsReconnect(config, error);
@@ -918,7 +733,8 @@ export async function runChannelEmailSync(limit = 25): Promise<ChannelEmailSyncR
     await config.save();
   }
 
-  const messages = listed.data.messages || [];
+  // Oldest first, so an interrupted run never skips older mail
+  const messages = [...listedMessages].reverse();
   const catalog = (await Product.find({ isActive: true })
     .select("_id name slug")
     .lean()) as unknown as ProductCatalogLean[];
@@ -933,8 +749,14 @@ export async function runChannelEmailSync(limit = 25): Promise<ChannelEmailSyncR
 
   for (const message of messages) {
     if (!message.id) continue;
+    if (processed >= MAX_NEW_PER_SYNC) {
+      complete = false; // oldest-first, so the next run (same window) continues exactly here
+      break;
+    }
 
-    const existing = await ChannelOrderEvent.findOne({ gmailMessageId: message.id }).select("_id");
+    const existing = await ChannelOrderEvent.findOne({
+      $or: [{ gmailMessageId: message.id }, ...(eventIdForMessage(message.id) ? [{ _id: eventIdForMessage(message.id) }] : [])],
+    }).select("_id");
     if (existing) {
       skipped += 1;
       continue;
@@ -964,6 +786,7 @@ export async function runChannelEmailSync(limit = 25): Promise<ChannelEmailSyncR
     if (!isAllowedSender(fromEmail, allowlist)) {
       try {
         await ChannelOrderEvent.create({
+          _id: eventIdForMessage(message.id),
           gmailMessageId: message.id,
           channel: "amazon",
           eventType: "unknown",
@@ -980,9 +803,21 @@ export async function runChannelEmailSync(limit = 25): Promise<ChannelEmailSyncR
       continue;
     }
 
-    const rawText = extractTextFromPayload(full.data.payload).slice(0, 20000);
-
-    const extracted = await extractOrderFromEmail(subject, rawText, catalogForAi);
+    // Parse plain AND html: some mails list every item only in one of them
+    const bodies = extractBodiesFromPayload(full.data.payload);
+    let rawText = (bodies.plain || bodies.html).slice(0, BODY_LIMIT);
+    let extracted = await extractOrderFromEmail(subject, rawText, catalogForAi);
+    if (bodies.plain && bodies.html) {
+      const firstOk = checkItemCount(extracted.items, extracted.expectedItemCount).ok;
+      if (!firstOk) {
+        const htmlText = bodies.html.slice(0, BODY_LIMIT);
+        const alt = await extractOrderFromEmail(subject, htmlText, catalogForAi);
+        if (checkItemCount(alt.items, alt.expectedItemCount).ok || alt.items.length > extracted.items.length) {
+          extracted = alt;
+          rawText = htmlText;
+        }
+      }
+    }
     const { matched, unmatched } = await matchChannelProducts(
       extracted.items,
       config.productAliases || []
@@ -992,11 +827,13 @@ export async function runChannelEmailSync(limit = 25): Promise<ChannelEmailSyncR
     let event: any;
     try {
       event = await ChannelOrderEvent.create({
+        _id: eventIdForMessage(message.id),
         gmailMessageId: message.id,
         channel: "amazon",
         eventType: extracted.eventType,
         status: "pending_review",
-        externalOrderId: extracted.externalOrderId,
+        externalOrderId: normalizeChannelOrderId(extracted.externalOrderId),
+        orderKey: extracted.externalOrderId ? normalizeChannelOrderId(extracted.externalOrderId) : "",
         fromEmail,
         subject,
         receivedAt,
@@ -1015,7 +852,7 @@ export async function runChannelEmailSync(limit = 25): Promise<ChannelEmailSyncR
 
     try {
       const reasonId = extracted.externalOrderId
-        ? `CH-${extracted.externalOrderId}`
+        ? `CH-${normalizeChannelOrderId(extracted.externalOrderId)}`
         : `CH-MSG-${message.id.slice(-8)}`;
 
       if (extracted.eventType === "unknown" || !extracted.items.length) {
@@ -1036,9 +873,6 @@ export async function runChannelEmailSync(limit = 25): Promise<ChannelEmailSyncR
         event.error = mismatchMessage(count);
         await event.save();
       } else {
-        const cut = await alreadyCutProductIds(event);
-        const allCut =
-          matched.length > 0 && matched.every((m) => cut.has(String(m.productId)));
         const genuine = isGenuineNewOrderEmail({
           eventType: extracted.eventType,
           externalOrderId: extracted.externalOrderId,
@@ -1049,11 +883,7 @@ export async function runChannelEmailSync(limit = 25): Promise<ChannelEmailSyncR
         });
         const cancelled = await cancelledProductIds(event);
         const reCancelled = matched.some((m) => cancelled.has(String(m.productId)));
-        if (allCut && !unmatched.length) {
-          event.status = "skipped";
-          event.error = "Order already applied";
-          await event.save();
-        } else if (reCancelled) {
+        if (reCancelled) {
           event.status = "pending_review";
           event.error =
             "This order was cancelled earlier and its stock was returned. Confirm only if it is a genuine new sale.";
@@ -1084,10 +914,17 @@ export async function runChannelEmailSync(limit = 25): Promise<ChannelEmailSyncR
     processed += 1;
   }
 
-  config.lastSyncedAt = new Date(Date.now() - 300_000);
-  await config.save();
+  // Only move the window when every listed message was handled
+  if (complete) {
+    config.lastSyncedAt = syncStartedAt;
+    await config.save();
+  }
 
-  return { processed, skipped, message: `Processed ${processed} new emails` };
+  return {
+    processed,
+    skipped,
+    message: `Processed ${processed} new emails${complete ? "" : " (more waiting - next run continues)"}`,
+  };
 }
 
 export async function rematchChannelEvent(eventId: string) {
@@ -1127,7 +964,7 @@ export async function rematchChannelEvent(eventId: string) {
       reasoning = reparsed.reasoning;
       confidence = Math.max(confidence, reparsed.confidence);
       if (!event.externalOrderId && reparsed.externalOrderId) {
-        event.externalOrderId = reparsed.externalOrderId;
+        event.externalOrderId = normalizeChannelOrderId(reparsed.externalOrderId);
       }
       if (event.eventType === "unknown") event.eventType = "order";
     }
@@ -1330,39 +1167,40 @@ async function buildOrderReconciliation(
   }
   const unmatched = items.filter((i) => i.unmatched).map((i) => (i.sku ? `${i.sku} (${i.title.slice(0, 60)})` : i.title));
 
-  // What was recorded as cut for this order (all applied events + locks)
+  // What was cut for this ORDER (all its emails), not for this one event
   const orderKey = orderKeyFor(event);
   const recorded = new Map<string, number>();
   const names = new Map<string, string>();
-  const locks = (await ChannelApplyLock.find({ _id: { $regex: `^${escapeRegex(orderKey)}\\|` } })
-    .select("productId quantity eventId")
-    .lean()) as Array<{ productId?: string; quantity?: number; eventId?: unknown }>;
-  const lockedEventIds = new Set(locks.map((l) => String(l.eventId || "")));
-  for (const l of locks) {
-    const id = String(l.productId || "");
-    if (id) recorded.set(id, (recorded.get(id) || 0) + Math.max(0, Number(l.quantity) || 0));
-  }
-  const related = (event.externalOrderId
-    ? await ChannelOrderEvent.find({ externalOrderId: event.externalOrderId, eventType: "order", status: "applied" })
-        .select("_id matchedItems appliedKeys")
-        .lean()
-    : [event.toObject ? event.toObject() : event]) as any[];
-  for (const row of related) {
+  const ledger = await getOrderLedger(orderKey);
+  const orderEvents = await findOrderEvents(orderKey);
+  for (const row of orderEvents) {
     for (const m of row.matchedItems || []) names.set(String(m.productId), m.productName);
-    // Legacy rows (no per-product locks): their matchedItems were all cut
-    if ((row.appliedKeys || []).length || lockedEventIds.has(String(row._id))) continue;
-    for (const m of row.matchedItems || []) {
-      const id = String(m.productId || "");
-      if (id) recorded.set(id, (recorded.get(id) || 0) + Math.max(1, Number(m.quantity) || 1));
+  }
+  let netCut: Map<string, number> | null = null;
+  let invNames = new Map<string, string>();
+  let legacyOrder = false;
+  if (ledger.length) {
+    // Ledger = the single source of truth for what this order has cut
+    for (const l of ledger) {
+      recorded.set(String(l.productId), Number(l.quantity) || 0);
+      names.set(String(l.productId), l.productName);
+    }
+  } else {
+    // Ground truth: inventory rows under ANY reason id this order was cut with
+    const txs = (await InventoryTransaction.find({ orderId: { $in: reasonIdsForEvents(orderKey, orderEvents) } })
+      .select("inventoryItemId inventoryItemName type quantity")
+      .lean()) as any[];
+    invNames = new Map<string, string>(txs.map((t) => [String(t.inventoryItemId), t.inventoryItemName || ""]));
+    netCut = txs.length ? netCutByComponent(txs) : null;
+    legacyOrder = txs.length > 0;
+    for (const row of orderEvents.filter((e: any) => e.eventType === "order" && e.status === "applied")) {
+      for (const m of row.matchedItems || []) {
+        const id = String(m.productId || "");
+        // MAX across emails (duplicates are the same items, never added up)
+        if (id) recorded.set(id, Math.max(recorded.get(id) || 0, Math.max(1, Number(m.quantity) || 1)));
+      }
     }
   }
-
-  // Ground truth: inventory transactions under this order's reason id
-  const txs = (await InventoryTransaction.find({ orderId: reasonIdFor(event) })
-    .select("inventoryItemId inventoryItemName type quantity")
-    .lean()) as any[];
-  const invNames = new Map<string, string>(txs.map((t) => [String(t.inventoryItemId), t.inventoryItemName || ""]));
-  const netCut = txs.length ? netCutByComponent(txs) : null;
 
   const wanted = items
     .filter((i) => i.productId)
@@ -1389,6 +1227,11 @@ async function buildOrderReconciliation(
   if (!items.length) blockers.push("Could not read any item from the email (stored body empty and Gmail re-fetch failed)");
   if (unmatched.length) blockers.push(`SKU not matched to an active product: ${unmatched.join(", ")}`);
   if (!count.ok) blockers.push(count.note);
+  if (legacyOrder && (await buildRowForOrder(orderKey)).action !== "ok") {
+    blockers.push(
+      "Cut by the old sync (before the order ledger) - use Backfill / Repair, which reconciles the whole order across all its emails"
+    );
+  }
 
   const missing = lines.filter((l) => l.missingQty > 0).map((l) => ({ productId: l.productId, productName: l.productName, quantity: l.missingQty }));
   const overCut = lines.filter((l) => l.extraQty > 0).map((l) => ({ productId: l.productId, productName: l.productName, quantity: l.extraQty }));
@@ -1435,9 +1278,8 @@ const RECHECK_STALE_MS = 10 * 60 * 1000;
 
 /**
  * Cut ONLY the missing quantity for an applied order. The server recomputes what is missing
- * (client lines only choose which products); every cut takes a ChannelApplyLock first:
- * `<order>|<product>` when nothing was locked yet, else `<order>|<product>|topup`. A product
- * that already has both locks is never cut again. Manual picks (product not in the email) are
+ * per ORDER (all its emails, ledger quantities); the cut goes through the order ledger, so it
+ * can never be repeated (no more "|topup" second cut). Manual picks (product not in the email) are
  * allowed only within the email's unaccounted units.
  */
 export async function cutMissingChannelItems(
@@ -1506,86 +1348,64 @@ export async function cutMissingChannelItems(
       throw new Error(`Nothing missing for this order${skipped.length ? ` (already cut: ${skipped.join(", ")})` : ""}. Nothing cut.`);
     }
 
+    if (recon.blockers.some((b) => b.startsWith("Cut by the old sync"))) {
+      throw new Error("This order was cut by the old sync and does not match the email. Run Backfill / Repair (dry run first) - it fixes the whole order.");
+    }
+    // Set the ORDER's desired TOTAL per product from the email (never "+ missing"): the ledger
+    // cuts desired - already cut, so a second click or a duplicate row cuts nothing.
     const orderKey = orderKeyFor(claimed);
-    const toApply: ChannelMatchedItem[] = [];
-    for (const item of wanted) {
-      let got = "";
-      for (const key of [`${orderKey}|${item.productId}`, `${orderKey}|${item.productId}|topup`]) {
-        try {
-          await ChannelApplyLock.create({
-            _id: key,
-            externalOrderId: claimed.externalOrderId || "",
-            productId: item.productId,
-            eventId: claimed._id,
-            quantity: item.quantity,
-          });
-          got = key;
-          break;
-        } catch (error: any) {
-          if (error?.code !== 11000) throw error;
-        }
-      }
-      if (got) {
-        acquired.push(got);
-        toApply.push(item);
-      } else {
-        skipped.push(`${item.productName} (already topped up once - fix by hand)`);
-      }
+    const picked = new Set(wanted.map((w) => String(w.productId)));
+    const totals = new Map<string, OrderLine>();
+    for (const i of recon.items) {
+      if (!i.productId || !picked.has(String(i.productId))) continue;
+      const prev = totals.get(String(i.productId));
+      const q = Math.max(1, Number(i.quantity) || 1);
+      if (prev) prev.quantity += q;
+      else totals.set(String(i.productId), { productId: String(i.productId), productName: i.productName || "", quantity: q });
     }
-    if (!toApply.length) {
-      throw new Error(`Already cut for this order: ${skipped.join(", ")}. Nothing cut.`);
+    const ledgerNow = new Map((await getOrderLedger(orderKey)).map((l: any) => [String(l.productId), Number(l.quantity) || 0]));
+    for (const w of wanted) {
+      // Admin pick of a product the email does not list (bounded by manualAllowance above)
+      if (w.matchType !== "recheck_manual") continue;
+      const id = String(w.productId);
+      totals.set(id, { productId: id, productName: w.productName, quantity: (ledgerNow.get(id) || 0) + w.quantity });
     }
-
-    let snapshot: ChannelSnapshotLineLike[] = [];
-    let partialMsg = "";
-    try {
-      deducted = true;
-      snapshot = await deductInventoryForChannelItems(toApply, reasonIdFor(claimed));
-    } catch (error) {
-      if (error instanceof ChannelPartialDeductionError) {
-        // Some lines were cut: keep locks (never re-cut) and record exactly what was cut.
-        snapshot = error.partialSnapshot;
-        partialMsg = error.message;
-      } else {
-        deducted = false;
-        throw error;
-      }
+    const manual: OrderLine[] = [...totals.values()];
+    await recordChannelOrderSource(claimed, (claimed.matchedItems || []).map((m: any) => ({ productId: String(m.productId), productName: m.productName, quantity: m.quantity })), { trusted: true, by });
+    await setChannelOrderManualLines(orderKey, manual);
+    deducted = true;
+    const r = await syncChannelOrderStock(orderKey, { by: by || "admin" });
+    if (r.status !== "synced" && !r.cut.length) {
+      deducted = false;
+      throw new Error(r.note || "Could not cut stock");
     }
-
-    const note = toApply.map((i) => `${i.productName} x${i.quantity}`).join(", ");
+    if (!r.cut.length) {
+      deducted = false;
+      throw new Error("Nothing to cut - this order is already fully cut");
+    }
+    const note = r.cut.map((i) => `${i.productName} x${i.quantity}`).join(", ") || "nothing (already cut)";
     const action = opts.action || "cut_missing";
+    const existingIds = new Set((claimed.matchedItems || []).map((m: any) => String(m.productId)));
     await ChannelOrderEvent.updateOne(
       { _id: claimed._id },
       {
         $push: {
-          matchedItems: { $each: toApply },
-          inventorySnapshot: { $each: snapshot },
-          appliedKeys: { $each: acquired },
-          auditLog: audit(
-            partialMsg ? `${action}_partial` : action,
-            by,
-            partialMsg ? `${note} - PARTLY cut (${partialMsg}); check inventory` : note
-          ),
+          matchedItems: { $each: wanted.filter((w) => !existingIds.has(String(w.productId))) },
+          inventorySnapshot: { $each: r.snapshot },
+          auditLog: audit(action, by, r.status === "synced" ? note : `${note} - ${r.note}`),
         },
         $set: {
           recheckLockAt: null,
+          orderKey,
           ...(recon.bodySource === "gmail" && !String(claimed.rawText || "").trim() ? { rawText: recon._body } : {}),
-          error: partialMsg
-            ? `Missing items only partly cut (${partialMsg}). Locked so they are never re-cut; fix stock manually.`
-            : skipped.length
-              ? `Skipped (already cut): ${skipped.join(", ")}`
-              : claimed.error || "",
+          error: r.status === "synced" ? (skipped.length ? `Skipped (already cut): ${skipped.join(", ")}` : claimed.error || "") : r.note,
         },
       }
     );
-    if (partialMsg) throw new Error(`Only partly cut: ${partialMsg}. Check inventory history.`);
     return ChannelOrderEvent.findById(claimed._id);
   } catch (error) {
-    const msg = error instanceof Error ? error.message : "";
-    if (!msg.startsWith("Only partly cut")) {
-      if (!deducted) await releaseLocks(acquired);
-      await unclaim();
-    }
+    void acquired;
+    await unclaim();
     throw error;
   }
 }
@@ -1604,98 +1424,65 @@ export type BackfillRow = {
   overCut: Array<{ productName: string; quantity: number }>;
   unexplained: Array<{ inventoryItemName: string; quantity: number }>;
   blockers: string[];
-  /** cut = will cut missing; ok = nothing to do; review = needs a human (not auto-fixed) */
+  /** cut = will fix (cut and/or return stock); ok = nothing to do; review = needs a human */
   action: "cut" | "ok" | "review";
   result?: string;
+  desired?: Array<{ productName: string; quantity: number }>;
+  components?: Array<{ inventoryItemId: string; inventoryItemName: string; expected: number; actual: number; diff: number }>;
+  duplicates?: number;
+  emails?: number;
 };
 
-/**
- * Scan applied Amazon order events not yet backfilled, re-parse each original email and cut
- * ONLY missing quantities. Idempotent: per-product locks + inventory-based "already cut" make a
- * second cut impossible, and clean orders get `backfilledAt` so re-runs skip them.
- * Over-cut (double deduction) is only reported, never auto-restored.
- */
-export async function backfillChannelOrders(opts: { apply?: boolean; by?: string; limit?: number } = {}) {
-  await connectDB();
-  const limit = Math.min(Math.max(Number(opts.limit) || 300, 1), 1000);
-  const events = (await ChannelOrderEvent.find({
-    eventType: "order",
-    status: "applied",
-    $or: [{ backfilledAt: null }, { backfilledAt: { $exists: false } }],
-  })
-    .sort({ receivedAt: 1, createdAt: 1 })
-    .limit(limit)) as any[];
+/** Re-parse one email (stored body, else Gmail) for the repair; lines only when the count is OK and all SKUs match. */
+async function reparseEventForRepair(event: any): Promise<OrderLine[] | null> {
+  const recon = await buildOrderReconciliation(event, { allowGmail: true });
+  if (recon.unmatched.length || recon.blockers.some((b) => !b.startsWith("Cut by the old sync"))) return null;
+  const lines = recon.items.filter((i) => i.productId).map((i) => ({ productId: i.productId, productName: i.productName, quantity: i.quantity }));
+  return lines.length ? lines : null;
+}
 
-  const seenOrders = new Set<string>();
-  const rows: BackfillRow[] = [];
-  for (const event of events) {
-    const key = orderKeyFor(event);
-    if (seenOrders.has(key)) continue; // one reconciliation per marketplace order
-    seenOrders.add(key);
-    let recon: Awaited<ReturnType<typeof buildOrderReconciliation>>;
-    try {
-      recon = await buildOrderReconciliation(event, { allowGmail: true });
-    } catch (error) {
-      rows.push({
-        eventId: String(event._id), orderId: event.externalOrderId || "", subject: event.subject || "",
-        receivedAt: event.receivedAt ? new Date(event.receivedAt).toISOString() : null, bodySource: "none",
-        missing: [], overCut: [], unexplained: [],
-        blockers: [error instanceof Error ? error.message : "Re-check failed"], action: "review",
-      });
-      continue;
-    }
-    const needsReview = recon.blockers.length > 0 || recon.overCut.length > 0 || recon.unexplained.length > 0;
-    const row: BackfillRow = {
-      eventId: String(event._id),
-      orderId: recon.orderId,
-      subject: event.subject || "",
-      receivedAt: event.receivedAt ? new Date(event.receivedAt).toISOString() : null,
-      bodySource: recon.bodySource,
-      missing: recon.missing.map((m) => ({ productName: m.productName, quantity: m.quantity })),
-      overCut: recon.overCut.map((m) => ({ productName: m.productName, quantity: m.quantity })),
-      unexplained: recon.unexplained.map((u) => ({ inventoryItemName: u.inventoryItemName, quantity: u.quantity })),
-      blockers: recon.blockers,
-      action: recon.blockers.length ? "review" : recon.missing.length ? "cut" : needsReview ? "review" : "ok",
-    };
-    rows.push(row);
-    if (!opts.apply) continue;
-
-    try {
-      if (row.action === "cut") {
-        await cutMissingChannelItems(
-          String(event._id),
-          recon.missing.map((m) => ({ productId: m.productId, quantity: m.quantity })),
-          opts.by || "backfill",
-          { action: "backfill_cut" }
-        );
-        row.result = `Cut ${row.missing.map((m) => `${m.productName} x${m.quantity}`).join(", ")}`;
-      } else {
-        row.result = row.action === "ok" ? "Nothing missing" : "Left for manual review";
-      }
-      // Mark clean orders done (every event of this order) so the backfill never touches them again
-      if (!recon.blockers.length && !recon.overCut.length && !recon.unexplained.length) {
-        const filter = event.externalOrderId
-          ? { externalOrderId: event.externalOrderId, eventType: "order", status: "applied" }
-          : { _id: event._id };
-        await ChannelOrderEvent.updateMany(filter, {
-          $set: { backfilledAt: new Date(), backfillNote: row.result },
-          $push: { auditLog: audit("backfill", opts.by || "backfill", row.result) },
-        });
-      }
-    } catch (error) {
-      row.action = "review";
-      row.result = `Error: ${error instanceof Error ? error.message : "failed"}`;
-    }
-  }
-
-  const summary = {
-    scanned: rows.length,
-    toCut: rows.filter((r) => r.action === "cut").length,
-    ok: rows.filter((r) => r.action === "ok").length,
-    review: rows.filter((r) => r.action === "review").length,
-    applied: !!opts.apply,
+function toBackfillRow(r: OrderRepairRow): BackfillRow {
+  return {
+    eventId: r.eventIds[0] || r.orderId,
+    orderId: r.orderId,
+    subject: "",
+    receivedAt: null,
+    bodySource: "",
+    missing: r.toCut.map((c) => ({ productName: c.inventoryItemName, quantity: c.quantity })),
+    overCut: r.toRestore.map((c) => ({ productName: c.inventoryItemName, quantity: c.quantity })),
+    unexplained: [],
+    blockers: r.blockers,
+    action: r.action === "fix" ? "cut" : r.action,
+    result: r.result,
+    desired: r.desired.map((d) => ({ productName: d.productName, quantity: d.quantity })),
+    components: r.components,
+    duplicates: r.duplicateEventIds.length,
+    emails: r.eventIds.length,
   };
-  return { summary, rows };
+}
+
+/**
+ * One-time repair of old orders, per ORDER across all its emails (was: per event, current BOM vs
+ * one email, which double-cut). Dry run by default: lists expected vs actual component cuts.
+ * Apply needs confirm "REPAIR" + the order ids from the dry run; it returns over-cut stock, cuts
+ * under-cut stock, seeds the ledger and marks duplicate emails. Re-running changes nothing.
+ */
+export async function backfillChannelOrders(
+  opts: { apply?: boolean; confirm?: string; orderIds?: string[]; by?: string; limit?: number; since?: Date | null } = {}
+) {
+  await connectDB();
+  const { summary, rows } = await repairChannelOrders({ ...opts, reparse: reparseEventForRepair });
+  return {
+    summary: {
+      scanned: summary.scanned,
+      toCut: summary.toFix,
+      ok: summary.ok,
+      review: summary.review,
+      duplicates: summary.duplicates,
+      applied: summary.applied,
+    },
+    rows: rows.map(toBackfillRow),
+  };
 }
 
 type ChannelSnapshotLineLike = { inventoryItemId: any; inventoryItemName: string; quantity: number };
@@ -1734,7 +1521,7 @@ export async function applyChannelEvent(eventId: string, by = "") {
     throw new Error('Interrupted apply: choose "Mark as applied" or "Release & retry" first.');
   }
   const wasFailed = event.status === "failed";
-  const updated = await applyMatchedOrder(event, reasonId);
+  const updated = await applyMatchedOrder(event, reasonId, { by: by || "admin", admin: true });
   await ChannelOrderEvent.updateOne(
     { _id: event._id },
     { $push: { auditLog: audit(wasFailed ? "retry" : "confirm", by, String(updated?.status || "")) } }
