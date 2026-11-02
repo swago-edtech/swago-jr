@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useState, Fragment } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState, Fragment } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   CheckCircle2,
@@ -51,6 +51,8 @@ type ChannelEvent = {
   }>;
   inventorySnapshot?: Array<{ inventoryItemName?: string; quantity?: number }>;
   error?: string;
+  duplicateOf?: string | null;
+  backfillNote?: string;
 };
 
 type ConfigState = {
@@ -274,32 +276,110 @@ type BackfillResult = {
   }>;
 };
 
+type BackfillRow = BackfillResult["rows"][number];
+type ApplyOutcome = { orderId: string; kind: "fixed" | "skipped" | "failed"; reason: string };
+
+const REPAIR_BATCH = 10;
+
+function classifyRepair(row: BackfillRow | undefined, orderId: string): ApplyOutcome {
+  const reason = row?.result || "No result returned";
+  if (!row) return { orderId, kind: "failed", reason };
+  if (/^Fixed|ledger seeded/i.test(reason)) return { orderId, kind: "fixed", reason };
+  if (/fail|being updated|error/i.test(reason)) return { orderId, kind: "failed", reason };
+  return { orderId, kind: "skipped", reason };
+}
+
 function BackfillPanel({
   result,
   busy,
-  onApply,
   onClose,
+  onDone,
 }: {
   result: BackfillResult;
   busy: boolean;
-  onApply: () => void;
   onClose: () => void;
+  onDone: () => Promise<void> | void;
 }) {
   const s = result.summary;
   const rows = result.rows.filter((r) => r.action !== "ok" || r.result);
+  const fixIds = result.rows.filter((r) => r.action === "cut").map((r) => r.orderId).filter(Boolean);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [typed, setTyped] = useState("");
+  const [running, setRunning] = useState(false);
+  const [progress, setProgress] = useState<{ done: number; total: number; fixed: number } | null>(null);
+  const [outcomes, setOutcomes] = useState<ApplyOutcome[] | null>(null);
+  const runningRef = useRef(false);
+
+  const apply = async () => {
+    if (runningRef.current || typed.trim() !== "REPAIR" || !fixIds.length) return;
+    runningRef.current = true;
+    setRunning(true);
+    setConfirmOpen(false);
+    const all: ApplyOutcome[] = [];
+    setOutcomes([]);
+    setProgress({ done: 0, total: fixIds.length, fixed: 0 });
+    try {
+      for (let i = 0; i < fixIds.length; i += REPAIR_BATCH) {
+        const batch = fixIds.slice(i, i + REPAIR_BATCH);
+        let got: ApplyOutcome[];
+        try {
+          const res = await fetch("/api/channel-email/backfill", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ apply: true, confirm: "REPAIR", orderIds: batch }),
+          });
+          const data = await res.json().catch(() => ({ success: false, error: `HTTP ${res.status}` }));
+          if (!data.success) {
+            got = batch.map((id) => ({ orderId: id, kind: "failed" as const, reason: data.error || `HTTP ${res.status}` }));
+          } else {
+            const byId = new Map<string, BackfillRow>((data.rows || []).map((r: BackfillRow) => [r.orderId, r]));
+            got = batch.map((id) => classifyRepair(byId.get(id), id));
+          }
+        } catch (err) {
+          got = batch.map((id) => ({
+            orderId: id,
+            kind: "failed" as const,
+            reason: `Network error (${err instanceof Error ? err.message : "request failed"}) - run the preview again; a fixed order is never fixed twice`,
+          }));
+        }
+        all.push(...got);
+        setOutcomes([...all]);
+        setProgress({ done: all.length, total: fixIds.length, fixed: all.filter((o) => o.kind === "fixed").length });
+      }
+    } finally {
+      runningRef.current = false;
+      setRunning(false);
+      setTyped("");
+      await onDone();
+    }
+  };
+
+  const counts = outcomes
+    ? {
+        fixed: outcomes.filter((o) => o.kind === "fixed").length,
+        skipped: outcomes.filter((o) => o.kind === "skipped").length,
+        failed: outcomes.filter((o) => o.kind === "failed").length,
+      }
+    : null;
+
   return (
-    <div className="mx-5 my-3 rounded-lg border border-indigo-200 bg-indigo-50/50 p-3 text-xs text-slate-800">
-      <div className="flex items-center justify-between">
+    <div className="mx-3 my-3 rounded-lg border border-indigo-200 bg-indigo-50/50 p-3 text-xs text-slate-800 sm:mx-5">
+      <div className="flex items-start justify-between gap-2">
         <p className="font-semibold text-slate-900">
           {s.applied ? "Repair done" : "Repair preview (nothing changed yet)"}: {s.scanned} order(s), {s.toCut} to fix,{" "}
           {s.ok} already correct, {s.review} need review, {s.duplicates ?? 0} duplicate email(s)
         </p>
-        <button type="button" onClick={onClose} className="text-slate-500 hover:text-slate-800">
+        <button
+          type="button"
+          onClick={onClose}
+          disabled={running}
+          className="shrink-0 text-slate-500 hover:text-slate-800 disabled:opacity-40"
+        >
           Close
         </button>
       </div>
       {rows.length ? (
-        <ul className="mt-2 max-h-64 space-y-1 overflow-y-auto">
+        <ul className="mt-2 max-h-64 space-y-1 overflow-y-auto break-words">
           {rows.map((r) => (
             <li key={r.eventId} className={r.action === "review" ? "text-amber-800" : ""}>
               <span className="font-mono">{r.orderId || r.eventId}</span>
@@ -315,15 +395,226 @@ function BackfillPanel({
           ))}
         </ul>
       ) : null}
-      {!s.applied && s.toCut > 0 ? (
-        <button
-          type="button"
-          disabled={busy}
-          onClick={onApply}
-          className="mt-2 rounded-lg bg-indigo-600 px-3 py-1.5 font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
-        >
-          {busy ? "Applying..." : `Fix stock for ${s.toCut} order(s)`}
-        </button>
+
+      {progress ? (
+        <div className="mt-3">
+          <div className="flex items-center gap-2 font-medium text-slate-800">
+            {running ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+            <span>
+              {running ? "Fixing... " : ""}Fixed {progress.fixed}/{progress.total}
+              {progress.done < progress.total ? ` (checked ${progress.done})` : ""}
+            </span>
+          </div>
+          <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-indigo-100">
+            <div
+              className="h-full bg-indigo-600 transition-all"
+              style={{ width: `${progress.total ? Math.round((progress.done / progress.total) * 100) : 0}%` }}
+            />
+          </div>
+        </div>
+      ) : null}
+
+      {counts && !running ? (
+        <div className="mt-3 rounded-md border border-slate-200 bg-white p-2">
+          <p className="font-semibold text-slate-900">
+            Result: <span className="text-emerald-700">{counts.fixed} fixed</span>,{" "}
+            <span className="text-slate-600">{counts.skipped} skipped</span>,{" "}
+            <span className={counts.failed ? "text-rose-700" : "text-slate-600"}>{counts.failed} failed</span>
+          </p>
+          {outcomes!.some((o) => o.kind !== "fixed") ? (
+            <ul className="mt-1 max-h-40 space-y-0.5 overflow-y-auto break-words">
+              {outcomes!
+                .filter((o) => o.kind !== "fixed")
+                .map((o) => (
+                  <li key={o.orderId} className={o.kind === "failed" ? "text-rose-700" : "text-slate-600"}>
+                    <span className="font-mono">{o.orderId}</span> ({o.kind}): {o.reason}
+                  </li>
+                ))}
+            </ul>
+          ) : null}
+        </div>
+      ) : null}
+
+      {!s.applied && fixIds.length > 0 && !running && !outcomes ? (
+        confirmOpen ? (
+          <form
+            className="mt-3 rounded-md border border-indigo-300 bg-white p-3"
+            onSubmit={(ev) => {
+              ev.preventDefault();
+              void apply();
+            }}
+          >
+            <p className="text-slate-700">
+              Fix stock for {fixIds.length} order(s): over-cut stock is returned and missing stock is cut. Each order is
+              re-checked on the server and is never fixed twice. Type <span className="font-mono font-semibold">REPAIR</span>{" "}
+              to confirm.
+            </p>
+            <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center">
+              <input
+                autoFocus
+                value={typed}
+                onChange={(ev) => setTyped(ev.target.value)}
+                placeholder="REPAIR"
+                autoCapitalize="characters"
+                autoComplete="off"
+                spellCheck={false}
+                className="w-full rounded-md border border-slate-300 px-2 py-2 font-mono text-sm sm:w-40 sm:py-1.5"
+              />
+              <div className="flex gap-2">
+                <button
+                  type="submit"
+                  disabled={typed.trim() !== "REPAIR" || running}
+                  className="flex-1 rounded-lg bg-indigo-600 px-3 py-2 font-semibold text-white hover:bg-indigo-700 disabled:opacity-40 sm:flex-none sm:py-1.5"
+                >
+                  Fix {fixIds.length} order(s)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setConfirmOpen(false);
+                    setTyped("");
+                  }}
+                  className="flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 font-semibold text-slate-700 hover:bg-slate-50 sm:flex-none sm:py-1.5"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </form>
+        ) : (
+          <button
+            type="button"
+            disabled={busy || running}
+            onClick={() => setConfirmOpen(true)}
+            className="mt-2 w-full rounded-lg bg-indigo-600 px-3 py-2 font-semibold text-white hover:bg-indigo-700 disabled:opacity-50 sm:w-auto sm:py-1.5"
+          >
+            {`Fix stock for ${fixIds.length} order(s)`}
+          </button>
+        )
+      ) : null}
+    </div>
+  );
+}
+
+type StockHistory = {
+  orderKey: string;
+  exists: boolean;
+  cancelled: boolean;
+  repairedAt: string | null;
+  note: string;
+  products: Array<{ productId: string; productName: string; target: number; cut: number; pending: boolean }>;
+  entries: Array<{ at: string | null; by: string; action: string; product: string; qty: number; note: string }>;
+  events: Array<{ _id: string; status: string; eventType: string; subject: string; receivedAt: string | null; duplicateOf: string | null }>;
+};
+
+function OrderStockHistory({ orderId, eventId }: { orderId: string; eventId: string }) {
+  const [data, setData] = useState<StockHistory | null>(null);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    let alive = true;
+    setData(null);
+    setError("");
+    fetch(`/api/channel-email/order-history?orderId=${encodeURIComponent(orderId)}`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (!alive) return;
+        if (d.success) setData(d.history);
+        else setError(d.error || "Could not load stock history");
+      })
+      .catch(() => alive && setError("Could not load stock history"));
+    return () => {
+      alive = false;
+    };
+  }, [orderId, eventId]);
+
+  const when = (v: string | null) =>
+    v
+      ? new Date(v).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })
+      : "—";
+
+  return (
+    <div className="mb-4 rounded-lg border border-slate-200 bg-white p-3 text-xs">
+      <div className="flex flex-wrap items-center gap-2">
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Stock history (order)</p>
+        <span className="font-mono text-slate-600">{orderId}</span>
+        {data?.cancelled ? <span className="rounded-full bg-rose-50 px-2 py-0.5 text-rose-700">cancelled</span> : null}
+        {data?.repairedAt ? (
+          <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-emerald-700">repaired {when(data.repairedAt)}</span>
+        ) : null}
+      </div>
+      {error ? <p className="mt-2 text-rose-700">{error}</p> : null}
+      {!data && !error ? (
+        <p className="mt-2 flex items-center gap-1 text-slate-500">
+          <Loader2 className="h-3 w-3 animate-spin" /> Loading...
+        </p>
+      ) : null}
+      {data ? (
+        <>
+          {data.note ? <p className="mt-1 text-amber-800">{data.note}</p> : null}
+          {data.products.length ? (
+            <table className="mt-2 w-full max-w-md text-left">
+              <thead className="text-slate-500">
+                <tr>
+                  <th className="py-0.5 font-medium">Product</th>
+                  <th className="py-0.5 text-right font-medium">Target</th>
+                  <th className="py-0.5 text-right font-medium">Cut</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.products.map((p) => (
+                  <tr key={p.productId} className={p.target !== p.cut ? "text-amber-800" : "text-slate-800"}>
+                    <td className="py-0.5 pr-2">
+                      {p.productName || p.productId}
+                      {p.pending ? <span className="ml-1 text-amber-700">(move pending)</span> : null}
+                    </td>
+                    <td className="py-0.5 text-right tabular-nums">{p.target}</td>
+                    <td className="py-0.5 text-right tabular-nums">{p.cut}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <p className="mt-2 text-slate-500">{data.exists ? "No ledger lines yet." : "Not in the stock ledger yet."}</p>
+          )}
+          {data.entries.length ? (
+            <ul className="mt-2 max-h-56 space-y-0.5 overflow-y-auto">
+              {data.entries.map((h, i) => (
+                <li key={i} className="flex flex-wrap gap-x-2 text-slate-700">
+                  <span className="whitespace-nowrap text-slate-500">{when(h.at)}</span>
+                  <span className="text-slate-500">{h.by || "system"}</span>
+                  <span className="font-medium">{h.action}</span>
+                  {h.product ? <span>{h.product}</span> : null}
+                  {h.qty ? (
+                    <span className={`tabular-nums ${h.qty < 0 ? "text-rose-700" : "text-emerald-700"}`}>
+                      {h.qty > 0 ? `+${h.qty}` : h.qty}
+                    </span>
+                  ) : null}
+                  {h.note ? <span className="min-w-0 break-words text-slate-500">{h.note}</span> : null}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          {data.events.length > 1 ? (
+            <div className="mt-2">
+              <p className="text-slate-500">Emails for this order ({data.events.length})</p>
+              <ul className="mt-0.5 space-y-0.5">
+                {data.events.map((e) => (
+                  <li key={e._id} className={`flex flex-wrap items-center gap-x-2 ${e._id === eventId ? "font-medium" : ""}`}>
+                    <span className="whitespace-nowrap text-slate-500">{when(e.receivedAt)}</span>
+                    <span>{e.eventType}</span>
+                    <span className="text-slate-500">{e.status}</span>
+                    {e.duplicateOf ? (
+                      <span className="rounded-full border border-amber-200 bg-amber-50 px-1.5 text-amber-800">
+                        duplicate
+                      </span>
+                    ) : null}
+                    {e._id === eventId ? <span className="text-indigo-700">(this email)</span> : null}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+        </>
       ) : null}
     </div>
   );
@@ -597,6 +888,7 @@ function ChannelEmailPageInner() {
   const [rechecks, setRechecks] = useState<Record<string, RecheckPreview>>({});
   const [backfill, setBackfill] = useState<BackfillResult | null>(null);
   const [backfilling, setBackfilling] = useState(false);
+  const backfillingRef = useRef(false);
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState<"info" | "success" | "error">("info");
   const [config, setConfig] = useState<ConfigState>({
@@ -800,33 +1092,28 @@ function ChannelEmailPageInner() {
     if (ok) showMessage("Settings saved.", "success");
   };
 
-  const runBackfill = async (apply: boolean) => {
-    if (
-      apply &&
-      !window.confirm(
-        "Fix the orders listed in the preview? Over-cut stock is returned and missing stock is cut, per order. Each order is re-checked on the server and can only be fixed once."
-      )
-    )
-      return;
-    const orderIds = apply ? (backfill?.rows || []).filter((r) => r.action !== "review").map((r) => r.orderId) : [];
+  const runBackfill = async () => {
+    if (backfillingRef.current) return;
+    backfillingRef.current = true;
     setBackfilling(true);
     try {
       const res = await fetch("/api/channel-email/backfill", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(apply ? { apply, confirm: "REPAIR", orderIds } : {}),
+        body: JSON.stringify({}),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({ success: false, error: `HTTP ${res.status}` }));
       if (!data.success) {
         showMessage(data.error || "Backfill failed", "error");
         return;
       }
       setBackfill({ summary: data.summary, rows: data.rows || [] });
-      if (apply) load();
     } finally {
+      backfillingRef.current = false;
       setBackfilling(false);
     }
   };
+
 
   const runSync = async () => {
     setSyncing(true);
@@ -1064,7 +1351,7 @@ function ChannelEmailPageInner() {
             <button
               type="button"
               disabled={backfilling}
-              onClick={() => runBackfill(false)}
+              onClick={() => runBackfill()}
               className="text-xs font-medium px-2.5 py-1 rounded-full border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-50"
             >
               {backfilling ? "Checking..." : "Backfill old orders"}
@@ -1105,8 +1392,10 @@ function ChannelEmailPageInner() {
           <BackfillPanel
             result={backfill}
             busy={backfilling}
-            onApply={() => runBackfill(true)}
             onClose={() => setBackfill(null)}
+            onDone={async () => {
+              await Promise.all([runBackfill(), load()]);
+            }}
           />
         ) : null}
         {!canShowEvents ? (
@@ -1185,6 +1474,14 @@ function ChannelEmailPageInner() {
                             <p className="text-xs text-slate-500 mt-0.5 font-mono">
                               {event.externalOrderId}
                             </p>
+                          )}
+                          {event.duplicateOf && (
+                            <span
+                              title={event.backfillNote || "Same order as an earlier email; stock is counted once per order"}
+                              className="mt-1 inline-flex rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-800"
+                            >
+                              Duplicate of {event.externalOrderId ? `order ${event.externalOrderId}` : "an earlier email"}
+                            </span>
                           )}
                         </td>
                         <td className="px-2 py-3 text-slate-700">
@@ -1304,6 +1601,9 @@ function ChannelEmailPageInner() {
                                 products={products}
                                 onAction={eventAction}
                               />
+                            )}
+                            {event.externalOrderId && (
+                              <OrderStockHistory orderId={event.externalOrderId} eventId={event._id} />
                             )}
                             <OrderDetails event={event} products={products} onAction={eventAction} />
                             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 text-sm">

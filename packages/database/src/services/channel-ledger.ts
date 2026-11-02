@@ -843,3 +843,104 @@ async function applyRepairForOrder(
     await releaseOrderLock(orderKey, opId, lockSet);
   }
 }
+
+// ---------------------------------------------------------------------------
+// Read-only stock history of one order (admin "Stock history" panel)
+// ---------------------------------------------------------------------------
+
+export type OrderStockHistory = {
+  orderKey: string;
+  exists: boolean;
+  cancelled: boolean;
+  repairedAt: Date | null;
+  note: string;
+  products: Array<{ productId: string; productName: string; target: number; cut: number; pending: boolean }>;
+  entries: Array<{ at: Date | null; by: string; action: string; product: string; qty: number; note: string }>;
+  events: Array<{ _id: string; status: string; eventType: string; subject: string; receivedAt: Date | null; duplicateOf: string | null }>;
+};
+
+/** Ledger-based history of one order. Never writes. */
+export async function getOrderStockHistory(orderIdOrKey: string): Promise<OrderStockHistory> {
+  await connectDB();
+  const raw = String(orderIdOrKey || "").trim();
+  const orderKey = raw.startsWith("MSG-") ? raw : normalizeChannelOrderId(raw) || raw;
+  const [order, ledger, events]: [any, any[], any[]] = await Promise.all([
+    ChannelOrder.findById(orderKey).lean(),
+    ChannelStockLedger.find({ orderKey }).lean() as any,
+    findOrderEvents(orderKey),
+  ]);
+  const desired = order
+    ? mergeOrderDesired(
+        (order.sources || []).filter((s: any) => s.trusted).map((s: any) => s.lines || []),
+        order.manualLines || []
+      )
+    : new Map<string, OrderLine>();
+  const target = order?.cancelled ? new Map<string, OrderLine>() : desired;
+  const products = new Map<string, OrderStockHistory["products"][number]>();
+  for (const l of target.values()) {
+    products.set(l.productId, { productId: l.productId, productName: l.productName, target: l.quantity, cut: 0, pending: false });
+  }
+  for (const r of ledger) {
+    const p = products.get(r.productId) || { productId: r.productId, productName: r.productName || "", target: 0, cut: 0, pending: false };
+    p.cut = Number(r.quantity) || 0;
+    p.pending = !!r.pending;
+    if (!p.productName) p.productName = r.productName || "";
+    products.set(r.productId, p);
+  }
+
+  const entries: OrderStockHistory["entries"] = [];
+  for (const r of ledger) {
+    for (const h of r.history || []) {
+      const qty = (Number(h.to) || 0) - (Number(h.from) || 0);
+      entries.push({
+        at: h.at || null,
+        by: h.by || "",
+        action: qty > 0 ? "ledger cut" : qty < 0 ? "ledger return" : "ledger",
+        product: r.productName || r.productId,
+        qty,
+        note: h.note || `${h.from ?? 0} -> ${h.to ?? 0}`,
+      });
+    }
+  }
+  for (const h of order?.history || []) {
+    entries.push({ at: h.at || null, by: h.by || "", action: h.action || "order", product: "", qty: 0, note: h.note || "" });
+  }
+  const txs = (await InventoryTransaction.find({ orderId: { $in: reasonIdsForEvents(orderKey, events) } })
+    .select("inventoryItemName type quantity performedBy reason createdAt channelLedgerKey")
+    .sort({ createdAt: 1 })
+    .limit(500)
+    .lean()) as any[];
+  for (const t of txs) {
+    const q = Math.abs(Number(t.quantity) || 0);
+    const repair = String(t.channelLedgerKey || "").endsWith("|repair");
+    entries.push({
+      at: t.createdAt || null,
+      by: String(t.performedBy || ""),
+      action: `${repair ? "repair " : ""}${t.type === "addition" ? "stock return" : "stock cut"}`,
+      product: t.inventoryItemName || "",
+      qty: t.type === "addition" ? q : -q,
+      note: t.reason || "",
+    });
+  }
+  entries.sort((a, b) => new Date(a.at || 0).getTime() - new Date(b.at || 0).getTime());
+
+  return {
+    orderKey,
+    exists: !!order,
+    cancelled: !!order?.cancelled,
+    repairedAt: order?.repairedAt || null,
+    note: order?.note || "",
+    products: [...products.values()],
+    entries,
+    events: events
+      .map((e) => ({
+        _id: String(e._id),
+        status: e.status,
+        eventType: e.eventType,
+        subject: e.subject || "",
+        receivedAt: e.receivedAt || e.createdAt || null,
+        duplicateOf: e.duplicateOf ? String(e.duplicateOf) : null,
+      }))
+      .sort((a, b) => new Date(a.receivedAt || 0).getTime() - new Date(b.receivedAt || 0).getTime()),
+  };
+}
