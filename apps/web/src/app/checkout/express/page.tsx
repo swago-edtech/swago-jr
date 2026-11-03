@@ -20,6 +20,14 @@ import {
   cartUnitCount,
   isCodOverUnitLimit,
 } from "@/lib/cod-limits";
+import { captureAttributionFromUrl, getOrderAttributionPayload } from "@/lib/attribution";
+import {
+  trackBeginCheckout,
+  trackAddPaymentInfo,
+  trackPurchase,
+  trackPaymentFailed,
+  toGaItem,
+} from "@/lib/analytics";
 
 const INDIAN_STATES = [
   "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa", "Gujarat", "Haryana",
@@ -47,6 +55,8 @@ function ExpressCheckoutContent() {
   const utmMedium = searchParams.get("utm_medium") || "";
   const utmCampaign = searchParams.get("utm_campaign") || "";
   const { formatPrice, formatLocalPrice, getLocalPrice, toLocalAmount, country, isInternational, resolveIntlShipping, canShip, shippingRestrictionMessage } = useCountry();
+  const utmContent = searchParams.get("utm_content") || "";
+  const utmTerm = searchParams.get("utm_term") || "";
 
   // Page state
   const [loading, setLoading] = useState(true);
@@ -157,6 +167,14 @@ function ExpressCheckoutContent() {
     setTimeout(initWidget, 500);
   }, [scriptLoaded]);
 
+  // Capture UTMs from express URL into first/last-touch store
+  useEffect(() => {
+    captureAttributionFromUrl({
+      search: typeof window !== "undefined" ? window.location.search : "",
+      path: typeof window !== "undefined" ? window.location.pathname : "/checkout/express",
+    });
+  }, [utmSource, utmMedium, utmCampaign, utmContent, utmTerm]);
+
   // ========================================
   // INIT: Fetch product data on mount
   // ========================================
@@ -182,6 +200,13 @@ function ExpressCheckoutContent() {
           setCouponData(data.coupon);
           if (data.coupon.valid) setCouponCode(data.coupon.code);
         }
+
+        try {
+          const p = data.product;
+          if (p) {
+            trackBeginCheckout([toGaItem({ ...p, quantity: 1 })], p.price || 0, couponParam || undefined);
+          }
+        } catch { /* non-critical */ }
       } catch (err) { setError("Failed to load product. Please try again."); }
       finally { setLoading(false); }
     };
@@ -402,6 +427,26 @@ function ExpressCheckoutContent() {
     else { setOtpError(""); setMessage("Verifying & placing order..."); }
 
     try {
+      const stored = getOrderAttributionPayload();
+      const utm = {
+        source: utmSource || stored.utm_source || undefined,
+        medium: utmMedium || stored.utm_medium || undefined,
+        campaign: utmCampaign || stored.utm_campaign || undefined,
+        content: utmContent || stored.utm_content || undefined,
+        term: utmTerm || stored.utm_term || undefined,
+        firstTouch: stored.firstTouch,
+        lastTouch: stored.lastTouch,
+        windowDays: stored.windowDays,
+      };
+
+      try {
+        trackAddPaymentInfo(
+          cart.map((i) => toGaItem(i)),
+          finalTotal,
+          paymentMethod
+        );
+      } catch { /* non-critical */ }
+
       const payload = {
         items: cart.map(i => ({ productId: i._id, quantity: i.quantity })),
         customer: { phone, email, name: `${firstName} ${lastName}`.trim(), address, city, state, pincode },
@@ -411,7 +456,8 @@ function ExpressCheckoutContent() {
         exchangeRate: country?.exchangeRate || 1,
         ...(couponData?.valid && { couponCode: couponData.code }),
         ...(accessToken && { accessToken }),
-        utm: { source: utmSource || undefined, medium: utmMedium || undefined, campaign: utmCampaign || undefined },
+        utm,
+        attribution: stored,
       };
 
       const res = await fetch("/api/express/create-order", {
@@ -421,6 +467,15 @@ function ExpressCheckoutContent() {
       if (!data.success) throw new Error(data.error || data.details || "Order creation failed");
 
       if (paymentMethod === "cod") {
+        try {
+          trackPurchase({
+            transactionId: data.order.orderId,
+            value: finalTotal,
+            items: cart.map((i) => toGaItem(i)),
+            shipping: shippingFee,
+            coupon: couponData?.valid ? couponData.code : undefined,
+          });
+        } catch { /* non-critical */ }
         setShowOtpModal(false);
         window.dispatchEvent(new Event(USER_EVENTS.LOGIN));
         router.push(`/checkout/express/thank-you?orderId=${data.order.orderId}&method=cod`);
@@ -440,6 +495,15 @@ function ExpressCheckoutContent() {
             });
             const verifyData = await verifyRes.json();
             if (verifyData.success) {
+              try {
+                trackPurchase({
+                  transactionId: verifyData.orderId || data.order.orderId,
+                  value: finalTotal,
+                  items: cart.map((i) => toGaItem(i)),
+                  shipping: 0,
+                  coupon: couponData?.valid ? couponData.code : undefined,
+                });
+              } catch { /* non-critical */ }
               window.dispatchEvent(new Event(USER_EVENTS.LOGIN));
               router.push(`/checkout/express/thank-you?orderId=${verifyData.orderId}&method=razorpay`);
             } else { setMessage("Payment verification failed. Please contact support."); setProcessing(false); }
@@ -447,10 +511,16 @@ function ExpressCheckoutContent() {
         },
         prefill: { name: `${firstName} ${lastName}`, email, contact: phone },
         theme: { color: "#7c5dfa" },
-        modal: { ondismiss: () => { setMessage("Payment cancelled."); setProcessing(false); } },
+        modal: { ondismiss: () => {
+          try { trackPaymentFailed({ value: finalTotal, paymentType: "razorpay", reason: "dismissed" }); } catch { /* */ }
+          setMessage("Payment cancelled."); setProcessing(false);
+        } },
       };
       const rzp = new (window as any).Razorpay(options);
-      rzp.on("payment.failed", () => { setMessage("Payment failed. Please try again."); setProcessing(false); });
+      rzp.on("payment.failed", () => {
+        try { trackPaymentFailed({ value: finalTotal, paymentType: "razorpay", reason: "failed" }); } catch { /* */ }
+        setMessage("Payment failed. Please try again."); setProcessing(false);
+      });
       rzp.open();
     } catch (err: any) { 
         if (accessToken) setOtpError(err.message);

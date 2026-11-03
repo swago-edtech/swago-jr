@@ -1,10 +1,14 @@
 // apps/web/src/app/layout.tsx
 
 import "./globals.css";
-import { GoogleAnalytics } from '@next/third-parties/google';
 import { SharedProvider } from "@/context/SharedContext";
 import { CountryProvider } from "@/context/CountryContext";
 import { Poppins } from "next/font/google";
+import { Suspense } from "react";
+import LayoutUI from "@/components/LayoutUI";
+import AttributionCapture from "@/components/AttributionCapture";
+import ConsentBanner from "@/components/ConsentBanner";
+import AnalyticsScripts from "@/components/AnalyticsScripts";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -12,15 +16,10 @@ const poppins = Poppins({
   variable: "--font-poppins",
 });
 
-
-import { Suspense } from "react";
-import LayoutUI from "@/components/LayoutUI";
-
 export const metadata = {
   title: "Swago - Kids Learning Smart Box",
   description: "Fun and interactive learning smart box for kids.",
 };
-
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const isBlogOnly = process.env.BLOG_ONLY_MODE === "true";
@@ -31,15 +30,17 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <CountryProvider>
           <SharedProvider>
             <Suspense fallback={<div className="flex-grow" />}>
+              <AttributionCapture />
               <LayoutUI isBlogOnly={isBlogOnly}>
                 {children}
               </LayoutUI>
             </Suspense>
+            <ConsentBanner />
           </SharedProvider>
         </CountryProvider>
 
-        {/* Google Analytics Component */}
-        <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || ""} />
+        {/* GA4 + optional Clarity — only after analytics consent */}
+        <AnalyticsScripts />
       </body>
     </html>
   );

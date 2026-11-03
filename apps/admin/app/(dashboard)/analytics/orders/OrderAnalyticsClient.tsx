@@ -7,17 +7,19 @@ import OrderAnalyticsCharts from '@/components/OrderAnalyticsCharts';
 import AnalyticsCard from '@/components/AnalyticsCard';
 import { getOrderAnalytics, OrderAnalyticsData, DaySummary } from './actions';
 import { exportToCSV } from '@/lib/exportCsv';
-import { ShoppingBag, CreditCard, Truck, PackageCheck, XCircle, RotateCcw, IndianRupee, TrendingUp, Download } from 'lucide-react';
+import { ShoppingBag, CreditCard, Truck, PackageCheck, XCircle, RotateCcw, IndianRupee, TrendingUp, Download, Store } from 'lucide-react';
+import type { SalesChannel } from '@/lib/sales-query';
 
 export default function OrderAnalyticsClient() {
   const [dateRange, setDateRange] = useState<DateRange>(getDefaultDateRange());
+  const [channel, setChannel] = useState<SalesChannel>('all');
   const [data, setData] = useState<OrderAnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchData = useCallback(async (range: DateRange) => {
+  const fetchData = useCallback(async (range: DateRange, selectedChannel: SalesChannel) => {
     setLoading(true);
     try {
-      const result = await getOrderAnalytics(range.from, range.to);
+      const result = await getOrderAnalytics(range.from, range.to, selectedChannel);
       setData(result);
     } catch (error) {
       console.error('Failed to fetch order analytics:', error);
@@ -27,8 +29,8 @@ export default function OrderAnalyticsClient() {
   }, []);
 
   useEffect(() => {
-    fetchData(dateRange);
-  }, [dateRange, fetchData]);
+    fetchData(dateRange, channel);
+  }, [dateRange, channel, fetchData]);
 
   const handleDateChange = useCallback((range: DateRange) => {
     setDateRange(range);
@@ -40,9 +42,31 @@ export default function OrderAnalyticsClient() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Order Analytics</h1>
-          <p className="text-gray-500 text-sm mt-1">Track orders by date, payment method &amp; status</p>
+          <p className="text-gray-500 text-sm mt-1">
+            Website + Amazon sales — filter by channel
+          </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex bg-gray-100 p-1 rounded-lg">
+            {([
+              ['all', 'All'],
+              ['website', 'Website'],
+              ['amazon', 'Amazon'],
+            ] as const).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setChannel(value)}
+                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                  channel === value
+                    ? 'bg-white text-blue-600 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
           <button
             onClick={() => exportToCSV('order_analytics', data?.dailyData || [])}
             className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm"
@@ -71,35 +95,47 @@ export default function OrderAnalyticsClient() {
               icon={ShoppingBag}
               color="bg-blue-500"
             />
-            <AnalyticsCard
-              title="Paid Orders"
-              value={data.totals.paidOrders}
-              icon={CreditCard}
-              color="bg-green-500"
-            />
-            <AnalyticsCard
-              title="COD Orders"
-              value={data.totals.codOrders}
-              icon={Truck}
-              color="bg-amber-500"
-            />
-            <AnalyticsCard
-              title="Delivered"
-              value={data.totals.delivered}
-              icon={PackageCheck}
-              color="bg-emerald-600"
-            />
+            {(channel === 'all' || channel === 'amazon') && (
+              <AnalyticsCard
+                title="Amazon Orders"
+                value={data.totals.amazonOrders}
+                icon={Store}
+                color="bg-orange-500"
+              />
+            )}
+            {(channel === 'all' || channel === 'website') && (
+              <>
+                <AnalyticsCard
+                  title="Paid Orders"
+                  value={data.totals.paidOrders}
+                  icon={CreditCard}
+                  color="bg-green-500"
+                />
+                <AnalyticsCard
+                  title="COD Orders"
+                  value={data.totals.codOrders}
+                  icon={Truck}
+                  color="bg-amber-500"
+                />
+                <AnalyticsCard
+                  title="Delivered"
+                  value={data.totals.delivered}
+                  icon={PackageCheck}
+                  color="bg-emerald-600"
+                />
+                <AnalyticsCard
+                  title="RTO"
+                  value={data.totals.rto}
+                  icon={RotateCcw}
+                  color="bg-rose-500"
+                />
+              </>
+            )}
             <AnalyticsCard
               title="Cancelled"
               value={data.totals.cancelled}
               icon={XCircle}
               color="bg-red-500"
-            />
-            <AnalyticsCard
-              title="RTO"
-              value={data.totals.rto}
-              icon={RotateCcw}
-              color="bg-rose-500"
             />
             <AnalyticsCard
               title="Total Revenue"
@@ -108,9 +144,21 @@ export default function OrderAnalyticsClient() {
               color="bg-indigo-500"
               textColor="text-indigo-700"
             />
+            {(channel === 'all' || channel === 'amazon') && (
+              <AnalyticsCard
+                title="Amazon Revenue"
+                value={formatPrice(data.totals.amazonRevenue)}
+                icon={Store}
+                color="bg-amber-600"
+              />
+            )}
             <AnalyticsCard
               title="AOV"
-              value={data.totals.delivered > 0 ? formatPrice(data.totals.deliveredRevenue / data.totals.delivered) : '₹0'}
+              value={
+                data.totals.confirmedOrders > 0
+                  ? formatPrice(data.totals.totalRevenue / data.totals.confirmedOrders)
+                  : '₹0'
+              }
               icon={TrendingUp}
               color="bg-violet-500"
             />
@@ -279,7 +327,7 @@ export default function OrderAnalyticsClient() {
                                 </div>
 
                                 {/* Payment Split */}
-                                <div className="grid grid-cols-2 gap-2 mb-3">
+                                <div className="grid grid-cols-3 gap-2 mb-3">
                                   <div className="bg-white/5 rounded-lg p-2 border border-white/5 flex flex-col items-center">
                                     <p className="text-[#94a3b8] text-[9px] font-bold uppercase tracking-wider mb-0.5">Prepaid</p>
                                     <p className="font-black text-[#60a5fa] text-[13px]">{day.paidOrders}</p>
@@ -287,6 +335,10 @@ export default function OrderAnalyticsClient() {
                                   <div className="bg-white/5 rounded-lg p-2 border border-white/5 flex flex-col items-center">
                                     <p className="text-[#94a3b8] text-[9px] font-bold uppercase tracking-wider mb-0.5">COD</p>
                                     <p className="font-black text-[#fbbf24] text-[13px]">{day.codOrders}</p>
+                                  </div>
+                                  <div className="bg-white/5 rounded-lg p-2 border border-white/5 flex flex-col items-center">
+                                    <p className="text-[#94a3b8] text-[9px] font-bold uppercase tracking-wider mb-0.5">Amazon</p>
+                                    <p className="font-black text-[#fb923c] text-[13px]">{day.amazonOrders || 0}</p>
                                   </div>
                                 </div>
 

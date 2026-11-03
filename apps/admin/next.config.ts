@@ -9,9 +9,6 @@ const nextConfig: NextConfig = {
     optimizePackageImports: ["lucide-react", "react-icons", "recharts", "date-fns"],
   },
 
-  // Standalone output for Docker — bundles only the files needed at runtime
-  output: 'standalone',
-
   // Required for monorepo: trace dependencies from the workspace root
   outputFileTracingRoot: path.join(__dirname, '../..'),
 

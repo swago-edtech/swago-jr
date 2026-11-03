@@ -38,6 +38,7 @@ import {
   SWAGO_CONTACT,
   cartUnitCount,
 } from "@/lib/cod-limits";
+import { buildOrderAttributionFields, buildUserAcquisitionFields } from "@/lib/order-attribution";
 
 // ✅ JWT secret for session creation
 const secret = new TextEncoder().encode(process.env.JWT_SECRET);
@@ -93,7 +94,31 @@ const expressOrderSchema = z.object({
     source: z.string().optional(),
     medium: z.string().optional(),
     campaign: z.string().optional(),
+    content: z.string().optional(),
+    term: z.string().optional(),
+    firstTouch: z.object({
+      source: z.string().optional(),
+      medium: z.string().optional(),
+      campaign: z.string().optional(),
+      content: z.string().optional(),
+      term: z.string().optional(),
+      landingPath: z.string().optional(),
+      referrer: z.string().optional(),
+      capturedAt: z.string().optional(),
+    }).optional(),
+    lastTouch: z.object({
+      source: z.string().optional(),
+      medium: z.string().optional(),
+      campaign: z.string().optional(),
+      content: z.string().optional(),
+      term: z.string().optional(),
+      landingPath: z.string().optional(),
+      referrer: z.string().optional(),
+      capturedAt: z.string().optional(),
+    }).optional(),
+    windowDays: z.number().optional(),
   }).optional(),
+  attribution: z.any().optional(),
 });
 
 /**
@@ -127,7 +152,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const { items, customer, couponCode, paymentMethod, country, currency, exchangeRate, utm, otp, accessToken } = validation.data;
+    const { items, customer, couponCode, paymentMethod, country, currency, exchangeRate, utm, otp, accessToken, attribution } = validation.data;
     const formattedPhone = formatPhoneForStorage(customer.phone);
 
     const countryCode = normalizeCountryCode(country);
@@ -236,14 +261,19 @@ export async function POST(req: Request) {
     let user = await User.findOne({ phone: formattedPhone });
     let isNewUser = false;
 
-    if (!user) {
+if (!user) {
       // Create Shadow Account
+      const acquisitionFields = buildUserAcquisitionFields(
+        attribution || utm,
+        "express"
+      );
       user = await User.create({
         phone: formattedPhone,
         email: customer.email,
         name: customer.name,
         authMethod: "phone",
         address: customer.address,
+        ...acquisitionFields,
       });
       isNewUser = true;
       console.log("✅ [Express] Shadow Account created:", formattedPhone);
@@ -428,6 +458,15 @@ export async function POST(req: Request) {
     const orderId = await generateOrderId();
     console.log("✅ [Express] Generated Order ID:", orderId);
 
+    const attributionFields = buildOrderAttributionFields(
+      attribution || {
+        ...utm,
+        firstTouch: utm?.firstTouch,
+        lastTouch: utm?.lastTouch,
+        windowDays: utm?.windowDays,
+      }
+    );
+
     const newOrder = await Order.create({
       orderId,
       userId: new mongoose.Types.ObjectId(user._id),
@@ -436,7 +475,7 @@ export async function POST(req: Request) {
       email: customer.email,
       name: customer.name,
       age: customer.age || "",
-      referralSource: utm?.source || "express_checkout",
+      referralSource: utm?.source || attributionFields.utm_source || "express_checkout",
       address: customer.address,
       city: customer.city,
       state: customer.state,
@@ -458,10 +497,7 @@ export async function POST(req: Request) {
       ...(intlCountry?.currencySymbol && { currencySymbol: intlCountry.currencySymbol }),
       stockReservedAt: new Date(),
       createdVia: "express",
-      // ✅ UTM Tracking
-      utm_source: utm?.source || null,
-      utm_medium: utm?.medium || null,
-      utm_campaign: utm?.campaign || null,
+      ...attributionFields,
       ...(validatedCoupon && {
         couponCode: validatedCoupon.code,
         couponDetails: validatedCoupon,
@@ -538,8 +574,9 @@ export async function POST(req: Request) {
           email: customer.email,
           name: customer.name,
           source: "express_checkout",
-          utm_source: utm?.source || "",
-          utm_campaign: utm?.campaign || "",
+          utm_source: attributionFields.utm_source || utm?.source || "",
+          utm_campaign: attributionFields.utm_campaign || utm?.campaign || "",
+          utm_content: attributionFields.utm_content || utm?.content || "",
         },
       };
 

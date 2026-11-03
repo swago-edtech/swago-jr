@@ -35,8 +35,10 @@ export { default as ChannelEmailConfig } from './models/ChannelEmailConfig';
 export { default as ChannelOrderEvent } from './models/ChannelOrderEvent';
 export { default as ChannelApplyLock } from './models/ChannelApplyLock';
 export { default as ChannelOrder } from './models/ChannelOrder';
+export { default as ChannelStockOrder } from './models/ChannelStockOrder';
 export { default as ChannelStockLedger } from './models/ChannelStockLedger';
 export { default as HowToPlay } from './models/HowToPlay';
+export { default as InfluencerCreator } from './models/InfluencerCreator';
 export * from './services/low-stock-notifier';
 
 // Export database connection
@@ -45,6 +47,7 @@ export * from './services/inventory-sync';
 export * from './services/inventory-order';
 export * from './services/channel-inventory';
 export * from './services/channel-email-sync';
+export * from './services/channel-order';
 export * from './services/channel-email-parse';
 export * from './services/channel-reconcile';
 export * from './services/channel-ledger';

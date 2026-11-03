@@ -5,7 +5,7 @@
  *    Desired qty per product = MAX over emails (a duplicate / re-sent email never adds stock cut).
  *  - ChannelStockLedger (one per order + product, unique _id) holds units already cut.
  *  - Stock moved = desired - ledger. Running it twice moves nothing (idempotent).
- *  - Only one sync per order at a time (ChannelOrder.syncLockAt). Every move is first written as
+ *  - Only one sync per order at a time (ChannelStockOrder.syncLockAt). Every move is first written as
  *    `pending` (op id + exact component lines) on the ledger row; each component move is exactly-once
  *    (token stored atomically with the $inc on InventoryItem.channelOps). A crashed sync is finished
  *    on the next sync by replaying the same op - never cut twice.
@@ -15,7 +15,7 @@
 import mongoose from "mongoose";
 import crypto from "node:crypto";
 import connectDB from "../connection";
-import ChannelOrder from "../models/ChannelOrder";
+import ChannelStockOrder from "../models/ChannelStockOrder";
 import ChannelStockLedger from "../models/ChannelStockLedger";
 import ChannelOrderEvent from "../models/ChannelOrderEvent";
 import InventoryItem from "../models/InventoryItem";
@@ -299,7 +299,7 @@ function newOpId() {
 
 async function ensureChannelOrder(orderKey: string, externalOrderId = "") {
   try {
-    await ChannelOrder.updateOne(
+    await ChannelStockOrder.updateOne(
       { _id: orderKey },
       { $setOnInsert: { _id: orderKey, externalOrderId: externalOrderId || orderKey } },
       { upsert: true }
@@ -318,8 +318,8 @@ export async function recordChannelOrderSource(
   await connectDB();
   const orderKey = channelOrderKey(event);
   await ensureChannelOrder(orderKey, normalizeChannelOrderId(event.externalOrderId));
-  await ChannelOrder.updateOne({ _id: orderKey }, { $pull: { sources: { eventId: event._id } } });
-  await ChannelOrder.updateOne(
+  await ChannelStockOrder.updateOne({ _id: orderKey }, { $pull: { sources: { eventId: event._id } } });
+  await ChannelStockOrder.updateOne(
     { _id: orderKey },
     {
       $push: {
@@ -340,20 +340,20 @@ export async function recordChannelOrderSource(
 
 export async function setChannelOrderManualLines(orderKey: string, lines: OrderLine[]) {
   await connectDB();
-  const order: any = await ChannelOrder.findById(orderKey).lean();
+  const order: any = await ChannelStockOrder.findById(orderKey).lean();
   const merged = mergeOrderDesired([(order?.manualLines || []) as OrderLine[]], lines);
-  await ChannelOrder.updateOne({ _id: orderKey }, { $set: { manualLines: [...merged.values()] } });
+  await ChannelStockOrder.updateOne({ _id: orderKey }, { $set: { manualLines: [...merged.values()] } });
 }
 
 export async function setChannelOrderCancelled(orderKey: string, cancelled: boolean) {
   await connectDB();
   await ensureChannelOrder(orderKey);
-  await ChannelOrder.updateOne({ _id: orderKey }, { $set: { cancelled } });
+  await ChannelStockOrder.updateOne({ _id: orderKey }, { $set: { cancelled } });
 }
 
 async function claimOrderLock(orderKey: string) {
   const opId = newOpId();
-  const order = await ChannelOrder.findOneAndUpdate(
+  const order = await ChannelStockOrder.findOneAndUpdate(
     {
       _id: orderKey,
       $or: [{ syncLockAt: null }, { syncLockAt: { $exists: false } }, { syncLockAt: { $lt: new Date(Date.now() - LOCK_STALE_MS) } }],
@@ -365,7 +365,7 @@ async function claimOrderLock(orderKey: string) {
 }
 
 async function releaseOrderLock(orderKey: string, opId: string, set: Record<string, unknown> = {}) {
-  await ChannelOrder.updateOne({ _id: orderKey, syncOpId: opId }, { $set: { syncLockAt: null, ...set } });
+  await ChannelStockOrder.updateOne({ _id: orderKey, syncOpId: opId }, { $set: { syncLockAt: null, ...set } });
 }
 
 async function activeBoms(productIds: string[]): Promise<Record<string, BomComponent[]>> {
@@ -548,7 +548,7 @@ export async function syncChannelOrderStock(orderKey: string, opts: { by?: strin
       await repairLocked(orderKey, row, by, affected);
       result.restored.push(...row.toRestore.map((c) => ({ productId: c.inventoryItemId, productName: c.inventoryItemName, quantity: c.quantity })));
       result.note = row.toRestore.length ? "Old order cancelled: returned exactly what was cut" : "Old order adopted into the ledger (no stock change)";
-      current = await ChannelOrder.findById(orderKey).lean();
+      current = await ChannelStockOrder.findById(orderKey).lean();
       ledgers.splice(0, ledgers.length, ...((await ChannelStockLedger.find({ orderKey }).lean()) as any[]));
     }
 
@@ -647,7 +647,7 @@ export async function buildRowForOrder(
   reparse?: (event: any) => Promise<OrderLine[] | null>
 ): Promise<OrderRepairRow> {
   const events = await findOrderEvents(orderKey);
-  const order: any = await ChannelOrder.findById(orderKey).lean();
+  const order: any = await ChannelStockOrder.findById(orderKey).lean();
   const inputs: RepairEventInput[] = [];
   for (const e of events) {
     let reparsed: OrderLine[] | null = null;
@@ -737,7 +737,7 @@ export async function repairChannelOrders(opts: {
  * run again replays the same ops (no double move) and only does what is still missing.
  */
 async function repairLocked(orderKey: string, row: OrderRepairRow, by: string, affected: Set<string>) {
-  const order: any = await ChannelOrder.findById(orderKey).select("repairGen").lean();
+  const order: any = await ChannelStockOrder.findById(orderKey).select("repairGen").lean();
   const gen = Number(order?.repairGen) || 0;
   const opId = `repair:${orderKey}:${gen}`;
   const reasonId = ledgerReasonId(orderKey);
@@ -777,7 +777,7 @@ async function repairLocked(orderKey: string, row: OrderRepairRow, by: string, a
   const sources = events
     .filter((e) => e.eventType === "order" && e.status !== "ignored")
     .map((e) => ({ eventId: e._id, gmailMessageId: e.gmailMessageId || "", lines: [...sumLines(e.matchedItems || []).values()], trusted: true, by, at: new Date() }));
-  await ChannelOrder.updateOne(
+  await ChannelStockOrder.updateOne(
     { _id: orderKey },
     {
       $set: { sources, cancelled: row.cancelled, manualLines: row.desired, repairedAt: new Date(), needsRepair: false },
@@ -865,7 +865,7 @@ export async function getOrderStockHistory(orderIdOrKey: string): Promise<OrderS
   const raw = String(orderIdOrKey || "").trim();
   const orderKey = raw.startsWith("MSG-") ? raw : normalizeChannelOrderId(raw) || raw;
   const [order, ledger, events]: [any, any[], any[]] = await Promise.all([
-    ChannelOrder.findById(orderKey).lean(),
+    ChannelStockOrder.findById(orderKey).lean(),
     ChannelStockLedger.find({ orderKey }).lean() as any,
     findOrderEvents(orderKey),
   ]);

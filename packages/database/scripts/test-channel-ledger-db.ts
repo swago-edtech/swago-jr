@@ -39,7 +39,7 @@ async function main() {
   const InventoryTransaction = (await import("../src/models/InventoryTransaction")).default as any;
   const ProductConfig = (await import("../src/models/ProductConfig")).default as any;
   const ChannelOrderEvent = (await import("../src/models/ChannelOrderEvent")).default as any;
-  const ChannelOrder = (await import("../src/models/ChannelOrder")).default as any;
+  const ChannelOrder = (await import("../src/models/ChannelStockOrder")).default as any;
   const ChannelStockLedger = (await import("../src/models/ChannelStockLedger")).default as any;
   const connectDB = (await import("../src/connection")).default;
   await connectDB();

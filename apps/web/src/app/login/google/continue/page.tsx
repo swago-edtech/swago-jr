@@ -4,6 +4,7 @@ import { Suspense, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSharedContext, USER_EVENTS } from "@/context/SharedContext";
 import { GOOGLE_OAUTH_CART_KEY } from "@/components/GoogleSignInButton";
+import { takeStashedOAuthAttribution } from "@/lib/auth-attribution";
 
 const STORAGE_KEY = "swago_cart";
 
@@ -48,10 +49,11 @@ function ContinueGoogleLogin() {
         .filter((item) => item.productId && item.quantity > 0);
 
       try {
+const attribution = takeStashedOAuthAttribution();
         const res = await fetch("/api/auth/google/complete", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ localCart }),
+          body: JSON.stringify({ localCart, attribution }),
         });
         const data = await res.json();
         if (res.ok && data.success) {

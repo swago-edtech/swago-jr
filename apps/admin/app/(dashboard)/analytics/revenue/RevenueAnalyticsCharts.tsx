@@ -94,6 +94,12 @@ export default function RevenueAnalyticsCharts({ dailyTrends, data }: RevenueAna
               <Legend />
               <Area type="monotone" dataKey="gross" name="Gross Revenue" stroke="#6366f1" strokeWidth={2} fillOpacity={1} fill="url(#colorGross)" />
               <Area type="monotone" dataKey="net" name="Net Revenue" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#colorNet)" />
+              {dailyTrends.some((d) => (d.website || 0) > 0) && (
+                <Area type="monotone" dataKey="website" name="Website" stroke="#3b82f6" strokeWidth={1.5} fillOpacity={0} />
+              )}
+              {dailyTrends.some((d) => (d.amazon || 0) > 0) && (
+                <Area type="monotone" dataKey="amazon" name="Amazon" stroke="#f97316" strokeWidth={1.5} fillOpacity={0} />
+              )}
             </AreaChart>
           </ResponsiveContainer>
         </div>

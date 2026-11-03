@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { trackOutboundClick, trackCtaClick } from "@/lib/analytics";
 
 export default function WhatsAppButton() {
   const [isHovered, setIsHovered] = useState(false);
@@ -11,6 +12,15 @@ export default function WhatsAppButton() {
    
   const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(defaultMessage)}`;
 
+  const handleClick = () => {
+    try {
+      trackOutboundClick(whatsappUrl, "whatsapp_fab");
+      trackCtaClick("whatsapp_fab");
+    } catch {
+      // non-critical
+    }
+  };
+
   return (
     <a
       href={whatsappUrl}
@@ -19,6 +29,7 @@ export default function WhatsAppButton() {
       className="fixed bottom-6 right-6 z-50 group"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      onClick={handleClick}
       aria-label="Contact us on WhatsApp"
     >
       {/* Pulsing ring effect */}

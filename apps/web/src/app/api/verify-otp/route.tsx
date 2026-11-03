@@ -117,6 +117,8 @@ const directOtpSchema = z.object({
   isDemo: z.boolean().optional(),
 });
 
+const attributionSchema = z.any().optional();
+
 const widgetSchema = z.object({
   accessToken: z.string().min(1, { message: "Access token is required" }),
   identifier: z.string().min(1, { message: "Phone or email is required" }),
@@ -131,6 +133,7 @@ const widgetSchema = z.object({
     image: z.string(),
     addedAt: z.string().optional(),
   })).optional(),
+  attribution: attributionSchema,
 });
 
 const secret = new TextEncoder().encode(process.env.JWT_SECRET);
@@ -196,7 +199,7 @@ export async function POST(req: Request) {
         );
       }
 
-      const { accessToken, identifier, authMethod, name, email: secondaryEmail, localCart } = validation.data;
+const { accessToken, identifier, authMethod, name, email: secondaryEmail, localCart, attribution } = validation.data;
 
       console.log(`🔐 Widget flow: Verifying ${authMethod} for`, identifier);
 
@@ -228,13 +231,16 @@ export async function POST(req: Request) {
         const formattedPhone = formatPhoneForStorage(identifier);
         user = await User.findOne({ phone: formattedPhone });
 
-        if (!user) {
+if (!user) {
+          const { buildUserAcquisitionFields } = await import("@/lib/order-attribution");
+          const acquisitionFields = buildUserAcquisitionFields(attribution, "otp_phone");
           user = await User.create({
             phone: formattedPhone,
             authMethod: 'phone',
             cart: localCartItems,
             ...(name && { name }),
-            ...(secondaryEmail && { email: secondaryEmail })
+            ...(secondaryEmail && { email: secondaryEmail }),
+            ...acquisitionFields,
           });
           isNewUser = true;
           console.log("✅ New phone user created:", formattedPhone, "Cart:", localCartItems.length, "items");
@@ -247,11 +253,14 @@ export async function POST(req: Request) {
         user = await User.findOne({ email: identifier });
 
         if (!user) {
+          const { buildUserAcquisitionFields } = await import("@/lib/order-attribution");
+          const acquisitionFields = buildUserAcquisitionFields(attribution, "otp_email");
           user = await User.create({
             email: identifier,
             authMethod: 'email',
             cart: localCartItems,
-            ...(name && { name })
+            ...(name && { name }),
+            ...acquisitionFields,
           });
           isNewUser = true;
           console.log("✅ New email user created:", identifier, "Cart:", localCartItems.length, "items");

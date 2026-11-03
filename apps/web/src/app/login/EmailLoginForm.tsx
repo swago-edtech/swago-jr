@@ -5,6 +5,7 @@ import { useSharedContext } from "@/context/SharedContext";
 import { USER_EVENTS } from "@/context/SharedContext";
 import Script from "next/script";
 import GoogleSignInButton, { GoogleAuthDivider } from "@/components/GoogleSignInButton";
+import { getAuthAttributionPayload } from "@/lib/auth-attribution";
 
 type AuthMode = "signup" | "signin";
 
@@ -304,11 +305,12 @@ export default function EmailLoginForm() {
           const res = await fetch("/api/verify-otp", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
+body: JSON.stringify({
               accessToken,
               identifier: email,
               authMethod: "email",
               localCart, // ✅ Now includes price, name, image
+              attribution: getAuthAttributionPayload(),
               ...(authMode === "signup" && { name }),
             }),
           });

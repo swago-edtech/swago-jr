@@ -1,15 +1,17 @@
 'use server';
 
-import { connectDB, Order } from '@swago/database';
+import { fetchUnifiedSales, SalesChannel } from '@/lib/sales-query';
 
 export interface DaySummary {
   date: string;
   totalOrders: number;
   paidOrders: number;
   codOrders: number;
+  amazonOrders: number;
   cancelled: number;
   shipped: number;
   delivered: number;
+  confirmed: number;
   rto: number;
   revenue: number;
   aov: number;
@@ -35,39 +37,35 @@ export interface OrderAnalyticsData {
   dayOfWeekDistribution: DayOfWeekSummary[];
   totals: {
     totalOrders: number;
+    confirmedOrders: number;
     paidOrders: number;
     codOrders: number;
+    amazonOrders: number;
     delivered: number;
     cancelled: number;
     rto: number;
     shipped: number;
+    confirmed: number;
     totalRevenue: number;
     paidRevenue: number;
     codRevenue: number;
+    amazonRevenue: number;
     deliveredRevenue: number;
   };
+  channel: SalesChannel;
 }
 
-export async function getOrderAnalytics(from: string, to: string): Promise<OrderAnalyticsData> {
-  await connectDB();
-
+export async function getOrderAnalytics(
+  from: string,
+  to: string,
+  channel: SalesChannel = 'all'
+): Promise<OrderAnalyticsData> {
   const fromDate = new Date(`${from}T00:00:00+05:30`);
   const toDate = new Date(`${to}T23:59:59.999+05:30`);
 
-  // Exclude non-business orders (Abandoned/Failed/Pending) from all analytics
-  const EXCLUDED_STATUSES = ['Abandoned', 'Failed', 'Pending'];
+  const orders = await fetchUnifiedSales(fromDate, toDate, channel);
 
-  const orders = await Order.find({
-    createdAt: { $gte: fromDate, $lte: toDate },
-    status: { $nin: EXCLUDED_STATUSES },
-  })
-    .select('total status paymentMethod createdAt')
-    .lean();
-
-  // ── Build day-wise map ──
   const dayMap: Record<string, DaySummary> = {};
-
-  // Pre-fill all days in range
   const current = new Date(fromDate);
   while (current <= toDate) {
     const key = current.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
@@ -76,9 +74,11 @@ export async function getOrderAnalytics(from: string, to: string): Promise<Order
       totalOrders: 0,
       paidOrders: 0,
       codOrders: 0,
+      amazonOrders: 0,
       cancelled: 0,
       shipped: 0,
       delivered: 0,
+      confirmed: 0,
       rto: 0,
       revenue: 0,
       aov: 0,
@@ -88,24 +88,26 @@ export async function getOrderAnalytics(from: string, to: string): Promise<Order
     current.setDate(current.getDate() + 1);
   }
 
-  // ── Totals accumulators ──
   const totals = {
     totalOrders: 0,
+    confirmedOrders: 0,
     paidOrders: 0,
     codOrders: 0,
+    amazonOrders: 0,
     delivered: 0,
     cancelled: 0,
     rto: 0,
     shipped: 0,
+    confirmed: 0,
     totalRevenue: 0,
     paidRevenue: 0,
     codRevenue: 0,
+    amazonRevenue: 0,
     deliveredRevenue: 0,
   };
 
-  const confirmedStatuses = ['Paid', 'Packed', 'Shipped', 'Out for Delivery', 'Delivered'];
+  const websiteConfirmed = ['Paid', 'Packed', 'Shipped', 'Out for Delivery', 'Delivered', 'Confirmed'];
 
-  // ── Advanced Aggregations ──
   const hours = Array.from({ length: 24 }, (_, i) => ({
     hour: `${i.toString().padStart(2, '0')}:00`,
     orders: 0,
@@ -122,7 +124,6 @@ export async function getOrderAnalytics(from: string, to: string): Promise<Order
     { day: 'Sat', orders: 0, revenue: 0 },
   ];
 
-  // ── Aggregate ──
   for (const order of orders) {
     const orderDate = new Date(order.createdAt);
     const dayKey = orderDate.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
@@ -130,37 +131,46 @@ export async function getOrderAnalytics(from: string, to: string): Promise<Order
     if (!day) continue;
 
     const total = order.total || 0;
+    const isAmazon = order.channel === 'amazon';
     const isPaid = order.paymentMethod === 'razorpay';
     const isCod = order.paymentMethod === 'cod';
-    const isConfirmed = confirmedStatuses.includes(order.status);
+    const isConfirmed = isAmazon
+      ? order.status !== 'Cancelled'
+      : websiteConfirmed.includes(order.status);
 
     day.totalOrders++;
     totals.totalOrders++;
 
+    if (isAmazon) {
+      day.amazonOrders++;
+      totals.amazonOrders++;
+      if (isConfirmed) totals.amazonRevenue += total;
+    }
     if (isPaid) {
       day.paidOrders++;
       totals.paidOrders++;
-      if (isConfirmed) {
-        totals.paidRevenue += total;
-      }
+      if (isConfirmed) totals.paidRevenue += total;
     }
     if (isCod) {
       day.codOrders++;
       totals.codOrders++;
-      if (isConfirmed) {
-        totals.codRevenue += total;
-      }
+      if (isConfirmed) totals.codRevenue += total;
     }
 
     if (isConfirmed) {
       day.revenue += total;
       totals.totalRevenue += total;
+      totals.confirmedOrders++;
     }
 
     switch (order.status) {
       case 'Cancelled':
         day.cancelled++;
         totals.cancelled++;
+        break;
+      case 'Confirmed':
+        day.confirmed++;
+        totals.confirmed++;
         break;
       case 'Shipped':
       case 'Out for Delivery':
@@ -177,35 +187,42 @@ export async function getOrderAnalytics(from: string, to: string): Promise<Order
         day.rto++;
         totals.rto++;
         break;
+      case 'Paid':
+        // Count as in-progress website order for status pie via shipped bucket? Keep separate — Paid is common.
+        // Include in shipped/in-progress for visibility when not delivered yet.
+        day.shipped++;
+        totals.shipped++;
+        break;
     }
 
-    // Populate advanced aggregations
     const hour = orderDate.getHours();
     const dayOfWeek = orderDate.getDay();
-
     hours[hour].orders++;
     daysOfWeek[dayOfWeek].orders++;
-
     if (isConfirmed) {
       hours[hour].revenue += total;
       daysOfWeek[dayOfWeek].revenue += total;
     }
   }
 
-  // Calculate Rates & AOV for Daily Data
-  const dailyData = Object.values(dayMap).map(day => {
+  const dailyData = Object.values(dayMap).map((day) => {
+    const confirmedDayOrders = Math.max(0, day.totalOrders - day.cancelled - day.rto);
     return {
       ...day,
-      aov: day.totalOrders > 0 ? Math.round(day.revenue / day.totalOrders) : 0,
+      aov: confirmedDayOrders > 0 ? Math.round(day.revenue / confirmedDayOrders) : 0,
       rtoRate: day.totalOrders > 0 ? Number(((day.rto / day.totalOrders) * 100).toFixed(1)) : 0,
-      cancellationRate: day.totalOrders > 0 ? Number(((day.cancelled / day.totalOrders) * 100).toFixed(1)) : 0,
+      cancellationRate:
+        day.totalOrders > 0 ? Number(((day.cancelled / day.totalOrders) * 100).toFixed(1)) : 0,
     };
   });
 
-  return JSON.parse(JSON.stringify({ 
-    dailyData, 
-    hourlyDistribution: hours,
-    dayOfWeekDistribution: daysOfWeek,
-    totals 
-  }));
+  return JSON.parse(
+    JSON.stringify({
+      dailyData,
+      hourlyDistribution: hours,
+      dayOfWeekDistribution: daysOfWeek,
+      totals,
+      channel,
+    })
+  );
 }

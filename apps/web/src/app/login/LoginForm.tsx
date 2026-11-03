@@ -9,6 +9,7 @@ import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { HiLockClosed } from "react-icons/hi";
 import GoogleSignInButton, { GoogleAuthDivider } from "@/components/GoogleSignInButton";
+import { getAuthAttributionPayload } from "@/lib/auth-attribution";
 
 type AuthMode = "signup" | "signin";
 
@@ -491,6 +492,7 @@ export default function LoginForm() {
             identifier: verifyIdentifier,
             authMethod: verifyAuthMethod,
             localCart,
+            attribution: getAuthAttributionPayload(),
           };
 
           if (authMode === "signup") {

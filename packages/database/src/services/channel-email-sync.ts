@@ -13,6 +13,10 @@ import {
   ChannelPartialDeductionError,
 } from "./channel-inventory";
 import {
+  upsertChannelOrderFromEvent,
+  cancelChannelOrderFromExternalId,
+} from "./channel-order";
+import {
   type ExtractedOrder,
   type ParsedItem,
   type CountCheck,
@@ -491,7 +495,15 @@ async function applyMatchedOrder(event: any, _reasonId: string, opts: { by?: str
       error: "Same order already cut (duplicate email) - nothing cut again",
     };
   }
-  return ChannelOrderEvent.findByIdAndUpdate(claimed._id, { $set: set }, { new: true });
+  const saved = await ChannelOrderEvent.findByIdAndUpdate(claimed._id, { $set: set }, { new: true });
+  if (saved && (saved.status === "applied" || set.status === "applied")) {
+    try {
+      await upsertChannelOrderFromEvent(saved);
+    } catch (err: any) {
+      console.error("Failed to upsert channel order after inventory apply:", err);
+    }
+  }
+  return saved;
 }
 
 /** Products of this order whose stock was already returned (cancelled earlier). */
@@ -646,6 +658,14 @@ async function applyCancellation(event: any, _reasonId: string) {
     event.error = "Nothing to return for this order (already returned, or never cut)";
   }
   await event.save();
+  try {
+    await cancelChannelOrderFromExternalId(event.externalOrderId);
+  } catch (err: any) {
+    const message = err?.message || String(err);
+    console.error("Failed to cancel channel order after inventory restore:", err);
+    event.error = `Inventory restored; order cancel sync failed: ${message}`;
+    await event.save();
+  }
 }
 export type ChannelEmailSyncResult = {
   processed: number;

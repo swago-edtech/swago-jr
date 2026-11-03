@@ -23,6 +23,7 @@ interface DaySummary {
   totalOrders: number;
   paidOrders: number;
   codOrders: number;
+  amazonOrders?: number;
   cancelled: number;
   shipped: number;
   delivered: number;
@@ -53,10 +54,13 @@ interface OrderAnalyticsChartsProps {
     totalOrders: number;
     paidOrders: number;
     codOrders: number;
+    amazonOrders?: number;
     delivered: number;
     cancelled: number;
     rto: number;
     shipped: number;
+    confirmed?: number;
+    amazonRevenue?: number;
   };
 }
 
@@ -91,21 +95,24 @@ const STATUS_COLORS = {
 const PAYMENT_COLORS = {
   paid: '#3b82f6',
   cod: '#f59e0b',
+  amazon: '#f97316',
 };
 
 export default function OrderAnalyticsCharts({ dailyData, hourlyDistribution, dayOfWeekDistribution, totals }: OrderAnalyticsChartsProps) {
-  // ── Paid vs COD Pie Data ──
+  // ── Channel / payment split ──
   const paymentSplitData = [
     { name: 'Prepaid', value: totals.paidOrders, color: PAYMENT_COLORS.paid },
     { name: 'COD', value: totals.codOrders, color: PAYMENT_COLORS.cod },
+    { name: 'Amazon', value: totals.amazonOrders || 0, color: PAYMENT_COLORS.amazon },
   ].filter(d => d.value > 0);
 
   // ── Status Distribution Pie Data ──
   const statusData = [
     { name: 'Delivered', value: totals.delivered, color: STATUS_COLORS.delivered },
+    { name: 'Confirmed', value: totals.confirmed || 0, color: '#f97316' },
     { name: 'Cancelled', value: totals.cancelled, color: STATUS_COLORS.cancelled },
     { name: 'RTO', value: totals.rto, color: STATUS_COLORS.rto },
-    { name: 'Shipped', value: totals.shipped, color: STATUS_COLORS.shipped },
+    { name: 'In progress', value: totals.shipped, color: STATUS_COLORS.shipped },
   ].filter(d => d.value > 0);
 
   // ── Monthly aggregation (for month-wise chart) ──
@@ -152,6 +159,7 @@ export default function OrderAnalyticsCharts({ dailyData, hourlyDistribution, da
                 const labels: Record<string, string> = {
                   paidOrders: 'Prepaid',
                   codOrders: 'COD',
+                  amazonOrders: 'Amazon',
                 };
                 return [value ?? 0, labels[name ?? ''] || name || ''];
               }}
@@ -161,12 +169,14 @@ export default function OrderAnalyticsCharts({ dailyData, hourlyDistribution, da
                 const labels: Record<string, string> = {
                   paidOrders: 'Prepaid',
                   codOrders: 'COD',
+                  amazonOrders: 'Amazon',
                 };
                 return labels[value] || value;
               }}
             />
             <Bar dataKey="paidOrders" stackId="orders" fill={PAYMENT_COLORS.paid} radius={[0, 0, 0, 0]} />
-            <Bar dataKey="codOrders" stackId="orders" fill={PAYMENT_COLORS.cod} radius={[4, 4, 0, 0]} />
+            <Bar dataKey="codOrders" stackId="orders" fill={PAYMENT_COLORS.cod} radius={[0, 0, 0, 0]} />
+            <Bar dataKey="amazonOrders" stackId="orders" fill={PAYMENT_COLORS.amazon} radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -213,9 +223,9 @@ export default function OrderAnalyticsCharts({ dailyData, hourlyDistribution, da
         </ResponsiveContainer>
       </div>
 
-      {/* Paid vs COD Split */}
+      {/* Channel / payment split */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <h3 className="text-base font-semibold text-gray-900 mb-4">Payment Method Split</h3>
+        <h3 className="text-base font-semibold text-gray-900 mb-4">Channel & Payment Split</h3>
         {paymentSplitData.length > 0 ? (
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
@@ -253,6 +263,10 @@ export default function OrderAnalyticsCharts({ dailyData, hourlyDistribution, da
           <div className="text-center">
             <div className="text-2xl font-bold text-amber-500">{totals.codOrders}</div>
             <div className="text-xs text-gray-500">COD</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-orange-500">{totals.amazonOrders || 0}</div>
+            <div className="text-xs text-gray-500">Amazon</div>
           </div>
         </div>
       </div>

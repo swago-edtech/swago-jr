@@ -5,7 +5,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { LayoutDashboard, ShoppingBag, Package, Users, MessageSquare, X, Menu, HelpCircle, TrendingUp, Award, ChevronDown, ChevronRight, Mail, Ticket, Megaphone, Trophy, Gift, Target, GraduationCap, BarChart3, Warehouse, Globe } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, Package, Users, MessageSquare, X, Menu, HelpCircle, TrendingUp, Award, ChevronDown, ChevronRight, Mail, Ticket, Megaphone, Trophy, Gift, Target, GraduationCap, BarChart3, Warehouse, Globe, Sparkles } from "lucide-react";
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -22,7 +22,15 @@ const navigation = [
       { name: 'Locations', href: '/analytics/locations' },
       { name: 'Coupons', href: '/analytics/coupons' },
       { name: 'Inventory', href: '/analytics/inventory' },
-      { name: 'Marketing', href: '/analytics/marketing' },
+      { name: 'Emails & Push', href: '/analytics/marketing' },
+    ]
+  },
+  {
+    name: 'Influencers',
+    icon: Sparkles,
+    submenu: [
+      { name: 'Creators & Links', href: '/influencers' },
+      { name: 'Leaderboard', href: '/analytics/influencers' },
     ]
   },
   {
@@ -31,7 +39,7 @@ const navigation = [
     submenu: [
       { name: 'Announcement Banner', href: '/announcement' },
       { name: 'Home Pop-up', href: '/home-popup' },
-      { name: 'Rush Timer Countdown', href: '/express-config' },
+      { name: 'Rush Timer', href: '/express-config' },
       { name: 'How to Play Videos', href: '/how-to-play' },
     ]
   },
@@ -115,6 +123,19 @@ export default function AdminSidebar() {
     }
   };
 
+  // Exact-match base routes (e.g. /analytics) so a child like /analytics/influencers
+  // never highlights/expands a parent submenu it doesn't belong to.
+  const isSubItemActive = (href: string) => {
+    const isBasePath =
+      href === '/masterclass' ||
+      href === '/lottery' ||
+      href === '/ambassadors' ||
+      href === '/analytics' ||
+      href === '/users' ||
+      href === '/inventory';
+    return isBasePath ? pathname === href : pathname === href || pathname.startsWith(href + '/');
+  };
+
   // Fetch on mount and when pathname changes
   useEffect(() => {
     fetchUnviewedCount();
@@ -124,13 +145,13 @@ export default function AdminSidebar() {
   useEffect(() => {
     navigation.forEach((item) => {
       if (item.submenu) {
-        const isActive = item.submenu.some((sub) => pathname.startsWith(sub.href));
+        const isActive = item.submenu.some((sub) => isSubItemActive(sub.href));
         if (isActive && !expandedMenus.includes(item.name)) {
           setExpandedMenus((prev) => [...prev, item.name]);
         }
       }
     });
-  }, [pathname]);
+  }, [pathname, isSubItemActive]);
 
   // Close mobile menu when route changes
   useEffect(() => {
@@ -178,7 +199,7 @@ export default function AdminSidebar() {
       <aside
         className={`
           fixed md:static inset-y-0 left-0 z-50
-          w-64 bg-gray-900 text-white flex flex-col
+          w-64 bg-[#0b1220] text-white flex flex-col
           transform transition-transform duration-300 ease-in-out
           ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
         `}
@@ -208,45 +229,41 @@ export default function AdminSidebar() {
             // Menu item with submenu
             if (item.submenu) {
               const isExpanded = expandedMenus.includes(item.name);
-              const isActive = item.submenu.some((sub) => pathname.startsWith(sub.href));
+              const isActive = item.submenu.some((sub) => isSubItemActive(sub.href));
 
               return (
                 <div key={item.name}>
                   <button
                     onClick={() => toggleSubmenu(item.name)}
-                    className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-colors ${isActive
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                    className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-colors ${isActive
+                      ? 'bg-indigo-500/15 text-white ring-1 ring-inset ring-indigo-400/30'
+                      : 'text-gray-400 hover:bg-white/5 hover:text-white'
                       }`}
                   >
                     <div className="flex items-center">
-                      <Icon className="w-5 h-5 mr-3" />
+                      <Icon className={`w-5 h-5 mr-3 ${isActive ? 'text-indigo-400' : 'text-gray-500 group-hover:text-gray-300'}`} />
                       {item.name}
                     </div>
                     {isExpanded ? (
-                      <ChevronDown className="w-4 h-4" />
+                      <ChevronDown className="w-4 h-4 text-gray-500" />
                     ) : (
-                      <ChevronRight className="w-4 h-4" />
+                      <ChevronRight className="w-4 h-4 text-gray-500" />
                     )}
                   </button>
 
                   {/* Submenu */}
                   {isExpanded && (
-                    <div className="ml-4 mt-1 space-y-1">
+                    <div className="mt-1 ml-3 pl-3 border-l border-white/10 space-y-0.5">
                       {item.submenu.map((subItem) => {
-                        // If it's a base path like /masterclass or /analytics, only match exactly to avoid highlighting everything in the submenu
-                        const isBasePath = subItem.href === '/masterclass' || subItem.href === '/lottery' || subItem.href === '/ambassadors' || subItem.href === '/analytics' || subItem.href === '/users' || subItem.href === '/inventory';
-                        const isSubActive = isBasePath 
-                          ? pathname === subItem.href 
-                          : (pathname === subItem.href || pathname.startsWith(subItem.href + '/'));
+                        const isSubActive = isSubItemActive(subItem.href);
 
                         return (
                           <Link
                             key={subItem.name}
                             href={subItem.href}
-                            className={`block px-4 py-2 rounded-lg text-sm transition-colors ${isSubActive
-                              ? 'bg-blue-500 text-white'
-                              : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                            className={`block px-3 py-2 rounded-lg text-[13px] transition-colors ${isSubActive
+                              ? 'bg-indigo-500 text-white font-semibold'
+                              : 'text-gray-400 hover:bg-white/5 hover:text-white'
                               }`}
                           >
                             {subItem.name}
@@ -269,17 +286,17 @@ export default function AdminSidebar() {
               <Link
                 key={item.name}
                 href={item.href}
-                className={`flex items-center px-4 py-3 rounded-lg transition-colors relative ${isActive
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                className={`flex items-center px-4 py-3 rounded-xl transition-colors relative ${isActive
+                  ? 'bg-indigo-500/15 text-white ring-1 ring-inset ring-indigo-400/30'
+                  : 'text-gray-400 hover:bg-white/5 hover:text-white'
                   }`}
               >
-                <Icon className="w-5 h-5 mr-3" />
+                <Icon className={`w-5 h-5 mr-3 ${isActive ? 'text-indigo-400' : 'text-gray-500'}`} />
                 {item.name}
 
                 {/* Notification Badge for Contact */}
                 {item.name === 'Contact' && unviewedCount > 0 && (
-                  <span className="ml-auto flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-red-600 rounded-full">
+                  <span className="ml-auto flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-indigo-500 rounded-full">
                     {unviewedCount > 9 ? '9+' : unviewedCount}
                   </span>
                 )}
@@ -289,9 +306,9 @@ export default function AdminSidebar() {
         </nav>
 
         {/* Footer (Optional) */}
-        <div className="p-4 border-t border-gray-800">
-          <p className="text-xs text-gray-400 text-center">
-            v1.0.0
+        <div className="p-4 border-t border-white/10">
+          <p className="text-xs text-gray-500 text-center">
+            Swago Admin · v1.0.0
           </p>
         </div>
       </aside>
