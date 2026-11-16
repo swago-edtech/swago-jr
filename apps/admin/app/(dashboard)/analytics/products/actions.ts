@@ -83,6 +83,7 @@ export async function getProductAnalytics(
 
   const amazonOrders = includeAmazon
     ? await ChannelOrder.find({
+        channel: 'amazon',
         ...amazonDateQuery(fromDate, toDate),
         ...(filters?.status === 'Cancelled'
           ? { status: 'Cancelled' }
@@ -307,6 +308,7 @@ export async function getSingleProductAnalytics(
   const [orders, amazonOrders] = await Promise.all([
     Order.find(query).select('createdAt items total status paymentMethod refundAmount').lean(),
     ChannelOrder.find({
+      channel: 'amazon',
       ...amazonDateQuery(fromDate, toDate),
       status: { $ne: 'Cancelled' },
     })

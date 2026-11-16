@@ -868,6 +868,126 @@ function productLines(event: ChannelEvent): string[] {
   });
 }
 
+type SellerApiPlatformStatus = {
+  platform?: "amazon" | "flipkart";
+  configured: boolean;
+  enabled?: boolean;
+  lastSuccessAt: string | null;
+  lastAttemptAt: string | null;
+  lastError: string;
+  lastCheckpoint: string;
+  lastCounts?: { fetched?: number; ingested?: number; cancelled?: number; reviewed?: number; skipped?: number; pages?: number };
+  stale?: boolean;
+  reviewCount?: number;
+  outstandingCount?: number;
+};
+
+type SellerApiStatus = {
+  amazon: SellerApiPlatformStatus;
+  flipkart: SellerApiPlatformStatus;
+  missing: { amazon: string[]; flipkart: string[] };
+};
+
+function formatSyncTime(value?: string | null) {
+  if (!value) return "never";
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? "never" : d.toLocaleString("en-IN");
+}
+
+function SellerApiSyncPanel({
+  status,
+  syncing,
+  onSync,
+  onToggle,
+}: {
+  status: SellerApiStatus | null;
+  syncing: boolean;
+  onSync: () => void;
+  onToggle: (platform: "amazon" | "flipkart", enabled: boolean) => void;
+}) {
+  const platforms: Array<{ key: "amazon" | "flipkart"; label: string }> = [
+    { key: "amazon", label: "Amazon SP-API" },
+    { key: "flipkart", label: "Flipkart Seller API" },
+  ];
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 md:p-5 space-y-3">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h2 className="text-base font-semibold text-slate-900">Seller API order sync</h2>
+          <p className="text-sm text-slate-500 mt-0.5">
+            Read-only polling of Amazon and Flipkart seller accounts into the same channel stock ledger.
+            Email sync is unchanged. Notifications are not used. This is not live until seller credentials
+            are set and a sync has succeeded.
+          </p>
+        </div>
+        <button
+          onClick={onSync}
+          disabled={syncing}
+          className="inline-flex items-center gap-2 bg-slate-900 text-white px-3.5 py-2 rounded-xl text-sm font-medium disabled:opacity-50 shrink-0"
+        >
+          {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+          Sync seller APIs
+        </button>
+      </div>
+      <div className="grid md:grid-cols-2 gap-3">
+        {platforms.map(({ key, label }) => {
+          const row = status?.[key];
+          const configured = !!row?.configured;
+          const enabled = row?.enabled !== false;
+          const missing = status?.missing?.[key] || [];
+          return (
+            <div key={key} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm">
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-medium text-slate-800">{label}</span>
+                <span className={`text-xs font-medium ${configured && enabled ? "text-emerald-700" : "text-slate-500"}`}>
+                  {!configured ? "Not configured" : enabled ? "Credentials present" : "Paused"}
+                </span>
+              </div>
+              <p className="text-slate-600 mt-1">
+                Last successful sync: {formatSyncTime(row?.lastSuccessAt)}
+              </p>
+              {row?.lastAttemptAt && (
+                <p className="text-slate-500 text-xs mt-0.5">Last attempt: {formatSyncTime(row.lastAttemptAt)}</p>
+              )}
+              {configured && enabled && row?.stale && (
+                <p className="text-amber-800 mt-1">No successful sync in the last 30 minutes — the poll may be stuck or failing.</p>
+              )}
+              {(row?.reviewCount || 0) > 0 && (
+                <p className="text-amber-800 mt-1">
+                  {row?.reviewCount} order(s) held for review (unmatched SKU, FBA, replacement, return, or ambiguous cancellation). Stock was not auto-changed for those.
+                </p>
+              )}
+              {key === "flipkart" && (row?.outstandingCount || 0) > 0 && (
+                <p className="text-slate-600 mt-1">
+                  Watching {row?.outstandingCount} open shipment(s) for later status changes (cancellations after the orderDate window).
+                </p>
+              )}
+              {row?.lastError ? (
+                <p className="text-rose-700 mt-1 break-words">{row.lastError}</p>
+              ) : configured ? (
+                <p className="text-slate-500 mt-1">No error recorded.</p>
+              ) : (
+                <p className="text-slate-500 mt-1">
+                  Set {missing.join(", ") || "required environment variables"} on the server to enable.
+                </p>
+              )}
+              {configured && (
+                <button
+                  type="button"
+                  onClick={() => onToggle(key, !enabled)}
+                  className="mt-2 text-xs font-medium text-slate-700 underline"
+                >
+                  {enabled ? "Pause polling (keeps credentials and data)" : "Resume polling"}
+                </button>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function ChannelEmailPage() {
   return (
     <Suspense fallback={<div className="p-6 text-slate-500">Loading...</div>}>
@@ -911,6 +1031,8 @@ function ChannelEmailPageInner() {
   const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, totalPages: 1 });
   const [statusCounts, setStatusCounts] = useState<Record<string, number>>({});
   const [newAlias, setNewAlias] = useState({ alias: "", productId: "" });
+  const [sellerApiStatus, setSellerApiStatus] = useState<SellerApiStatus | null>(null);
+  const [sellerApiSyncing, setSellerApiSyncing] = useState(false);
 
   const showMessage = useCallback((text: string, type: "info" | "success" | "error" = "info") => {
     setMessage(text);
@@ -971,6 +1093,19 @@ function ChannelEmailPageInner() {
         setEvents(eventsData.events || []);
         if (eventsData.pagination) setPagination(eventsData.pagination);
         if (eventsData.statusCounts) setStatusCounts(eventsData.statusCounts);
+      }
+      try {
+        const sellerRes = await fetch("/api/channel-seller-api");
+        const sellerData = await sellerRes.json();
+        if (sellerData.success) {
+          setSellerApiStatus({
+            amazon: sellerData.amazon,
+            flipkart: sellerData.flipkart,
+            missing: sellerData.missing || { amazon: [], flipkart: [] },
+          });
+        }
+      } catch {
+        // Email UI still works if seller API status cannot be loaded.
       }
     } finally {
       setLoading(false);
@@ -1221,6 +1356,61 @@ function ChannelEmailPageInner() {
     await load();
   };
 
+  const toggleSellerApi = async (platform: "amazon" | "flipkart", enabled: boolean) => {
+    try {
+      const res = await fetch("/api/channel-seller-api", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ platform, enabled }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        showMessage(data.error || "Could not update seller API polling", "error");
+        return;
+      }
+      setSellerApiStatus({
+        amazon: data.amazon,
+        flipkart: data.flipkart,
+        missing: data.missing || { amazon: [], flipkart: [] },
+      });
+      showMessage(enabled ? `${platform} polling resumed.` : `${platform} polling paused. Credentials and data were kept.`, "success");
+    } catch (error: any) {
+      showMessage(error?.message || "Could not update seller API polling", "error");
+    }
+  };
+
+  const runSellerApiSync = async () => {
+    setSellerApiSyncing(true);
+    try {
+      const res = await fetch("/api/channel-seller-api", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        showMessage(data.error || "Seller API sync failed", "error");
+      } else {
+        setSellerApiStatus({
+          amazon: data.amazon,
+          flipkart: data.flipkart,
+          missing: data.missing || { amazon: [], flipkart: [] },
+        });
+        const amazon = data.result?.amazon;
+        const flipkart = data.result?.flipkart;
+        const parts = [];
+        if (amazon?.error) parts.push(`Amazon: ${amazon.error}`);
+        else if (amazon?.skipped) parts.push("Amazon: not configured");
+        else if (amazon?.configured) parts.push("Amazon: sync ran");
+        if (flipkart?.error) parts.push(`Flipkart: ${flipkart.error}`);
+        else if (flipkart?.skipped) parts.push("Flipkart: not configured");
+        else if (flipkart?.configured) parts.push("Flipkart: sync ran");
+        const hasError = !!(amazon?.error || flipkart?.error);
+        showMessage(parts.join(". ") || "Seller API sync finished.", hasError ? "error" : "success");
+      }
+    } catch (error: any) {
+      showMessage(error?.message || "Seller API sync failed", "error");
+    } finally {
+      setSellerApiSyncing(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -1287,6 +1477,9 @@ function ChannelEmailPageInner() {
           {message}
         </div>
       )}
+
+      <SellerApiSyncPanel status={sellerApiStatus} syncing={sellerApiSyncing} onSync={runSellerApiSync} onToggle={toggleSellerApi} />
+
 
       {config.needsReconnect && (
         <p className="text-sm text-rose-700">

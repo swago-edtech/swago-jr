@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 
 /**
- * Sales record for marketplace (Amazon) orders synced from channel email.
+ * Sales record for marketplace orders (Amazon email/API, Flipkart API). Separate from website Order.
  * Separate from website Order — no user/address/COD requirements.
  */
 const ChannelOrderSchema = new mongoose.Schema(
@@ -13,7 +13,7 @@ const ChannelOrderSchema = new mongoose.Schema(
     },
     channel: {
       type: String,
-      enum: ["amazon"],
+      enum: ["amazon", "flipkart"],
       default: "amazon",
       index: true,
     },

@@ -15,7 +15,7 @@ async function getAnalyticsData() {
   // Get all data
   const [orders, amazonOrders, users, reviews, products] = await Promise.all([
     Order.find().select('total status createdAt items paymentMethod').lean(),
-    ChannelOrder.find().select('total status createdAt receivedAt confirmedAt items').lean(),
+    ChannelOrder.find().select('total status createdAt receivedAt confirmedAt items channel').lean(),
     User.find({ isAdmin: false }).select('createdAt').lean(),
     Review.find().select('rating sentimentLabel status createdAt productId').lean(),
     Product.find().select('_id name isCombo comboUnitCount').lean(),
@@ -59,12 +59,20 @@ async function getAnalyticsData() {
   // Confirmed statuses for revenue calculations (Pending excluded — payment not yet completed)
   const confirmedStatuses = ['Paid', 'Packed', 'Shipped', 'Out for Delivery', 'Delivered'];
   const confirmedWebsiteOrders = validOrders.filter(o => confirmedStatuses.includes(o.status));
-  const confirmedAmazonOrders = amazonOrders.filter((o: any) => o.status !== 'Cancelled');
+  const isAmazonChannel = (o: any) => o.channel !== 'flipkart';
+  const confirmedAmazonOrders = amazonOrders.filter((o: any) => o.status !== 'Cancelled' && isAmazonChannel(o));
+  const confirmedFlipkartOrders = amazonOrders.filter((o: any) => o.status !== 'Cancelled' && o.channel === 'flipkart');
   const confirmedOrders = [
     ...confirmedWebsiteOrders.map((o: any) => ({ ...o, channel: 'website' as const, saleAt: o.createdAt })),
     ...confirmedAmazonOrders.map((o: any) => ({
       ...o,
       channel: 'amazon' as const,
+      saleAt: amazonSaleDate(o),
+      createdAt: amazonSaleDate(o),
+    })),
+    ...confirmedFlipkartOrders.map((o: any) => ({
+      ...o,
+      channel: 'flipkart' as const,
       saleAt: amazonSaleDate(o),
       createdAt: amazonSaleDate(o),
     })),

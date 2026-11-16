@@ -18,6 +18,8 @@ This project is architected as a **pnpm monorepo** using **Next.js 14+** and **T
   - `packages/database`: Shared data models and connection logic.
 
 > 📖 **Deep Dive**: For a detailed technical breakdown, please refer to the [**ARCHITECTURE.md**](./ARCHITECTURE.md) file.
+>
+> 🛒 **Marketplace seller APIs**: Amazon SP-API and Flipkart Seller API ingestion is documented in [**docs/CHANNEL_SELLER_API.md**](./docs/CHANNEL_SELLER_API.md). It is not live until seller credentials are configured and a sync has succeeded.
 
 ---
 

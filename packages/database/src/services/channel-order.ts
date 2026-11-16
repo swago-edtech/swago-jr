@@ -17,17 +17,22 @@ type InventoryLine = {
   quantity?: number;
 };
 
-function buildChannelOrderId(externalOrderId?: string, eventId?: string) {
-  if (externalOrderId) {
-    const cleaned = String(externalOrderId).replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
-    // Keep enough of the Amazon id to avoid collisions; prefix AMZ-
-    return `AMZ-${cleaned.slice(-28) || "ORDER"}`;
-  }
-  const suffix = String(eventId || Date.now()).replace(/[^a-zA-Z0-9]/g, "").slice(-10).toUpperCase();
-  return `AMZ-${suffix || Date.now().toString(36).toUpperCase()}`;
+function channelPrefix(channel?: string) {
+  return channel === "flipkart" ? "FK" : "AMZ";
 }
 
-async function resolveLineItems(matchedItems: MatchedItem[]) {
+function buildChannelOrderId(externalOrderId?: string, eventId?: string, channel?: string) {
+  const prefix = channelPrefix(channel);
+  if (externalOrderId) {
+    const cleaned = String(externalOrderId).replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+    return `${prefix}-${cleaned.slice(-28) || "ORDER"}`;
+  }
+  const suffix = String(eventId || Date.now()).replace(/[^a-zA-Z0-9]/g, "").slice(-10).toUpperCase();
+  return `${prefix}-${suffix || Date.now().toString(36).toUpperCase()}`;
+}
+
+async function resolveLineItems(matchedItems: MatchedItem[], opts: { minQuantity?: number } = {}) {
+  const minQuantity = opts.minQuantity ?? 1;
   const lines = [];
   for (const item of matchedItems || []) {
     const productId = item.productId?.toString();
@@ -46,7 +51,8 @@ async function resolveLineItems(matchedItems: MatchedItem[]) {
       }
     }
 
-    const quantity = Math.max(1, Number(item.quantity) || 1);
+    const raw = Number(item.quantity);
+    const quantity = Math.max(minQuantity, Number.isFinite(raw) ? raw : minQuantity);
     lines.push({
       productId: productId || "",
       name,
@@ -227,4 +233,71 @@ export async function ensureChannelOrdersBackfilled(limit = 2000) {
     });
 
   return backfillInFlight;
+}
+
+
+export type ChannelSaleChannel = "amazon" | "flipkart";
+
+/**
+ * Upsert the sales record for a seller-API (or email-compatible) marketplace order.
+ * Amazon uses the same (channel, externalOrderId) key as email sync so both share one row.
+ */
+export async function upsertChannelOrderFromApiSale(input: {
+  channel: ChannelSaleChannel;
+  externalOrderId: string;
+  items: MatchedItem[];
+  status: "Confirmed" | "Cancelled";
+  receivedAt?: Date;
+  inventorySnapshot?: InventoryLine[];
+}) {
+  await connectDB();
+  const channel = input.channel === "flipkart" ? "flipkart" : "amazon";
+  const externalOrderId = String(input.externalOrderId || "").trim();
+  if (!externalOrderId) return null;
+
+  const resolvedItems = (await resolveLineItems(input.items || [], { minQuantity: 0 })).filter((line) => line.quantity > 0);
+  const inventorySnapshot = (input.inventorySnapshot || []).map((line) => ({
+    inventoryItemId: line.inventoryItemId,
+    inventoryItemName: line.inventoryItemName || "",
+    quantity: line.quantity || 0,
+  }));
+
+  const existing = await ChannelOrder.findOne({ channel, externalOrderId });
+  const orderId = existing?.orderId || buildChannelOrderId(externalOrderId, "", channel);
+  const saleDate = input.receivedAt || existing?.receivedAt || new Date();
+  const items = resolvedItems.length ? resolvedItems : (existing?.items || []);
+  const subtotal = items.reduce((sum: number, line: any) => sum + (Number(line.price) || 0) * (Number(line.quantity) || 0), 0);
+  const itemCount = items.reduce((sum: number, line: any) => sum + (Number(line.quantity) || 0), 0);
+
+  const payload: Record<string, unknown> = {
+    orderId,
+    channel,
+    externalOrderId,
+    items,
+    itemCount,
+    subtotal,
+    total: subtotal,
+    inventorySnapshot,
+    receivedAt: saleDate,
+  };
+
+  const alreadyCancelled = existing?.status === "Cancelled";
+  if (input.status === "Cancelled" || alreadyCancelled) {
+    payload.status = "Cancelled";
+    payload.cancelledAt = existing?.cancelledAt || new Date();
+  } else {
+    payload.status = "Confirmed";
+    payload.confirmedAt = existing?.confirmedAt || saleDate;
+  }
+
+  if (existing) {
+    await ChannelOrder.updateOne({ _id: existing._id }, { $set: payload });
+    return ChannelOrder.findById(existing._id);
+  }
+
+  return ChannelOrder.create({
+    ...payload,
+    createdAt: saleDate,
+    updatedAt: new Date(),
+  });
 }

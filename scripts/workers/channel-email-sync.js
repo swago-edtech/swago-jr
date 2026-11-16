@@ -58,21 +58,29 @@ async function tick() {
   const started = Date.now();
   try {
     const result = await syncViaHttp();
-    if (result && result.needsReconnect) {
+    const email = result && result.email ? result.email : result;
+    const sellerApi = result && result.sellerApi ? result.sellerApi : null;
+    if (email && email.needsReconnect) {
       const now = Date.now();
       if (now - lastReconnectWarnAt >= RECONNECT_WARN_EVERY_MS) {
         lastReconnectWarnAt = now;
         console.warn(
           `[channel-email-worker] Gmail needs reconnect once (not a deploy wipe):`,
-          result.message || "Connect Gmail in Admin → Channel Email"
+          email.message || "Connect Gmail in Admin → Channel Email"
         );
       }
     } else {
       lastReconnectWarnAt = 0;
+      const sellerSummary = sellerApi
+        ? ` amazon=${sellerApi.amazon?.error ? "error" : sellerApi.amazon?.skipped ? "skipped" : "ok"} flipkart=${sellerApi.flipkart?.error ? "error" : sellerApi.flipkart?.skipped ? "skipped" : "ok"}`
+        : result?.sellerApiError
+          ? ` sellerApiError=${result.sellerApiError}`
+          : "";
       console.log(
         `[channel-email-worker] sync ok in ${Date.now() - started}ms`,
-        `processed=${result?.processed ?? "?"} skipped=${result?.skipped ?? "?"}`,
-        result?.message || ""
+        `processed=${email?.processed ?? "?"} skipped=${email?.skipped ?? "?"}`,
+        email?.message || "",
+        sellerSummary
       );
     }
   } catch (error) {

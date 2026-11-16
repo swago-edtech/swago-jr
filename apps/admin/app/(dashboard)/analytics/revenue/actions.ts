@@ -149,8 +149,8 @@ export async function getRevenueAnalytics(
   }
 
   if (channel === 'amazon' || channel === 'all') {
-    const amazonOrders = await ChannelOrder.find(amazonDateQuery(fromDate, toDate))
-      .select('total status createdAt receivedAt confirmedAt')
+    const amazonOrders = await ChannelOrder.find({ channel: 'amazon', ...amazonDateQuery(fromDate, toDate) })
+      .select('total status createdAt receivedAt confirmedAt channel')
       .lean();
 
     for (const order of amazonOrders) {
@@ -172,6 +172,33 @@ export async function getRevenueAnalytics(
       if (day) {
         day.gross += total;
         day.amazon = (day.amazon || 0) + total;
+        if (order.status !== 'Cancelled') {
+          day.net += total;
+        }
+      }
+    }
+  }
+
+  if (channel === 'flipkart' || channel === 'all') {
+    const flipkartOrders = await ChannelOrder.find({ channel: 'flipkart', ...amazonDateQuery(fromDate, toDate) })
+      .select('total status createdAt receivedAt confirmedAt channel')
+      .lean();
+
+    for (const order of flipkartOrders) {
+      const total = order.total || 0;
+      grossRevenue += total;
+      if (order.status === 'Cancelled') {
+        cancelledRevenue += total;
+      } else {
+        deliveredRevenue += total;
+      }
+      const orderDate = new Date(
+        (order.receivedAt || order.confirmedAt || order.createdAt) as Date
+      );
+      const dayKey = orderDate.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
+      const day = dayMap[dayKey];
+      if (day) {
+        day.gross += total;
         if (order.status !== 'Cancelled') {
           day.net += total;
         }

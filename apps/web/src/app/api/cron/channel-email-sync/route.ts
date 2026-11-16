@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { runChannelEmailSync } from "@swago/database";
+import { runChannelEmailSync, runChannelSellerApiSync } from "@swago/database";
 
 // Production: GOOGLE_*, GEMINI_API_KEY, MONGODB_URI, CRON_SECRET
-// Local dev: use Admin → Channel Email → "Check mail now" instead; cron auth is skipped here
+// Seller APIs (optional): AMAZON_SP_* and/or FLIPKART_APP_* — unconfigured platforms are skipped
+// Local dev: use Admin → Channel Email → "Check mail now" / "Sync seller APIs"
 export async function GET(req: NextRequest) {
   try {
     const authHeader = req.headers.get("authorization");
@@ -19,8 +20,21 @@ export async function GET(req: NextRequest) {
     }
 
     // Soft success for needsReconnect — no 500 / stack spam. Service logs once when marking.
-    const result = await runChannelEmailSync();
-    return NextResponse.json({ success: true, ...result });
+    const email = await runChannelEmailSync();
+    let sellerApi = null;
+    let sellerApiError = "";
+    try {
+      sellerApi = await runChannelSellerApiSync();
+    } catch (error) {
+      sellerApiError = error instanceof Error ? error.message : "Seller API sync failed";
+      console.error("Channel seller API sync failed:", sellerApiError);
+    }
+    return NextResponse.json({
+      success: true,
+      email,
+      sellerApi,
+      ...(sellerApiError ? { sellerApiError } : {}),
+    });
   } catch (error) {
     console.error("Channel email sync cron failed:", error);
     return NextResponse.json(

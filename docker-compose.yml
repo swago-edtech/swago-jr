@@ -2,11 +2,16 @@
 # Swago Jr. — Docker Compose
 #
 # Usage:
-#   docker compose up -d              # Start both services
+#   docker compose up -d              # Start web + admin only
 #   docker compose up -d web          # Start web only
 #   docker compose up -d admin        # Start admin only
 #   docker compose build              # Build both images
 #   docker compose logs -f            # Follow logs
+#
+# This compose file does not start scripts/workers/channel-email-sync.js.
+# Gmail and seller API polling will not run under Compose unless you start
+# the worker separately (pnpm worker:channel-email, pointed at the web URL)
+# or use pnpm start:web / pnpm start / deploy.sh (PM2), which do start it.
 #
 # Prerequisites:
 #   - Copy .env.example to .env and fill in values

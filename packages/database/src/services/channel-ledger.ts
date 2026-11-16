@@ -92,6 +92,25 @@ export function mergeOrderDesired(sources: OrderLine[][], manual: OrderLine[] = 
   return out;
 }
 
+export type DesiredSource = { trusted?: boolean; gmailMessageId?: unknown; lines?: OrderLine[] };
+
+/**
+ * Desired qty for stock: if a trusted seller-API source exists, it is authoritative
+ * (so a later partial cancel can reduce qty). Otherwise MAX across trusted email sources.
+ * Cancelled orders always desire 0. Manual lines still MAX-merge on top.
+ */
+export function planDesiredFromSources(
+  sources: DesiredSource[] | undefined,
+  manual: OrderLine[] = [],
+  cancelled = false
+): Map<string, OrderLine> {
+  if (cancelled) return new Map();
+  const list = sources || [];
+  const api = list.filter((s) => s.trusted && String(s.gmailMessageId || "").startsWith("api:"));
+  const trusted = api.length ? api : list.filter((s) => s.trusted);
+  return mergeOrderDesired(trusted.map((s) => (s.lines || []) as OrderLine[]), manual);
+}
+
 export type LedgerDelta = { productId: string; productName: string; from: number; to: number; delta: number };
 
 /** desired - ledger per product (positive = cut, negative = restore). */
@@ -198,6 +217,7 @@ export function planOrderRepair(input: {
   events: RepairEventInput[];
   manualLines?: OrderLine[];
   cancelledFlag?: boolean;
+  existingSources?: DesiredSource[];
   txs: Array<{ inventoryItemId: unknown; inventoryItemName?: string; type: string; quantity: number }>;
   boms: Record<string, BomComponent[]>;
 }): OrderRepairRow {
@@ -229,11 +249,13 @@ export function planOrderRepair(input: {
     if (e.reparsed?.length) sources.push(e.reparsed);
     else if (e.matchedItems?.length) sources.push(e.matchedItems as OrderLine[]);
   }
-  const desiredMap = cancelled ? new Map<string, OrderLine>() : mergeOrderDesired(sources, input.manualLines || []);
+  const emailSources: DesiredSource[] = sources.map((lines) => ({ trusted: true, lines }));
+  const apiSources = (input.existingSources || []).filter((s) => String(s.gmailMessageId || "").startsWith("api:"));
+  const desiredMap = planDesiredFromSources([...apiSources, ...emailSources], input.manualLines || [], cancelled);
   const desired = [...desiredMap.values()].filter((l) => l.quantity > 0);
   const desiredUnits = desired.reduce((s, l) => s + l.quantity, 0);
   if (!cancelled) {
-    if (!orderEvents.length && !(input.manualLines || []).length) blockers.push("No order email for this id");
+    if (!orderEvents.length && !apiSources.length && !(input.manualLines || []).length) blockers.push("No order email for this id");
     if (expected !== null && desiredUnits < expected) {
       blockers.push(`Email says ${expected} item(s) but only ${desiredUnits} known - use Re-check items first`);
     }
@@ -297,16 +319,74 @@ function newOpId() {
   return crypto.randomUUID();
 }
 
-async function ensureChannelOrder(orderKey: string, externalOrderId = "") {
+async function ensureChannelOrder(orderKey: string, externalOrderId = "", channel = "") {
   try {
+    const setOnInsert: Record<string, unknown> = { _id: orderKey, externalOrderId: externalOrderId || orderKey };
+    if (channel) setOnInsert.channel = channel;
     await ChannelStockOrder.updateOne(
       { _id: orderKey },
-      { $setOnInsert: { _id: orderKey, externalOrderId: externalOrderId || orderKey } },
+      { $setOnInsert: setOnInsert },
       { upsert: true }
     );
   } catch (error: any) {
     if (error?.code !== 11000) throw error; // concurrent upsert: the other insert won
   }
+}
+
+/** Deterministic ObjectId for a seller-API source key so re-polls replace, never add, a source. */
+export function apiSourceEventId(sourceKey: string): mongoose.Types.ObjectId {
+  const hash = crypto.createHash("sha256").update(`channel-api:${sourceKey}`).digest().subarray(0, 12);
+  return new mongoose.Types.ObjectId(hash);
+}
+
+/**
+ * Record or replace the seller-API source for an order.
+ * Amazon keys match email sync. A trusted API source is authoritative for qty;
+ * the ledger still only moves desired - already cut, so the same qty cannot double-cut.
+ * Cancelled is only set true (never auto-cleared) to respect existing cancel policy.
+ */
+export async function recordChannelOrderApiSource(opts: {
+  orderKey: string;
+  externalOrderId: string;
+  channel: string;
+  sourceKey: string;
+  lines: OrderLine[];
+  trusted: boolean;
+  cancelled?: boolean;
+  needsReview?: boolean;
+  note?: string;
+  by?: string;
+}): Promise<string> {
+  await connectDB();
+  const orderKey = opts.orderKey;
+  await ensureChannelOrder(orderKey, opts.externalOrderId, opts.channel);
+  const eventId = apiSourceEventId(opts.sourceKey);
+  await ChannelStockOrder.updateOne({ _id: orderKey }, { $pull: { sources: { eventId } } });
+  const set: Record<string, unknown> = {
+    channel: opts.channel || "amazon",
+    externalOrderId: opts.externalOrderId || orderKey,
+  };
+  if (opts.cancelled) set.cancelled = true;
+  if (opts.needsReview === true) set.needsReview = true;
+  if (opts.needsReview === false) set.needsReview = false;
+  if (opts.note !== undefined) set.note = opts.note;
+  await ChannelStockOrder.updateOne(
+    { _id: orderKey },
+    {
+      $set: set,
+      $push: {
+        sources: {
+          eventId,
+          gmailMessageId: opts.sourceKey,
+          lines: [...sumLines(opts.lines).values()],
+          trusted: !!opts.trusted,
+          by: opts.by || "seller-api",
+          at: new Date(),
+        },
+      },
+    }
+  );
+  return orderKey;
 }
 
 /** Record (or replace) what one email says for its order. `trusted` = may drive stock. */
@@ -553,8 +633,7 @@ export async function syncChannelOrderStock(orderKey: string, opts: { by?: strin
     }
 
     // 3. desired - ledger
-    const trusted = (current.sources || []).filter((s: any) => s.trusted).map((s: any) => s.lines as OrderLine[]);
-    const desired = current.cancelled ? new Map<string, OrderLine>() : mergeOrderDesired(trusted, current.manualLines || []);
+    const desired = planDesiredFromSources(current.sources || [], current.manualLines || [], !!current.cancelled);
     const ledgerMap = new Map<string, any>(ledgers.map((l) => [String(l.productId), l]));
     const deltas = planLedgerDeltas(desired, ledgerMap);
     if (!deltas.length) {
@@ -670,6 +749,7 @@ export async function buildRowForOrder(
     events: inputs,
     manualLines: order?.manualLines || [],
     cancelledFlag: !!order?.cancelled,
+    existingSources: order?.sources || [],
     txs,
     boms,
   });
@@ -774,13 +854,22 @@ async function repairLocked(orderKey: string, row: OrderRepairRow, by: string, a
   await ChannelStockLedger.deleteMany({ orderKey, _id: { $nin: keep } });
   // Every email becomes a source of the order; extra ones are labelled duplicates
   const events = await findOrderEvents(orderKey);
-  const sources = events
-    .filter((e) => e.eventType === "order" && e.status !== "ignored")
-    .map((e) => ({ eventId: e._id, gmailMessageId: e.gmailMessageId || "", lines: [...sumLines(e.matchedItems || []).values()], trusted: true, by, at: new Date() }));
+  const currentOrder: any = await ChannelStockOrder.findById(orderKey).lean();
+  const apiSources = (currentOrder?.sources || []).filter((s: any) => String(s.gmailMessageId || "").startsWith("api:"));
+  const sources = [
+    ...apiSources,
+    ...events
+      .filter((e) => e.eventType === "order" && e.status !== "ignored")
+      .map((e) => ({ eventId: e._id, gmailMessageId: e.gmailMessageId || "", lines: [...sumLines(e.matchedItems || []).values()], trusted: true, by, at: new Date() })),
+  ];
+  const hasTrustedApi = apiSources.some((s: any) => s.trusted);
+  const repairSet: Record<string, unknown> = { sources, cancelled: row.cancelled, repairedAt: new Date(), needsRepair: false };
+  // Do not pin computed desired into manualLines when a trusted API source should remain authoritative.
+  if (!hasTrustedApi) repairSet.manualLines = row.desired;
   await ChannelStockOrder.updateOne(
     { _id: orderKey },
     {
-      $set: { sources, cancelled: row.cancelled, manualLines: row.desired, repairedAt: new Date(), needsRepair: false },
+      $set: repairSet,
       $inc: { repairGen: 1 },
       $push: { history: { action: "repair", by, at: new Date(), note: `cut ${row.toCut.length} / restored ${row.toRestore.length} component line(s)` } },
     }
@@ -870,12 +959,9 @@ export async function getOrderStockHistory(orderIdOrKey: string): Promise<OrderS
     findOrderEvents(orderKey),
   ]);
   const desired = order
-    ? mergeOrderDesired(
-        (order.sources || []).filter((s: any) => s.trusted).map((s: any) => s.lines || []),
-        order.manualLines || []
-      )
+    ? planDesiredFromSources(order.sources || [], order.manualLines || [], !!order.cancelled)
     : new Map<string, OrderLine>();
-  const target = order?.cancelled ? new Map<string, OrderLine>() : desired;
+  const target = desired;
   const products = new Map<string, OrderStockHistory["products"][number]>();
   for (const l of target.values()) {
     products.set(l.productId, { productId: l.productId, productName: l.productName, target: l.quantity, cut: 0, pending: false });

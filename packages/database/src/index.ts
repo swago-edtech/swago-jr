@@ -37,6 +37,7 @@ export { default as ChannelApplyLock } from './models/ChannelApplyLock';
 export { default as ChannelOrder } from './models/ChannelOrder';
 export { default as ChannelStockOrder } from './models/ChannelStockOrder';
 export { default as ChannelStockLedger } from './models/ChannelStockLedger';
+export { default as ChannelSellerApiState } from './models/ChannelSellerApiState';
 export { default as HowToPlay } from './models/HowToPlay';
 export { default as InfluencerCreator } from './models/InfluencerCreator';
 export * from './services/low-stock-notifier';
@@ -52,3 +53,7 @@ export * from './services/channel-email-parse';
 export * from './services/channel-reconcile';
 export * from './services/channel-ledger';
 export * from './services/google-signin';
+
+export { runChannelSellerApiSync, getSellerApiStatus, sanitizeSellerApiState, setSellerApiEnabled, isSellerApiStale, ingestAll } from './services/channel-seller-api/sync';
+export { ingestSellerApiSale, linesForStock, planIngestActions } from './services/channel-seller-api/ingest';
+export { sellerApiQueryStart, shouldAdvanceCheckpoint, nextStoredCheckpoint } from './services/channel-seller-api/checkpoint';

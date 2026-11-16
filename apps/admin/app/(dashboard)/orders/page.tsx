@@ -189,17 +189,17 @@ export default async function OrdersPage(props: { searchParams?: Promise<{ [key:
   const searchParams = (await props.searchParams) || {};
   const channel = searchParams.channel || 'website';
 
-  if (channel === 'amazon') {
+  if (channel === 'amazon' || channel === 'flipkart') {
     return (
       <div className="space-y-6">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Orders</h1>
-            <p className="text-gray-600 mt-1">Website and Amazon channel sales</p>
+            <p className="text-gray-600 mt-1">Website, Amazon, and Flipkart channel sales</p>
           </div>
           <ChannelTabs channel={channel} searchParams={searchParams} />
         </div>
-        <AmazonOrdersPanel searchParams={searchParams} />
+        <AmazonOrdersPanel searchParams={searchParams} channel={channel === 'flipkart' ? 'flipkart' : 'amazon'} />
       </div>
     );
   }
@@ -212,7 +212,7 @@ export default async function OrdersPage(props: { searchParams?: Promise<{ [key:
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Orders</h1>
-          <p className="text-gray-600 mt-1">Website and Amazon channel sales</p>
+          <p className="text-gray-600 mt-1">Website, Amazon, and Flipkart channel sales</p>
         </div>
         <ChannelTabs channel={channel} searchParams={searchParams} />
       </div>
@@ -489,6 +489,16 @@ function ChannelTabs({
         }`}
       >
         Amazon
+      </Link>
+      <Link
+        href={{ pathname: '/orders', query: { ...base, channel: 'flipkart', tab: undefined, status: undefined } }}
+        className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+          channel === 'flipkart'
+            ? 'bg-white text-slate-900 shadow-sm'
+            : 'text-slate-500 hover:text-slate-800'
+        }`}
+      >
+        Flipkart
       </Link>
     </div>
   );

@@ -1,12 +1,12 @@
 import { connectDB, Order, ChannelOrder, ensureChannelOrdersBackfilled } from "@swago/database";
 
-export type SalesChannel = "website" | "amazon" | "all";
+export type SalesChannel = "website" | "amazon" | "flipkart" | "all";
 
 export type UnifiedSale = {
   total: number;
   status: string;
   paymentMethod: string;
-  channel: "website" | "amazon";
+  channel: "website" | "amazon" | "flipkart";
   createdAt: Date;
   itemCount?: number;
 };
@@ -44,7 +44,7 @@ export async function fetchUnifiedSales(
   channel: SalesChannel = "all"
 ): Promise<UnifiedSale[]> {
   await connectDB();
-  if (channel === "amazon" || channel === "all") {
+  if (channel === "amazon" || channel === "flipkart" || channel === "all") {
     await ensureChannelOrdersBackfilled(2000);
   }
 
@@ -73,18 +73,24 @@ export async function fetchUnifiedSales(
     }
   }
 
-  if (channel === "amazon" || channel === "all") {
-    const amazonOrders = await ChannelOrder.find(amazonDateQuery(fromDate, toDate))
-      .select("total status createdAt receivedAt confirmedAt itemCount")
+  const marketplaceChannels: Array<"amazon" | "flipkart"> =
+    channel === "all" ? ["amazon", "flipkart"] : channel === "amazon" || channel === "flipkart" ? [channel] : [];
+
+  for (const marketplace of marketplaceChannels) {
+    const marketOrders = await ChannelOrder.find({
+      channel: marketplace,
+      ...amazonDateQuery(fromDate, toDate),
+    })
+      .select("total status createdAt receivedAt confirmedAt itemCount channel")
       .lean();
 
-    for (const order of amazonOrders) {
+    for (const order of marketOrders) {
       sales.push({
         total: order.total || 0,
         // Keep Confirmed — do not inflate Delivered KPIs
         status: order.status === "Cancelled" ? "Cancelled" : "Confirmed",
-        paymentMethod: "amazon",
-        channel: "amazon",
+        paymentMethod: marketplace,
+        channel: marketplace,
         createdAt: amazonSaleDate(order),
         itemCount: order.itemCount || 0,
       });
