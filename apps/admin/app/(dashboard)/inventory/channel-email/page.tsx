@@ -1363,9 +1363,10 @@ function ChannelEmailPageInner() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ platform, enabled }),
       });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        showMessage(data.error || "Could not update seller API polling", "error");
+      const isJson = res.headers.get("content-type")?.includes("application/json");
+      const data = isJson ? await res.json().catch(() => null) : null;
+      if (!res.ok || !data?.success) {
+        showMessage(data?.error || `Server returned ${res.status} (deploy may be pending)`, "error");
         return;
       }
       setSellerApiStatus({
@@ -1383,9 +1384,10 @@ function ChannelEmailPageInner() {
     setSellerApiSyncing(true);
     try {
       const res = await fetch("/api/channel-seller-api", { method: "POST" });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        showMessage(data.error || "Seller API sync failed", "error");
+      const isJson = res.headers.get("content-type")?.includes("application/json");
+      const data = isJson ? await res.json().catch(() => null) : null;
+      if (!res.ok || !data?.success) {
+        showMessage(data?.error || `Server returned ${res.status}: ${res.statusText || "Not Found"} (deploy may be pending)`, "error");
       } else {
         setSellerApiStatus({
           amazon: data.amazon,
