@@ -24,6 +24,7 @@ interface DaySummary {
   paidOrders: number;
   codOrders: number;
   amazonOrders?: number;
+  flipkartOrders?: number;
   cancelled: number;
   shipped: number;
   delivered: number;
@@ -55,12 +56,14 @@ interface OrderAnalyticsChartsProps {
     paidOrders: number;
     codOrders: number;
     amazonOrders?: number;
+    flipkartOrders?: number;
     delivered: number;
     cancelled: number;
     rto: number;
     shipped: number;
     confirmed?: number;
     amazonRevenue?: number;
+    flipkartRevenue?: number;
   };
 }
 
@@ -96,6 +99,7 @@ const PAYMENT_COLORS = {
   paid: '#3b82f6',
   cod: '#f59e0b',
   amazon: '#f97316',
+  flipkart: '#eab308',
 };
 
 export default function OrderAnalyticsCharts({ dailyData, hourlyDistribution, dayOfWeekDistribution, totals }: OrderAnalyticsChartsProps) {
@@ -104,6 +108,7 @@ export default function OrderAnalyticsCharts({ dailyData, hourlyDistribution, da
     { name: 'Prepaid', value: totals.paidOrders, color: PAYMENT_COLORS.paid },
     { name: 'COD', value: totals.codOrders, color: PAYMENT_COLORS.cod },
     { name: 'Amazon', value: totals.amazonOrders || 0, color: PAYMENT_COLORS.amazon },
+    { name: 'Flipkart', value: totals.flipkartOrders || 0, color: PAYMENT_COLORS.flipkart },
   ].filter(d => d.value > 0);
 
   // ── Status Distribution Pie Data ──
@@ -160,6 +165,7 @@ export default function OrderAnalyticsCharts({ dailyData, hourlyDistribution, da
                   paidOrders: 'Prepaid',
                   codOrders: 'COD',
                   amazonOrders: 'Amazon',
+                  flipkartOrders: 'Flipkart',
                 };
                 return [value ?? 0, labels[name ?? ''] || name || ''];
               }}
@@ -170,13 +176,15 @@ export default function OrderAnalyticsCharts({ dailyData, hourlyDistribution, da
                   paidOrders: 'Prepaid',
                   codOrders: 'COD',
                   amazonOrders: 'Amazon',
+                  flipkartOrders: 'Flipkart',
                 };
                 return labels[value] || value;
               }}
             />
             <Bar dataKey="paidOrders" stackId="orders" fill={PAYMENT_COLORS.paid} radius={[0, 0, 0, 0]} />
             <Bar dataKey="codOrders" stackId="orders" fill={PAYMENT_COLORS.cod} radius={[0, 0, 0, 0]} />
-            <Bar dataKey="amazonOrders" stackId="orders" fill={PAYMENT_COLORS.amazon} radius={[4, 4, 0, 0]} />
+            <Bar dataKey="amazonOrders" stackId="orders" fill={PAYMENT_COLORS.amazon} radius={[0, 0, 0, 0]} />
+            <Bar dataKey="flipkartOrders" stackId="orders" fill={PAYMENT_COLORS.flipkart} radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -267,6 +275,10 @@ export default function OrderAnalyticsCharts({ dailyData, hourlyDistribution, da
           <div className="text-center">
             <div className="text-2xl font-bold text-orange-500">{totals.amazonOrders || 0}</div>
             <div className="text-xs text-gray-500">Amazon</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-yellow-500">{totals.flipkartOrders || 0}</div>
+            <div className="text-xs text-gray-500">Flipkart</div>
           </div>
         </div>
       </div>

@@ -40,6 +40,7 @@ type ProductFormData = {
   stock: number;
   lowStockThreshold: number;
   amazonSku?: string;
+  flipkartSku?: string;
   weight?: number;
   isFeatured: boolean;
   isActive: boolean;
@@ -238,6 +239,7 @@ export default function ProductForm({ mode, initialData, productId }: ProductFor
     stock: initialData?.stock?.toString() ?? "0",
     lowStockThreshold: initialData?.lowStockThreshold?.toString() ?? "10",
     amazonSku: (initialData as any)?.amazonSku ?? "",
+    flipkartSku: (initialData as any)?.flipkartSku ?? "",
     weight: (initialData as any)?.weight?.toString() ?? "0",
     isFeatured: initialData?.isFeatured ?? false,
     isActive: initialData?.isActive ?? true,
@@ -421,6 +423,7 @@ export default function ProductForm({ mode, initialData, productId }: ProductFor
         benefits: form.benefits,
         lowStockThreshold: parseInt(form.lowStockThreshold),
         amazonSku: form.amazonSku.trim().toUpperCase(),
+        flipkartSku: form.flipkartSku.trim().toUpperCase(),
         weight: parseFloat(form.weight) || 0,
         isFeatured: form.isFeatured,
         isActive: form.isActive,
@@ -1339,22 +1342,40 @@ export default function ProductForm({ mode, initialData, productId }: ProductFor
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Amazon / Marketplace SKU
-                </label>
-                <input
-                  type="text"
-                  name="amazonSku"
-                  value={form.amazonSku}
-                  onChange={handleChange}
-                  placeholder="e.g. SWG-OBG-SSR-01-6Y"
-                  className={fieldClass()}
-                />
-                <p className="text-xs text-gray-500 mt-1.5">
-                  Paste the seller SKU from Amazon order emails so Channel Email can link sales to this
-                  product. This is separate from inventory unit SKUs under Inventory → Items.
-                </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Amazon SKU
+                  </label>
+                  <input
+                    type="text"
+                    name="amazonSku"
+                    value={form.amazonSku}
+                    onChange={handleChange}
+                    placeholder="e.g. SWG-OBG-SSR-01-6Y"
+                    className={fieldClass()}
+                  />
+                  <p className="text-xs text-gray-500 mt-1.5">
+                    Seller SKU from Amazon emails / SP-API. Separate from inventory unit SKUs.
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Flipkart SKU
+                  </label>
+                  <input
+                    type="text"
+                    name="flipkartSku"
+                    value={form.flipkartSku}
+                    onChange={handleChange}
+                    placeholder="e.g. SWG-FK-SSR-01"
+                    className={fieldClass()}
+                  />
+                  <p className="text-xs text-gray-500 mt-1.5">
+                    Flipkart seller SKU for Seller API matching. Leave blank if same as Amazon and
+                    covered by aliases.
+                  </p>
+                </div>
               </div>
 
               <div>

@@ -28,6 +28,7 @@ type ProductLean = {
   slug?: string;
   shortForms?: string[];
   amazonSku?: string;
+  flipkartSku?: string;
 };
 
 function normalizeTitle(value: string): string {
@@ -167,7 +168,7 @@ export async function matchChannelProducts(
   await connectDB();
 
   const products = (await Product.find({ isActive: true })
-    .select("_id name slug shortForms amazonSku")
+    .select("_id name slug shortForms amazonSku flipkartSku")
     .sort({ _id: 1 })
     .lean()) as unknown as ProductLean[];
 
@@ -200,8 +201,24 @@ export async function matchChannelProducts(
         continue;
       }
 
+      // 1b) Exact product-level Flipkart SKU
+      const byFlipkartSku = products.filter(
+        (p) => skuEquals(p.flipkartSku, skuClean)
+      );
+      if (byFlipkartSku.length === 1) {
+        matched.push({
+          productId: byFlipkartSku[0]._id.toString(),
+          productName: byFlipkartSku[0].name,
+          quantity,
+          extractedTitle: title,
+          matchType: "flipkartSku",
+        });
+        continue;
+      }
+
       // 2) Inventory-item SKU -> product BOM (deterministic, ambiguity-safe)
-      const skuMatch = byAmazonSku.length > 1 ? null : await matchBySku(skuClean, products);
+      const ambiguousMarketplaceSku = byAmazonSku.length > 1 || byFlipkartSku.length > 1;
+      const skuMatch = ambiguousMarketplaceSku ? null : await matchBySku(skuClean, products);
       if (skuMatch) {
         matched.push({
           productId: skuMatch.productId,
@@ -344,7 +361,9 @@ export function isHighConfidenceMatch(
 ): boolean {
   if (!matched.length || unmatched.length) return false;
   const strong = matched.every((item) =>
-    ["alias", "exact", "slug", "shortForm", "sku", "amazonSku", "soft"].includes(item.matchType || "")
+    ["alias", "exact", "slug", "shortForm", "sku", "amazonSku", "flipkartSku", "soft"].includes(
+      item.matchType || ""
+    )
   );
   return strong || confidence >= 0.85;
 }

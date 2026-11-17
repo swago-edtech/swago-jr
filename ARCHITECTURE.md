@@ -89,6 +89,14 @@ A unique reward system where kids can earn "Swago Dollars" (SD).
 - **Phases**: Selection Phase → Validation Phase → Result/Claim Phase.
 - **Architecture**: Cron jobs (via `/api/cron`) handle automatic transitions between lottery states and winner selection.
 
+### Channel marketplace orders (Amazon + Flipkart)
+- **Separate sales model**: `ChannelOrder` (Confirmed/Cancelled) alongside website `Order`.
+- **Stock**: Shared `InventoryItem` pool via `ChannelStockOrder` + `ChannelStockLedger` (`syncChannelOrderStock`). Website uses `allocateInventoryForOrder` / `deductInventoryForOrder`.
+- **Ingest**: Amazon Gmail email sync + Amazon SP-API + Flipkart Seller API (read-only). Cron: `/api/cron/channel-email-sync`.
+- **SKU match**: Product `amazonSku`, `flipkartSku`, inventory SKU, aliases.
+- **Returns policy**: Review-only; no auto-restock from returns/replacements.
+- **Ops UI**: Inventory → Channel Sync. Docs: `docs/CHANNEL_SELLER_API.md`.
+
 ---
 
 ## 🚀 Deployment Strategy

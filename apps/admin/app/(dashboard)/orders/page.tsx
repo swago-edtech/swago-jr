@@ -468,38 +468,40 @@ function ChannelTabs({
   searchParams: { [key: string]: string | undefined };
 }) {
   const base = { ...searchParams, page: '1' };
+  const tabs = [
+    {
+      key: 'website',
+      label: 'Website',
+      href: { pathname: '/orders', query: { ...base, channel: 'website', tab: searchParams.tab || 'current' } },
+      active: 'bg-white text-slate-900 shadow-sm',
+    },
+    {
+      key: 'amazon',
+      label: 'Amazon',
+      href: { pathname: '/orders', query: { ...base, channel: 'amazon', tab: undefined, status: undefined } },
+      active: 'bg-orange-50 text-orange-800 shadow-sm ring-1 ring-orange-200',
+    },
+    {
+      key: 'flipkart',
+      label: 'Flipkart',
+      href: { pathname: '/orders', query: { ...base, channel: 'flipkart', tab: undefined, status: undefined } },
+      active: 'bg-yellow-50 text-yellow-900 shadow-sm ring-1 ring-yellow-200',
+    },
+  ] as const;
+
   return (
     <div className="flex bg-slate-900/5 p-1 rounded-xl">
-      <Link
-        href={{ pathname: '/orders', query: { ...base, channel: 'website', tab: searchParams.tab || 'current' } }}
-        className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
-          channel === 'website'
-            ? 'bg-white text-slate-900 shadow-sm'
-            : 'text-slate-500 hover:text-slate-800'
-        }`}
-      >
-        Website
-      </Link>
-      <Link
-        href={{ pathname: '/orders', query: { ...base, channel: 'amazon', tab: undefined, status: undefined } }}
-        className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
-          channel === 'amazon'
-            ? 'bg-white text-slate-900 shadow-sm'
-            : 'text-slate-500 hover:text-slate-800'
-        }`}
-      >
-        Amazon
-      </Link>
-      <Link
-        href={{ pathname: '/orders', query: { ...base, channel: 'flipkart', tab: undefined, status: undefined } }}
-        className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
-          channel === 'flipkart'
-            ? 'bg-white text-slate-900 shadow-sm'
-            : 'text-slate-500 hover:text-slate-800'
-        }`}
-      >
-        Flipkart
-      </Link>
+      {tabs.map((tab) => (
+        <Link
+          key={tab.key}
+          href={tab.href}
+          className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+            channel === tab.key ? tab.active : 'text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          {tab.label}
+        </Link>
+      ))}
     </div>
   );
 }

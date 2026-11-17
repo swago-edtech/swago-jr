@@ -916,8 +916,9 @@ function SellerApiSyncPanel({
           <h2 className="text-base font-semibold text-slate-900">Seller API order sync</h2>
           <p className="text-sm text-slate-500 mt-0.5">
             Read-only polling of Amazon and Flipkart seller accounts into the same channel stock ledger.
-            Email sync is unchanged. Notifications are not used. This is not live until seller credentials
-            are set and a sync has succeeded.
+            Email sync (Amazon) is separate below. Notifications are not used. Returns / replacements /
+            courier returns are held for review only — stock is not auto-restored. Not live until seller
+            credentials are set and a sync has succeeded.
           </p>
         </div>
         <button
@@ -1426,17 +1427,18 @@ function ChannelEmailPageInner() {
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">
-            Channel Email Sync
+            Channel Sync
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            Genuine Amazon new-order mail cuts BOM stock when products match by{" "}
-            <strong>Amazon SKU on the product</strong>, inventory-item SKU, alias, or catalog name.
-            Unmatched rows show <strong>Match again</strong> then <strong>Confirm order</strong>.
-            Ignore only dismisses mail that is not a real sale.
+            Amazon email + Amazon/Flipkart seller APIs share one stock ledger. Match products by{" "}
+            <strong>Amazon SKU</strong>, <strong>Flipkart SKU</strong>, inventory-item SKU, alias, or
+            catalog name. Unmatched rows need <strong>Match again</strong> then{" "}
+            <strong>Confirm order</strong>. Returns and replacements are review-only — stock is never
+            auto-restored from marketplace returns.
             {config.lastSyncedAt && (
               <>
                 {" "}
-                Last checked{" "}
+                Last email check{" "}
                 <span className="text-slate-700">
                   {new Date(config.lastSyncedAt).toLocaleString("en-IN")}
                 </span>
@@ -1444,7 +1446,7 @@ function ChannelEmailPageInner() {
               </>
             )}
             {" "}
-            Auto-check runs with the app worker on the server; use Check mail now anytime.
+            Auto-sync runs with the app worker; use Check mail / Sync seller APIs anytime.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -1480,8 +1482,20 @@ function ChannelEmailPageInner() {
         </div>
       )}
 
-      <SellerApiSyncPanel status={sellerApiStatus} syncing={sellerApiSyncing} onSync={runSellerApiSync} onToggle={toggleSellerApi} />
+      <section className="space-y-2">
+        <div className="flex items-center gap-2">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500">1 · Seller APIs</h2>
+          <div className="h-px flex-1 bg-slate-200" />
+        </div>
+        <SellerApiSyncPanel status={sellerApiStatus} syncing={sellerApiSyncing} onSync={runSellerApiSync} onToggle={toggleSellerApi} />
+      </section>
 
+      <section className="space-y-2 pt-2">
+        <div className="flex items-center gap-2">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500">2 · Amazon email</h2>
+          <div className="h-px flex-1 bg-slate-200" />
+        </div>
+      </section>
 
       {config.needsReconnect && (
         <p className="text-sm text-rose-700">
@@ -1852,10 +1866,10 @@ function ChannelEmailPageInner() {
                                 {needsMatch && (
                                   <p className="text-xs text-amber-700 mt-2">
                                     Amazon title was extracted, but it is not linked to a Swago product.
-                                    Open the product (e.g. Seek Rush) → Inventory & Stock Alert → set{" "}
-                                    <strong>Amazon / Marketplace SKU</strong> to{" "}
+                                    Open the product → Inventory & Stock Alert → set{" "}
+                                    <strong>Amazon SKU</strong> or <strong>Flipkart SKU</strong> to{" "}
                                     <code className="font-mono">SWG-OBG-SSR-01-6Y</code>, save, then
-                                    Match again → Confirm order. (You can also map via Channel Email
+                                    Match again → Confirm order. (You can also map via Channel Sync
                                     aliases.)
                                   </p>
                                 )}

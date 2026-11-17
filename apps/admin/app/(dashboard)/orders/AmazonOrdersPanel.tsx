@@ -5,7 +5,10 @@ import OrderDateCell from "./OrderDateCell";
 
 type MarketplaceChannel = "amazon" | "flipkart";
 
-async function getMarketplaceOrders(channel: MarketplaceChannel, searchParams: { [key: string]: string | undefined }) {
+async function getMarketplaceOrders(
+  channel: MarketplaceChannel,
+  searchParams: { [key: string]: string | undefined }
+) {
   await connectDB();
   await ensureChannelOrdersBackfilled(2000);
 
@@ -27,9 +30,11 @@ async function getMarketplaceOrders(channel: MarketplaceChannel, searchParams: {
   const limit = 20;
   const skip = (page - 1) * limit;
 
-  const [orders, totalCount] = await Promise.all([
+  const [orders, totalCount, confirmedCount, cancelledCount] = await Promise.all([
     ChannelOrder.find(query).sort({ receivedAt: -1, createdAt: -1 }).skip(skip).limit(limit).lean(),
     ChannelOrder.countDocuments(query),
+    ChannelOrder.countDocuments({ channel, status: "Confirmed" }),
+    ChannelOrder.countDocuments({ channel, status: "Cancelled" }),
   ]);
 
   return {
@@ -39,6 +44,7 @@ async function getMarketplaceOrders(channel: MarketplaceChannel, searchParams: {
       totalPages: Math.max(1, Math.ceil(totalCount / limit)),
       totalCount,
     },
+    summary: { confirmedCount, cancelledCount },
   };
 }
 
@@ -62,18 +68,48 @@ export default async function AmazonOrdersPanel(props: {
 }) {
   const channel: MarketplaceChannel = props.channel === "flipkart" ? "flipkart" : "amazon";
   const label = channel === "flipkart" ? "Flipkart" : "Amazon";
-  const { orders, pagination } = await getMarketplaceOrders(channel, props.searchParams);
+  const accent =
+    channel === "flipkart"
+      ? { badge: "bg-yellow-100 text-yellow-800", ring: "ring-yellow-200" }
+      : { badge: "bg-orange-100 text-orange-800", ring: "ring-orange-200" };
+  const { orders, pagination, summary } = await getMarketplaceOrders(channel, props.searchParams);
   const q = props.searchParams.q || "";
   const status = props.searchParams.status || "";
 
   return (
     <div className="space-y-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className={`rounded-xl border border-gray-200 bg-white p-4 ring-1 ${accent.ring}`}>
+          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">{label} orders</p>
+          <p className="text-2xl font-bold text-gray-900 mt-1">{pagination.totalCount}</p>
+          <p className="text-xs text-gray-500 mt-1">Matching current filters</p>
+        </div>
+        <div className="rounded-xl border border-gray-200 bg-white p-4">
+          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Confirmed</p>
+          <p className="text-2xl font-bold text-emerald-700 mt-1">{summary.confirmedCount}</p>
+          <p className="text-xs text-gray-500 mt-1">Catalog estimate · stock applied when matched</p>
+        </div>
+        <div className="rounded-xl border border-gray-200 bg-white p-4">
+          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Cancelled</p>
+          <p className="text-2xl font-bold text-rose-700 mt-1">{summary.cancelledCount}</p>
+          <p className="text-xs text-gray-500 mt-1">Ledger restores stock on cancel</p>
+        </div>
+      </div>
+
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between text-sm text-gray-600">
         <p>
-          {label} marketplace orders (catalog price × qty for estimated value). Seller API and, for
-          Amazon, channel email share the same stock ledger.
+          {label} marketplace sales use catalog price × qty.{" "}
+          {channel === "amazon"
+            ? "Email sync and SP-API share one stock ledger."
+            : "Ingested via Flipkart Seller API into the same stock ledger."}{" "}
+          Returns are review-only (no auto-restock).
         </p>
-        <p>Total: {pagination.totalCount}</p>
+        <Link
+          href="/inventory/channel-email"
+          className="shrink-0 text-indigo-600 hover:text-indigo-800 font-medium"
+        >
+          Open Channel Sync →
+        </Link>
       </div>
 
       <form method="get" className="flex flex-wrap items-end gap-3 bg-white border border-gray-200 rounded-xl p-3">
@@ -147,15 +183,36 @@ export default async function AmazonOrdersPanel(props: {
             <tbody className="divide-y divide-gray-200">
               {orders.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
-                    {`No ${label} orders yet.`}
+                  <td colSpan={7} className="px-6 py-14 text-center">
+                    <span
+                      className={`inline-flex px-2.5 py-1 rounded-full text-xs font-semibold ${accent.badge} mb-3`}
+                    >
+                      {label}
+                    </span>
+                    <p className="text-gray-700 font-medium">No {label} orders yet</p>
+                    <p className="text-sm text-gray-500 mt-1 max-w-md mx-auto">
+                      {channel === "flipkart"
+                        ? "Set FLIPKART_APP_ID / FLIPKART_APP_SECRET and run Sync seller APIs from Channel Sync."
+                        : "Connect Gmail and/or Amazon SP-API credentials, then sync from Channel Sync."}
+                    </p>
+                    <Link
+                      href="/inventory/channel-email"
+                      className="inline-flex mt-4 px-4 py-2 rounded-lg bg-slate-900 text-white text-sm font-medium hover:bg-slate-800"
+                    >
+                      Go to Channel Sync
+                    </Link>
                   </td>
                 </tr>
               ) : (
                 orders.map((order: any) => (
                   <tr key={order._id} className="hover:bg-gray-50">
-                    <td className="px-3 py-2.5 whitespace-nowrap font-mono text-sm text-gray-900">
-                      {order.orderId}
+                    <td className="px-3 py-2.5 whitespace-nowrap">
+                      <div className="font-mono text-sm text-gray-900">{order.orderId}</div>
+                      <span
+                        className={`inline-flex mt-1 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${accent.badge}`}
+                      >
+                        {label}
+                      </span>
                     </td>
                     <td className="px-3 py-2.5 whitespace-nowrap text-sm text-gray-700">
                       {order.externalOrderId || "—"}
@@ -199,7 +256,7 @@ export default async function AmazonOrdersPanel(props: {
                     </td>
                     <td className="px-3 py-2.5 whitespace-nowrap">
                       <Link
-                        href={`/orders/amazon/${order._id}`}
+                        href={`/orders/channel/${order._id}`}
                         className="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
                       >
                         View

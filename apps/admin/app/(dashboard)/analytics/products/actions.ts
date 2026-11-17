@@ -1,7 +1,7 @@
 'use server';
 
 import { connectDB, Order, Product, ChannelOrder, ensureChannelOrdersBackfilled } from '@swago/database';
-import { amazonDateQuery, amazonSaleDate } from '@/lib/sales-query';
+import { channelDateQuery, channelSaleDate } from '@/lib/sales-query';
 import { effectiveUnits, type ComboProductMeta } from '@/lib/combo-units';
 
 export interface ProductSalesRow {
@@ -11,6 +11,8 @@ export interface ProductSalesRow {
   qtySold: number;
   paidOrders: number;
   codOrders: number;
+  amazonOrders?: number;
+  flipkartOrders?: number;
   revenue: number;
   refunds: number;
   netRevenue: number;
@@ -31,6 +33,8 @@ export interface ProductAnalyticsData {
     totalQty: number;
     paidOrders: number;
     codOrders: number;
+    amazonOrders: number;
+    flipkartOrders: number;
     totalRevenue: number;
     totalRefunds: number;
     netRevenue: number;
@@ -59,21 +63,42 @@ export async function getProductAnalytics(
     status: { $nin: EXCLUDED_STATUSES },
   };
 
+  const marketplaceFilter =
+    filters?.paymentMethod === 'amazon' || filters?.paymentMethod === 'flipkart'
+      ? filters.paymentMethod
+      : null;
+
   // Apply optional filters
-  if (filters?.paymentMethod && filters.paymentMethod !== 'all' && filters.paymentMethod !== 'amazon') {
+  if (
+    filters?.paymentMethod &&
+    filters.paymentMethod !== 'all' &&
+    filters.paymentMethod !== 'amazon' &&
+    filters.paymentMethod !== 'flipkart'
+  ) {
     query.paymentMethod = filters.paymentMethod;
   }
   if (filters?.status && filters.status !== 'all') {
     query.status = filters.status;
   }
 
-  const includeWebsite = !filters?.paymentMethod || filters.paymentMethod !== 'amazon';
-  const includeAmazon =
-    !filters?.paymentMethod ||
-    filters.paymentMethod === 'all' ||
-    filters.paymentMethod === 'amazon';
+  // Confirmed is marketplace-only; Delivered / Shipped / Paid / RTO / Pending are website-oriented
+  const statusFilter = filters?.status || 'all';
+  const marketplaceOnlyStatus = statusFilter === 'Confirmed';
+  const websiteOnlyStatus = ['Delivered', 'Shipped', 'Paid', 'RTO', 'Pending'].includes(statusFilter);
 
-  if (includeAmazon) {
+  const includeWebsite = !marketplaceFilter && !marketplaceOnlyStatus;
+  const includeAmazon =
+    !websiteOnlyStatus &&
+    (!filters?.paymentMethod ||
+      filters.paymentMethod === 'all' ||
+      filters.paymentMethod === 'amazon');
+  const includeFlipkart =
+    !websiteOnlyStatus &&
+    (!filters?.paymentMethod ||
+      filters.paymentMethod === 'all' ||
+      filters.paymentMethod === 'flipkart');
+
+  if (includeAmazon || includeFlipkart) {
     await ensureChannelOrdersBackfilled(2000);
   }
 
@@ -81,26 +106,32 @@ export async function getProductAnalytics(
     ? await Order.find(query).select('items total status paymentMethod refundAmount').lean()
     : [];
 
+  const channelStatusFilter =
+    statusFilter === 'Cancelled'
+      ? { status: 'Cancelled' as const }
+      : { status: { $ne: 'Cancelled' } };
+
   const amazonOrders = includeAmazon
     ? await ChannelOrder.find({
         channel: 'amazon',
-        ...amazonDateQuery(fromDate, toDate),
-        ...(filters?.status === 'Cancelled'
-          ? { status: 'Cancelled' }
-          : { status: { $ne: 'Cancelled' } }),
+        ...channelDateQuery(fromDate, toDate),
+        ...channelStatusFilter,
       })
-        .select('items total status')
+        .select('items total status channel')
         .lean()
     : [];
 
-  // Skip Amazon when filtering to website-only fulfillment statuses that Amazon doesn't use
-  const amazonStatusOk =
-    !filters?.status ||
-    filters.status === 'all' ||
-    filters.status === 'Delivered' ||
-    filters.status === 'Confirmed' ||
-    filters.status === 'Cancelled';
-  const amazonOrdersFiltered = amazonStatusOk ? amazonOrders : [];
+  const flipkartOrders = includeFlipkart
+    ? await ChannelOrder.find({
+        channel: 'flipkart',
+        ...channelDateQuery(fromDate, toDate),
+        ...channelStatusFilter,
+      })
+        .select('items total status channel')
+        .lean()
+    : [];
+
+  const marketplaceOrdersFiltered = [...amazonOrders, ...flipkartOrders];
 
   const confirmedStatuses = ['Paid', 'Packed', 'Shipped', 'Out for Delivery', 'Delivered'];
 
@@ -182,6 +213,8 @@ export async function getProductAnalytics(
           qtySold: 0,
           paidOrders: 0,
           codOrders: 0,
+          amazonOrders: 0,
+          flipkartOrders: 0,
           revenue: 0,
           refunds: 0,
           netRevenue: 0,
@@ -212,10 +245,12 @@ export async function getProductAnalytics(
     }
   }
 
-  // ── Merge Amazon channel product sales ──
-  for (const order of amazonOrdersFiltered) {
+  // ── Merge Amazon + Flipkart channel product sales ──
+  for (const order of marketplaceOrdersFiltered) {
     if (!order.items || !Array.isArray(order.items)) continue;
     const isConfirmed = order.status !== 'Cancelled';
+    const isAmazon = (order as any).channel === 'amazon';
+    const isFlipkart = (order as any).channel === 'flipkart';
 
     for (const item of order.items as any[]) {
       const rawPid = item.productId?.toString() || '';
@@ -240,6 +275,8 @@ export async function getProductAnalytics(
           qtySold: 0,
           paidOrders: 0,
           codOrders: 0,
+          amazonOrders: 0,
+          flipkartOrders: 0,
           revenue: 0,
           refunds: 0,
           netRevenue: 0,
@@ -251,6 +288,8 @@ export async function getProductAnalytics(
       const p = productMap[truePid];
       p.orders++;
       p.qtySold += qty;
+      if (isAmazon) p.amazonOrders = (p.amazonOrders || 0) + 1;
+      if (isFlipkart) p.flipkartOrders = (p.flipkartOrders || 0) + 1;
 
       if (isConfirmed) {
         p.revenue += itemRevenue;
@@ -275,11 +314,23 @@ export async function getProductAnalytics(
       totalQty: acc.totalQty + p.qtySold,
       paidOrders: acc.paidOrders + p.paidOrders,
       codOrders: acc.codOrders + p.codOrders,
+      amazonOrders: acc.amazonOrders + (p.amazonOrders || 0),
+      flipkartOrders: acc.flipkartOrders + (p.flipkartOrders || 0),
       totalRevenue: acc.totalRevenue + p.revenue,
       totalRefunds: acc.totalRefunds + p.refunds,
       netRevenue: acc.netRevenue + p.netRevenue,
     }),
-    { totalOrders: 0, totalQty: 0, paidOrders: 0, codOrders: 0, totalRevenue: 0, totalRefunds: 0, netRevenue: 0 }
+    {
+      totalOrders: 0,
+      totalQty: 0,
+      paidOrders: 0,
+      codOrders: 0,
+      amazonOrders: 0,
+      flipkartOrders: 0,
+      totalRevenue: 0,
+      totalRefunds: 0,
+      netRevenue: 0,
+    }
   );
 
   return JSON.parse(JSON.stringify({ products, categoryData, totals }));
@@ -305,14 +356,14 @@ export async function getSingleProductAnalytics(
     status: { $nin: EXCLUDED_STATUSES },
   };
 
-  const [orders, amazonOrders] = await Promise.all([
+  const [orders, marketplaceOrders] = await Promise.all([
     Order.find(query).select('createdAt items total status paymentMethod refundAmount').lean(),
     ChannelOrder.find({
-      channel: 'amazon',
-      ...amazonDateQuery(fromDate, toDate),
+      channel: { $in: ['amazon', 'flipkart'] },
+      ...channelDateQuery(fromDate, toDate),
       status: { $ne: 'Cancelled' },
     })
-      .select('createdAt receivedAt confirmedAt items total status')
+      .select('createdAt receivedAt confirmedAt items total status channel')
       .lean(),
   ]);
 
@@ -329,6 +380,7 @@ export async function getSingleProductAnalytics(
       codOrders: 0,
       paidOrders: 0,
       amazonOrders: 0,
+      flipkartOrders: 0,
       status: {} as Record<string, number>
     }
   };
@@ -401,7 +453,7 @@ export async function getSingleProductAnalytics(
     }
   }
 
-  for (const order of amazonOrders) {
+  for (const order of marketplaceOrders) {
     if (!order.items || !Array.isArray(order.items)) continue;
 
     let hasProduct = false;
@@ -420,10 +472,11 @@ export async function getSingleProductAnalytics(
     if (!hasProduct) continue;
 
     result.totals.totalOrders++;
-    result.breakdown.amazonOrders++;
+    if ((order as any).channel === 'flipkart') result.breakdown.flipkartOrders++;
+    else result.breakdown.amazonOrders++;
     result.breakdown.status.Confirmed = (result.breakdown.status.Confirmed || 0) + 1;
 
-    const dateObj = amazonSaleDate(order);
+    const dateObj = channelSaleDate(order);
     const dateStr =
       dateObj && typeof dateObj.toISOString === 'function'
         ? dateObj.toISOString().split('T')[0]

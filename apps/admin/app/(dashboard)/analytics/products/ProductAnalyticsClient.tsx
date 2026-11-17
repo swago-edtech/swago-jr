@@ -6,7 +6,7 @@ import DateRangeFilter, { DateRange, getDefaultDateRange } from '@/components/Da
 import AnalyticsCard from '@/components/AnalyticsCard';
 import { getProductAnalytics, ProductAnalyticsData, ProductSalesRow } from './actions';
 import { exportToCSV } from '@/lib/exportCsv';
-import { Package, ShoppingBag, CreditCard, Truck, IndianRupee, TrendingUp, RotateCcw, Download, AlertTriangle, Layers, BarChart2, Award, ShieldAlert, XOctagon, Search, ArrowUpDown } from 'lucide-react';
+import { Package, ShoppingBag, Download, AlertTriangle, BarChart2, ShieldAlert, XOctagon, Search, ArrowUpDown, Store } from 'lucide-react';
 import ProductAnalyticsCharts from './ProductAnalyticsCharts';
 import SingleProductInsight from './SingleProductInsight';
 
@@ -66,10 +66,11 @@ export default function ProductAnalyticsClient() {
           onChange={(e) => setPaymentFilter(e.target.value)}
           className="px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
-          <option value="all">All Payments</option>
+          <option value="all">All Channels</option>
           <option value="razorpay">Prepaid Only</option>
           <option value="cod">COD Only</option>
           <option value="amazon">Amazon Only</option>
+          <option value="flipkart">Flipkart Only</option>
         </select>
         <select
           value={statusFilter}
@@ -77,7 +78,8 @@ export default function ProductAnalyticsClient() {
           className="px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           <option value="all">All Statuses</option>
-          <option value="Delivered">Delivered</option>
+          <option value="Delivered">Delivered (website)</option>
+          <option value="Confirmed">Confirmed (marketplace)</option>
           <option value="Shipped">Shipped</option>
           <option value="Paid">Paid</option>
           <option value="Cancelled">Cancelled</option>
@@ -131,6 +133,20 @@ export default function ProductAnalyticsClient() {
               subtitle="Overall return to origin"
               icon={XOctagon} 
               color="bg-red-500" 
+            />
+            <AnalyticsCard
+              title="Amazon Orders"
+              value={data.totals.amazonOrders || 0}
+              subtitle="Marketplace confirmed lines"
+              icon={Store}
+              color="bg-orange-500"
+            />
+            <AnalyticsCard
+              title="Flipkart Orders"
+              value={data.totals.flipkartOrders || 0}
+              subtitle="Marketplace confirmed lines"
+              icon={Store}
+              color="bg-yellow-500"
             />
             <AnalyticsCard 
               title="High-Risk Products" 
@@ -272,7 +288,19 @@ export default function ProductAnalyticsClient() {
                             <div className="col-span-1 text-center text-[12px] font-bold text-[#94a3b8]">{index + 1}</div>
                             <div className="col-span-5 flex flex-col justify-center min-w-0 pr-4">
                               <span className="text-[13px] font-black text-[#0f172a] truncate" title={p.name}>{p.name}</span>
-                              <span className="text-[10px] font-bold text-[#64748b] truncate">{p.category}</span>
+                              <div className="flex items-center gap-1.5 mt-0.5 min-w-0">
+                                <span className="text-[10px] font-bold text-[#64748b] truncate">{p.category}</span>
+                                {(p.amazonOrders || 0) > 0 && (
+                                  <span className="shrink-0 text-[9px] font-black uppercase tracking-wide px-1.5 py-0.5 rounded bg-orange-100 text-orange-800">
+                                    Amz {p.amazonOrders}
+                                  </span>
+                                )}
+                                {(p.flipkartOrders || 0) > 0 && (
+                                  <span className="shrink-0 text-[9px] font-black uppercase tracking-wide px-1.5 py-0.5 rounded bg-yellow-100 text-yellow-900">
+                                    Fk {p.flipkartOrders}
+                                  </span>
+                                )}
+                              </div>
                             </div>
                             
                             {/* Heatmap Cells */}

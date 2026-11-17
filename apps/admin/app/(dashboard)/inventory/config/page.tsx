@@ -367,12 +367,12 @@ export default function InventoryDashboardPage() {
                       icon={CalendarDays}
                       title={
                         product.avgDailyUnits && product.avgDailyUnits > 0
-                          ? `~${product.avgDailyUnits}/day over 30d (storefront + Amazon) · raw ${product.daysOfStockRaw ?? "—"}d − ${product.stockBufferDays ?? 3}d buffer${
+                          ? `~${product.avgDailyUnits}/day over 30d (storefront + Amazon + Flipkart) · raw ${product.daysOfStockRaw ?? "—"}d − ${product.stockBufferDays ?? 3}d buffer${
                               product.daysOfStockCapped
                                 ? ` · shown as ${product.daysOfStockCap ?? 90}+`
                                 : ""
                             }`
-                          : "Not enough confirmed storefront or Amazon sales in the last 30 days"
+                          : "Not enough confirmed storefront or marketplace sales in the last 30 days"
                       }
                     />
                     {product.belowTargetItems.length > 0 && (

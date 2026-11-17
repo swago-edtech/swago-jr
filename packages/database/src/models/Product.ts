@@ -91,8 +91,17 @@ const ProductSchema = new mongoose.Schema(
       min: [0, "Total sold cannot be negative"]
     },
 
-    // Amazon / marketplace listing SKU (e.g. SWG-OBG-SSR-01-6Y) for channel email matching
+    // Amazon listing SKU (e.g. SWG-OBG-SSR-01-6Y) for channel email / SP-API matching
     amazonSku: {
+      type: String,
+      default: "",
+      uppercase: true,
+      trim: true,
+      index: true,
+    },
+
+    // Flipkart seller SKU for Seller API matching (may differ from Amazon SKU)
+    flipkartSku: {
       type: String,
       default: "",
       uppercase: true,

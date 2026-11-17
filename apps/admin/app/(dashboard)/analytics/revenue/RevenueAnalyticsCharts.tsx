@@ -100,6 +100,9 @@ export default function RevenueAnalyticsCharts({ dailyTrends, data }: RevenueAna
               {dailyTrends.some((d) => (d.amazon || 0) > 0) && (
                 <Area type="monotone" dataKey="amazon" name="Amazon" stroke="#f97316" strokeWidth={1.5} fillOpacity={0} />
               )}
+              {dailyTrends.some((d) => (d.flipkart || 0) > 0) && (
+                <Area type="monotone" dataKey="flipkart" name="Flipkart" stroke="#eab308" strokeWidth={1.5} fillOpacity={0} />
+              )}
             </AreaChart>
           </ResponsiveContainer>
         </div>

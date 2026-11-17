@@ -102,6 +102,9 @@ export async function PUT(
     if (body.amazonSku !== undefined) {
       updateFields.amazonSku = String(body.amazonSku || "").trim().toUpperCase();
     }
+    if (body.flipkartSku !== undefined) {
+      updateFields.flipkartSku = String(body.flipkartSku || "").trim().toUpperCase();
+    }
     if (body.isFeatured !== undefined) updateFields.isFeatured = body.isFeatured;
     if (body.isActive !== undefined) updateFields.isActive = body.isActive;
     if (

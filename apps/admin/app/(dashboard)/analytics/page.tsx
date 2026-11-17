@@ -1,8 +1,9 @@
 import { connectDB, Order, User, Review, Product, ChannelOrder, ensureChannelOrdersBackfilled } from '@swago/database';
 import { formatPrice } from '@swago/utils';
 import AnalyticsCharts from '@/components/AnalyticsCharts';
-import { TrendingUp, TrendingDown, Users, ShoppingBag, DollarSign, Package, Store } from 'lucide-react';
-import { amazonSaleDate } from '@/lib/sales-query';
+import Link from 'next/link';
+import { TrendingUp, TrendingDown, Users, ShoppingBag, DollarSign, Package, Store, ArrowRight } from 'lucide-react';
+import { channelSaleDate } from '@/lib/sales-query';
 import {
   effectiveUnits,
   normalizeProductNameForAnalytics,
@@ -59,26 +60,25 @@ async function getAnalyticsData() {
   // Confirmed statuses for revenue calculations (Pending excluded — payment not yet completed)
   const confirmedStatuses = ['Paid', 'Packed', 'Shipped', 'Out for Delivery', 'Delivered'];
   const confirmedWebsiteOrders = validOrders.filter(o => confirmedStatuses.includes(o.status));
-  const isAmazonChannel = (o: any) => o.channel !== 'flipkart';
-  const confirmedAmazonOrders = amazonOrders.filter((o: any) => o.status !== 'Cancelled' && isAmazonChannel(o));
+  const confirmedAmazonOrders = amazonOrders.filter((o: any) => o.status !== 'Cancelled' && o.channel === 'amazon');
   const confirmedFlipkartOrders = amazonOrders.filter((o: any) => o.status !== 'Cancelled' && o.channel === 'flipkart');
   const confirmedOrders = [
     ...confirmedWebsiteOrders.map((o: any) => ({ ...o, channel: 'website' as const, saleAt: o.createdAt })),
     ...confirmedAmazonOrders.map((o: any) => ({
       ...o,
       channel: 'amazon' as const,
-      saleAt: amazonSaleDate(o),
-      createdAt: amazonSaleDate(o),
+      saleAt: channelSaleDate(o),
+      createdAt: channelSaleDate(o),
     })),
     ...confirmedFlipkartOrders.map((o: any) => ({
       ...o,
       channel: 'flipkart' as const,
-      saleAt: amazonSaleDate(o),
-      createdAt: amazonSaleDate(o),
+      saleAt: channelSaleDate(o),
+      createdAt: channelSaleDate(o),
     })),
   ];
   
-  // Calculate raw totals (website + Amazon)
+  // Calculate raw totals (website + Amazon + Flipkart)
   const totalRevenue = confirmedOrders.reduce((sum, o) => sum + (o.total || 0), 0);
   const pendingRevenue = validOrders.filter(o => o.status === 'Pending').reduce((sum, o) => sum + (o.total || 0), 0);
   const avgOrderValue = confirmedOrders.length > 0 ? totalRevenue / confirmedOrders.length : 0;
@@ -103,6 +103,9 @@ async function getAnalyticsData() {
     .reduce((sum, o) => sum + (o.total || 0), 0);
   const current30DaysAmazonRevenue = current30DaysOrders
     .filter((o: any) => o.channel === 'amazon')
+    .reduce((sum, o) => sum + (o.total || 0), 0);
+  const current30DaysFlipkartRevenue = current30DaysOrders
+    .filter((o: any) => o.channel === 'flipkart')
     .reduce((sum, o) => sum + (o.total || 0), 0);
   const current30DaysUsers = users.filter(u => new Date(u.createdAt) >= thirtyDaysAgo);
 
@@ -243,17 +246,22 @@ async function getAnalyticsData() {
   const amazon30Days = confirmedAmazonOrders.filter(
     (o: any) => new Date(o.createdAt) >= thirtyDaysAgo
   ).length;
+  const flipkart30Days = confirmedFlipkartOrders.filter(
+    (o: any) => new Date(o.createdAt) >= thirtyDaysAgo
+  ).length;
 
   return {
     totalRevenue,
     websiteRevenue: current30DaysWebsiteRevenue,
     amazonRevenue: current30DaysAmazonRevenue,
+    flipkartRevenue: current30DaysFlipkartRevenue,
     pendingRevenue,
     avgOrderValue,
     todayRevenue,
     monthRevenue: current30DaysRevenue,
     totalOrders: current30DaysOrders.length,
     amazonOrders30d: amazon30Days,
+    flipkartOrders30d: flipkart30Days,
     websiteOrders30d: current30DaysOrders.filter((o: any) => o.channel === 'website').length,
     pendingOrders: validOrders.filter(o => o.status === 'Pending').length,
     totalCustomers: current30DaysUsers.length,
@@ -280,7 +288,7 @@ export default async function AnalyticsPage() {
       trend: data.trends.revenue,
       icon: DollarSign,
       color: 'from-blue-500 to-indigo-600',
-      subtitle: `Web ${formatPrice(data.websiteRevenue)} · Amz ${formatPrice(data.amazonRevenue)}`,
+      subtitle: `Web ${formatPrice(data.websiteRevenue)} · Amz ${formatPrice(data.amazonRevenue)} · Fk ${formatPrice(data.flipkartRevenue)}`,
     },
     {
       title: "30-Day Orders",
@@ -288,15 +296,7 @@ export default async function AnalyticsPage() {
       trend: data.trends.orders,
       icon: ShoppingBag,
       color: 'from-emerald-400 to-teal-500',
-      subtitle: `Web ${data.websiteOrders30d} · Amz ${data.amazonOrders30d}`,
-    },
-    {
-      title: "Amazon Orders (30d)",
-      value: data.amazonOrders30d,
-      trend: null,
-      icon: Store,
-      color: 'from-orange-400 to-amber-500',
-      subtitle: formatPrice(data.amazonRevenue) + ' est. catalog value',
+      subtitle: `Web ${data.websiteOrders30d} · Amz ${data.amazonOrders30d} · Fk ${data.flipkartOrders30d}`,
     },
     {
       title: "New Customers",
@@ -328,14 +328,85 @@ export default async function AnalyticsPage() {
     },
   ];
 
+  const channelStrip = [
+    {
+      key: 'website',
+      label: 'Website',
+      orders: data.websiteOrders30d,
+      revenue: data.websiteRevenue,
+      href: '/orders?channel=website',
+      analyticsHref: '/analytics/orders?channel=website',
+      tone: 'border-slate-200 bg-slate-50',
+      badge: 'bg-slate-200 text-slate-800',
+    },
+    {
+      key: 'amazon',
+      label: 'Amazon',
+      orders: data.amazonOrders30d,
+      revenue: data.amazonRevenue,
+      href: '/orders?channel=amazon',
+      analyticsHref: '/analytics/orders?channel=amazon',
+      tone: 'border-orange-200 bg-orange-50/60',
+      badge: 'bg-orange-100 text-orange-800',
+    },
+    {
+      key: 'flipkart',
+      label: 'Flipkart',
+      orders: data.flipkartOrders30d,
+      revenue: data.flipkartRevenue,
+      href: '/orders?channel=flipkart',
+      analyticsHref: '/analytics/orders?channel=flipkart',
+      tone: 'border-yellow-200 bg-yellow-50/60',
+      badge: 'bg-yellow-100 text-yellow-900',
+    },
+  ];
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Analytics Dashboard</h1>
-        <p className="text-gray-500 mt-1">
-          Website + Amazon channel insights in one place
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Analytics Dashboard</h1>
+          <p className="text-gray-500 mt-1">
+            Website + Amazon + Flipkart channel insights in one place
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2 text-sm">
+          <Link href="/analytics/orders" className="px-3 py-1.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 font-medium text-gray-700">
+            Order analytics
+          </Link>
+          <Link href="/analytics/revenue" className="px-3 py-1.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 font-medium text-gray-700">
+            Revenue
+          </Link>
+          <Link href="/inventory/channel-email" className="px-3 py-1.5 rounded-lg border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 font-medium text-indigo-800">
+            Channel Sync
+          </Link>
+        </div>
+      </div>
+
+      {/* Channel performance strip */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {channelStrip.map((ch) => (
+          <div key={ch.key} className={`rounded-2xl border p-5 ${ch.tone}`}>
+            <div className="flex items-center justify-between gap-2">
+              <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-bold ${ch.badge}`}>
+                <Store className="w-3.5 h-3.5" />
+                {ch.label}
+              </span>
+              <span className="text-[11px] font-medium text-gray-500 uppercase tracking-wide">30 days</span>
+            </div>
+            <p className="text-3xl font-bold text-gray-900 mt-3 tracking-tight">{ch.orders}</p>
+            <p className="text-sm text-gray-600 mt-0.5">orders · {formatPrice(ch.revenue)}</p>
+            <div className="mt-4 flex flex-wrap gap-3 text-sm font-medium">
+              <Link href={ch.href} className="inline-flex items-center gap-1 text-indigo-700 hover:text-indigo-900">
+                Orders <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+              <Link href={ch.analyticsHref} className="inline-flex items-center gap-1 text-gray-600 hover:text-gray-900">
+                Analytics
+              </Link>
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* Premium Glassmorphic Stats Cards */}

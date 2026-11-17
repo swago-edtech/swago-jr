@@ -13,8 +13,8 @@ export type UnifiedSale = {
 
 const WEBSITE_EXCLUDED = ["Abandoned", "Failed", "Pending"];
 
-/** Prefer marketplace email time for Amazon sales dating. */
-export function amazonSaleDate(order: {
+/** Prefer marketplace received/confirmed time for channel sales dating. */
+export function channelSaleDate(order: {
   receivedAt?: Date | string | null;
   confirmedAt?: Date | string | null;
   createdAt?: Date | string | null;
@@ -24,7 +24,10 @@ export function amazonSaleDate(order: {
   return raw ? new Date(raw as Date | string) : new Date();
 }
 
-export function amazonDateQuery(fromDate: Date, toDate: Date) {
+/** @deprecated Use channelSaleDate */
+export const amazonSaleDate = channelSaleDate;
+
+export function channelDateQuery(fromDate: Date, toDate: Date) {
   return {
     $or: [
       { receivedAt: { $gte: fromDate, $lte: toDate } },
@@ -37,6 +40,9 @@ export function amazonDateQuery(fromDate: Date, toDate: Date) {
     ],
   };
 }
+
+/** @deprecated Use channelDateQuery */
+export const amazonDateQuery = channelDateQuery;
 
 export async function fetchUnifiedSales(
   fromDate: Date,
@@ -74,12 +80,16 @@ export async function fetchUnifiedSales(
   }
 
   const marketplaceChannels: Array<"amazon" | "flipkart"> =
-    channel === "all" ? ["amazon", "flipkart"] : channel === "amazon" || channel === "flipkart" ? [channel] : [];
+    channel === "all"
+      ? ["amazon", "flipkart"]
+      : channel === "amazon" || channel === "flipkart"
+        ? [channel]
+        : [];
 
   for (const marketplace of marketplaceChannels) {
     const marketOrders = await ChannelOrder.find({
       channel: marketplace,
-      ...amazonDateQuery(fromDate, toDate),
+      ...channelDateQuery(fromDate, toDate),
     })
       .select("total status createdAt receivedAt confirmedAt itemCount channel")
       .lean();
@@ -91,7 +101,7 @@ export async function fetchUnifiedSales(
         status: order.status === "Cancelled" ? "Cancelled" : "Confirmed",
         paymentMethod: marketplace,
         channel: marketplace,
-        createdAt: amazonSaleDate(order),
+        createdAt: channelSaleDate(order),
         itemCount: order.itemCount || 0,
       });
     }

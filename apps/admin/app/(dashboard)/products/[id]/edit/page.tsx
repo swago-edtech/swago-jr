@@ -18,6 +18,9 @@ type Product = {
   benefits: string;
   stock: number;
   lowStockThreshold: number;
+  amazonSku?: string;
+  flipkartSku?: string;
+  weight?: number;
   isFeatured: boolean;
   isActive: boolean;
   isCombo?: boolean;

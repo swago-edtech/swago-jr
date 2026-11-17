@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { formatPrice } from '@swago/utils';
 import DateRangeFilter, { DateRange, getDefaultDateRange } from '@/components/DateRangeFilter';
 import { getRevenueAnalytics, RevenueBreakdown } from './actions';
@@ -10,11 +11,35 @@ import AnalyticsCard from '@/components/AnalyticsCard';
 import RevenueAnalyticsCharts from './RevenueAnalyticsCharts';
 import type { SalesChannel } from '@/lib/sales-query';
 
+function parseChannel(value: string | null): SalesChannel {
+  if (value === 'website' || value === 'amazon' || value === 'flipkart' || value === 'all') return value;
+  return 'all';
+}
+
 export default function RevenueAnalyticsClient() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [dateRange, setDateRange] = useState<DateRange>(getDefaultDateRange());
-  const [channel, setChannel] = useState<SalesChannel>('all');
+  const [channel, setChannel] = useState<SalesChannel>(() => parseChannel(searchParams.get('channel')));
   const [data, setData] = useState<RevenueBreakdown | null>(null);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setChannel(parseChannel(searchParams.get('channel')));
+  }, [searchParams]);
+
+  const selectChannel = useCallback(
+    (value: SalesChannel) => {
+      setChannel(value);
+      const params = new URLSearchParams(searchParams.toString());
+      if (value === 'all') params.delete('channel');
+      else params.set('channel', value);
+      const qs = params.toString();
+      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+    },
+    [pathname, router, searchParams]
+  );
 
   const fetchData = useCallback(async (range: DateRange, selectedChannel: SalesChannel) => {
     setLoading(true);
@@ -38,7 +63,7 @@ export default function RevenueAnalyticsClient() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Revenue Analytics</h1>
-            <p className="text-gray-500 text-sm mt-1">Website + Amazon revenue breakdown</p>
+            <p className="text-gray-500 text-sm mt-1">Website + Amazon + Flipkart revenue breakdown</p>
           </div>
           <DateRangeFilter value={dateRange} onChange={setDateRange} />
         </div>
@@ -56,16 +81,19 @@ export default function RevenueAnalyticsClient() {
 
   const showWebsite = channel === 'all' || channel === 'website';
   const showAmazon = channel === 'all' || channel === 'amazon';
+  const showFlipkart = channel === 'all' || channel === 'flipkart';
 
   const revenueRows = [
     { label: 'Gross Revenue', value: data.grossRevenue, description: 'Total order value before cancellation/refund', color: 'text-gray-900', icon: IndianRupee, bg: 'bg-gray-50', show: true },
     { label: 'Amazon Revenue', value: data.amazonRevenue, description: 'Estimated catalog value from Amazon channel orders', color: 'text-orange-700', icon: Store, bg: 'bg-orange-50', show: showAmazon },
+    { label: 'Flipkart Revenue', value: data.flipkartRevenue, description: 'Estimated catalog value from Flipkart channel orders', color: 'text-yellow-700', icon: Store, bg: 'bg-yellow-50', show: showFlipkart },
     { label: 'Paid Revenue', value: data.paidRevenue, description: 'Prepaid successful payments (Razorpay)', color: 'text-blue-700', icon: CreditCard, bg: 'bg-blue-50', show: showWebsite },
     { label: 'COD Revenue (Placed)', value: data.codRevenuePlaced, description: 'COD order value (expected, NOT collected)', color: 'text-amber-700', icon: Truck, bg: 'bg-amber-50', show: showWebsite },
     { label: 'COD Revenue (Collected)', value: data.codRevenueCollected, description: 'COD money actually collected after delivery', color: 'text-green-700', icon: Package, bg: 'bg-green-50', show: showWebsite },
     { label: 'Pending COD', value: data.pendingCod, description: 'COD orders not yet delivered/collected', color: 'text-yellow-700', icon: ArrowLeftRight, bg: 'bg-yellow-50', show: showWebsite },
     { label: 'GST Collected', value: data.gstCollected, description: 'Tax collected on confirmed website orders', color: 'text-indigo-700', icon: IndianRupee, bg: 'bg-indigo-50', show: showWebsite },
-    { label: 'Delivered Revenue', value: data.deliveredRevenue, description: 'Revenue from delivered / confirmed channel orders', color: 'text-emerald-700', icon: TrendingUp, bg: 'bg-emerald-50', show: true },
+    { label: 'Delivered Revenue (Website)', value: data.deliveredRevenue, description: 'Website orders with Delivered status only', color: 'text-emerald-700', icon: TrendingUp, bg: 'bg-emerald-50', show: showWebsite },
+    { label: 'Channel Confirmed Revenue', value: data.channelConfirmedRevenue, description: 'Marketplace Confirmed catalog estimate (not physical delivery)', color: 'text-sky-700', icon: Store, bg: 'bg-sky-50', show: showAmazon || showFlipkart },
   ].filter((r) => r.show);
 
   const deductionRows = [
@@ -82,7 +110,7 @@ export default function RevenueAnalyticsClient() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Revenue Analytics</h1>
-          <p className="text-gray-500 text-sm mt-1">Website + Amazon revenue breakdown</p>
+          <p className="text-gray-500 text-sm mt-1">Website + Amazon + Flipkart revenue breakdown</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex bg-gray-100 p-1 rounded-lg">
@@ -90,11 +118,12 @@ export default function RevenueAnalyticsClient() {
               ['all', 'All'],
               ['website', 'Website'],
               ['amazon', 'Amazon'],
+              ['flipkart', 'Flipkart'],
             ] as const).map(([value, label]) => (
               <button
                 key={value}
                 type="button"
-                onClick={() => setChannel(value)}
+                onClick={() => selectChannel(value)}
                 className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                   channel === value
                     ? 'bg-white text-teal-600 shadow-sm'
@@ -121,7 +150,15 @@ export default function RevenueAnalyticsClient() {
         {showAmazon && (
           <AnalyticsCard title="Amazon Revenue" value={formatPrice(data.amazonRevenue)} icon={Store} color="bg-orange-500" />
         )}
-        <AnalyticsCard title="Delivered Revenue" value={formatPrice(data.deliveredRevenue)} icon={TrendingUp} color="bg-emerald-600" textColor="text-emerald-700" />
+        {showFlipkart && (
+          <AnalyticsCard title="Flipkart Revenue" value={formatPrice(data.flipkartRevenue)} icon={Store} color="bg-yellow-500" />
+        )}
+        {showWebsite && (
+          <AnalyticsCard title="Delivered Revenue" value={formatPrice(data.deliveredRevenue)} icon={TrendingUp} color="bg-emerald-600" textColor="text-emerald-700" />
+        )}
+        {(showAmazon || showFlipkart) && (
+          <AnalyticsCard title="Channel Confirmed" value={formatPrice(data.channelConfirmedRevenue)} icon={Store} color="bg-sky-500" />
+        )}
         <AnalyticsCard title="Net Revenue" value={formatPrice(data.netRevenue)} icon={TrendingUp} color="bg-teal-600" textColor="text-teal-700" />
         {showWebsite && (
           <AnalyticsCard title="Shipping Collected" value={formatPrice(data.shippingCollected)} icon={Truck} color="bg-violet-500" />
@@ -193,7 +230,7 @@ export default function RevenueAnalyticsClient() {
               </div>
               <div>
                 <div className="text-base font-bold text-gray-900">Net Revenue</div>
-                <div className="text-xs text-gray-500">Delivered − Refunds − RTO Loss</div>
+                <div className="text-xs text-gray-500">Website Delivered + Channel Confirmed − Refunds − RTO</div>
               </div>
             </div>
             <div className="text-2xl font-bold text-teal-700">

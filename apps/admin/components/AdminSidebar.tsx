@@ -55,7 +55,7 @@ const navigation = [
     submenu: [
       { name: 'Dashboard', href: '/inventory/config' },
       { name: 'Stock Items', href: '/inventory' },
-      { name: 'Channel Email', href: '/inventory/channel-email' },
+      { name: 'Channel Sync', href: '/inventory/channel-email' },
       { name: 'Transactions', href: '/inventory/transactions' },
     ]
   },

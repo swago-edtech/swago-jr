@@ -1,7 +1,7 @@
 'use server';
 
 import { connectDB, Order, ChannelOrder, ensureChannelOrdersBackfilled } from '@swago/database';
-import { amazonDateQuery, type SalesChannel } from '@/lib/sales-query';
+import { channelDateQuery, type SalesChannel } from '@/lib/sales-query';
 
 export interface DailyRevenue {
   date: string;
@@ -9,6 +9,7 @@ export interface DailyRevenue {
   net: number;
   website?: number;
   amazon?: number;
+  flipkart?: number;
 }
 
 export interface RevenueBreakdown {
@@ -18,13 +19,17 @@ export interface RevenueBreakdown {
   codRevenueCollected: number;
   pendingCod: number;
   amazonRevenue: number;
+  flipkartRevenue: number;
   refunds: number;
   discountsGiven: number;
   shippingCollected: number;
   swagoMoneyRedeemed: number;
   gstCollected: number;
   netRevenue: number;
+  /** Website Delivered only — marketplace Confirmed is tracked separately */
   deliveredRevenue: number;
+  /** Non-cancelled marketplace catalog estimate (Confirmed, not physical delivery) */
+  channelConfirmedRevenue: number;
   cancelledRevenue: number;
   rtoLoss: number;
   dailyTrends: DailyRevenue[];
@@ -41,7 +46,7 @@ export async function getRevenueAnalytics(
   const fromDate = new Date(`${from}T00:00:00+05:30`);
   const toDate = new Date(`${to}T23:59:59.999+05:30`);
 
-  if (channel === 'amazon' || channel === 'all') {
+  if (channel === 'amazon' || channel === 'flipkart' || channel === 'all') {
     await ensureChannelOrdersBackfilled(2000);
   }
 
@@ -54,11 +59,13 @@ export async function getRevenueAnalytics(
   let codRevenueCollected = 0;
   let pendingCod = 0;
   let amazonRevenue = 0;
+  let flipkartRevenue = 0;
   let refunds = 0;
   let discountsGiven = 0;
   let shippingCollected = 0;
   let swagoMoneyRedeemed = 0;
   let deliveredRevenue = 0;
+  let channelConfirmedRevenue = 0;
   let cancelledRevenue = 0;
   let rtoLoss = 0;
   let gstCollected = 0;
@@ -68,7 +75,7 @@ export async function getRevenueAnalytics(
   const current = new Date(fromDate);
   while (current <= toDate) {
     const key = current.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
-    dayMap[key] = { date: key, gross: 0, net: 0, website: 0, amazon: 0 };
+    dayMap[key] = { date: key, gross: 0, net: 0, website: 0, amazon: 0, flipkart: 0 };
     current.setDate(current.getDate() + 1);
   }
 
@@ -95,7 +102,6 @@ export async function getRevenueAnalytics(
 
       if (isConfirmed || order.status === 'Delivered') {
         shippingCollected += order.shippingFee || 0;
-        // International orders keep their (INR ledger) shipping in internationalShippingFee; 0 for India
         shippingCollected += order.internationalShippingFee || 0;
         gstCollected += order.taxCollected || 0;
       }
@@ -148,65 +154,51 @@ export async function getRevenueAnalytics(
     }
   }
 
+  async function accumulateMarketplace(marketplace: 'amazon' | 'flipkart') {
+    const marketOrders = await ChannelOrder.find({
+      channel: marketplace,
+      ...channelDateQuery(fromDate, toDate),
+    })
+      .select('total status createdAt receivedAt confirmedAt channel')
+      .lean();
+
+    for (const order of marketOrders) {
+      const total = order.total || 0;
+      grossRevenue += total;
+
+      if (order.status === 'Cancelled') {
+        cancelledRevenue += total;
+      } else {
+        channelConfirmedRevenue += total;
+        if (marketplace === 'amazon') amazonRevenue += total;
+        else flipkartRevenue += total;
+      }
+
+      const orderDate = new Date(
+        (order.receivedAt || order.confirmedAt || order.createdAt) as Date
+      );
+      const dayKey = orderDate.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
+      const day = dayMap[dayKey];
+      if (day) {
+        day.gross += total;
+        if (marketplace === 'amazon') day.amazon = (day.amazon || 0) + total;
+        else day.flipkart = (day.flipkart || 0) + total;
+        if (order.status !== 'Cancelled') {
+          day.net += total;
+        }
+      }
+    }
+  }
+
   if (channel === 'amazon' || channel === 'all') {
-    const amazonOrders = await ChannelOrder.find({ channel: 'amazon', ...amazonDateQuery(fromDate, toDate) })
-      .select('total status createdAt receivedAt confirmedAt channel')
-      .lean();
-
-    for (const order of amazonOrders) {
-      const total = order.total || 0;
-      grossRevenue += total;
-
-      if (order.status === 'Cancelled') {
-        cancelledRevenue += total;
-      } else {
-        amazonRevenue += total;
-        deliveredRevenue += total;
-      }
-
-      const orderDate = new Date(
-        (order.receivedAt || order.confirmedAt || order.createdAt) as Date
-      );
-      const dayKey = orderDate.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
-      const day = dayMap[dayKey];
-      if (day) {
-        day.gross += total;
-        day.amazon = (day.amazon || 0) + total;
-        if (order.status !== 'Cancelled') {
-          day.net += total;
-        }
-      }
-    }
+    await accumulateMarketplace('amazon');
   }
-
   if (channel === 'flipkart' || channel === 'all') {
-    const flipkartOrders = await ChannelOrder.find({ channel: 'flipkart', ...amazonDateQuery(fromDate, toDate) })
-      .select('total status createdAt receivedAt confirmedAt channel')
-      .lean();
-
-    for (const order of flipkartOrders) {
-      const total = order.total || 0;
-      grossRevenue += total;
-      if (order.status === 'Cancelled') {
-        cancelledRevenue += total;
-      } else {
-        deliveredRevenue += total;
-      }
-      const orderDate = new Date(
-        (order.receivedAt || order.confirmedAt || order.createdAt) as Date
-      );
-      const dayKey = orderDate.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
-      const day = dayMap[dayKey];
-      if (day) {
-        day.gross += total;
-        if (order.status !== 'Cancelled') {
-          day.net += total;
-        }
-      }
-    }
+    await accumulateMarketplace('flipkart');
   }
 
-  const netRevenue = deliveredRevenue - refunds - rtoLoss;
+  // Net = website delivered + marketplace confirmed − refunds − RTO
+  const netRevenue = deliveredRevenue + channelConfirmedRevenue - refunds - rtoLoss;
   const dailyTrends = Object.values(dayMap);
 
   return JSON.parse(
@@ -217,12 +209,14 @@ export async function getRevenueAnalytics(
       codRevenueCollected,
       pendingCod,
       amazonRevenue,
+      flipkartRevenue,
       refunds,
       discountsGiven,
       shippingCollected,
       swagoMoneyRedeemed,
       netRevenue,
       deliveredRevenue,
+      channelConfirmedRevenue,
       cancelledRevenue,
       rtoLoss,
       gstCollected,

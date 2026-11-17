@@ -96,6 +96,16 @@ Pause without deleting data: use **Pause polling** on that panel, or unset the p
 - The email Repair tool now keeps trusted API sources and will not pin `manualLines` over them. It is still email-scan oriented: Flipkart-only API orders are not listed by that scanner.
 - Stock sync that returns busy / needs-repair / ledger-conflict is treated as an ingest failure so the checkpoint does not skip the order.
 - Marketplace SKUs must already match the catalog (Amazon SKU field or aliases).
-- Product-level analytics charts still treat “Amazon” as Amazon-only; Flipkart sales are in Orders → Flipkart and in combined totals, not a full Flipkart analytics suite.
+- Flipkart is a first-class channel in Orders and Analytics (filters, KPIs, charts, product analytics). Marketplace revenue uses catalog price × qty and counts as **Channel Confirmed**, not website **Delivered**.
+- Product matching uses `amazonSku`, `flipkartSku`, inventory-item SKU, short forms, and channel aliases.
+- Ops UI: Inventory → **Channel Sync** (URL path remains `/inventory/channel-email`).
+
+## Return / restock policy (explicit)
+
+- Customer returns, courier returns, and replacements are **review-only**.
+- Stock is **never** auto-restored or auto-cut from return payloads.
+- Whole-order cancellations (trusted API cancel or email cancel) set `cancelled` and restore via the ledger.
+- Ambiguous Amazon cancellation executions keep prior qty and hold for review.
+- Manual repair / cut-missing tools remain available for ops when review concludes.
 
 Live verification is pending seller account setup. A successful code deploy or a “credentials present” badge is not a live integration.

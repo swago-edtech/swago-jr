@@ -6,7 +6,8 @@ import {
   ProductConfig,
   InventoryItem,
   Order,
-  ChannelOrderEvent,
+  ChannelOrder,
+  ensureChannelOrdersBackfilled,
   getConfiguredProductIds,
   applyEffectiveProductStock,
   calculateBomStock,
@@ -92,6 +93,7 @@ export async function GET(request: NextRequest) {
   try {
     await requireAdmin();
     await connectDB();
+    await ensureChannelOrdersBackfilled(2000);
 
     const since = new Date(Date.now() - LOOKBACK_DAYS * 24 * 60 * 60 * 1000);
 
@@ -122,20 +124,19 @@ export async function GET(request: NextRequest) {
           },
         },
       ]),
-      // Amazon / channel-email orders already applied to inventory
-      ChannelOrderEvent.aggregate([
+      // Marketplace sales (Amazon email/API + Flipkart API) — Confirmed ChannelOrders
+      ChannelOrder.aggregate([
         {
           $match: {
-            status: "applied",
-            eventType: "order",
+            status: "Confirmed",
             $or: [{ receivedAt: { $gte: since } }, { createdAt: { $gte: since } }],
           },
         },
-        { $unwind: "$matchedItems" },
+        { $unwind: "$items" },
         {
           $group: {
-            _id: { $toString: "$matchedItems.productId" },
-            units: { $sum: { $ifNull: ["$matchedItems.quantity", 0] } },
+            _id: { $toString: "$items.productId" },
+            units: { $sum: { $ifNull: ["$items.quantity", 0] } },
           },
         },
       ]),

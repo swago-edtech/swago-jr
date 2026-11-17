@@ -188,6 +188,20 @@ export default function SingleProductInsight({ productsList }: { productsList: P
                         />
                       </div>
                     </div>
+                    <div>
+                      <div className="flex justify-between text-xs font-bold mb-1">
+                        <span className="text-slate-600">Flipkart</span>
+                        <span className="text-yellow-600">{data.breakdown.flipkartOrders || 0} orders</span>
+                      </div>
+                      <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-yellow-500 rounded-full"
+                          style={{
+                            width: `${data.totals.totalOrders > 0 ? ((data.breakdown.flipkartOrders || 0) / data.totals.totalOrders) * 100 : 0}%`,
+                          }}
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
 

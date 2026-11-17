@@ -8,6 +8,7 @@ export interface DaySummary {
   paidOrders: number;
   codOrders: number;
   amazonOrders: number;
+  flipkartOrders: number;
   cancelled: number;
   shipped: number;
   delivered: number;
@@ -41,6 +42,7 @@ export interface OrderAnalyticsData {
     paidOrders: number;
     codOrders: number;
     amazonOrders: number;
+    flipkartOrders: number;
     delivered: number;
     cancelled: number;
     rto: number;
@@ -50,6 +52,7 @@ export interface OrderAnalyticsData {
     paidRevenue: number;
     codRevenue: number;
     amazonRevenue: number;
+    flipkartRevenue: number;
     deliveredRevenue: number;
   };
   channel: SalesChannel;
@@ -75,6 +78,7 @@ export async function getOrderAnalytics(
       paidOrders: 0,
       codOrders: 0,
       amazonOrders: 0,
+      flipkartOrders: 0,
       cancelled: 0,
       shipped: 0,
       delivered: 0,
@@ -94,6 +98,7 @@ export async function getOrderAnalytics(
     paidOrders: 0,
     codOrders: 0,
     amazonOrders: 0,
+    flipkartOrders: 0,
     delivered: 0,
     cancelled: 0,
     rto: 0,
@@ -103,6 +108,7 @@ export async function getOrderAnalytics(
     paidRevenue: 0,
     codRevenue: 0,
     amazonRevenue: 0,
+    flipkartRevenue: 0,
     deliveredRevenue: 0,
   };
 
@@ -132,9 +138,11 @@ export async function getOrderAnalytics(
 
     const total = order.total || 0;
     const isAmazon = order.channel === 'amazon';
+    const isFlipkart = order.channel === 'flipkart';
+    const isMarketplace = isAmazon || isFlipkart;
     const isPaid = order.paymentMethod === 'razorpay';
     const isCod = order.paymentMethod === 'cod';
-    const isConfirmed = isAmazon
+    const isConfirmed = isMarketplace
       ? order.status !== 'Cancelled'
       : websiteConfirmed.includes(order.status);
 
@@ -145,6 +153,11 @@ export async function getOrderAnalytics(
       day.amazonOrders++;
       totals.amazonOrders++;
       if (isConfirmed) totals.amazonRevenue += total;
+    }
+    if (isFlipkart) {
+      day.flipkartOrders++;
+      totals.flipkartOrders++;
+      if (isConfirmed) totals.flipkartRevenue += total;
     }
     if (isPaid) {
       day.paidOrders++;
@@ -188,8 +201,6 @@ export async function getOrderAnalytics(
         totals.rto++;
         break;
       case 'Paid':
-        // Count as in-progress website order for status pie via shipped bucket? Keep separate — Paid is common.
-        // Include in shipped/in-progress for visibility when not delivered yet.
         day.shipped++;
         totals.shipped++;
         break;

@@ -20,6 +20,10 @@ export interface Product {
   comboUnitCount?: number;
   comboProductIds?: string[];
   weight?: number;
+  /** Amazon seller SKU for email / SP-API matching */
+  amazonSku?: string;
+  /** Flipkart seller SKU for Seller API matching */
+  flipkartSku?: string;
   /** Keyed by currency code (e.g. USD). */
   internationalPricing?: Record<string, InternationalPricing>;
   /** Keyed by currency code (e.g. USD). Missing = use InternationalConfig shipping. */
@@ -48,6 +52,9 @@ export interface CreateProductInput {
   isCombo?: boolean;
   comboUnitCount?: number;
   comboProductIds?: string[];
+  weight?: number;
+  amazonSku?: string;
+  flipkartSku?: string;
 }
 
 // For public-facing product displays (customer side)
