@@ -40,7 +40,7 @@ No other seller-API settings are required. India endpoints, marketplace id, look
 - First sync (no checkpoint): last 30 days
 - Later syncs: from the stored checkpoint minus a 2-hour overlap. An outage longer than 30 days does **not** skip the missed window.
 - Max 12 pages per Amazon poll, and per Flipkart filter, in one run. If the cap is hit, the checkpoint is **not** advanced and a pagination cursor is stored so the **next poll resumes remaining pages** of the same frozen window (it does not restart at page 1).
-- Shared cron auth: existing `CRON_SECRET` (production)
+- Channel sync cron (`/api/cron/channel-email-sync`) is open to the local worker (no `CRON_SECRET` gate). Keep it on localhost / PM2 only.
 
 ## Account setup (do this later — credentials are not requested now)
 

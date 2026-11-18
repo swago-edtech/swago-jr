@@ -1,24 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { runChannelEmailSync, runChannelSellerApiSync } from "@swago/database";
 
-// Production: GOOGLE_*, GEMINI_API_KEY, MONGODB_URI, CRON_SECRET
 // Seller APIs (optional): AMAZON_SP_* and/or FLIPKART_APP_* — unconfigured platforms are skipped
-// Local dev: use Admin → Channel Email → "Check mail now" / "Sync seller APIs"
-export async function GET(req: NextRequest) {
+// Local/admin: Inventory → Channel Sync → "Check mail now" / "Sync seller APIs"
+// Worker polls this route on localhost; no CRON_SECRET gate (PM2 internal only).
+export async function GET(_req: NextRequest) {
   try {
-    const authHeader = req.headers.get("authorization");
-    const cronSecret = process.env.CRON_SECRET;
-    const isProduction = process.env.NODE_ENV === "production";
-
-    if (isProduction) {
-      if (!cronSecret) {
-        return NextResponse.json({ error: "CRON_SECRET not configured" }, { status: 500 });
-      }
-      if (authHeader !== `Bearer ${cronSecret}`) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-      }
-    }
-
     // Soft success for needsReconnect — no 500 / stack spam. Service logs once when marking.
     const email = await runChannelEmailSync();
     let sellerApi = null;

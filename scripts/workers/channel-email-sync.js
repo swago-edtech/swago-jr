@@ -1,22 +1,24 @@
 /**
- * Channel email sync worker for EC2 / VPS.
+ * Channel email + seller-API sync worker for EC2 / VPS (PM2).
  *
- * Started automatically with deploy (PM2) alongside web + admin.
- * Also runs under `pnpm start` locally/production if you use the monorepo start script.
+ * Polls the web cron route on an interval. No CRON_SECRET required.
  *
- * Polls the web cron route on an interval. No external cron service required.
- *
- * Env (loads apps/web/.env.local, apps/admin/.env.local, then root .env):
+ * Env (loads from monorepo root via __dirname, then cwd fallbacks):
  *   CHANNEL_EMAIL_SYNC_INTERVAL_MS  (default 300000 = 5 min)
  *   CHANNEL_EMAIL_SYNC_URL          (default http://127.0.0.1:3000/api/cron/channel-email-sync)
- *   CRON_SECRET                     (required when web NODE_ENV=production)
+ *                                   staging web PORT=4000 → set URL to :4000
  */
 const path = require("path");
 const { config: loadEnv } = require("dotenv");
 
+const REPO_ROOT = path.resolve(__dirname, "../..");
+
+loadEnv({ path: path.join(REPO_ROOT, ".env.local") });
+loadEnv({ path: path.join(REPO_ROOT, "apps/web/.env.local") });
+loadEnv({ path: path.join(REPO_ROOT, ".env") });
+// cwd fallbacks when PM2 cwd is the app root
 loadEnv({ path: path.resolve(process.cwd(), "apps/web/.env.local") });
-loadEnv({ path: path.resolve(process.cwd(), "apps/admin/.env.local") });
-loadEnv({ path: path.resolve(process.cwd(), ".env") });
+loadEnv({ path: path.resolve(process.cwd(), ".env.local") });
 
 const INTERVAL_MS = Math.max(
   60_000,
@@ -27,11 +29,7 @@ const SYNC_URL =
   "http://127.0.0.1:3000/api/cron/channel-email-sync";
 
 async function syncViaHttp() {
-  const headers = { Accept: "application/json" };
-  if (process.env.CRON_SECRET) {
-    headers.Authorization = `Bearer ${process.env.CRON_SECRET}`;
-  }
-  const res = await fetch(SYNC_URL, { headers });
+  const res = await fetch(SYNC_URL, { headers: { Accept: "application/json" } });
   const text = await res.text();
   let body;
   try {
@@ -66,7 +64,7 @@ async function tick() {
         lastReconnectWarnAt = now;
         console.warn(
           `[channel-email-worker] Gmail needs reconnect once (not a deploy wipe):`,
-          email.message || "Connect Gmail in Admin → Channel Email"
+          email.message || "Connect Gmail in Admin → Channel Sync"
         );
       }
     } else {
