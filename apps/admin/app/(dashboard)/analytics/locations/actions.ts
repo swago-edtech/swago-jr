@@ -1,6 +1,7 @@
 'use server';
 
 import { connectDB, Order } from '@swago/database';
+import { parseSalesChannel, type SalesChannel } from '@/lib/sales-query';
 
 export interface LocationRow {
   state: string;
@@ -23,15 +24,35 @@ export interface LocationAnalyticsData {
     totalCod: number;
     totalRto: number;
   };
+  /** Marketplace ChannelOrders do not store city/state */
+  geoAvailable: boolean;
+  channel: SalesChannel;
 }
 
-export async function getLocationAnalytics(from: string, to: string): Promise<LocationAnalyticsData> {
+export async function getLocationAnalytics(
+  from: string,
+  to: string,
+  channelInput: SalesChannel = 'all'
+): Promise<LocationAnalyticsData> {
   await connectDB();
 
+  const channel = parseSalesChannel(channelInput);
   const fromDate = new Date(`${from}T00:00:00+05:30`);
   const toDate = new Date(`${to}T23:59:59.999+05:30`);
 
-  // Exclude non-business orders (Abandoned/Failed/Pending) from all analytics
+  // Amazon/Flipkart have no shipping address — empty geo with flag
+  if (channel === 'amazon' || channel === 'flipkart') {
+    return JSON.parse(
+      JSON.stringify({
+        locations: [],
+        statesSummary: [],
+        totals: { totalOrders: 0, totalRevenue: 0, totalCod: 0, totalRto: 0 },
+        geoAvailable: false,
+        channel,
+      })
+    );
+  }
+
   const EXCLUDED_STATUSES = ['Abandoned', 'Failed', 'Pending'];
 
   const orders = await Order.find({
@@ -41,15 +62,17 @@ export async function getLocationAnalytics(from: string, to: string): Promise<Lo
     .select('total status paymentMethod city state')
     .lean();
 
-  // ── City-level aggregation ──
-  const cityMap: Record<string, {
-    state: string;
-    city: string;
-    orders: number;
-    revenue: number;
-    codOrders: number;
-    rtoOrders: number;
-  }> = {};
+  const cityMap: Record<
+    string,
+    {
+      state: string;
+      city: string;
+      orders: number;
+      revenue: number;
+      codOrders: number;
+      rtoOrders: number;
+    }
+  > = {};
 
   const confirmedStatuses = ['Paid', 'Packed', 'Shipped', 'Out for Delivery', 'Delivered'];
 
@@ -78,9 +101,8 @@ export async function getLocationAnalytics(from: string, to: string): Promise<Lo
     }
   }
 
-  // ── Build location rows ──
   const locations: LocationRow[] = Object.values(cityMap)
-    .map(c => {
+    .map((c) => {
       const codPercent = c.orders > 0 ? Math.round((c.codOrders / c.orders) * 100) : 0;
       const rtoPercent = c.orders > 0 ? Math.round((c.rtoOrders / c.orders) * 100) : 0;
       return {
@@ -92,12 +114,21 @@ export async function getLocationAnalytics(from: string, to: string): Promise<Lo
     })
     .sort((a, b) => b.revenue - a.revenue);
 
-  // ── State-level summary ──
-  const stateMap: Record<string, { state: string; city: string; orders: number; revenue: number; codOrders: number; rtoOrders: number }> = {};
+  const stateMap: Record<
+    string,
+    { state: string; city: string; orders: number; revenue: number; codOrders: number; rtoOrders: number }
+  > = {};
   for (const loc of locations) {
     const sKey = loc.state.toLowerCase();
     if (!stateMap[sKey]) {
-      stateMap[sKey] = { state: loc.state, city: 'All Cities', orders: 0, revenue: 0, codOrders: 0, rtoOrders: 0 };
+      stateMap[sKey] = {
+        state: loc.state,
+        city: 'All Cities',
+        orders: 0,
+        revenue: 0,
+        codOrders: 0,
+        rtoOrders: 0,
+      };
     }
     stateMap[sKey].orders += loc.orders;
     stateMap[sKey].revenue += loc.revenue;
@@ -106,7 +137,7 @@ export async function getLocationAnalytics(from: string, to: string): Promise<Lo
   }
 
   const statesSummary: LocationRow[] = Object.values(stateMap)
-    .map(s => {
+    .map((s) => {
       const codPercent = s.orders > 0 ? Math.round((s.codOrders / s.orders) * 100) : 0;
       const rtoPercent = s.orders > 0 ? Math.round((s.rtoOrders / s.orders) * 100) : 0;
       return {
@@ -125,5 +156,13 @@ export async function getLocationAnalytics(from: string, to: string): Promise<Lo
     totalRto: locations.reduce((s, l) => s + l.rtoOrders, 0),
   };
 
-  return JSON.parse(JSON.stringify({ locations, statesSummary, totals }));
+  return JSON.parse(
+    JSON.stringify({
+      locations,
+      statesSummary,
+      totals,
+      geoAvailable: true,
+      channel,
+    })
+  );
 }

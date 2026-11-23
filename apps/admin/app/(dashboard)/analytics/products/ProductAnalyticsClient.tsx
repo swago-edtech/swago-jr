@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { formatPrice } from '@swago/utils';
 import DateRangeFilter, { DateRange, getDefaultDateRange } from '@/components/DateRangeFilter';
+import ChannelFilterTabs, { useAnalyticsChannel } from '@/components/ChannelFilterTabs';
 import AnalyticsCard from '@/components/AnalyticsCard';
 import { getProductAnalytics, ProductAnalyticsData, ProductSalesRow } from './actions';
 import { exportToCSV } from '@/lib/exportCsv';
@@ -12,6 +13,7 @@ import SingleProductInsight from './SingleProductInsight';
 
 export default function ProductAnalyticsClient() {
   const [dateRange, setDateRange] = useState<DateRange>(getDefaultDateRange());
+  const { channel, selectChannel } = useAnalyticsChannel();
   const [data, setData] = useState<ProductAnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [paymentFilter, setPaymentFilter] = useState('all');
@@ -20,24 +22,35 @@ export default function ProductAnalyticsClient() {
   const [sortBy, setSortBy] = useState<'qtySold' | 'netRevenue' | 'rtoRate' | 'refundRate'>('qtySold');
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
 
-  const fetchData = useCallback(async (range: DateRange, payment: string, status: string) => {
-    setLoading(true);
-    try {
-      const result = await getProductAnalytics(range.from, range.to, {
-        paymentMethod: payment,
-        status: status,
-      });
-      setData(result);
-    } catch (error) {
-      console.error('Failed to fetch product analytics:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const showWebsite = channel === 'all' || channel === 'website';
+  const showAmazon = channel === 'all' || channel === 'amazon';
+  const showFlipkart = channel === 'all' || channel === 'flipkart';
+
+  const fetchData = useCallback(
+    async (range: DateRange, selectedChannel: typeof channel, payment: string, status: string) => {
+      setLoading(true);
+      try {
+        const result = await getProductAnalytics(range.from, range.to, {
+          channel: selectedChannel,
+          paymentMethod: payment,
+          status,
+        });
+        setData(result);
+      } catch (error) {
+        console.error('Failed to fetch product analytics:', error);
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
 
   useEffect(() => {
-    fetchData(dateRange, paymentFilter, statusFilter);
-  }, [dateRange, paymentFilter, statusFilter, fetchData]);
+    // Website payment filters only apply on website / all
+    const payment =
+      channel === 'amazon' || channel === 'flipkart' ? 'all' : paymentFilter;
+    fetchData(dateRange, channel, payment, statusFilter);
+  }, [dateRange, channel, paymentFilter, statusFilter, fetchData]);
 
   return (
     <div className="space-y-6">
@@ -45,9 +58,18 @@ export default function ProductAnalyticsClient() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Product Analytics</h1>
-          <p className="text-gray-500 text-sm mt-1">Product-wise sales, quantity &amp; revenue breakdown</p>
+          <p className="text-gray-500 text-sm mt-1">
+            {channel === 'amazon'
+              ? 'Amazon marketplace product sales (catalog estimate)'
+              : channel === 'flipkart'
+                ? 'Flipkart marketplace product sales (catalog estimate)'
+                : channel === 'website'
+                  ? 'Website storefront product sales only'
+                  : 'Website + Amazon + Flipkart product sales'}
+          </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <ChannelFilterTabs value={channel} onChange={selectChannel} accentClass="text-purple-600" />
           <button
             onClick={() => exportToCSV('product_sales', data?.products || [])}
             className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm"
@@ -61,30 +83,36 @@ export default function ProductAnalyticsClient() {
 
       {/* Filters Row */}
       <div className="flex flex-wrap gap-3">
-        <select
-          value={paymentFilter}
-          onChange={(e) => setPaymentFilter(e.target.value)}
-          className="px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="all">All Channels</option>
-          <option value="razorpay">Prepaid Only</option>
-          <option value="cod">COD Only</option>
-          <option value="amazon">Amazon Only</option>
-          <option value="flipkart">Flipkart Only</option>
-        </select>
+        {showWebsite && (
+          <select
+            value={paymentFilter}
+            onChange={(e) => setPaymentFilter(e.target.value)}
+            className="px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="all">All Website Payments</option>
+            <option value="razorpay">Prepaid Only</option>
+            <option value="cod">COD Only</option>
+          </select>
+        )}
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
           className="px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           <option value="all">All Statuses</option>
-          <option value="Delivered">Delivered (website)</option>
-          <option value="Confirmed">Confirmed (marketplace)</option>
-          <option value="Shipped">Shipped</option>
-          <option value="Paid">Paid</option>
+          {showWebsite && (
+            <>
+              <option value="Delivered">Delivered (website)</option>
+              <option value="Shipped">Shipped</option>
+              <option value="Paid">Paid</option>
+              <option value="RTO">RTO</option>
+              <option value="Pending">Pending</option>
+            </>
+          )}
+          {(showAmazon || showFlipkart) && (
+            <option value="Confirmed">Confirmed (marketplace)</option>
+          )}
           <option value="Cancelled">Cancelled</option>
-          <option value="RTO">RTO</option>
-          <option value="Pending">Pending</option>
         </select>
       </div>
 
@@ -134,39 +162,45 @@ export default function ProductAnalyticsClient() {
               icon={XOctagon} 
               color="bg-red-500" 
             />
-            <AnalyticsCard
-              title="Amazon Orders"
-              value={data.totals.amazonOrders || 0}
-              subtitle="Marketplace confirmed lines"
-              icon={Store}
-              color="bg-orange-500"
-            />
-            <AnalyticsCard
-              title="Flipkart Orders"
-              value={data.totals.flipkartOrders || 0}
-              subtitle="Marketplace confirmed lines"
-              icon={Store}
-              color="bg-yellow-500"
-            />
-            <AnalyticsCard 
-              title="High-Risk Products" 
-              value={data.products.filter((p: ProductSalesRow) => {
-                const rtoRate = p.orders > 0 ? (p.rtoCount / p.orders) * 100 : 0;
-                const refundRate = p.revenue > 0 ? (p.refunds / p.revenue) * 100 : 0;
-                return rtoRate > 20 || refundRate > 15;
-              }).length} 
-              subtitle=">15% Refund or >20% RTO"
-              icon={AlertTriangle} 
-              color="bg-rose-600" 
-              textColor="text-rose-600"
-            />
+            {showAmazon && (
+              <AnalyticsCard
+                title="Amazon Orders"
+                value={data.totals.amazonOrders || 0}
+                subtitle="Marketplace confirmed lines"
+                icon={Store}
+                color="bg-orange-500"
+              />
+            )}
+            {showFlipkart && (
+              <AnalyticsCard
+                title="Flipkart Orders"
+                value={data.totals.flipkartOrders || 0}
+                subtitle="Marketplace confirmed lines"
+                icon={Store}
+                color="bg-yellow-500"
+              />
+            )}
+            {showWebsite && (
+              <AnalyticsCard 
+                title="High-Risk Products" 
+                value={data.products.filter((p: ProductSalesRow) => {
+                  const rtoRate = p.orders > 0 ? (p.rtoCount / p.orders) * 100 : 0;
+                  const refundRate = p.revenue > 0 ? (p.refunds / p.revenue) * 100 : 0;
+                  return rtoRate > 20 || refundRate > 15;
+                }).length} 
+                subtitle=">15% Refund or >20% RTO"
+                icon={AlertTriangle} 
+                color="bg-rose-600" 
+                textColor="text-rose-600"
+              />
+            )}
           </div>
 
           {/* Product Analytics Charts (Categories, Bestsellers, Alerts) */}
           <ProductAnalyticsCharts products={data.products} categoryData={data.categoryData} />
 
           {/* Individual Product Insight (Quick View / Deep Dive) */}
-          <SingleProductInsight productsList={data.products} />
+          <SingleProductInsight productsList={data.products} channel={channel} />
 
           {/* Unified Product Metrics Heatmap */}
           <div className="pt-8">

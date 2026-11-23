@@ -1,45 +1,21 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { formatPrice } from '@swago/utils';
 import DateRangeFilter, { DateRange, getDefaultDateRange } from '@/components/DateRangeFilter';
+import ChannelFilterTabs, { useAnalyticsChannel } from '@/components/ChannelFilterTabs';
 import OrderAnalyticsCharts from '@/components/OrderAnalyticsCharts';
 import AnalyticsCard from '@/components/AnalyticsCard';
 import { getOrderAnalytics, OrderAnalyticsData, DaySummary } from './actions';
 import { exportToCSV } from '@/lib/exportCsv';
 import { ShoppingBag, CreditCard, Truck, PackageCheck, XCircle, RotateCcw, IndianRupee, TrendingUp, Download, Store } from 'lucide-react';
-import type { SalesChannel } from '@/lib/sales-query';
-
-function parseChannel(value: string | null): SalesChannel {
-  if (value === 'website' || value === 'amazon' || value === 'flipkart' || value === 'all') return value;
-  return 'all';
-}
+import type { SalesChannel } from '@/lib/sales-channel';
 
 export default function OrderAnalyticsClient() {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
   const [dateRange, setDateRange] = useState<DateRange>(getDefaultDateRange());
-  const [channel, setChannel] = useState<SalesChannel>(() => parseChannel(searchParams.get('channel')));
+  const { channel, selectChannel } = useAnalyticsChannel();
   const [data, setData] = useState<OrderAnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    setChannel(parseChannel(searchParams.get('channel')));
-  }, [searchParams]);
-
-  const selectChannel = useCallback(
-    (value: SalesChannel) => {
-      setChannel(value);
-      const params = new URLSearchParams(searchParams.toString());
-      if (value === 'all') params.delete('channel');
-      else params.set('channel', value);
-      const qs = params.toString();
-      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
-    },
-    [pathname, router, searchParams]
-  );
 
   const fetchData = useCallback(async (range: DateRange, selectedChannel: SalesChannel) => {
     setLoading(true);
@@ -68,31 +44,17 @@ export default function OrderAnalyticsClient() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Order Analytics</h1>
           <p className="text-gray-500 text-sm mt-1">
-            Website + Amazon + Flipkart sales — filter by channel
+            {channel === 'amazon'
+              ? 'Amazon marketplace only (catalog estimate × qty) — not website orders'
+              : channel === 'flipkart'
+                ? 'Flipkart marketplace only (catalog estimate × qty) — not website orders'
+                : channel === 'website'
+                  ? 'Website storefront orders only — not Amazon/Flipkart'
+                  : 'Website + Amazon + Flipkart — filter by channel'}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <div className="flex bg-gray-100 p-1 rounded-lg">
-            {([
-              ['all', 'All'],
-              ['website', 'Website'],
-              ['amazon', 'Amazon'],
-              ['flipkart', 'Flipkart'],
-            ] as const).map(([value, label]) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() => selectChannel(value)}
-                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                  channel === value
-                    ? 'bg-white text-blue-600 shadow-sm'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+          <ChannelFilterTabs value={channel} onChange={selectChannel} accentClass="text-blue-600" />
           <button
             onClick={() => exportToCSV('order_analytics', data?.dailyData || [])}
             className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm"
@@ -113,86 +75,60 @@ export default function OrderAnalyticsClient() {
         </div>
       ) : data ? (
         <>
-          {/* KPI Summary Cards */}
+          {/* KPI Summary Cards — scoped so Amazon filter never looks like website totals */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-            <AnalyticsCard
-              title="Total Orders"
-              value={data.totals.totalOrders}
-              icon={ShoppingBag}
-              color="bg-blue-500"
-            />
-            {(channel === 'all' || channel === 'amazon') && (
-              <AnalyticsCard
-                title="Amazon Orders"
-                value={data.totals.amazonOrders}
-                icon={Store}
-                color="bg-orange-500"
-              />
-            )}
-            {(channel === 'all' || channel === 'flipkart') && (
-              <AnalyticsCard
-                title="Flipkart Orders"
-                value={data.totals.flipkartOrders}
-                icon={Store}
-                color="bg-yellow-500"
-              />
-            )}
-            {(channel === 'all' || channel === 'website') && (
+            {channel === 'all' && (
               <>
+                <AnalyticsCard title="Total Orders" value={data.totals.totalOrders} icon={ShoppingBag} color="bg-blue-500" />
+                <AnalyticsCard title="Website Orders" value={data.totals.websiteOrders || 0} icon={ShoppingBag} color="bg-slate-500" />
+                <AnalyticsCard title="Amazon Orders" value={data.totals.amazonOrders} icon={Store} color="bg-orange-500" />
+                <AnalyticsCard title="Flipkart Orders" value={data.totals.flipkartOrders} icon={Store} color="bg-yellow-500" />
+                <AnalyticsCard title="Paid (Web)" value={data.totals.paidOrders} icon={CreditCard} color="bg-green-500" />
+                <AnalyticsCard title="COD (Web)" value={data.totals.codOrders} icon={Truck} color="bg-amber-500" />
+                <AnalyticsCard title="Delivered (Web)" value={data.totals.delivered} icon={PackageCheck} color="bg-emerald-600" />
+                <AnalyticsCard title="RTO (Web)" value={data.totals.rto} icon={RotateCcw} color="bg-rose-500" />
+                <AnalyticsCard title="Cancelled" value={data.totals.cancelled} icon={XCircle} color="bg-red-500" />
+                <AnalyticsCard title="Total Revenue" value={formatPrice(data.totals.totalRevenue)} icon={IndianRupee} color="bg-indigo-500" textColor="text-indigo-700" />
+                <AnalyticsCard title="Amazon Revenue" value={formatPrice(data.totals.amazonRevenue)} icon={Store} color="bg-amber-600" />
+                <AnalyticsCard title="Flipkart Revenue" value={formatPrice(data.totals.flipkartRevenue)} icon={Store} color="bg-yellow-600" />
+              </>
+            )}
+            {channel === 'website' && (
+              <>
+                <AnalyticsCard title="Website Orders" value={data.totals.totalOrders} icon={ShoppingBag} color="bg-blue-500" />
+                <AnalyticsCard title="Paid Orders" value={data.totals.paidOrders} icon={CreditCard} color="bg-green-500" />
+                <AnalyticsCard title="COD Orders" value={data.totals.codOrders} icon={Truck} color="bg-amber-500" />
+                <AnalyticsCard title="Delivered" value={data.totals.delivered} icon={PackageCheck} color="bg-emerald-600" />
+                <AnalyticsCard title="RTO" value={data.totals.rto} icon={RotateCcw} color="bg-rose-500" />
+                <AnalyticsCard title="Cancelled" value={data.totals.cancelled} icon={XCircle} color="bg-red-500" />
+                <AnalyticsCard title="Website Revenue" value={formatPrice(data.totals.totalRevenue)} icon={IndianRupee} color="bg-indigo-500" textColor="text-indigo-700" />
+              </>
+            )}
+            {channel === 'amazon' && (
+              <>
+                <AnalyticsCard title="Amazon Orders" value={data.totals.amazonOrders} icon={Store} color="bg-orange-500" />
+                <AnalyticsCard title="Confirmed" value={data.totals.confirmed} icon={PackageCheck} color="bg-emerald-600" />
+                <AnalyticsCard title="Cancelled" value={data.totals.cancelled} icon={XCircle} color="bg-red-500" />
                 <AnalyticsCard
-                  title="Paid Orders"
-                  value={data.totals.paidOrders}
-                  icon={CreditCard}
-                  color="bg-green-500"
-                />
-                <AnalyticsCard
-                  title="COD Orders"
-                  value={data.totals.codOrders}
-                  icon={Truck}
-                  color="bg-amber-500"
-                />
-                <AnalyticsCard
-                  title="Delivered"
-                  value={data.totals.delivered}
-                  icon={PackageCheck}
-                  color="bg-emerald-600"
-                />
-                <AnalyticsCard
-                  title="RTO"
-                  value={data.totals.rto}
-                  icon={RotateCcw}
-                  color="bg-rose-500"
+                  title="Amazon Revenue (est.)"
+                  value={formatPrice(data.totals.amazonRevenue)}
+                  icon={IndianRupee}
+                  color="bg-amber-600"
                 />
               </>
             )}
-            <AnalyticsCard
-              title="Cancelled"
-              value={data.totals.cancelled}
-              icon={XCircle}
-              color="bg-red-500"
-            />
-            <AnalyticsCard
-              title="Total Revenue"
-              value={formatPrice(data.totals.totalRevenue)}
-              icon={IndianRupee}
-              color="bg-indigo-500"
-              textColor="text-indigo-700"
-            />
-            {(channel === 'all' || channel === 'amazon') && (
-              <AnalyticsCard
-                title="Amazon Revenue"
-                value={formatPrice(data.totals.amazonRevenue)}
-                icon={Store}
-                color="bg-amber-600"
-              />
-            )}
-            {(channel === 'all' || channel === 'flipkart') && (
-              <AnalyticsCard
-                title="Flipkart Revenue"
-                value={formatPrice(data.totals.flipkartRevenue)}
-                icon={Store}
-                color="bg-yellow-600"
-              />
+            {channel === 'flipkart' && (
+              <>
+                <AnalyticsCard title="Flipkart Orders" value={data.totals.flipkartOrders} icon={Store} color="bg-yellow-500" />
+                <AnalyticsCard title="Confirmed" value={data.totals.confirmed} icon={PackageCheck} color="bg-emerald-600" />
+                <AnalyticsCard title="Cancelled" value={data.totals.cancelled} icon={XCircle} color="bg-red-500" />
+                <AnalyticsCard
+                  title="Flipkart Revenue (est.)"
+                  value={formatPrice(data.totals.flipkartRevenue)}
+                  icon={IndianRupee}
+                  color="bg-yellow-600"
+                />
+              </>
             )}
             <AnalyticsCard
               title="AOV"
@@ -212,6 +148,7 @@ export default function OrderAnalyticsClient() {
             hourlyDistribution={data.hourlyDistribution}
             dayOfWeekDistribution={data.dayOfWeekDistribution}
             totals={data.totals}
+            channel={channel}
           />
 
           {/* Day-wise Insights (Analytics & Trends) */}
@@ -368,24 +305,32 @@ export default function OrderAnalyticsClient() {
                                   </div>
                                 </div>
 
-                                {/* Channel / payment split */}
+                                {/* Channel / payment split — scoped to active filter */}
                                 <div className="grid grid-cols-2 gap-2 mb-3">
-                                  <div className="bg-white/5 rounded-lg p-2 border border-white/5 flex flex-col items-center">
-                                    <p className="text-[#94a3b8] text-[9px] font-bold uppercase tracking-wider mb-0.5">Prepaid</p>
-                                    <p className="font-black text-[#60a5fa] text-[13px]">{day.paidOrders}</p>
-                                  </div>
-                                  <div className="bg-white/5 rounded-lg p-2 border border-white/5 flex flex-col items-center">
-                                    <p className="text-[#94a3b8] text-[9px] font-bold uppercase tracking-wider mb-0.5">COD</p>
-                                    <p className="font-black text-[#fbbf24] text-[13px]">{day.codOrders}</p>
-                                  </div>
-                                  <div className="bg-white/5 rounded-lg p-2 border border-white/5 flex flex-col items-center">
-                                    <p className="text-[#94a3b8] text-[9px] font-bold uppercase tracking-wider mb-0.5">Amazon</p>
-                                    <p className="font-black text-[#fb923c] text-[13px]">{day.amazonOrders || 0}</p>
-                                  </div>
-                                  <div className="bg-white/5 rounded-lg p-2 border border-white/5 flex flex-col items-center">
-                                    <p className="text-[#94a3b8] text-[9px] font-bold uppercase tracking-wider mb-0.5">Flipkart</p>
-                                    <p className="font-black text-[#facc15] text-[13px]">{day.flipkartOrders || 0}</p>
-                                  </div>
+                                  {(channel === 'all' || channel === 'website') && (
+                                    <>
+                                      <div className="bg-white/5 rounded-lg p-2 border border-white/5 flex flex-col items-center">
+                                        <p className="text-[#94a3b8] text-[9px] font-bold uppercase tracking-wider mb-0.5">Prepaid</p>
+                                        <p className="font-black text-[#60a5fa] text-[13px]">{day.paidOrders}</p>
+                                      </div>
+                                      <div className="bg-white/5 rounded-lg p-2 border border-white/5 flex flex-col items-center">
+                                        <p className="text-[#94a3b8] text-[9px] font-bold uppercase tracking-wider mb-0.5">COD</p>
+                                        <p className="font-black text-[#fbbf24] text-[13px]">{day.codOrders}</p>
+                                      </div>
+                                    </>
+                                  )}
+                                  {(channel === 'all' || channel === 'amazon') && (
+                                    <div className="bg-white/5 rounded-lg p-2 border border-white/5 flex flex-col items-center">
+                                      <p className="text-[#94a3b8] text-[9px] font-bold uppercase tracking-wider mb-0.5">Amazon</p>
+                                      <p className="font-black text-[#fb923c] text-[13px]">{day.amazonOrders || 0}</p>
+                                    </div>
+                                  )}
+                                  {(channel === 'all' || channel === 'flipkart') && (
+                                    <div className="bg-white/5 rounded-lg p-2 border border-white/5 flex flex-col items-center">
+                                      <p className="text-[#94a3b8] text-[9px] font-bold uppercase tracking-wider mb-0.5">Flipkart</p>
+                                      <p className="font-black text-[#facc15] text-[13px]">{day.flipkartOrders || 0}</p>
+                                    </div>
+                                  )}
                                 </div>
 
                                 {/* Fulfillment & Issues */}

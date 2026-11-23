@@ -1,45 +1,21 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { formatPrice } from '@swago/utils';
 import DateRangeFilter, { DateRange, getDefaultDateRange } from '@/components/DateRangeFilter';
+import ChannelFilterTabs, { useAnalyticsChannel } from '@/components/ChannelFilterTabs';
 import { getRevenueAnalytics, RevenueBreakdown } from './actions';
 import { exportToCSV } from '@/lib/exportCsv';
 import { IndianRupee, TrendingUp, ArrowLeftRight, CreditCard, Truck, RotateCcw, XCircle, Gift, Package, Download, Store } from 'lucide-react';
 import AnalyticsCard from '@/components/AnalyticsCard';
 import RevenueAnalyticsCharts from './RevenueAnalyticsCharts';
-import type { SalesChannel } from '@/lib/sales-query';
-
-function parseChannel(value: string | null): SalesChannel {
-  if (value === 'website' || value === 'amazon' || value === 'flipkart' || value === 'all') return value;
-  return 'all';
-}
+import type { SalesChannel } from '@/lib/sales-channel';
 
 export default function RevenueAnalyticsClient() {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
   const [dateRange, setDateRange] = useState<DateRange>(getDefaultDateRange());
-  const [channel, setChannel] = useState<SalesChannel>(() => parseChannel(searchParams.get('channel')));
+  const { channel, selectChannel } = useAnalyticsChannel();
   const [data, setData] = useState<RevenueBreakdown | null>(null);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    setChannel(parseChannel(searchParams.get('channel')));
-  }, [searchParams]);
-
-  const selectChannel = useCallback(
-    (value: SalesChannel) => {
-      setChannel(value);
-      const params = new URLSearchParams(searchParams.toString());
-      if (value === 'all') params.delete('channel');
-      else params.set('channel', value);
-      const qs = params.toString();
-      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
-    },
-    [pathname, router, searchParams]
-  );
 
   const fetchData = useCallback(async (range: DateRange, selectedChannel: SalesChannel) => {
     setLoading(true);
@@ -97,12 +73,12 @@ export default function RevenueAnalyticsClient() {
   ].filter((r) => r.show);
 
   const deductionRows = [
-    { label: 'Cancelled Revenue', value: data.cancelledRevenue, description: 'Revenue lost from cancellations', color: 'text-red-600', icon: XCircle },
-    { label: 'RTO Loss', value: data.rtoLoss, description: 'COD orders returned/not accepted', color: 'text-rose-600', icon: RotateCcw },
-    { label: 'Refunds', value: data.refunds, description: 'Amount refunded to customers', color: 'text-purple-600', icon: ArrowLeftRight },
-    { label: 'Discounts Given', value: data.discountsGiven, description: 'Coupon discounts applied', color: 'text-orange-600', icon: Gift },
-    { label: 'Swago Money Redeemed', value: data.swagoMoneyRedeemed, description: 'Loyalty points redeemed by customers', color: 'text-indigo-600', icon: Gift },
-  ];
+    { label: 'Cancelled Revenue', value: data.cancelledRevenue, description: 'Revenue lost from cancellations', color: 'text-red-600', icon: XCircle, show: true },
+    { label: 'RTO Loss', value: data.rtoLoss, description: 'COD orders returned/not accepted', color: 'text-rose-600', icon: RotateCcw, show: showWebsite },
+    { label: 'Refunds', value: data.refunds, description: 'Amount refunded to customers', color: 'text-purple-600', icon: ArrowLeftRight, show: showWebsite },
+    { label: 'Discounts Given', value: data.discountsGiven, description: 'Coupon discounts applied', color: 'text-orange-600', icon: Gift, show: showWebsite },
+    { label: 'Swago Money Redeemed', value: data.swagoMoneyRedeemed, description: 'Loyalty points redeemed by customers', color: 'text-indigo-600', icon: Gift, show: showWebsite },
+  ].filter((r) => r.show);
 
   return (
     <div className="space-y-6">
@@ -113,27 +89,7 @@ export default function RevenueAnalyticsClient() {
           <p className="text-gray-500 text-sm mt-1">Website + Amazon + Flipkart revenue breakdown</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <div className="flex bg-gray-100 p-1 rounded-lg">
-            {([
-              ['all', 'All'],
-              ['website', 'Website'],
-              ['amazon', 'Amazon'],
-              ['flipkart', 'Flipkart'],
-            ] as const).map(([value, label]) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() => selectChannel(value)}
-                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                  channel === value
-                    ? 'bg-white text-teal-600 shadow-sm'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+          <ChannelFilterTabs value={channel} onChange={selectChannel} accentClass="text-teal-600" />
           <button
             onClick={() => exportToCSV('revenue_analytics', data.dailyTrends || [])}
             className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm"
@@ -166,7 +122,7 @@ export default function RevenueAnalyticsClient() {
       </div>
 
       {/* Revenue Trend & Leakage Charts */}
-      <RevenueAnalyticsCharts dailyTrends={data.dailyTrends} data={data} />
+      <RevenueAnalyticsCharts dailyTrends={data.dailyTrends} data={data} channel={channel} />
 
       {/* Revenue Breakdown Table */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -230,7 +186,11 @@ export default function RevenueAnalyticsClient() {
               </div>
               <div>
                 <div className="text-base font-bold text-gray-900">Net Revenue</div>
-                <div className="text-xs text-gray-500">Website Delivered + Channel Confirmed − Refunds − RTO</div>
+                <div className="text-xs text-gray-500">
+                  {channel === 'amazon' || channel === 'flipkart'
+                    ? 'Marketplace confirmed − cancelled'
+                    : 'Website Delivered + Channel Confirmed − Refunds − RTO'}
+                </div>
               </div>
             </div>
             <div className="text-2xl font-bold text-teal-700">

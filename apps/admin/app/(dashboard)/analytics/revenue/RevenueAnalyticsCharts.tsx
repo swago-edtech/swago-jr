@@ -14,11 +14,12 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { DailyRevenue, RevenueBreakdown } from './actions';
-import { formatPrice } from '@swago/utils';
+import type { SalesChannel } from '@/lib/sales-channel';
 
 interface RevenueAnalyticsChartsProps {
   dailyTrends: DailyRevenue[];
   data: RevenueBreakdown;
+  channel?: SalesChannel;
 }
 
 const tooltipStyle = {
@@ -49,14 +50,22 @@ const LEAKAGE_COLORS = {
   gst: '#6366f1',
 };
 
-export default function RevenueAnalyticsCharts({ dailyTrends, data }: RevenueAnalyticsChartsProps) {
+export default function RevenueAnalyticsCharts({
+  dailyTrends,
+  data,
+  channel = 'all',
+}: RevenueAnalyticsChartsProps) {
+  const showWebsite = channel === 'all' || channel === 'website';
+  const showAmazon = channel === 'all' || channel === 'amazon';
+  const showFlipkart = channel === 'all' || channel === 'flipkart';
+
   const leakageData = [
-    { name: 'RTO Loss', value: data.rtoLoss, color: LEAKAGE_COLORS.rto },
-    { name: 'Cancellations', value: data.cancelledRevenue, color: LEAKAGE_COLORS.cancelled },
-    { name: 'Refunds', value: data.refunds, color: LEAKAGE_COLORS.refunds },
-    { name: 'Discounts', value: data.discountsGiven, color: LEAKAGE_COLORS.discounts },
-    { name: 'GST Collected', value: data.gstCollected, color: LEAKAGE_COLORS.gst },
-  ].filter(d => d.value > 0);
+    { name: 'RTO Loss', value: data.rtoLoss, color: LEAKAGE_COLORS.rto, show: showWebsite },
+    { name: 'Cancellations', value: data.cancelledRevenue, color: LEAKAGE_COLORS.cancelled, show: true },
+    { name: 'Refunds', value: data.refunds, color: LEAKAGE_COLORS.refunds, show: showWebsite },
+    { name: 'Discounts', value: data.discountsGiven, color: LEAKAGE_COLORS.discounts, show: showWebsite },
+    { name: 'GST Collected', value: data.gstCollected, color: LEAKAGE_COLORS.gst, show: showWebsite },
+  ].filter((d) => d.show && d.value > 0);
 
   const formatYAxis = (value: number) => {
     if (value >= 100000) return `₹${(value / 100000).toFixed(1)}L`;
@@ -94,13 +103,13 @@ export default function RevenueAnalyticsCharts({ dailyTrends, data }: RevenueAna
               <Legend />
               <Area type="monotone" dataKey="gross" name="Gross Revenue" stroke="#6366f1" strokeWidth={2} fillOpacity={1} fill="url(#colorGross)" />
               <Area type="monotone" dataKey="net" name="Net Revenue" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#colorNet)" />
-              {dailyTrends.some((d) => (d.website || 0) > 0) && (
+              {showWebsite && dailyTrends.some((d) => (d.website || 0) > 0) && (
                 <Area type="monotone" dataKey="website" name="Website" stroke="#3b82f6" strokeWidth={1.5} fillOpacity={0} />
               )}
-              {dailyTrends.some((d) => (d.amazon || 0) > 0) && (
+              {showAmazon && dailyTrends.some((d) => (d.amazon || 0) > 0) && (
                 <Area type="monotone" dataKey="amazon" name="Amazon" stroke="#f97316" strokeWidth={1.5} fillOpacity={0} />
               )}
-              {dailyTrends.some((d) => (d.flipkart || 0) > 0) && (
+              {showFlipkart && dailyTrends.some((d) => (d.flipkart || 0) > 0) && (
                 <Area type="monotone" dataKey="flipkart" name="Flipkart" stroke="#eab308" strokeWidth={1.5} fillOpacity={0} />
               )}
             </AreaChart>

@@ -6,6 +6,7 @@ import { cleanupExpiredOrders } from '@/lib/cleanupExpiredOrders';
 import OrderFilters from './OrderFilters';
 import Pagination from '@/components/Pagination';
 import AmazonOrdersPanel from './AmazonOrdersPanel';
+import AllChannelsOrdersPanel from './AllChannelsOrdersPanel';
 
 async function getOrders(searchParams: { [key: string]: string | undefined }) {
   await connectDB();
@@ -187,19 +188,30 @@ async function getOrders(searchParams: { [key: string]: string | undefined }) {
 
 export default async function OrdersPage(props: { searchParams?: Promise<{ [key: string]: string | undefined }> }) {
   const searchParams = (await props.searchParams) || {};
-  const channel = searchParams.channel || 'website';
+  const channel = searchParams.channel || 'all';
 
-  if (channel === 'amazon' || channel === 'flipkart') {
+  if (channel === 'amazon' || channel === 'flipkart' || channel === 'all') {
     return (
       <div className="space-y-6">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Orders</h1>
-            <p className="text-gray-600 mt-1">Website, Amazon, and Flipkart channel sales</p>
+            <p className="text-gray-600 mt-1">
+              {channel === 'all'
+                ? 'All channels — Website, Amazon & Flipkart'
+                : 'Website, Amazon, and Flipkart channel sales'}
+            </p>
           </div>
           <ChannelTabs channel={channel} searchParams={searchParams} />
         </div>
-        <AmazonOrdersPanel searchParams={searchParams} channel={channel === 'flipkart' ? 'flipkart' : 'amazon'} />
+        {channel === 'all' ? (
+          <AllChannelsOrdersPanel searchParams={searchParams} />
+        ) : (
+          <AmazonOrdersPanel
+            searchParams={searchParams}
+            channel={channel === 'flipkart' ? 'flipkart' : 'amazon'}
+          />
+        )}
       </div>
     );
   }
@@ -470,6 +482,12 @@ function ChannelTabs({
   const base = { ...searchParams, page: '1' };
   const tabs = [
     {
+      key: 'all',
+      label: 'All',
+      href: { pathname: '/orders', query: { ...base, channel: 'all', tab: undefined, status: undefined } },
+      active: 'bg-white text-blue-700 shadow-sm',
+    },
+    {
       key: 'website',
       label: 'Website',
       href: { pathname: '/orders', query: { ...base, channel: 'website', tab: searchParams.tab || 'current' } },
@@ -490,13 +508,13 @@ function ChannelTabs({
   ] as const;
 
   return (
-    <div className="flex bg-slate-900/5 p-1 rounded-xl">
+    <div className="flex bg-gray-100 p-1 rounded-lg">
       {tabs.map((tab) => (
         <Link
           key={tab.key}
           href={tab.href}
-          className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
-            channel === tab.key ? tab.active : 'text-slate-500 hover:text-slate-800'
+          className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+            channel === tab.key ? tab.active : 'text-gray-500 hover:text-gray-700'
           }`}
         >
           {tab.label}

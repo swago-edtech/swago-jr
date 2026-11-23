@@ -1,5 +1,6 @@
 import { connectDB, Order } from '@swago/database';
 import { formatPrice, getInternationalOrderDisplay } from '@swago/utils';
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import UpdateOrderStatus from '@/components/UpdateOrderStatus';
 import ProductCodesDisplay from '@/components/ProductCodesDisplay';
@@ -41,6 +42,37 @@ export default async function OrderDetailPage({
 
   return (
     <div className="space-y-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <Link
+          href="/orders?channel=website"
+          className="text-sm font-medium text-gray-600 hover:text-gray-900"
+        >
+          ← Back to Website orders
+        </Link>
+        <div className="flex bg-gray-100 p-1 rounded-lg">
+          {(
+            [
+              ['all', 'All'],
+              ['website', 'Website'],
+              ['amazon', 'Amazon'],
+              ['flipkart', 'Flipkart'],
+            ] as const
+          ).map(([key, label]) => (
+            <Link
+              key={key}
+              href={`/orders?channel=${key}`}
+              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                key === 'website'
+                  ? 'bg-white text-blue-600 shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              {label}
+            </Link>
+          ))}
+        </div>
+      </div>
+
       {/* Header */}
       <div className="flex justify-between items-start">
         <div>

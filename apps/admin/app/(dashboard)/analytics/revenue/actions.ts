@@ -1,7 +1,11 @@
 'use server';
 
 import { connectDB, Order, ChannelOrder, ensureChannelOrdersBackfilled } from '@swago/database';
-import { channelDateQuery, type SalesChannel } from '@/lib/sales-query';
+import {
+  channelDateQuery,
+  marketplaceChannelFilter,
+  type SalesChannel,
+} from '@/lib/sales-query';
 
 export interface DailyRevenue {
   date: string;
@@ -156,13 +160,17 @@ export async function getRevenueAnalytics(
 
   async function accumulateMarketplace(marketplace: 'amazon' | 'flipkart') {
     const marketOrders = await ChannelOrder.find({
-      channel: marketplace,
+      ...marketplaceChannelFilter(marketplace),
       ...channelDateQuery(fromDate, toDate),
     })
       .select('total status createdAt receivedAt confirmedAt channel')
       .lean();
 
     for (const order of marketOrders) {
+      const rowChannel =
+        order.channel === 'flipkart' ? 'flipkart' : marketplace === 'flipkart' ? 'flipkart' : 'amazon';
+      if (rowChannel !== marketplace) continue;
+
       const total = order.total || 0;
       grossRevenue += total;
 

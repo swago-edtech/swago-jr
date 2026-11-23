@@ -3,23 +3,25 @@
 import { useState, useEffect, useCallback } from 'react';
 import { formatPrice } from '@swago/utils';
 import DateRangeFilter, { DateRange, getDefaultDateRange } from '@/components/DateRangeFilter';
+import ChannelFilterTabs, { useAnalyticsChannel } from '@/components/ChannelFilterTabs';
 import AnalyticsCard from '@/components/AnalyticsCard';
 import { getCustomerAnalytics, CustomerAnalyticsData, TopCustomer, CityCustomerRow } from './actions';
 import { exportToCSV } from '@/lib/exportCsv';
-import { Users, UserPlus, Repeat, TrendingUp, MapPin, Crown, Download, IndianRupee, Search, ArrowUpDown, Award, Star } from 'lucide-react';
+import { Users, UserPlus, Repeat, TrendingUp, MapPin, Crown, Download, IndianRupee, Search, ArrowUpDown, Award, Star, Store, XCircle } from 'lucide-react';
 
 export default function CustomerAnalyticsClient() {
   const [dateRange, setDateRange] = useState<DateRange>(getDefaultDateRange());
+  const { channel, selectChannel } = useAnalyticsChannel();
   const [data, setData] = useState<CustomerAnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'customers' | 'orders' | 'revenue'>('revenue');
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
 
-  const fetchData = useCallback(async (range: DateRange) => {
+  const fetchData = useCallback(async (range: DateRange, selectedChannel: typeof channel) => {
     setLoading(true);
     try {
-      const result = await getCustomerAnalytics(range.from, range.to);
+      const result = await getCustomerAnalytics(range.from, range.to, selectedChannel);
       setData(result);
     } catch (error) {
       console.error('Failed to fetch customer analytics:', error);
@@ -29,8 +31,8 @@ export default function CustomerAnalyticsClient() {
   }, []);
 
   useEffect(() => {
-    fetchData(dateRange);
-  }, [dateRange, fetchData]);
+    fetchData(dateRange, channel);
+  }, [dateRange, channel, fetchData]);
 
   return (
     <div className="space-y-6">
@@ -38,12 +40,20 @@ export default function CustomerAnalyticsClient() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Customer Analytics</h1>
-          <p className="text-gray-500 text-sm mt-1">New vs repeat buyers, top spenders, LTV & demographics</p>
+          <p className="text-gray-500 text-sm mt-1">
+            {channel === 'amazon' || channel === 'flipkart'
+              ? 'Marketplace order volume (buyer identity not available on channel orders)'
+              : channel === 'website'
+                ? 'Website buyers — new vs repeat, LTV & demographics'
+                : 'Website identity + marketplace order volume'}
+          </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <ChannelFilterTabs value={channel} onChange={selectChannel} accentClass="text-indigo-600" />
           <button
             onClick={() => exportToCSV('top_customers', data?.topCustomers || [])}
             className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm"
+            disabled={!data?.identityAvailable}
           >
             <Download className="w-4 h-4" />
             <span className="hidden sm:inline">Export VIPs</span>
@@ -63,16 +73,42 @@ export default function CustomerAnalyticsClient() {
         <>
           {/* KPI Cards */}
           <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
-            <AnalyticsCard title="Total Customers" value={data.totalCustomers} icon={Users} color="bg-indigo-500" />
-            <AnalyticsCard title="New Customers" value={data.newCustomers} icon={UserPlus} color="bg-blue-500" />
-            <AnalyticsCard title="Repeat Customers" value={data.repeatCustomers} icon={Repeat} color="bg-purple-500" />
-            <AnalyticsCard 
-              title="Repeat Rate" 
-              value={`${data.repeatRate}%`} 
-              icon={TrendingUp} 
-              color="bg-teal-600" 
-              textColor={data.repeatRate >= 20 ? 'text-teal-700' : 'text-amber-600'}
-            />
+            {data.identityAvailable ? (
+              <>
+                <AnalyticsCard title="Total Customers" value={data.totalCustomers} icon={Users} color="bg-indigo-500" />
+                <AnalyticsCard title="New Customers" value={data.newCustomers} icon={UserPlus} color="bg-blue-500" />
+                <AnalyticsCard title="Repeat Customers" value={data.repeatCustomers} icon={Repeat} color="bg-purple-500" />
+                <AnalyticsCard 
+                  title="Repeat Rate" 
+                  value={`${data.repeatRate}%`} 
+                  icon={TrendingUp} 
+                  color="bg-teal-600" 
+                  textColor={data.repeatRate >= 20 ? 'text-teal-700' : 'text-amber-600'}
+                />
+              </>
+            ) : (
+              <>
+                <AnalyticsCard
+                  title="Confirmed Orders"
+                  value={data.totalCustomers}
+                  subtitle="Marketplace (no buyer PII)"
+                  icon={Store}
+                  color="bg-orange-500"
+                />
+                <AnalyticsCard
+                  title="Total Channel Orders"
+                  value={data.marketplaceOrders || 0}
+                  icon={Users}
+                  color="bg-indigo-500"
+                />
+                <AnalyticsCard
+                  title="Cancelled"
+                  value={data.marketplaceCancelled || 0}
+                  icon={XCircle}
+                  color="bg-red-500"
+                />
+              </>
+            )}
             <AnalyticsCard 
               title="Avg Order Value" 
               value={formatPrice(data.aov)} 
@@ -80,15 +116,36 @@ export default function CustomerAnalyticsClient() {
               icon={IndianRupee} 
               color="bg-emerald-500" 
             />
-            <AnalyticsCard 
-              title="Est. LTV" 
-              value={formatPrice(data.ltv)} 
-              subtitle="Revenue ÷ Customers"
-              icon={Award} 
-              color="bg-amber-500" 
-            />
+            {data.identityAvailable && (
+              <AnalyticsCard 
+                title="Est. LTV" 
+                value={formatPrice(data.ltv)} 
+                subtitle="Revenue ÷ Customers"
+                icon={Award} 
+                color="bg-amber-500" 
+              />
+            )}
+            {(channel === 'all' || channel === 'amazon' || channel === 'flipkart') &&
+              data.identityAvailable &&
+              (data.marketplaceOrders || 0) > 0 && (
+                <AnalyticsCard
+                  title="Marketplace Orders"
+                  value={data.marketplaceOrders || 0}
+                  subtitle={`${data.marketplaceCancelled || 0} cancelled`}
+                  icon={Store}
+                  color="bg-orange-500"
+                />
+              )}
           </div>
 
+          {!data.identityAvailable ? (
+            <div className="bg-white rounded-xl border border-gray-100 p-8 text-center text-sm text-gray-500">
+              Amazon/Flipkart ChannelOrders do not include buyer name, phone, or city. Use{' '}
+              <strong className="text-gray-700">Orders</strong> or{' '}
+              <strong className="text-gray-700">Revenue</strong> analytics for marketplace detail.
+            </div>
+          ) : (
+          <>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* VIP Customers Matrix */}
             <div className="bg-[#ffffff]/80 shadow-sm backdrop-blur-xl rounded-2xl border border-[#e2e8f0]/80 overflow-hidden flex flex-col h-full">
@@ -376,6 +433,8 @@ export default function CustomerAnalyticsClient() {
               </div>
             </div>
           </div>
+          </>
+          )}
         </>
       ) : null}
     </div>

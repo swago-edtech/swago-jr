@@ -4,8 +4,15 @@ import { getSingleProductAnalytics, ProductSalesRow } from './actions';
 import { formatPrice } from '@swago/utils';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { format, parseISO } from 'date-fns';
+import type { SalesChannel } from '@/lib/sales-channel';
 
-export default function SingleProductInsight({ productsList }: { productsList: ProductSalesRow[] }) {
+export default function SingleProductInsight({
+  productsList,
+  channel = 'all',
+}: {
+  productsList: ProductSalesRow[];
+  channel?: SalesChannel;
+}) {
   const [selectedProductId, setSelectedProductId] = useState<string>('');
   const [dateRange, setDateRange] = useState<DateRange>(getDefaultDateRange());
   const [data, setData] = useState<any>(null);
@@ -13,25 +20,34 @@ export default function SingleProductInsight({ productsList }: { productsList: P
 
   const selectedProduct = productsList.find(p => p.productId === selectedProductId);
 
-  const fetchData = useCallback(async (id: string, name: string, range: DateRange) => {
-    setLoading(true);
-    try {
-      const result = await getSingleProductAnalytics(id, name, range.from, range.to);
-      setData(result);
-    } catch (error) {
-      console.error('Failed to fetch single product analytics:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const fetchData = useCallback(
+    async (id: string, name: string, range: DateRange, selectedChannel: SalesChannel) => {
+      setLoading(true);
+      try {
+        const result = await getSingleProductAnalytics(
+          id,
+          name,
+          range.from,
+          range.to,
+          selectedChannel
+        );
+        setData(result);
+      } catch (error) {
+        console.error('Failed to fetch single product analytics:', error);
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
 
   useEffect(() => {
     if (selectedProductId && selectedProduct) {
-      fetchData(selectedProductId, selectedProduct.name, dateRange);
+      fetchData(selectedProductId, selectedProduct.name, dateRange, channel);
     } else {
       setData(null);
     }
-  }, [selectedProductId, selectedProduct, dateRange, fetchData]);
+  }, [selectedProductId, selectedProduct, dateRange, channel, fetchData]);
 
   return (
     <div className="pt-8">
@@ -150,58 +166,70 @@ export default function SingleProductInsight({ productsList }: { productsList: P
                 <div className="border border-slate-200 rounded-xl p-5 flex-1">
                   <h3 className="text-sm font-bold text-slate-800 mb-4">Channel & Payment Split</h3>
                   <div className="space-y-4">
-                    <div>
-                      <div className="flex justify-between text-xs font-bold mb-1">
-                        <span className="text-slate-600">Prepaid (Razorpay)</span>
-                        <span className="text-emerald-600">{data.breakdown.paidOrders} orders</span>
+                    {(channel === 'all' || channel === 'website') && (
+                      <>
+                        <div>
+                          <div className="flex justify-between text-xs font-bold mb-1">
+                            <span className="text-slate-600">Prepaid (Razorpay)</span>
+                            <span className="text-emerald-600">{data.breakdown.paidOrders} orders</span>
+                          </div>
+                          <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-emerald-500 rounded-full"
+                              style={{
+                                width: `${data.totals.totalOrders > 0 ? (data.breakdown.paidOrders / data.totals.totalOrders) * 100 : 0}%`,
+                              }}
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <div className="flex justify-between text-xs font-bold mb-1">
+                            <span className="text-slate-600">Cash on Delivery (COD)</span>
+                            <span className="text-indigo-600">{data.breakdown.codOrders} orders</span>
+                          </div>
+                          <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-indigo-500 rounded-full"
+                              style={{
+                                width: `${data.totals.totalOrders > 0 ? (data.breakdown.codOrders / data.totals.totalOrders) * 100 : 0}%`,
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </>
+                    )}
+                    {(channel === 'all' || channel === 'amazon') && (
+                      <div>
+                        <div className="flex justify-between text-xs font-bold mb-1">
+                          <span className="text-slate-600">Amazon</span>
+                          <span className="text-orange-600">{data.breakdown.amazonOrders || 0} orders</span>
+                        </div>
+                        <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-orange-500 rounded-full"
+                            style={{
+                              width: `${data.totals.totalOrders > 0 ? ((data.breakdown.amazonOrders || 0) / data.totals.totalOrders) * 100 : 0}%`,
+                            }}
+                          />
+                        </div>
                       </div>
-                      <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-emerald-500 rounded-full" 
-                          style={{ width: `${data.totals.totalOrders > 0 ? (data.breakdown.paidOrders / data.totals.totalOrders) * 100 : 0}%` }}
-                        />
+                    )}
+                    {(channel === 'all' || channel === 'flipkart') && (
+                      <div>
+                        <div className="flex justify-between text-xs font-bold mb-1">
+                          <span className="text-slate-600">Flipkart</span>
+                          <span className="text-yellow-600">{data.breakdown.flipkartOrders || 0} orders</span>
+                        </div>
+                        <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-yellow-500 rounded-full"
+                            style={{
+                              width: `${data.totals.totalOrders > 0 ? ((data.breakdown.flipkartOrders || 0) / data.totals.totalOrders) * 100 : 0}%`,
+                            }}
+                          />
+                        </div>
                       </div>
-                    </div>
-                    <div>
-                      <div className="flex justify-between text-xs font-bold mb-1">
-                        <span className="text-slate-600">Cash on Delivery (COD)</span>
-                        <span className="text-indigo-600">{data.breakdown.codOrders} orders</span>
-                      </div>
-                      <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-indigo-500 rounded-full" 
-                          style={{ width: `${data.totals.totalOrders > 0 ? (data.breakdown.codOrders / data.totals.totalOrders) * 100 : 0}%` }}
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <div className="flex justify-between text-xs font-bold mb-1">
-                        <span className="text-slate-600">Amazon</span>
-                        <span className="text-orange-600">{data.breakdown.amazonOrders || 0} orders</span>
-                      </div>
-                      <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-orange-500 rounded-full"
-                          style={{
-                            width: `${data.totals.totalOrders > 0 ? ((data.breakdown.amazonOrders || 0) / data.totals.totalOrders) * 100 : 0}%`,
-                          }}
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <div className="flex justify-between text-xs font-bold mb-1">
-                        <span className="text-slate-600">Flipkart</span>
-                        <span className="text-yellow-600">{data.breakdown.flipkartOrders || 0} orders</span>
-                      </div>
-                      <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-yellow-500 rounded-full"
-                          style={{
-                            width: `${data.totals.totalOrders > 0 ? ((data.breakdown.flipkartOrders || 0) / data.totals.totalOrders) * 100 : 0}%`,
-                          }}
-                        />
-                      </div>
-                    </div>
+                    )}
                   </div>
                 </div>
 

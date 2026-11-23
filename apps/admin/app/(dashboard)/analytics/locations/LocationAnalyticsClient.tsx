@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { formatPrice } from '@swago/utils';
 import DateRangeFilter, { DateRange, getDefaultDateRange } from '@/components/DateRangeFilter';
+import ChannelFilterTabs, { useAnalyticsChannel } from '@/components/ChannelFilterTabs';
 import AnalyticsCard from '@/components/AnalyticsCard';
 import { getLocationAnalytics, LocationAnalyticsData, LocationRow } from './actions';
 import { exportToCSV } from '@/lib/exportCsv';
@@ -10,14 +11,15 @@ import { MapPin, ShoppingBag, IndianRupee, Truck, AlertTriangle, RotateCcw, Down
 
 export default function LocationAnalyticsClient() {
   const [dateRange, setDateRange] = useState<DateRange>(getDefaultDateRange());
+  const { channel, selectChannel } = useAnalyticsChannel();
   const [data, setData] = useState<LocationAnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<'city' | 'state'>('state');
 
-  const fetchData = useCallback(async (range: DateRange) => {
+  const fetchData = useCallback(async (range: DateRange, selectedChannel: typeof channel) => {
     setLoading(true);
     try {
-      const result = await getLocationAnalytics(range.from, range.to);
+      const result = await getLocationAnalytics(range.from, range.to, selectedChannel);
       setData(result);
     } catch (error) {
       console.error('Failed to fetch location analytics:', error);
@@ -27,8 +29,8 @@ export default function LocationAnalyticsClient() {
   }, []);
 
   useEffect(() => {
-    fetchData(dateRange);
-  }, [dateRange, fetchData]);
+    fetchData(dateRange, channel);
+  }, [dateRange, channel, fetchData]);
 
   const rows = data ? (view === 'state' ? data.statesSummary : data.locations) : [];
   const riskyCount = rows.filter(r => r.isRisky).length;
@@ -39,12 +41,18 @@ export default function LocationAnalyticsClient() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Location Analytics</h1>
-          <p className="text-gray-500 text-sm mt-1">Geographic performance, COD risk zones &amp; RTO hotspots</p>
+          <p className="text-gray-500 text-sm mt-1">
+            {channel === 'amazon' || channel === 'flipkart'
+              ? 'Marketplace orders have no shipping address — geo is website-only'
+              : 'Website geographic performance, COD risk zones & RTO hotspots'}
+          </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <ChannelFilterTabs value={channel} onChange={selectChannel} accentClass="text-indigo-600" />
           <button
             onClick={() => exportToCSV(`location_${view}_analytics`, view === 'state' ? data?.statesSummary || [] : data?.locations || [])}
             className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm"
+            disabled={data?.geoAvailable === false}
           >
             <Download className="w-4 h-4" />
             <span className="hidden sm:inline">Export CSV</span>
@@ -62,6 +70,16 @@ export default function LocationAnalyticsClient() {
         </div>
       ) : data ? (
         <>
+          {data.geoAvailable === false ? (
+            <div className="bg-white rounded-xl border border-gray-100 p-10 text-center">
+              <MapPin className="w-8 h-8 text-gray-300 mx-auto mb-3" />
+              <p className="text-sm font-medium text-gray-700">No geographic data for this channel</p>
+              <p className="text-xs text-gray-500 mt-1 max-w-md mx-auto">
+                Amazon and Flipkart ChannelOrders do not store city/state. Switch to Website or All to see COD risk zones.
+              </p>
+            </div>
+          ) : (
+          <>
           {/* KPI Cards */}
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             <AnalyticsCard title="Total Orders" value={data.totals.totalOrders} icon={ShoppingBag} color="bg-blue-500" />
@@ -194,6 +212,8 @@ export default function LocationAnalyticsClient() {
               </table>
             </div>
           </div>
+          </>
+          )}
         </>
       ) : null}
     </div>

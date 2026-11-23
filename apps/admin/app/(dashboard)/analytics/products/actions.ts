@@ -1,7 +1,13 @@
 'use server';
 
 import { connectDB, Order, Product, ChannelOrder, ensureChannelOrdersBackfilled } from '@swago/database';
-import { channelDateQuery, channelSaleDate } from '@/lib/sales-query';
+import {
+  channelDateQuery,
+  channelSaleDate,
+  marketplaceChannelFilter,
+  parseSalesChannel,
+  type SalesChannel,
+} from '@/lib/sales-query';
 import { effectiveUnits, type ComboProductMeta } from '@/lib/combo-units';
 
 export interface ProductSalesRow {
@@ -39,12 +45,14 @@ export interface ProductAnalyticsData {
     totalRefunds: number;
     netRevenue: number;
   };
+  channel: SalesChannel;
 }
 
 export async function getProductAnalytics(
   from: string,
   to: string,
   filters?: {
+    channel?: SalesChannel;
     paymentMethod?: string;
     status?: string;
   }
@@ -63,19 +71,23 @@ export async function getProductAnalytics(
     status: { $nin: EXCLUDED_STATUSES },
   };
 
-  const marketplaceFilter =
+  // Legacy: paymentMethod amazon/flipkart → channel
+  const legacyMarket =
     filters?.paymentMethod === 'amazon' || filters?.paymentMethod === 'flipkart'
       ? filters.paymentMethod
       : null;
+  const channel: SalesChannel = parseSalesChannel(filters?.channel || legacyMarket || 'all');
 
-  // Apply optional filters
-  if (
+  const websitePayment =
     filters?.paymentMethod &&
     filters.paymentMethod !== 'all' &&
     filters.paymentMethod !== 'amazon' &&
     filters.paymentMethod !== 'flipkart'
-  ) {
-    query.paymentMethod = filters.paymentMethod;
+      ? filters.paymentMethod
+      : null;
+
+  if (websitePayment) {
+    query.paymentMethod = websitePayment;
   }
   if (filters?.status && filters.status !== 'all') {
     query.status = filters.status;
@@ -86,17 +98,12 @@ export async function getProductAnalytics(
   const marketplaceOnlyStatus = statusFilter === 'Confirmed';
   const websiteOnlyStatus = ['Delivered', 'Shipped', 'Paid', 'RTO', 'Pending'].includes(statusFilter);
 
-  const includeWebsite = !marketplaceFilter && !marketplaceOnlyStatus;
+  const includeWebsite =
+    (channel === 'website' || channel === 'all') && !marketplaceOnlyStatus;
   const includeAmazon =
-    !websiteOnlyStatus &&
-    (!filters?.paymentMethod ||
-      filters.paymentMethod === 'all' ||
-      filters.paymentMethod === 'amazon');
+    (channel === 'amazon' || channel === 'all') && !websiteOnlyStatus;
   const includeFlipkart =
-    !websiteOnlyStatus &&
-    (!filters?.paymentMethod ||
-      filters.paymentMethod === 'all' ||
-      filters.paymentMethod === 'flipkart');
+    (channel === 'flipkart' || channel === 'all') && !websiteOnlyStatus;
 
   if (includeAmazon || includeFlipkart) {
     await ensureChannelOrdersBackfilled(2000);
@@ -109,11 +116,15 @@ export async function getProductAnalytics(
   const channelStatusFilter =
     statusFilter === 'Cancelled'
       ? { status: 'Cancelled' as const }
-      : { status: { $ne: 'Cancelled' } };
+      : statusFilter === 'Confirmed'
+        ? { status: 'Confirmed' as const }
+        : statusFilter === 'all'
+          ? {}
+          : { status: { $ne: 'Cancelled' } };
 
   const amazonOrders = includeAmazon
     ? await ChannelOrder.find({
-        channel: 'amazon',
+        ...marketplaceChannelFilter('amazon'),
         ...channelDateQuery(fromDate, toDate),
         ...channelStatusFilter,
       })
@@ -123,7 +134,7 @@ export async function getProductAnalytics(
 
   const flipkartOrders = includeFlipkart
     ? await ChannelOrder.find({
-        channel: 'flipkart',
+        ...marketplaceChannelFilter('flipkart'),
         ...channelDateQuery(fromDate, toDate),
         ...channelStatusFilter,
       })
@@ -333,17 +344,26 @@ export async function getProductAnalytics(
     }
   );
 
-  return JSON.parse(JSON.stringify({ products, categoryData, totals }));
+  return JSON.parse(JSON.stringify({ products, categoryData, totals, channel }));
 }
 
 export async function getSingleProductAnalytics(
   productId: string,
   productName: string,
   from: string,
-  to: string
+  to: string,
+  channelInput: SalesChannel = 'all'
 ): Promise<any> {
   await connectDB();
-  await ensureChannelOrdersBackfilled(2000);
+
+  const channel = parseSalesChannel(channelInput);
+  const includeWebsite = channel === 'website' || channel === 'all';
+  const includeAmazon = channel === 'amazon' || channel === 'all';
+  const includeFlipkart = channel === 'flipkart' || channel === 'all';
+
+  if (includeAmazon || includeFlipkart) {
+    await ensureChannelOrdersBackfilled(2000);
+  }
 
   const fromDate = new Date(`${from}T00:00:00+05:30`);
   const toDate = new Date(`${to}T23:59:59.999+05:30`);
@@ -356,15 +376,27 @@ export async function getSingleProductAnalytics(
     status: { $nin: EXCLUDED_STATUSES },
   };
 
+  const marketAnd: Record<string, unknown>[] = [
+    channelDateQuery(fromDate, toDate),
+    { status: { $ne: 'Cancelled' } },
+  ];
+  if (includeAmazon && includeFlipkart) {
+    // all marketplaces
+  } else if (includeAmazon) {
+    marketAnd.push(marketplaceChannelFilter('amazon'));
+  } else if (includeFlipkart) {
+    marketAnd.push(marketplaceChannelFilter('flipkart'));
+  }
+
   const [orders, marketplaceOrders] = await Promise.all([
-    Order.find(query).select('createdAt items total status paymentMethod refundAmount').lean(),
-    ChannelOrder.find({
-      channel: { $in: ['amazon', 'flipkart'] },
-      ...channelDateQuery(fromDate, toDate),
-      status: { $ne: 'Cancelled' },
-    })
-      .select('createdAt receivedAt confirmedAt items total status channel')
-      .lean(),
+    includeWebsite
+      ? Order.find(query).select('createdAt items total status paymentMethod refundAmount').lean()
+      : Promise.resolve([]),
+    includeAmazon || includeFlipkart
+      ? ChannelOrder.find({ $and: marketAnd })
+          .select('createdAt receivedAt confirmedAt items total status channel')
+          .lean()
+      : Promise.resolve([]),
   ]);
 
   const confirmedStatuses = ['Paid', 'Packed', 'Shipped', 'Out for Delivery', 'Delivered'];

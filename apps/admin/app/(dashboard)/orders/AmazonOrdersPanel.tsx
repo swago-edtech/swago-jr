@@ -2,6 +2,7 @@ import { connectDB, ChannelOrder, ensureChannelOrdersBackfilled } from "@swago/d
 import { formatPrice } from "@swago/utils";
 import Link from "next/link";
 import OrderDateCell from "./OrderDateCell";
+import { marketplaceChannelFilter } from "@/lib/sales-query";
 
 type MarketplaceChannel = "amazon" | "flipkart";
 
@@ -12,19 +13,24 @@ async function getMarketplaceOrders(
   await connectDB();
   await ensureChannelOrdersBackfilled(2000);
 
-  const query: any = { channel };
+  const andClauses: Record<string, unknown>[] = [marketplaceChannelFilter(channel)];
   if (searchParams.q) {
     const searchRegex = new RegExp(searchParams.q, "i");
-    query.$or = [
-      { orderId: searchRegex },
-      { externalOrderId: searchRegex },
-      { subject: searchRegex },
-      { "items.name": searchRegex },
-    ];
+    andClauses.push({
+      $or: [
+        { orderId: searchRegex },
+        { externalOrderId: searchRegex },
+        { subject: searchRegex },
+        { "items.name": searchRegex },
+      ],
+    });
   }
   if (searchParams.status === "Confirmed" || searchParams.status === "Cancelled") {
-    query.status = searchParams.status;
+    andClauses.push({ status: searchParams.status });
   }
+
+  const query = andClauses.length === 1 ? andClauses[0] : { $and: andClauses };
+  const channelBase = marketplaceChannelFilter(channel);
 
   const page = parseInt(searchParams.page || "1", 10) || 1;
   const limit = 20;
@@ -33,8 +39,8 @@ async function getMarketplaceOrders(
   const [orders, totalCount, confirmedCount, cancelledCount] = await Promise.all([
     ChannelOrder.find(query).sort({ receivedAt: -1, createdAt: -1 }).skip(skip).limit(limit).lean(),
     ChannelOrder.countDocuments(query),
-    ChannelOrder.countDocuments({ channel, status: "Confirmed" }),
-    ChannelOrder.countDocuments({ channel, status: "Cancelled" }),
+    ChannelOrder.countDocuments({ $and: [channelBase, { status: "Confirmed" }] }),
+    ChannelOrder.countDocuments({ $and: [channelBase, { status: "Cancelled" }] }),
   ]);
 
   return {

@@ -1,6 +1,13 @@
 'use server';
 
-import { connectDB, Order } from '@swago/database';
+import { connectDB, Order, ChannelOrder, ensureChannelOrdersBackfilled } from '@swago/database';
+import {
+  channelDateQuery,
+  channelSaleDate,
+  marketplaceChannelFilter,
+  parseSalesChannel,
+  type SalesChannel,
+} from '@/lib/sales-query';
 
 export interface PaymentMethodRow {
   method: string;
@@ -18,6 +25,8 @@ export interface PaymentDailyTrend {
   date: string;
   razorpayOrders: number;
   codOrders: number;
+  amazonOrders: number;
+  flipkartOrders: number;
 }
 
 export interface CodFunnelData {
@@ -38,31 +47,49 @@ export interface PaymentAnalyticsData {
     totalOrders: number;
     totalRevenue: number;
   };
+  channel: SalesChannel;
 }
 
-export async function getPaymentAnalytics(from: string, to: string): Promise<PaymentAnalyticsData> {
+function dayLabel(d: Date): string {
+  return d.toLocaleDateString('en-IN', {
+    timeZone: 'Asia/Kolkata',
+    month: 'short',
+    day: 'numeric',
+  });
+}
+
+export async function getPaymentAnalytics(
+  from: string,
+  to: string,
+  channelInput: SalesChannel = 'all'
+): Promise<PaymentAnalyticsData> {
   await connectDB();
 
+  const channel = parseSalesChannel(channelInput);
   const fromDate = new Date(`${from}T00:00:00+05:30`);
   const toDate = new Date(`${to}T23:59:59.999+05:30`);
 
-  // Exclude non-business orders (Abandoned/Failed/Pending) from all analytics
   const EXCLUDED_STATUSES = ['Abandoned', 'Failed', 'Pending'];
+  const confirmedStatuses = ['Paid', 'Packed', 'Shipped', 'Out for Delivery', 'Delivered'];
 
-  const orders = await Order.find({
-    createdAt: { $gte: fromDate, $lte: toDate },
-    status: { $nin: EXCLUDED_STATUSES },
-  })
-    .select('total status paymentMethod codCollected createdAt')
-    .lean();
+  const includeWebsite = channel === 'website' || channel === 'all';
+  const includeAmazon = channel === 'amazon' || channel === 'all';
+  const includeFlipkart = channel === 'flipkart' || channel === 'all';
 
-  // ── Payment method aggregation ──
-  const methodMap: Record<string, { orders: number; revenue: number; delivered: number; cancelled: number; rto: number }> = {
+  if (includeAmazon || includeFlipkart) {
+    await ensureChannelOrdersBackfilled(2000);
+  }
+
+  const methodMap: Record<
+    string,
+    { orders: number; revenue: number; delivered: number; cancelled: number; rto: number }
+  > = {
     razorpay: { orders: 0, revenue: 0, delivered: 0, cancelled: 0, rto: 0 },
     cod: { orders: 0, revenue: 0, delivered: 0, cancelled: 0, rto: 0 },
+    amazon: { orders: 0, revenue: 0, delivered: 0, cancelled: 0, rto: 0 },
+    flipkart: { orders: 0, revenue: 0, delivered: 0, cancelled: 0, rto: 0 },
   };
 
-  // ── COD funnel ──
   const codFunnel: CodFunnelData = {
     placed: 0,
     confirmed: 0,
@@ -74,104 +101,154 @@ export async function getPaymentAnalytics(from: string, to: string): Promise<Pay
   };
 
   const dayMap: Record<string, PaymentDailyTrend> = {};
-  
-  const current = new Date(fromDate);
-  while (current <= toDate) {
-    const key = current.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
-    dayMap[key] = { date: key, razorpayOrders: 0, codOrders: 0 };
-    current.setDate(current.getDate() + 1);
+  let cursor = new Date(fromDate);
+  while (cursor <= toDate) {
+    const key = dayLabel(cursor);
+    dayMap[key] = {
+      date: key,
+      razorpayOrders: 0,
+      codOrders: 0,
+      amazonOrders: 0,
+      flipkartOrders: 0,
+    };
+    cursor = new Date(cursor.getTime() + 24 * 60 * 60 * 1000);
   }
 
-  const confirmedStatuses = ['Paid', 'Packed', 'Shipped', 'Out for Delivery', 'Delivered'];
+  let totalOrders = 0;
 
-  for (const order of orders) {
-    const method = order.paymentMethod || 'razorpay';
-    const total = order.total || 0;
+  if (includeWebsite) {
+    const orders = await Order.find({
+      createdAt: { $gte: fromDate, $lte: toDate },
+      status: { $nin: EXCLUDED_STATUSES },
+    })
+      .select('total status paymentMethod codCollected createdAt')
+      .lean();
 
-    if (!methodMap[method]) {
-      methodMap[method] = { orders: 0, revenue: 0, delivered: 0, cancelled: 0, rto: 0 };
-    }
+    for (const order of orders) {
+      const method = order.paymentMethod === 'cod' ? 'cod' : 'razorpay';
+      const total = order.total || 0;
+      totalOrders++;
 
-    const m = methodMap[method];
-    m.orders++;
-
-    if (confirmedStatuses.includes(order.status)) {
-      m.revenue += total;
-    }
-
-    switch (order.status) {
-      case 'Delivered':
-        m.delivered++;
-        // Note: Revenue for delivered orders is already counted in the
-        // confirmedStatuses block above (Delivered is in confirmedStatuses).
-        break;
-      case 'Cancelled':
-        m.cancelled++;
-        break;
-      case 'RTO':
-        m.rto++;
-        break;
-    }
-
-    // ── COD funnel tracking ──
-    if (method === 'cod') {
-      codFunnel.placed++;
-
-      if (['Paid', 'Packed', 'Shipped', 'Out for Delivery', 'Delivered'].includes(order.status)) {
-        codFunnel.confirmed++;
+      const m = methodMap[method];
+      m.orders++;
+      if (confirmedStatuses.includes(order.status)) {
+        m.revenue += total;
       }
-      if (['Shipped', 'Out for Delivery', 'Delivered'].includes(order.status)) {
-        codFunnel.shipped++;
+      switch (order.status) {
+        case 'Delivered':
+          m.delivered++;
+          break;
+        case 'Cancelled':
+          m.cancelled++;
+          break;
+        case 'RTO':
+          m.rto++;
+          break;
       }
-      if (order.status === 'Delivered') {
-        codFunnel.delivered++;
-        if (order.codCollected) {
-          codFunnel.collected++;
+
+      if (method === 'cod') {
+        codFunnel.placed++;
+        if (confirmedStatuses.includes(order.status)) codFunnel.confirmed++;
+        if (['Shipped', 'Out for Delivery', 'Delivered'].includes(order.status)) {
+          codFunnel.shipped++;
+        }
+        if (order.status === 'Delivered') {
+          codFunnel.delivered++;
+          if (order.codCollected) codFunnel.collected++;
+        }
+        if (order.status === 'RTO') {
+          codFunnel.rto++;
+          codFunnel.loss += total;
         }
       }
-      if (order.status === 'RTO') {
-        codFunnel.rto++;
-        codFunnel.loss += total;
-      }
-    }
 
-    const orderDate = new Date(order.createdAt);
-    const dayKey = orderDate.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
-    if (dayMap[dayKey]) {
-      if (method === 'cod') {
-        dayMap[dayKey].codOrders++;
-      } else {
-        dayMap[dayKey].razorpayOrders++;
+      const dayKey = dayLabel(new Date(order.createdAt));
+      if (dayMap[dayKey]) {
+        if (method === 'cod') dayMap[dayKey].codOrders++;
+        else dayMap[dayKey].razorpayOrders++;
       }
     }
   }
 
-  // ── Build output ──
-  const methods: PaymentMethodRow[] = Object.entries(methodMap).map(([method, data]) => {
-    const deliveredPlusCancelled = data.delivered + data.cancelled + data.rto;
-    const successRate = deliveredPlusCancelled > 0
-      ? Math.round((data.delivered / deliveredPlusCancelled) * 100)
-      : 0;
+  async function accumulateMarketplace(marketplace: 'amazon' | 'flipkart') {
+    const marketOrders = await ChannelOrder.find({
+      ...marketplaceChannelFilter(marketplace),
+      ...channelDateQuery(fromDate, toDate),
+    })
+      .select('total status createdAt receivedAt confirmedAt channel')
+      .lean();
 
-    return {
-      method,
-      label: method === 'cod' ? 'Cash on Delivery' : 'Razorpay (UPI/Card)',
-      orders: data.orders,
-      revenue: data.revenue,
-      delivered: data.delivered,
-      cancelled: data.cancelled,
-      rto: data.rto,
-      successRate,
-      aov: data.orders > 0 ? Math.round(data.revenue / data.orders) : 0,
-    };
-  });
+    for (const order of marketOrders) {
+      const rowChannel =
+        order.channel === 'flipkart' ? 'flipkart' : marketplace === 'flipkart' ? 'flipkart' : 'amazon';
+      if (rowChannel !== marketplace) continue;
 
-  const dailyTrends = Object.values(dayMap);
+      const total = Number(order.total) || 0;
+      totalOrders++;
+      const m = methodMap[marketplace];
+      m.orders++;
+      if (order.status === 'Cancelled') {
+        m.cancelled++;
+      } else {
+        m.revenue += total;
+        m.delivered++; // Confirmed ≈ fulfilled for marketplace success rate
+      }
+
+      const dayKey = dayLabel(channelSaleDate(order));
+      if (dayMap[dayKey]) {
+        if (marketplace === 'amazon') dayMap[dayKey].amazonOrders++;
+        else dayMap[dayKey].flipkartOrders++;
+      }
+    }
+  }
+
+  if (includeAmazon) await accumulateMarketplace('amazon');
+  if (includeFlipkart) await accumulateMarketplace('flipkart');
+
+  const labels: Record<string, string> = {
+    razorpay: 'Razorpay (UPI/Card)',
+    cod: 'Cash on Delivery',
+    amazon: 'Amazon Marketplace',
+    flipkart: 'Flipkart Marketplace',
+  };
+
+  const methods: PaymentMethodRow[] = Object.entries(methodMap)
+    .filter(([method, data]) => {
+      if (data.orders === 0) return false;
+      if (method === 'razorpay' || method === 'cod') return includeWebsite;
+      if (method === 'amazon') return includeAmazon;
+      if (method === 'flipkart') return includeFlipkart;
+      return true;
+    })
+    .map(([method, data]) => {
+      const finished = data.delivered + data.cancelled + data.rto;
+      const successRate =
+        finished > 0 ? Math.round((data.delivered / finished) * 100) : data.orders > 0 ? 100 : 0;
+      return {
+        method,
+        label: labels[method] || method,
+        orders: data.orders,
+        revenue: data.revenue,
+        delivered: data.delivered,
+        cancelled: data.cancelled,
+        rto: data.rto,
+        successRate,
+        aov: data.orders > 0 ? Math.round(data.revenue / data.orders) : 0,
+      };
+    });
 
   const totals = {
-    totalOrders: orders.length,
+    totalOrders,
     totalRevenue: methods.reduce((sum, m) => sum + m.revenue, 0),
   };
 
-  return JSON.parse(JSON.stringify({ methods, codFunnel, dailyTrends, totals }));
+  return JSON.parse(
+    JSON.stringify({
+      methods,
+      codFunnel,
+      dailyTrends: Object.values(dayMap),
+      totals,
+      channel,
+    })
+  );
 }

@@ -1,9 +1,10 @@
 'use server';
 
-import { fetchUnifiedSales, SalesChannel } from '@/lib/sales-query';
+import { fetchUnifiedSales, istDayKey, SalesChannel } from '@/lib/sales-query';
 
 export interface DaySummary {
   date: string;
+  dateKey: string;
   totalOrders: number;
   paidOrders: number;
   codOrders: number;
@@ -43,6 +44,7 @@ export interface OrderAnalyticsData {
     codOrders: number;
     amazonOrders: number;
     flipkartOrders: number;
+    websiteOrders: number;
     delivered: number;
     cancelled: number;
     rto: number;
@@ -53,9 +55,34 @@ export interface OrderAnalyticsData {
     codRevenue: number;
     amazonRevenue: number;
     flipkartRevenue: number;
+    websiteRevenue: number;
     deliveredRevenue: number;
   };
   channel: SalesChannel;
+}
+
+function eachIstDayKey(fromDate: Date, toDate: Date): string[] {
+  const keys: string[] = [];
+  // Walk noon UTC equivalents of IST midnights by iterating calendar keys
+  const startKey = istDayKey(fromDate);
+  const endKey = istDayKey(toDate);
+  // Parse YYYY-MM-DD as IST midnight
+  let cursor = new Date(`${startKey}T12:00:00+05:30`);
+  const end = new Date(`${endKey}T12:00:00+05:30`);
+  while (cursor <= end) {
+    keys.push(istDayKey(cursor));
+    cursor = new Date(cursor.getTime() + 24 * 60 * 60 * 1000);
+  }
+  return keys;
+}
+
+function displayDayLabel(dateKey: string): string {
+  const d = new Date(`${dateKey}T12:00:00+05:30`);
+  return d.toLocaleDateString('en-IN', {
+    timeZone: 'Asia/Kolkata',
+    month: 'short',
+    day: 'numeric',
+  });
 }
 
 export async function getOrderAnalytics(
@@ -69,11 +96,10 @@ export async function getOrderAnalytics(
   const orders = await fetchUnifiedSales(fromDate, toDate, channel);
 
   const dayMap: Record<string, DaySummary> = {};
-  const current = new Date(fromDate);
-  while (current <= toDate) {
-    const key = current.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
-    dayMap[key] = {
-      date: key,
+  for (const dateKey of eachIstDayKey(fromDate, toDate)) {
+    dayMap[dateKey] = {
+      date: displayDayLabel(dateKey),
+      dateKey,
       totalOrders: 0,
       paidOrders: 0,
       codOrders: 0,
@@ -89,7 +115,6 @@ export async function getOrderAnalytics(
       rtoRate: 0,
       cancellationRate: 0,
     };
-    current.setDate(current.getDate() + 1);
   }
 
   const totals = {
@@ -99,6 +124,7 @@ export async function getOrderAnalytics(
     codOrders: 0,
     amazonOrders: 0,
     flipkartOrders: 0,
+    websiteOrders: 0,
     delivered: 0,
     cancelled: 0,
     rto: 0,
@@ -109,10 +135,24 @@ export async function getOrderAnalytics(
     codRevenue: 0,
     amazonRevenue: 0,
     flipkartRevenue: 0,
+    websiteRevenue: 0,
     deliveredRevenue: 0,
   };
 
-  const websiteConfirmed = ['Paid', 'Packed', 'Shipped', 'Out for Delivery', 'Delivered', 'Confirmed'];
+  const websiteConfirmed = [
+    'Paid',
+    'Packed',
+    'Shipped',
+    'Out for Delivery',
+    'Delivered',
+    'Confirmed',
+    'paid',
+    'packed',
+    'shipped',
+    'out for delivery',
+    'delivered',
+    'confirmed',
+  ];
 
   const hours = Array.from({ length: 24 }, (_, i) => ({
     hour: `${i.toString().padStart(2, '0')}:00`,
@@ -131,24 +171,33 @@ export async function getOrderAnalytics(
   ];
 
   for (const order of orders) {
+    // Defense: if UI asked for one channel, ignore anything else
+    if (channel !== 'all' && order.channel !== channel) continue;
+
     const orderDate = new Date(order.createdAt);
-    const dayKey = orderDate.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
-    const day = dayMap[dayKey];
+    const dateKey = istDayKey(orderDate);
+    const day = dayMap[dateKey];
     if (!day) continue;
 
     const total = order.total || 0;
     const isAmazon = order.channel === 'amazon';
     const isFlipkart = order.channel === 'flipkart';
+    const isWebsite = order.channel === 'website';
     const isMarketplace = isAmazon || isFlipkart;
     const isPaid = order.paymentMethod === 'razorpay';
     const isCod = order.paymentMethod === 'cod';
+    const statusNorm = String(order.status || '');
     const isConfirmed = isMarketplace
-      ? order.status !== 'Cancelled'
-      : websiteConfirmed.includes(order.status);
+      ? statusNorm !== 'Cancelled'
+      : websiteConfirmed.includes(statusNorm);
 
     day.totalOrders++;
     totals.totalOrders++;
 
+    if (isWebsite) {
+      totals.websiteOrders++;
+      if (isConfirmed) totals.websiteRevenue += total;
+    }
     if (isAmazon) {
       day.amazonOrders++;
       totals.amazonOrders++;
@@ -176,7 +225,7 @@ export async function getOrderAnalytics(
       totals.confirmedOrders++;
     }
 
-    switch (order.status) {
+    switch (statusNorm) {
       case 'Cancelled':
         day.cancelled++;
         totals.cancelled++;
@@ -188,31 +237,46 @@ export async function getOrderAnalytics(
       case 'Shipped':
       case 'Out for Delivery':
       case 'Packed':
+      case 'shipped':
+      case 'packed':
         day.shipped++;
         totals.shipped++;
         break;
       case 'Delivered':
+      case 'delivered':
         day.delivered++;
         totals.delivered++;
         totals.deliveredRevenue += total;
         break;
       case 'RTO':
+      case 'rto':
         day.rto++;
         totals.rto++;
         break;
       case 'Paid':
+      case 'paid':
         day.shipped++;
         totals.shipped++;
         break;
     }
 
-    const hour = orderDate.getHours();
-    const dayOfWeek = orderDate.getDay();
-    hours[hour].orders++;
-    daysOfWeek[dayOfWeek].orders++;
+    // Hour / weekday in IST
+    const istHour = Number(
+      orderDate.toLocaleString('en-IN', {
+        timeZone: 'Asia/Kolkata',
+        hour: 'numeric',
+        hour12: false,
+      })
+    );
+    const istWeekday = new Date(
+      orderDate.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' })
+    ).getDay();
+    const hourIdx = Number.isFinite(istHour) ? Math.min(23, Math.max(0, istHour % 24)) : 0;
+    hours[hourIdx].orders++;
+    daysOfWeek[istWeekday].orders++;
     if (isConfirmed) {
-      hours[hour].revenue += total;
-      daysOfWeek[dayOfWeek].revenue += total;
+      hours[hourIdx].revenue += total;
+      daysOfWeek[istWeekday].revenue += total;
     }
   }
 

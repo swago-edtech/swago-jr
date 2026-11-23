@@ -1,7 +1,14 @@
 'use server';
 
-import { connectDB, Product, Order } from '@swago/database';
+import { connectDB, Product, Order, ChannelOrder, ensureChannelOrdersBackfilled } from '@swago/database';
 import { effectiveUnits } from '@/lib/combo-units';
+import {
+  channelDateQuery,
+  channelSaleDate,
+  marketplaceChannelFilter,
+  parseSalesChannel,
+  type SalesChannel,
+} from '@/lib/sales-query';
 
 export interface InventoryRow {
   productId: string;
@@ -28,31 +35,43 @@ export interface InventoryAnalyticsData {
     inStockCount: number;
     totalAvailableItems: number;
   };
+  channel: SalesChannel;
 }
 
-export async function getInventoryAnalytics(): Promise<InventoryAnalyticsData> {
+export async function getInventoryAnalytics(
+  channelInput: SalesChannel = 'all'
+): Promise<InventoryAnalyticsData> {
   await connectDB();
+
+  const channel = parseSalesChannel(channelInput);
+  const includeWebsite = channel === 'website' || channel === 'all';
+  const includeAmazon = channel === 'amazon' || channel === 'all';
+  const includeFlipkart = channel === 'flipkart' || channel === 'all';
+
+  if (includeAmazon || includeFlipkart) {
+    await ensureChannelOrdersBackfilled(2000);
+  }
 
   const products = await Product.find()
     .select('_id name category price stock reservedStock lowStockThreshold isCombo comboUnitCount')
     .lean();
 
-  // Get current date in IST
-  const formatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' });
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Kolkata',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
   const parts = formatter.formatToParts(new Date());
-  const y = parts.find(p => p.type === 'year')?.value;
-  const m = parts.find(p => p.type === 'month')?.value;
-  const d = parts.find(p => p.type === 'day')?.value;
+  const y = parts.find((p) => p.type === 'year')?.value;
+  const m = parts.find((p) => p.type === 'month')?.value;
+  const d = parts.find((p) => p.type === 'day')?.value;
 
   const startOfDay = new Date(`${y}-${m}-${d}T00:00:00+05:30`);
   const startOfMonth = new Date(`${y}-${m}-01T00:00:00+05:30`);
+  const now = new Date();
 
   const confirmedStatuses = ['Paid', 'Packed', 'Shipped', 'Out for Delivery', 'Delivered'];
-
-  const recentOrders = await Order.find({
-    createdAt: { $gte: startOfMonth },
-    status: { $in: confirmedStatuses },
-  }).select('items createdAt').lean();
 
   const comboById: Record<string, { isCombo?: boolean; comboUnitCount?: number }> = {};
   for (const p of products as any[]) {
@@ -62,18 +81,54 @@ export async function getInventoryAnalytics(): Promise<InventoryAnalyticsData> {
     };
   }
 
-  const salesMap: Record<string, { today: number, month: number }> = {};
-  
-  for (const order of recentOrders) {
-    const isToday = new Date(order.createdAt) >= startOfDay;
-    for (const item of order.items || []) {
-      const pid = String(item.productId);
-      if (!salesMap[pid]) salesMap[pid] = { today: 0, month: 0 };
-      const units = effectiveUnits(item.quantity || 0, comboById[pid]);
-      salesMap[pid].month += units;
-      if (isToday) salesMap[pid].today += units;
+  const salesMap: Record<string, { today: number; month: number }> = {};
+
+  function addSale(productId: string, qty: number, saleAt: Date) {
+    const pid = String(productId);
+    if (!salesMap[pid]) salesMap[pid] = { today: 0, month: 0 };
+    const units = effectiveUnits(qty || 0, comboById[pid]);
+    salesMap[pid].month += units;
+    if (saleAt >= startOfDay) salesMap[pid].today += units;
+  }
+
+  if (includeWebsite) {
+    const recentOrders = await Order.find({
+      createdAt: { $gte: startOfMonth },
+      status: { $in: confirmedStatuses },
+    })
+      .select('items createdAt')
+      .lean();
+
+    for (const order of recentOrders) {
+      const saleAt = new Date(order.createdAt);
+      for (const item of order.items || []) {
+        addSale(String(item.productId), item.quantity || 0, saleAt);
+      }
     }
   }
+
+  async function accumulateMarketplace(marketplace: 'amazon' | 'flipkart') {
+    const marketOrders = await ChannelOrder.find({
+      ...marketplaceChannelFilter(marketplace),
+      ...channelDateQuery(startOfMonth, now),
+      status: { $ne: 'Cancelled' },
+    })
+      .select('items createdAt receivedAt confirmedAt channel')
+      .lean();
+
+    for (const order of marketOrders) {
+      const rowChannel =
+        order.channel === 'flipkart' ? 'flipkart' : marketplace === 'flipkart' ? 'flipkart' : 'amazon';
+      if (rowChannel !== marketplace) continue;
+      const saleAt = channelSaleDate(order);
+      for (const item of order.items || []) {
+        addSale(String(item.productId), item.quantity || 0, saleAt);
+      }
+    }
+  }
+
+  if (includeAmazon) await accumulateMarketplace('amazon');
+  if (includeFlipkart) await accumulateMarketplace('flipkart');
 
   const inventory: InventoryRow[] = [];
   const totals = {
@@ -91,7 +146,7 @@ export async function getInventoryAnalytics(): Promise<InventoryAnalyticsData> {
     const availableStock = Math.max(0, stock - reservedStock);
     const threshold = p.lowStockThreshold || 50;
     const price = p.price || 0;
-    
+
     let status: 'In Stock' | 'Low Stock' | 'Out of Stock' = 'In Stock';
     if (availableStock === 0) {
       status = 'Out of Stock';
@@ -125,7 +180,6 @@ export async function getInventoryAnalytics(): Promise<InventoryAnalyticsData> {
     else totals.inStockCount++;
   }
 
-  // Sort by status (Out of Stock first, then Low Stock), then by available stock asc
   inventory.sort((a, b) => {
     const statusScore = { 'Out of Stock': 0, 'Low Stock': 1, 'In Stock': 2 };
     if (statusScore[a.status] !== statusScore[b.status]) {
@@ -134,5 +188,5 @@ export async function getInventoryAnalytics(): Promise<InventoryAnalyticsData> {
     return a.availableStock - b.availableStock;
   });
 
-  return JSON.parse(JSON.stringify({ products: inventory, totals }));
+  return JSON.parse(JSON.stringify({ products: inventory, totals, channel }));
 }

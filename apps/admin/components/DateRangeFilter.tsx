@@ -22,54 +22,51 @@ const PRESETS: { key: DatePreset; label: string }[] = [
   { key: 'custom', label: 'Custom Range' },
 ];
 
-function getPresetDates(preset: DatePreset): { from: Date; to: Date } {
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+/** Today’s calendar date in Asia/Kolkata as YYYY-MM-DD. */
+function istTodayKey(): string {
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+}
+
+function addDaysKey(dateKey: string, days: number): string {
+  const d = new Date(`${dateKey}T12:00:00+05:30`);
+  d.setTime(d.getTime() + days * 24 * 60 * 60 * 1000);
+  return d.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+}
+
+function getPresetDates(preset: DatePreset): { from: string; to: string } {
+  const today = istTodayKey();
 
   switch (preset) {
     case 'today':
       return { from: today, to: today };
     case 'yesterday': {
-      const yesterday = new Date(today);
-      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterday = addDaysKey(today, -1);
       return { from: yesterday, to: yesterday };
     }
-    case '7days': {
-      const weekAgo = new Date(today);
-      weekAgo.setDate(weekAgo.getDate() - 6);
-      return { from: weekAgo, to: today };
-    }
-    case '30days': {
-      const monthAgo = new Date(today);
-      monthAgo.setDate(monthAgo.getDate() - 29);
-      return { from: monthAgo, to: today };
-    }
+    case '7days':
+      return { from: addDaysKey(today, -6), to: today };
+    case '30days':
+      return { from: addDaysKey(today, -29), to: today };
     case 'thisMonth': {
-      const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-      return { from: monthStart, to: today };
+      const [y, m] = today.split('-');
+      return { from: `${y}-${m}-01`, to: today };
     }
     case 'lastMonth': {
-      const lastMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-      const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0);
-      return { from: lastMonthStart, to: lastMonthEnd };
+      const [y, m] = today.split('-').map(Number);
+      const lastMonthEnd = addDaysKey(`${y}-${String(m).padStart(2, '0')}-01`, -1);
+      const [ly, lm] = lastMonthEnd.split('-');
+      return { from: `${ly}-${lm}-01`, to: lastMonthEnd };
     }
     default:
       return { from: today, to: today };
   }
 }
 
-function formatDateISO(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
-
 export function getDefaultDateRange(): DateRange {
   const dates = getPresetDates('30days');
   return {
-    from: formatDateISO(dates.from),
-    to: formatDateISO(dates.to),
+    from: dates.from,
+    to: dates.to,
     preset: '30days',
     label: 'Last 30 Days',
   };
@@ -92,8 +89,8 @@ export default function DateRangeFilter({ value, onChange }: DateRangeFilterProp
     }
     const dates = getPresetDates(preset);
     onChange({
-      from: formatDateISO(dates.from),
-      to: formatDateISO(dates.to),
+      from: dates.from,
+      to: dates.to,
       preset,
       label,
     });

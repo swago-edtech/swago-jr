@@ -2,20 +2,22 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { formatPrice } from '@swago/utils';
+import ChannelFilterTabs, { useAnalyticsChannel } from '@/components/ChannelFilterTabs';
 import AnalyticsCard from '@/components/AnalyticsCard';
 import { getInventoryAnalytics, InventoryAnalyticsData, InventoryRow } from './actions';
 import { exportToCSV } from '@/lib/exportCsv';
 import { Package, AlertTriangle, XCircle, IndianRupee, Layers, Download } from 'lucide-react';
 
 export default function InventoryAnalyticsClient() {
+  const { channel, selectChannel } = useAnalyticsChannel();
   const [data, setData] = useState<InventoryAnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('all');
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (selectedChannel: typeof channel) => {
     setLoading(true);
     try {
-      const result = await getInventoryAnalytics();
+      const result = await getInventoryAnalytics(selectedChannel);
       setData(result);
     } catch (error) {
       console.error('Failed to fetch inventory analytics:', error);
@@ -25,8 +27,8 @@ export default function InventoryAnalyticsClient() {
   }, []);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    fetchData(channel);
+  }, [channel, fetchData]);
 
   const filteredProducts = data?.products.filter(p => statusFilter === 'all' || p.status === statusFilter) || [];
 
@@ -36,9 +38,13 @@ export default function InventoryAnalyticsClient() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Inventory Health</h1>
-          <p className="text-gray-500 text-sm mt-1">Real-time stock value, out-of-stock &amp; low stock alerts</p>
+          <p className="text-gray-500 text-sm mt-1">
+            Stock is shared across channels — sold today/month filtered by{' '}
+            {channel === 'all' ? 'all channels' : channel}
+          </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <ChannelFilterTabs value={channel} onChange={selectChannel} accentClass="text-emerald-600" />
           <button
             onClick={() => exportToCSV('inventory_health', data?.products || [])}
             className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm"
@@ -47,7 +53,7 @@ export default function InventoryAnalyticsClient() {
             <span className="hidden sm:inline">Export CSV</span>
           </button>
           <button
-            onClick={fetchData}
+            onClick={() => fetchData(channel)}
             className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm"
           >
             Refresh Data

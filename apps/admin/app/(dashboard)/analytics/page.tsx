@@ -60,8 +60,13 @@ async function getAnalyticsData() {
   // Confirmed statuses for revenue calculations (Pending excluded — payment not yet completed)
   const confirmedStatuses = ['Paid', 'Packed', 'Shipped', 'Out for Delivery', 'Delivered'];
   const confirmedWebsiteOrders = validOrders.filter(o => confirmedStatuses.includes(o.status));
-  const confirmedAmazonOrders = amazonOrders.filter((o: any) => o.status !== 'Cancelled' && o.channel === 'amazon');
-  const confirmedFlipkartOrders = amazonOrders.filter((o: any) => o.status !== 'Cancelled' && o.channel === 'flipkart');
+  // Legacy ChannelOrder rows without channel count as Amazon
+  const confirmedAmazonOrders = amazonOrders.filter(
+    (o: any) => o.status !== 'Cancelled' && o.channel !== 'flipkart'
+  );
+  const confirmedFlipkartOrders = amazonOrders.filter(
+    (o: any) => o.status !== 'Cancelled' && o.channel === 'flipkart'
+  );
   const confirmedOrders = [
     ...confirmedWebsiteOrders.map((o: any) => ({ ...o, channel: 'website' as const, saleAt: o.createdAt })),
     ...confirmedAmazonOrders.map((o: any) => ({
@@ -372,8 +377,11 @@ export default async function AnalyticsPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2 text-sm">
-          <Link href="/analytics/orders" className="px-3 py-1.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 font-medium text-gray-700">
+          <Link href="/analytics/orders?channel=all" className="px-3 py-1.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 font-medium text-gray-700">
             Order analytics
+          </Link>
+          <Link href="/orders?channel=all" className="px-3 py-1.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 font-medium text-gray-700">
+            All orders
           </Link>
           <Link href="/analytics/revenue" className="px-3 py-1.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 font-medium text-gray-700">
             Revenue

@@ -65,6 +65,7 @@ interface OrderAnalyticsChartsProps {
     amazonRevenue?: number;
     flipkartRevenue?: number;
   };
+  channel?: 'all' | 'website' | 'amazon' | 'flipkart';
 }
 
 const tooltipStyle = {
@@ -102,14 +103,32 @@ const PAYMENT_COLORS = {
   flipkart: '#eab308',
 };
 
-export default function OrderAnalyticsCharts({ dailyData, hourlyDistribution, dayOfWeekDistribution, totals }: OrderAnalyticsChartsProps) {
+export default function OrderAnalyticsCharts({
+  dailyData,
+  hourlyDistribution,
+  dayOfWeekDistribution,
+  totals,
+  channel = 'all',
+}: OrderAnalyticsChartsProps) {
+  const showWebsite = channel === 'all' || channel === 'website';
+  const showAmazon = channel === 'all' || channel === 'amazon';
+  const showFlipkart = channel === 'all' || channel === 'flipkart';
+
   // ── Channel / payment split ──
   const paymentSplitData = [
-    { name: 'Prepaid', value: totals.paidOrders, color: PAYMENT_COLORS.paid },
-    { name: 'COD', value: totals.codOrders, color: PAYMENT_COLORS.cod },
-    { name: 'Amazon', value: totals.amazonOrders || 0, color: PAYMENT_COLORS.amazon },
-    { name: 'Flipkart', value: totals.flipkartOrders || 0, color: PAYMENT_COLORS.flipkart },
-  ].filter(d => d.value > 0);
+    ...(showWebsite
+      ? [
+          { name: 'Prepaid', value: totals.paidOrders, color: PAYMENT_COLORS.paid },
+          { name: 'COD', value: totals.codOrders, color: PAYMENT_COLORS.cod },
+        ]
+      : []),
+    ...(showAmazon
+      ? [{ name: 'Amazon', value: totals.amazonOrders || 0, color: PAYMENT_COLORS.amazon }]
+      : []),
+    ...(showFlipkart
+      ? [{ name: 'Flipkart', value: totals.flipkartOrders || 0, color: PAYMENT_COLORS.flipkart }]
+      : []),
+  ].filter((d) => d.value > 0);
 
   // ── Status Distribution Pie Data ──
   const statusData = [
@@ -181,10 +200,23 @@ export default function OrderAnalyticsCharts({ dailyData, hourlyDistribution, da
                 return labels[value] || value;
               }}
             />
-            <Bar dataKey="paidOrders" stackId="orders" fill={PAYMENT_COLORS.paid} radius={[0, 0, 0, 0]} />
-            <Bar dataKey="codOrders" stackId="orders" fill={PAYMENT_COLORS.cod} radius={[0, 0, 0, 0]} />
-            <Bar dataKey="amazonOrders" stackId="orders" fill={PAYMENT_COLORS.amazon} radius={[0, 0, 0, 0]} />
-            <Bar dataKey="flipkartOrders" stackId="orders" fill={PAYMENT_COLORS.flipkart} radius={[4, 4, 0, 0]} />
+            {showWebsite && (
+              <Bar dataKey="paidOrders" stackId="orders" fill={PAYMENT_COLORS.paid} radius={[0, 0, 0, 0]} />
+            )}
+            {showWebsite && (
+              <Bar dataKey="codOrders" stackId="orders" fill={PAYMENT_COLORS.cod} radius={[0, 0, 0, 0]} />
+            )}
+            {showAmazon && (
+              <Bar
+                dataKey="amazonOrders"
+                stackId="orders"
+                fill={PAYMENT_COLORS.amazon}
+                radius={showFlipkart || showWebsite ? [0, 0, 0, 0] : [4, 4, 0, 0]}
+              />
+            )}
+            {showFlipkart && (
+              <Bar dataKey="flipkartOrders" stackId="orders" fill={PAYMENT_COLORS.flipkart} radius={[4, 4, 0, 0]} />
+            )}
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -264,22 +296,30 @@ export default function OrderAnalyticsCharts({ dailyData, hourlyDistribution, da
           </div>
         )}
         <div className="flex justify-center gap-6 mt-2">
-          <div className="text-center">
-            <div className="text-2xl font-bold text-blue-600">{totals.paidOrders}</div>
-            <div className="text-xs text-gray-500">Prepaid</div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-amber-500">{totals.codOrders}</div>
-            <div className="text-xs text-gray-500">COD</div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-orange-500">{totals.amazonOrders || 0}</div>
-            <div className="text-xs text-gray-500">Amazon</div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-yellow-500">{totals.flipkartOrders || 0}</div>
-            <div className="text-xs text-gray-500">Flipkart</div>
-          </div>
+          {showWebsite && (
+            <>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-blue-600">{totals.paidOrders}</div>
+                <div className="text-xs text-gray-500">Prepaid</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-amber-500">{totals.codOrders}</div>
+                <div className="text-xs text-gray-500">COD</div>
+              </div>
+            </>
+          )}
+          {showAmazon && (
+            <div className="text-center">
+              <div className="text-2xl font-bold text-orange-500">{totals.amazonOrders || 0}</div>
+              <div className="text-xs text-gray-500">Amazon</div>
+            </div>
+          )}
+          {showFlipkart && (
+            <div className="text-center">
+              <div className="text-2xl font-bold text-yellow-500">{totals.flipkartOrders || 0}</div>
+              <div className="text-xs text-gray-500">Flipkart</div>
+            </div>
+          )}
         </div>
       </div>
 
