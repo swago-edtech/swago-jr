@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "NODE_OPTIONS=\"--max-old-space-size=2560\" next build --webpack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:checkout": "MONGODB_URI=mongodb://127.0.0.1:9/never-connected ADDRESS_VALIDATION_MODE= npx tsx --test --experimental-test-module-mocks tests/*.test.mts tests/*.test.ts"
   },
   "dependencies": {
     "@next/third-parties": "^16.1.1",

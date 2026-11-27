@@ -3,17 +3,27 @@ import { sendOrderConfirmationEmail, sendAdminOrderNotificationEmail } from "./m
 import { invalidateProductCache } from "./productCache";
 import { isValidObjectId } from "mongoose";
 import { generateAndUploadInvoice } from "./invoice-service";
-import { intlConfirmationEmailOverrides, intlAdminEmailOverrides } from "./international-order-notify";
+import { intlConfirmationEmailOverrides, intlAdminEmailOverrides, adminChargedAndShipTo } from "./international-order-notify";
 import {
   deductInventoryForOrder,
   markInventoryAllocationConsumed,
   releaseInventoryAllocation,
 } from "./inventory-service";
 
+import { checkPaymentMatchesOrder, expectedChargeMinor, PaymentMismatchError, type CapturedPayment } from "./payment-assert";
+
+export { PaymentMismatchError };
+
 interface FinalizeOrderOptions {
   orderIdOrMongoId: string;
   razorpayPaymentId: string;
-  source: 'frontend' | 'webhook';
+  source: 'frontend' | 'webhook' | 'zero_total';
+  /**
+   * The captured payment as reported by Razorpay (payment entity), or
+   * { zeroTotal: true } for orders whose server-computed charge is 0.
+   * Required: an order is never marked Paid without an amount/currency match.
+   */
+  payment: CapturedPayment | { zeroTotal: true };
 }
 
 function buildOrderLookup(orderIdOrMongoId: string) {
@@ -27,16 +37,61 @@ function buildOrderLookup(orderIdOrMongoId: string) {
   return { $or: orConditions };
 }
 
+/** Filter that only matches the exact pending order whose amount was checked. */
+type PendingOrderLean = { _id: unknown; orderId?: string; currency?: string | null; displayTotal?: number | null; total?: number | null; razorpay_order_id?: string | null };
+
+function guardFilter(pending: PendingOrderLean | null, lookup: ReturnType<typeof buildOrderLookup>): Record<string, unknown> {
+  if (!pending) return { ...lookup, status: "Pending", orderId: { $in: [] } };
+  const f: Record<string, unknown> = { _id: pending._id, status: "Pending" };
+  for (const k of ["currency", "displayTotal", "total"] as const) {
+    f[k] = pending[k] === undefined || pending[k] === null ? { $in: [null] } : pending[k];
+  }
+  return f;
+}
+
 /**
  * Finalizes an order after a successful payment.
  */
-export async function finalizeOrder({ orderIdOrMongoId, razorpayPaymentId, source }: FinalizeOrderOptions) {
+export async function finalizeOrder({ orderIdOrMongoId, razorpayPaymentId, source, payment }: FinalizeOrderOptions) {
   await connectDB();
 
   const lookup = buildOrderLookup(orderIdOrMongoId);
 
+  // ---- amount / currency assertion (before anything is marked Paid)
+  const pending = await Order.findOne({ ...lookup, status: "Pending" }).lean() as unknown as PendingOrderLean | null;
+  if (pending) {
+    if ("zeroTotal" in payment) {
+      const exp = expectedChargeMinor(pending);
+      if (exp.amountMinor !== 0 || Number(pending.total) !== 0) {
+        throw new Error(`Order ${pending.orderId} is not a zero-total order`);
+      }
+    } else {
+      const check = checkPaymentMatchesOrder(pending, payment);
+      if (!check.ok) {
+        console.error(`🚨 [finalizeOrder] ${pending.orderId}: ${check.reason} expected=${check.expected} received=${check.received} source=${source}`);
+        await Order.updateOne(
+          { _id: pending._id, status: "Pending" },
+          {
+            $set: {
+              paymentMismatch: {
+                reason: check.reason,
+                expected: check.expected,
+                received: check.received,
+                razorpayPaymentId,
+                source,
+                at: new Date(),
+              },
+            },
+          }
+        );
+        throw new PaymentMismatchError(check, pending.orderId || String(pending._id));
+      }
+    }
+  }
+
   const order = await Order.findOneAndUpdate(
-    { ...lookup, status: "Pending" },
+    // Guard against the order changing between the check and the update.
+    guardFilter(pending, lookup),
     {
       $set: {
         status: "Paid",
@@ -45,7 +100,7 @@ export async function finalizeOrder({ orderIdOrMongoId, razorpayPaymentId, sourc
         ...(source === "webhook"
           ? { webhookProcessed: true, webhookReceivedAt: new Date() }
           : {}),
-        ...(source !== "webhook" ? { createdVia: source } : {}),
+        ...(source === "frontend" ? { createdVia: source } : {}),
       },
       $inc: { paymentAttempts: 1 },
     },
@@ -85,10 +140,15 @@ export async function finalizeOrder({ orderIdOrMongoId, razorpayPaymentId, sourc
 
   if (order.swagoMoneyRedeemed > 0 && order.swagoMoneyKidId) {
     try {
-      await User.updateOne(
-        { _id: order.swagoMoneyKidId },
+      // Conditional decrement: never take the wallet below zero under concurrency.
+      const debit = await User.updateOne(
+        { _id: order.swagoMoneyKidId, "ambassador.swagoMoney": { $gte: order.swagoMoneyRedeemed } },
         { $inc: { "ambassador.swagoMoney": -order.swagoMoneyRedeemed } }
       );
+      if (debit.modifiedCount !== 1) {
+        console.error(`🚨 [finalizeOrder] Swago Money debit failed for ${order.orderId} (insufficient balance at commit)`);
+        await Order.updateOne({ _id: order._id }, { $set: { walletDebitFailed: true } });
+      }
     } catch (error) {
       console.error(`⚠️ Failed to deduct Swago Money:`, error);
     }
@@ -187,6 +247,7 @@ export async function finalizeOrder({ orderIdOrMongoId, razorpayPaymentId, sourc
       adminUrl: `https://admin.swagojr.com/orders/${orderObject._id}`,
       // International orders only (no-op {} for India): intl shipping + charged currency
       ...intlAdminEmailOverrides(orderObject),
+      ...adminChargedAndShipTo(orderObject),
     }).catch(console.error);
   } catch (error) {
     console.error(`⚠️ Failed to send confirmation email:`, error);

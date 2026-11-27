@@ -78,9 +78,12 @@ function generateCustomerData() {
     age: `${Math.floor(Math.random() * 10) + 5}`,
     email: `customer.${timestamp}@test-journey.com`,
     address: `${random} Test Street, Building ${Math.floor(Math.random() * 100)}`,
-    city: ['Mumbai', 'Delhi', 'Bangalore'][Math.floor(Math.random() * 3)],
-    state: ['Maharashtra', 'Delhi', 'Karnataka'][Math.floor(Math.random() * 3)],
-    pincode: ['400001', '110001', '560001'][Math.floor(Math.random() * 3)]
+    // One consistent city/state/PIN triple (random independent picks would now be rejected).
+    ...[
+      { city: 'Mumbai', stateCode: 'IN-MH', pincode: '400001' },
+      { city: 'Delhi', stateCode: 'IN-DL', pincode: '110001' },
+      { city: 'Bangalore', stateCode: 'IN-KA', pincode: '560001' },
+    ][Math.floor(Math.random() * 3)]
   };
 }
 

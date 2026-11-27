@@ -227,7 +227,7 @@ export default function ProductPageClient({ product }: { product: Product }) {
   const [quantity, setQuantity] = useState(1);
   const [openAccordion, setOpenAccordion] = useState<string | null>("description");
   const { cart, addToCart, isWishlisted, addToWishlist, removeFromWishlist, user, openCartSidebar, increaseQty, decreaseQty } = useSharedContext();
-  const { formatLocalPrice, getLocalPrice, canShip, shippingRestrictionMessage, country } = useCountry();
+  const { formatLocalPrice, getLocalPrice, country } = useCountry();
   const localPricing = getLocalPrice(product as any);
   const displayPrice = localPricing.price;
   const displayOriginalPrice = localPricing.originalPrice;
@@ -399,7 +399,8 @@ export default function ProductPageClient({ product }: { product: Product }) {
     }
   };
 
-  const cartDisabled = !canShip;
+  // Shipping eligibility is decided by the delivery address at checkout, not the IP.
+  const cartDisabled = false;
 
   const handleBuyNow = () => {
     if (cartDisabled) return;
@@ -649,16 +650,8 @@ export default function ProductPageClient({ product }: { product: Product }) {
               </div>
             )}
 
-            {!canShip && (
-              <div className="mb-4 mt-2 px-4 py-2.5 bg-amber-50 border border-amber-200 rounded-xl shadow-sm">
-                <p className="text-sm md:text-base font-bold text-amber-800">
-                  {shippingRestrictionMessage}
-                </p>
-              </div>
-            )}
-
-            {/* Show quantity selector ONLY if NOT in cart and shipping is available */}
-            {!isInCart && canShip && (
+            {/* Show quantity selector ONLY if NOT in cart */}
+            {!isInCart && (
               <div className="flex items-center gap-4 mb-4 flex-wrap">
                 <label className="font-semibold text-sm md:text-base">Quantity:</label>
                 <div className="flex items-center border rounded-lg">
@@ -688,7 +681,7 @@ export default function ProductPageClient({ product }: { product: Product }) {
 
             {/* ✅ FIXED: Buttons - quantity controls replace Add to Cart when in cart */}
             <div className="flex gap-3 md:gap-4">
-              {!isInCart || !canShip ? (
+              {!isInCart ? (
                 <motion.button
                   whileHover={{ scale: cartDisabled ? 1 : 1.01 }}
                   whileTap={{ scale: cartDisabled ? 1 : 0.99 }}
@@ -717,7 +710,6 @@ export default function ProductPageClient({ product }: { product: Product }) {
                     onClick={handleIncrease}
                     className="px-3 md:px-4 py-1 hover:bg-purple-100 transition text-[hsl(var(--swago-purple))] font-bold text-lg md:text-xl"
                     aria-label="Increase quantity"
-                    disabled={!canShip}
                   >
                     +
                   </button>
@@ -741,7 +733,7 @@ export default function ProductPageClient({ product }: { product: Product }) {
                   : 'btn-shine bg-[hsl(var(--swago-orange))] text-white shadow-sm hover:shadow-md'
                   }`}
               >
-                <span className="relative z-10">{isInCart && canShip ? 'View Cart' : 'Buy It Now'}</span>
+                <span className="relative z-10">{isInCart ? 'View Cart' : 'Buy It Now'}</span>
               </motion.button>
             </div>
 
@@ -821,7 +813,7 @@ export default function ProductPageClient({ product }: { product: Product }) {
               </div>
 
               <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
-                {!isInCart || !canShip ? (
+                {!isInCart ? (
                   <motion.button
                     whileHover={{ scale: cartDisabled ? 1 : 1.02 }}
                     whileTap={{ scale: cartDisabled ? 1 : 0.98 }}
@@ -838,7 +830,7 @@ export default function ProductPageClient({ product }: { product: Product }) {
                   <div className="flex items-center bg-purple-50 border border-purple-100 rounded-xl px-2">
                     <button onClick={handleDecrease} className="p-2 text-[hsl(var(--swago-purple))] font-bold">−</button>
                     <span className="px-2 font-bold text-[hsl(var(--swago-purple))] min-w-[1.5rem] text-center">{quantityInCart}</span>
-                    <button onClick={handleIncrease} disabled={!canShip} className="p-2 text-[hsl(var(--swago-purple))] font-bold">+</button>
+                    <button onClick={handleIncrease} className="p-2 text-[hsl(var(--swago-purple))] font-bold">+</button>
                   </div>
                 )}
 
@@ -847,7 +839,7 @@ export default function ProductPageClient({ product }: { product: Product }) {
                   whileTap={{ scale: cartDisabled ? 1 : 0.98 }}
                   onClick={handleBuyNow}
                   disabled={cartDisabled}
-                  className={`${isInCart && canShip ? 'hidden lg:block' : 'block'} font-black px-4 sm:px-6 py-2 sm:py-2.5 rounded-xl text-[10px] sm:text-xs tracking-wider transition-all duration-300 shadow-sm whitespace-nowrap ${cartDisabled
+                  className={`${isInCart ? 'hidden lg:block' : 'block'} font-black px-4 sm:px-6 py-2 sm:py-2.5 rounded-xl text-[10px] sm:text-xs tracking-wider transition-all duration-300 shadow-sm whitespace-nowrap ${cartDisabled
                     ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
                     : 'bg-[hsl(var(--swago-orange))] text-white hover:shadow-md'
                     }`}
@@ -855,7 +847,7 @@ export default function ProductPageClient({ product }: { product: Product }) {
                   Buy Now
                 </motion.button>
 
-                {isInCart && canShip && (
+                {isInCart && (
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}

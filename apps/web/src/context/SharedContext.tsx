@@ -3,7 +3,6 @@
 
 import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from "react";
 import { Feedback } from "../lib/feedback";
-import { useCountry } from "@/context/CountryContext";
 
 type PopulatedOrder = {
   _id: string;
@@ -174,7 +173,6 @@ const normalizeCart = (items: any[]): CartItem[] => {
 };
 
 export function SharedProvider({ children }: { children: React.ReactNode }) {
-  const { canShip } = useCountry();
   const [cart, setCart] = useState<CartItem[]>([]);
   const [user, setUser] = useState<User | null>(null);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
@@ -690,8 +688,8 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
   };
 
   // Cart functions
+  // Never gated by IP: the delivery address decides shipping/currency at checkout.
   const addToCart = (product: Product, quantity: number = 1) => {
-    if (!canShip) return;
 
     const available =
       product.availableStock ??
@@ -722,7 +720,6 @@ export function SharedProvider({ children }: { children: React.ReactNode }) {
   const clearCart = () => setCart([]);
 
   const increaseQty = (id: number | string) => {
-    if (!canShip) return;
     setCart((prev) => prev.map((p) => {
       if (getProductId(p) !== id.toString()) return p;
 

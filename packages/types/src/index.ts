@@ -110,7 +110,13 @@ export interface OrderItem {
 export interface Address {
   street: string;
   city: string;
+  /** Human-readable state / province / emirate name. */
   state: string;
+  /** ISO 3166-2 code chosen in the grouped state select, e.g. "IN-TN". Country = prefix. */
+  stateCode?: string;
+  /** ISO 3166-1 alpha-2, derived server-side from stateCode (IN | US | CA | AE). */
+  country?: string;
+  /** PIN / ZIP / postal code ("" for UAE). */
   pincode: string;
   phone: string;
 }

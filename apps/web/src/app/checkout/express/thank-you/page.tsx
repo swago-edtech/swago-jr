@@ -11,6 +11,8 @@ function ThankYouContent() {
   const searchParams = useSearchParams();
   const orderId = searchParams.get("orderId") || "";
   const method = searchParams.get("method") || "razorpay";
+  // Set when the payment was received but the amount is still being confirmed by the webhook.
+  const pending = searchParams.get("pending") === "1";
   const [showConfetti, setShowConfetti] = useState(true);
 
   useEffect(() => {
@@ -59,7 +61,9 @@ function ThankYouContent() {
               <p className="text-white/80 text-sm font-medium">
                 {method === "cod"
                   ? "Your COD order has been confirmed"
-                  : "Payment successful"}
+                  : pending
+                    ? "Payment received — we're confirming it now. You'll get an email shortly."
+                    : "Payment successful"}
               </p>
             </motion.div>
           </div>

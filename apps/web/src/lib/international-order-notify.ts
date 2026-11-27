@@ -39,3 +39,28 @@ export function intlAdminEmailOverrides(order: OrderWithItems) {
     ],
   };
 }
+
+type OrderAddressLike = OrderWithItems & {
+  city?: string | null;
+  state?: string | null;
+  stateCode?: string | null;
+  pincode?: string | null;
+  addressFlags?: string[] | null;
+};
+
+/**
+ * Charged-first summary + validated ship-to for the admin email (all orders).
+ * The charged amount is in the currency the customer actually paid/pays.
+ */
+export function adminChargedAndShipTo(order: OrderAddressLike) {
+  const intl = getInternationalOrderDisplay(order);
+  const total = Number(order.total) || 0;
+  const country = String(order.country || "IN").toUpperCase();
+  const statePart = [order.state, order.stateCode ? `(${order.stateCode})` : ""].filter(Boolean).join(" ");
+  const shipTo = [order.city, statePart, order.pincode].filter((x) => x && String(x).trim()).join(", ") + `, ${country}`;
+  return {
+    chargedAmount: intl ? intl.formatCode(intl.totalLocal) : `INR ${total.toFixed(2)}`,
+    shipTo,
+    ...(order.addressFlags && order.addressFlags.length ? { addressFlags: [...order.addressFlags] } : {}),
+  };
+}

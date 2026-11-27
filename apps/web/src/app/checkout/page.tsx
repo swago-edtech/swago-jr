@@ -11,6 +11,16 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { RiInformationLine, RiSearchLine, RiShoppingBag3Line } from "react-icons/ri";
 import CartProgress from "@/components/CartProgress";
+import AddressFields, {
+  EMPTY_ADDRESS,
+  countryFromState,
+  fieldErrorsFromResponse,
+  validateAddressClient,
+  type AddressFieldErrors,
+  type AddressValue,
+} from "@/components/checkout/AddressFields";
+import { useServerQuote } from "@/components/checkout/useServerQuote";
+import { ADDRESS_COUNTRY_NAMES, getSubdivision } from "@swago/utils/address";
 import ShippingBanner from "@/components/ShippingBanner";
 import { Feedback } from "@/lib/feedback";
 import {
@@ -20,15 +30,6 @@ import {
   cartUnitCount,
   isCodOverUnitLimit,
 } from "@/lib/cod-limits";
-
-// ✅ States List for Dropdown
-const INDIAN_STATES = [
-  "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa", "Gujarat", "Haryana",
-  "Himachal Pradesh", "Jharkhand", "Karnataka", "Kerala", "Madhya Pradesh", "Maharashtra", "Manipur",
-  "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana",
-  "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal", "Andaman and Nicobar Islands", "Chandigarh",
-  "Dadra and Nagar Haveli and Daman and Diu", "Delhi", "Jammu and Kashmir", "Ladakh", "Lakshadweep", "Puducherry"
-];
 
 const DEFAULT_REDEMPTION_TIERS = [
   { target: 799, off: 50 },
@@ -46,13 +47,6 @@ const REFERRAL_OPTIONS = [
   "Friend or Family"
 ];
 
-function getZipLookupPath(countryCode: string, postalCode: string): string | null {
-  const code = postalCode.trim().toUpperCase();
-  if (countryCode === "US" && /^\d{5}$/.test(code)) return `us/${code}`;
-  if (countryCode === "CA" && /^[A-Z]\d[A-Z]/.test(code)) return `ca/${code.slice(0, 3)}`;
-  return null;
-}
-
 function toLocalPhone(rawPhone: string, phonePrefix: string): string {
   const digits = rawPhone.replace(/\D/g, "");
   const prefixDigits = phonePrefix.replace(/\D/g, "");
@@ -65,19 +59,21 @@ function toLocalPhone(rawPhone: string, phonePrefix: string): string {
 
 export default function CheckoutPage() {
   const { cart, total, user, isLoadingUser, clearCart, addToCart, appliedCoupon, setAppliedCoupon, appliedSwagoMoney, refreshCartPrices, isRefreshingCart } = useSharedContext();
-  const { country, formatPrice, formatLocalPrice, getLocalPrice, toLocalAmount, isInternational, resolveIntlShipping, canShip, shippingRestrictionMessage } = useCountry();
-  const COUNTRY_FLAGS: Record<string, string> = { IN: '🇮🇳', US: '🇺🇸', CA: '🇨🇦', AE: '🇦🇪' };
+  const { country, formatPrice, formatLocalPrice, getLocalPrice, toLocalAmount, isInternational, resolveIntlShipping, setCheckoutCountry } = useCountry();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [email, setEmail] = useState("");
-  const [pincode, setPincode] = useState("");
   const [phone, setPhone] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
-  const [address, setAddress] = useState("");
-  const [city, setCity] = useState("");
-  const [state, setState] = useState("Tamil Nadu");
+  // Delivery address: the selected ISO state decides the country + currency (no country picker)
+  const [addr, setAddr] = useState<AddressValue>(EMPTY_ADDRESS);
+  const [addrErrors, setAddrErrors] = useState<AddressFieldErrors>({});
+  const { address, city, stateCode, pincode } = addr;
+  const addressCountry = countryFromState(stateCode);
+  // Address country exists but has no active InternationalConfig entry → can't price/charge it.
+  const addressCountryUnavailable = !!addressCountry && addressCountry !== country.code;
   const [paymentMethod, setPaymentMethod] = useState<'razorpay' | 'cod'>('razorpay');
   const [billingAddressType, setBillingAddressType] = useState<'same' | 'different'>('same');
   const [couponCode, setCouponCode] = useState(appliedCoupon?.code || "");
@@ -86,71 +82,14 @@ export default function CheckoutPage() {
   const [message, setMessage] = useState("");
   const [errors, setErrors] = useState<string[]>([]);
   const [priceChangeModal, setPriceChangeModal] = useState<CartPriceChange[] | null>(null);
-  const [fetchingPincode, setFetchingPincode] = useState(false);
   const phonePrefix = country.phonePrefix || "+91";
   const fullPhone = `${phonePrefix}${phone}`;
 
-  // Auto-fetch City and State from Pincode (India only)
+  // Live currency switch: price the checkout in the country implied by the address.
   useEffect(() => {
-    if (!isInternational && pincode && pincode.length === 6) {
-      const fetchPincodeData = async () => {
-        setFetchingPincode(true);
-        try {
-          const res = await fetch(`https://api.postalpincode.in/pincode/${pincode}`);
-          const data = await res.json();
-          if (data && data[0] && data[0].Status === "Success") {
-            const postOffice = data[0].PostOffice[0];
-            if (postOffice) {
-              if (postOffice.State) {
-                const matchedState = INDIAN_STATES.find(s => s.toLowerCase() === postOffice.State.toLowerCase());
-                setState(matchedState || postOffice.State);
-              }
-              let cityVal = "";
-              if (postOffice.Block && postOffice.Block !== "NA") cityVal = postOffice.Block;
-              else if (postOffice.District && postOffice.District !== "NA") cityVal = postOffice.District;
-              else if (postOffice.Region && postOffice.Region !== "NA") cityVal = postOffice.Region;
-              else if (postOffice.Name && postOffice.Name !== "NA") cityVal = postOffice.Name;
-              if (cityVal) setCity(cityVal);
-              setErrors((prev) => prev.filter(e => e !== 'city' && e !== 'state' && e !== 'pincode'));
-            }
-          }
-        } catch (err) {
-          console.error("Failed to fetch pincode details:", err);
-        } finally {
-          setFetchingPincode(false);
-        }
-      };
-      fetchPincodeData();
-    }
-  }, [pincode, isInternational]);
-
-  // International addresses must be typed in; India keeps its default for the locked state dropdown
-  useEffect(() => {
-    setState(isInternational ? "" : "Tamil Nadu");
-  }, [isInternational]);
-
-  // Auto-fill from postal code outside India where a free lookup exists (US: city + state, CA: province)
-  useEffect(() => {
-    if (!isInternational) return;
-    const lookupPath = getZipLookupPath(country.code, pincode);
-    if (!lookupPath) return;
-
-    const controller = new AbortController();
-    setFetchingPincode(true);
-    fetch(`https://api.zippopotam.us/${lookupPath}`, { signal: controller.signal })
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        const place = data?.places?.[0];
-        if (!place) return;
-        if (place.state) setState(place.state);
-        if (country.code === "US" && place["place name"]) setCity(place["place name"]);
-        setErrors((prev) => prev.filter((e) => e !== "city" && e !== "state" && e !== "pincode"));
-      })
-      .catch(() => {})
-      .finally(() => setFetchingPincode(false));
-
-    return () => controller.abort();
-  }, [pincode, isInternational, country.code]);
+    setCheckoutCountry(addressCountry);
+  }, [addressCountry, setCheckoutCountry]);
+  useEffect(() => () => setCheckoutCountry(null), [setCheckoutCountry]);
 
   // Redirect if not logged in
   useEffect(() => {
@@ -179,11 +118,9 @@ export default function CheckoutPage() {
     if (!email) newErrors.push("email");
     if (!firstName) newErrors.push("firstName");
     if (!lastName) newErrors.push("lastName");
-    if (!address) newErrors.push("address");
-    if (!city.trim()) newErrors.push("city");
-    if (!state.trim()) newErrors.push("state");
-    // UAE postal code is optional in practice; keep required for IN/US/CA
-    if (!(isInternational && country.code === "AE") && !pincode) newErrors.push("pincode");
+    const addressIssues = validateAddressClient(addr);
+    setAddrErrors(addressIssues);
+    if (Object.keys(addressIssues).length > 0) newErrors.push("address");
     const isPhoneValid = isInternational ? phone.length >= 6 && phone.length <= 14 : phone.length === 10;
     if (!isPhoneValid) newErrors.push("phone");
     if (!age) newErrors.push("age");
@@ -194,7 +131,7 @@ export default function CheckoutPage() {
       const missingFields = [];
       if (newErrors.includes("email")) missingFields.push("Email");
       if (newErrors.includes("firstName") || newErrors.includes("lastName")) missingFields.push("Full Name");
-      if (["address", "city", "state", "pincode"].some((field) => newErrors.includes(field))) missingFields.push("Complete Address");
+      if (newErrors.includes("address")) missingFields.push("Complete Address");
       if (newErrors.includes("phone")) missingFields.push("Valid Phone Number");
       if (newErrors.includes("age")) missingFields.push("Child's Age");
       if (newErrors.includes("referralSource")) missingFields.push("How you heard about us");
@@ -206,11 +143,11 @@ export default function CheckoutPage() {
   };
 
   const handlePayNow = async () => {
-    if (!canShip) {
-      setMessage(shippingRestrictionMessage);
+    if (!validateForm()) return;
+    if (addressCountryUnavailable && addressCountry) {
+      setMessage(`Checkout isn't available for ${ADDRESS_COUNTRY_NAMES[addressCountry]} right now.`);
       return;
     }
-    if (!validateForm()) return;
 
     // ✅ CRITICAL: Re-validate cart prices right before payment
     // Force bypass the debounce for this critical check
@@ -250,47 +187,74 @@ export default function CheckoutPage() {
     }
   };
 
+  // Body shared by /api/payment/create and /api/payment/cod. The server derives the
+  // country from stateCode + PIN/ZIP and re-prices everything; expectedTotal lets it
+  // refuse (409) if the total shown here differs from what would be charged.
+  const buildOrderBody = () => ({
+    expectedTotal: chargeTotal,
+    expectedCurrency: country.currency,
+    orderDetails: {
+      name: `${firstName} ${lastName}`.trim(),
+      email,
+      phone: fullPhone,
+      address,
+      city,
+      stateCode,
+      pincode,
+      cart,
+      age,
+      referralSource,
+      coupon: appliedCoupon,
+      swagoMoneyRedeemed: appliedSwagoMoney || 0,
+    },
+  });
+
+  /** Handles validation / drift responses from the order APIs. Returns true if handled. */
+  const handleOrderError = (res: Response, data: any): boolean => {
+    const fieldErrs = fieldErrorsFromResponse(data);
+    if (fieldErrs) {
+      setAddrErrors(fieldErrs);
+      setErrors((prev) => (prev.includes("address") ? prev : [...prev, "address"]));
+      setMessage(`❌ ${data.error}`);
+      return true;
+    }
+    if (res.status === 409 && data?.code === "PRICE_CHANGED" && data.quote) {
+      refreshCartPrices();
+      setMessage(`Your total is now ${formatLocalPrice(data.quote.total)} (${data.quote.currency}). Please review and tap Pay again.`);
+      return true;
+    }
+    return false;
+  };
+
   const handleOnlinePayment = async () => {
     setProcessing(true);
     setMessage("Processing your order...");
-    const finalAmount = finalTotal;
 
     try {
-      // Create Razorpay Order
+      // Create Razorpay Order (amount + currency decided server-side from the address)
       const res = await fetch("/api/payment/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          totalAmount: finalAmount,
-          orderDetails: {
-            name: `${firstName} ${lastName}`,
-            email,
-            phone: fullPhone,
-            address,
-            city,
-            state,
-            pincode,
-            cart,
-            age,
-            referralSource,
-            coupon: appliedCoupon,
-            finalAmount: finalAmount,
-            swagoMoneyRedeemed: appliedSwagoMoney || 0,
-            country: country.code,
-            currency: country.currency,
-            exchangeRate: country.exchangeRate,
-            ...(isInternational ? { displayTotal: localFinalTotal } : {})
-          }
-        })
+        body: JSON.stringify(buildOrderBody()),
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to create order");
+      if (!res.ok) {
+        if (handleOrderError(res, data)) return;
+        throw new Error(data.error || "Failed to create order");
+      }
+
+      if (data.zeroTotal) {
+        Feedback.playSuccess();
+        clearCart();
+        router.push("/orders");
+        return;
+      }
 
       const options = {
         key: data.key,
         amount: data.amount,
-        currency: data.currency || country.currency || "INR",
+        currency: data.currency,
         name: "Swago Jr",
         description: `Order ${data.orderId}`,
         order_id: data.id,
@@ -300,10 +264,14 @@ export default function CheckoutPage() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ ...response, orderId: data.orderId })
           });
+          // 200 = confirmed; 202 = payment received, confirmation via webhook
           if (verifyRes.ok) {
             Feedback.playSuccess();
             clearCart();
             router.push("/orders");
+          } else {
+            const v = await verifyRes.json().catch(() => ({}));
+            setMessage(`❌ ${v.error || "Payment verification failed. If money was deducted, contact support."}`);
           }
         },
         prefill: { name: `${firstName} ${lastName}`, email, contact: fullPhone },
@@ -322,37 +290,18 @@ export default function CheckoutPage() {
   const handleCOD = async () => {
     setProcessing(true);
     setMessage("Placing COD order...");
-    const finalAmount = finalTotal;
 
     try {
       const res = await fetch("/api/payment/cod", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          totalAmount: finalAmount,
-          orderDetails: {
-            name: `${firstName} ${lastName}`,
-            email,
-            phone: fullPhone,
-            address,
-            city,
-            state,
-            pincode,
-            cart,
-            age,
-            referralSource,
-            coupon: appliedCoupon,
-            finalAmount: finalAmount,
-            swagoMoneyRedeemed: appliedSwagoMoney || 0,
-            country: country.code,
-            currency: country.currency,
-            exchangeRate: country.exchangeRate,
-            ...(isInternational ? { displayTotal: localFinalTotal } : {})
-          }
-        })
+        body: JSON.stringify(buildOrderBody()),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed");
+      if (!res.ok) {
+        if (handleOrderError(res, data)) return;
+        throw new Error(data.error || "Failed");
+      }
       Feedback.playSuccess();
       clearCart();
       router.push("/orders");
@@ -369,7 +318,7 @@ export default function CheckoutPage() {
       const res = await fetch("/api/coupon/validate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ couponCode, orderAmount: total, cartItems: cart })
+        body: JSON.stringify({ couponCode, orderAmount: total, cartItems: cart, stateCode })
       });
       const data = await res.json();
       if (data.success) {
@@ -399,11 +348,15 @@ export default function CheckoutPage() {
   const isCodOverLimit = useMemo(() => isCodOverUnitLimit(cart), [cart]);
 
   const isCodBlockedByLocation = useMemo(() => {
-    if (isInternational) return true;
-    const stateBlocked = promotion?.blockedCodStates?.some((blockedState: string) => blockedState.toLowerCase() === state.toLowerCase()) || false;
+    if (isInternational || (addressCountry && addressCountry !== "IN")) return true;
+    const stateName = getSubdivision(stateCode)?.name?.toLowerCase() || "";
+    const stateBlocked = promotion?.blockedCodStates?.some((blocked: string) => {
+      const b = String(blocked).toLowerCase();
+      return b === stateCode.toLowerCase() || (!!stateName && b === stateName);
+    }) || false;
     const pincodeBlocked = promotion?.blockedCodPincodes?.includes(pincode) || false;
     return stateBlocked || pincodeBlocked;
-  }, [promotion, state, pincode, isInternational]);
+  }, [promotion, stateCode, pincode, isInternational, addressCountry]);
 
   const isCodBlocked = isCodBlockedByLocation || isCodOverLimit;
 
@@ -460,6 +413,22 @@ export default function CheckoutPage() {
     toLocalAmount,
   ]);
 
+  // Authoritative total for this address (server pricing). While it loads, the
+  // client estimate is shown; once present, it is what we show AND what we send
+  // as expectedTotal, so "shown == charged".
+  const { quote: serverQuote, loading: quoteLoading } = useServerQuote({
+    mode: "checkout",
+    paymentMethod,
+    addr,
+    phone: phone ? fullPhone : undefined,
+    cart,
+    couponCode: appliedCoupon?.code,
+    swagoMoneyRedeemed: appliedSwagoMoney || 0,
+    enabled: !!addressCountry && !addressCountryUnavailable,
+  });
+  const chargeTotal =
+    serverQuote && serverQuote.currency === country.currency ? serverQuote.total : localFinalTotal;
+
   const progressPercent = useMemo(() => {
     const tiers = promotion?.redemptionTiers || DEFAULT_REDEMPTION_TIERS;
     const nextTier = tiers.find((t: any) => total < t.target) || tiers[tiers.length - 1];
@@ -515,7 +484,7 @@ export default function CheckoutPage() {
             </svg>
           </div>
           <div className="text-lg font-black text-slate-900">
-            {formatLocalPrice(localFinalTotal)}
+            {formatLocalPrice(chargeTotal)}
           </div>
         </button>
 
@@ -535,6 +504,8 @@ export default function CheckoutPage() {
                 paymentMethod={paymentMethod}
                 finalTotal={finalTotal}
                 shippingFee={shippingFee}
+                serverQuote={serverQuote}
+                quoteLoading={quoteLoading}
               />
             </motion.div>
           )}
@@ -570,10 +541,6 @@ export default function CheckoutPage() {
             <section>
               <h2 className="text-lg font-semibold text-slate-800 mb-4">Delivery</h2>
               <div className="space-y-3">
-                <div className="w-full h-12 px-4 border rounded-md bg-slate-100/70 shadow-sm flex items-center text-sm text-slate-500 font-medium cursor-not-allowed">
-                  {COUNTRY_FLAGS[country.code] || '🌐'} {country.name || country.code}
-                </div>
-
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex flex-col gap-1">
                     <input
@@ -606,66 +573,23 @@ export default function CheckoutPage() {
                       <option key={i + 6} value={i + 6}>{i + 6} Years</option>
                     ))}
                   </select>
-                  {errors.includes("age") && <p className="text-[10px] text-red-500 font-bold">Child's age is needed</p>}
+                  {errors.includes("age") && <p className="text-[10px] text-red-500 font-bold">Child&apos;s age is needed</p>}
                 </div>
 
-                <div className="relative flex flex-col gap-1">
-                  <input
-                    placeholder="Address"
-                    value={address}
-                    onChange={(e) => { setAddress(e.target.value); if (errors.includes("address")) { setErrors(errors.filter(f => f !== "address")); setMessage(""); } }}
-                    className={`w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-[hsl(var(--swago-purple))] outline-none text-sm shadow-sm pr-10 ${errors.includes("address") ? 'border-red-500 bg-red-50 placeholder-red-300' : 'border-slate-200'}`}
-                  />
-                  <RiSearchLine className="absolute right-4 top-[24px] -translate-y-1/2 text-slate-400" />
-                  {errors.includes("address") && <p className="text-[10px] text-red-500 font-bold">Address is needed</p>}
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div className="flex flex-col gap-1 relative">
-                    <input
-                      placeholder={isInternational ? 'Postal / ZIP code' : 'PIN code'}
-                      value={pincode}
-                      maxLength={isInternational ? 10 : 6}
-                      onChange={(e) => { const val = isInternational ? e.target.value.slice(0, 10) : e.target.value.replace(/\D/g, '').slice(0, 6); setPincode(val); if (errors.includes("pincode")) { setErrors(errors.filter(f => f !== "pincode")); setMessage(""); } }}
-                      className={`w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-[hsl(var(--swago-purple))] outline-none text-sm shadow-sm ${errors.includes("pincode") ? 'border-red-500 bg-red-50 placeholder-red-300' : 'border-slate-200'} ${fetchingPincode ? 'pr-10' : ''}`}
-                    />
-                    {fetchingPincode && (
-                      <div className="absolute right-4 top-[24px] -translate-y-1/2">
-                        <div className="w-4 h-4 border-2 border-[hsl(var(--swago-purple))] border-t-transparent rounded-full animate-spin" />
-                      </div>
-                    )}
-                    {errors.includes("pincode") && <p className="text-[10px] text-red-500 font-bold">{isInternational ? 'Postal / ZIP code is needed' : 'PIN code is needed'}</p>}
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <input
-                      placeholder="City"
-                      value={city}
-                      onChange={(e) => { setCity(e.target.value); if (errors.includes("city")) { setErrors(errors.filter(f => f !== "city")); setMessage(""); } }}
-                      className={`w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-[hsl(var(--swago-purple))] outline-none text-sm shadow-sm ${errors.includes("city") ? 'border-red-500 bg-red-50 placeholder-red-300' : 'border-slate-200'}`}
-                    />
-                    {errors.includes("city") && <p className="text-[10px] text-red-500 font-bold">City is needed</p>}
-                  </div>
-                  {isInternational ? (
-                    <div className="flex flex-col gap-1">
-                      <input
-                        placeholder="State / Province"
-                        value={state}
-                        onChange={(e) => { setState(e.target.value); if (errors.includes("state")) { setErrors(errors.filter(f => f !== "state")); setMessage(""); } }}
-                        className={`w-full h-12 px-4 border rounded-md focus:ring-1 focus:ring-[hsl(var(--swago-purple))] outline-none text-sm shadow-sm ${errors.includes("state") ? 'border-red-500 bg-red-50 placeholder-red-300' : 'border-slate-200'}`}
-                      />
-                      {errors.includes("state") && <p className="text-[10px] text-red-500 font-bold">State / Province is needed</p>}
-                    </div>
-                  ) : (
-                    <select
-                      value={state}
-                      onChange={(e) => setState(e.target.value)}
-                      disabled={true}
-                      className="w-full h-12 px-4 border rounded-md outline-none text-sm shadow-sm appearance-none bg-slate-100 opacity-70 cursor-not-allowed border-slate-300 text-slate-500"
-                    >
-                      {INDIAN_STATES.map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
-                  )}
-                </div>
+                <AddressFields
+                  value={addr}
+                  onChange={(next) => {
+                    setAddr(next);
+                    if (errors.includes("address")) { setErrors(errors.filter(f => f !== "address")); setMessage(""); }
+                  }}
+                  errors={addrErrors}
+                  onErrorsChange={setAddrErrors}
+                />
+                {addressCountryUnavailable && addressCountry && (
+                  <p className="text-xs font-bold text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
+                    Checkout isn&apos;t available for {ADDRESS_COUNTRY_NAMES[addressCountry]} right now.
+                  </p>
+                )}
 
                 <div className="flex flex-col gap-1">
                   <div className="flex gap-2">
@@ -852,15 +776,9 @@ export default function CheckoutPage() {
               </motion.div>
             )}
 
-            {!canShip && (
-              <div className="text-center p-3 rounded-lg text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200">
-                {shippingRestrictionMessage}
-              </div>
-            )}
-
             <button
               onClick={handlePayNow}
-              disabled={processing || !canShip}
+              disabled={processing || addressCountryUnavailable}
               className="w-full h-14 btn-shine bg-[hsl(var(--swago-purple))] hover:brightness-110 text-white font-black rounded-lg text-lg tracking-widest shadow-xl shadow-[hsl(var(--swago-purple))/0.2] transition-all transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {processing ? "Processing..." : "Pay now"}
@@ -885,6 +803,8 @@ export default function CheckoutPage() {
               paymentMethod={paymentMethod}
               finalTotal={finalTotal}
               shippingFee={shippingFee}
+              serverQuote={serverQuote}
+              quoteLoading={quoteLoading}
             />
           </div>
         </aside>
@@ -952,7 +872,8 @@ export default function CheckoutPage() {
 // ✅ Reusable Order Summary Component for Desktop/Mobile
 function OrderSummary({
   cart, total, appliedCoupon, couponCode, setCouponCode, applyCoupon,
-  promotion, progressPercent, nextTier, addToCart, appliedSwagoMoney, paymentMethod, finalTotal, shippingFee
+  promotion, progressPercent, nextTier, addToCart, appliedSwagoMoney, paymentMethod, finalTotal, shippingFee,
+  serverQuote, quoteLoading
 }: any) {
   const { formatLocalPrice, getLocalPrice, toLocalAmount, country, isInternational, resolveIntlShipping } = useCountry();
   const intlShippingLocal = useMemo(
@@ -965,10 +886,12 @@ function OrderSummary({
     () => cart.reduce((sum: number, item: any) => sum + getLocalPrice(item).price * item.quantity, 0),
     [cart, getLocalPrice]
   );
-  const localDiscount = toLocalAmount(appliedCoupon?.discount || 0);
-  const localSwago = toLocalAmount(appliedSwagoMoney || 0);
-  const localShipping = isInternational ? intlShippingLocal : shippingFee;
-  const localFinalTotal = isInternational
+  // Prefer the server quote's lines (same pricing as the charge) when available.
+  const q = serverQuote && serverQuote.currency === country.currency ? serverQuote : null;
+  const localDiscount = q ? q.discount : toLocalAmount(appliedCoupon?.discount || 0);
+  const localSwago = q ? q.swagoMoney : toLocalAmount(appliedSwagoMoney || 0);
+  const localShipping = q ? q.shipping : isInternational ? intlShippingLocal : shippingFee;
+  const estimatedTotal = isInternational
     ? computeInternationalDisplayTotal({
         localMerchandise: localSubtotal,
         localDiscount,
@@ -976,6 +899,7 @@ function OrderSummary({
         localShipping,
       })
     : Math.max(0, localSubtotal - localDiscount - localSwago + localShipping);
+  const localFinalTotal = q ? q.total : estimatedTotal;
 
   return (
     <>
@@ -1006,7 +930,7 @@ function OrderSummary({
       <div className="space-y-3 text-sm">
         <div className="flex justify-between text-slate-600">
           <span>Subtotal</span>
-          <span className="font-bold text-slate-900">{formatLocalPrice(localSubtotal)}</span>
+          <span className="font-bold text-slate-900">{formatLocalPrice(q ? q.subtotal : localSubtotal)}</span>
         </div>
         <div className="flex justify-between text-slate-600">
           <span>Shipping {isInternational ? '(International)' : paymentMethod === 'cod' ? '(COD)' : '(Online)'}</span>
@@ -1039,6 +963,13 @@ function OrderSummary({
             </span>
           </div>
         </div>
+        <p className="text-[11px] text-slate-500 text-right">
+          {q
+            ? `Final amount for your delivery address, charged in ${serverQuote.currency}.`
+            : quoteLoading
+              ? "Confirming price for your address…"
+              : "Enter your full delivery address to confirm the final amount."}
+        </p>
       </div>
     </>
   );

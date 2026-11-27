@@ -54,8 +54,8 @@ function generateTestData() {
     name: `Stress User ${vuId}`,
     age: `${5 + (vuId % 10)}`,
     address: `Stress Test Address ${vuId}`,
-    city: 'TestCity',
-    state: 'TestState',
+    city: 'Mumbai',
+    stateCode: 'IN-MH', // must be consistent with the pincode (server validates)
     pincode: '400001'
   };
 }

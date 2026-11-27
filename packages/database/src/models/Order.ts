@@ -29,8 +29,27 @@ const OrderSchema = new mongoose.Schema(
     age: { type: String },
     address: { type: String, required: true },
     city: { type: String, required: true },
+    // Human-readable state / province / emirate name (display, labels, emails)
     state: { type: String, required: true },
-    pincode: { type: String, required: true },
+    // UAE addresses have no postal code; every other country requires one
+    pincode: {
+      type: String,
+      required: function (this: { country?: string }) {
+        return String(this.country || "IN").toUpperCase() !== "AE";
+      },
+      default: "",
+    },
+    // ISO 3166-2 code from the validated address, e.g. "IN-TN" (source of `country`)
+    stateCode: { type: String, uppercase: true, trim: true },
+    // Accepted-with-warning signals from address validation (POSTAL_UNKNOWN, PO_BOX, ...)
+    addressFlags: { type: [String], default: undefined },
+    // Version of the postal/state tables the address was validated against
+    addressDataVersion: { type: String },
+    // Set when a captured payment's amount/currency didn't match the order (order stays Pending)
+    paymentMismatch: { type: mongoose.Schema.Types.Mixed },
+    // Set when the wallet (Swago Money) debit could not be applied at commit time
+    // (balance spent concurrently). Admin must review before shipping.
+    walletDebitFailed: { type: Boolean, default: undefined },
     // ✅ UPDATED: Full lifecycle status enum
     status: {
       type: String,
@@ -119,7 +138,8 @@ const OrderSchema = new mongoose.Schema(
     taxCollected: { type: Number, default: 0 },
     // ✅ NEW: Invoice Tracking
     invoiceUrl: { type: String, required: false },
-    // International order tracking
+    // Order country — derived server-side from the validated address (stateCode), never the client/IP.
+    // Default kept only for legacy documents created before stateCode existed.
     country: { type: String, default: "IN", uppercase: true },
     currency: { type: String, default: "INR", uppercase: true },
     // International orders only: display symbol of `currency` at checkout time

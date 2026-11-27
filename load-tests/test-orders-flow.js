@@ -37,9 +37,11 @@ const TEST_PRODUCTS = [
 ];
 
 const TEST_ADDRESSES = [
-  { city: 'Mumbai', state: 'Maharashtra', pincode: '400001' },
-  { city: 'Delhi', state: 'Delhi', pincode: '110001' },
-  { city: 'Bangalore', state: 'Karnataka', pincode: '560001' },
+  // stateCode is the ISO 3166-2 code; the server derives country/currency from it
+  // (no client country/currency is sent).
+  { city: 'Mumbai', stateCode: 'IN-MH', pincode: '400001' },
+  { city: 'Delhi', stateCode: 'IN-DL', pincode: '110001' },
+  { city: 'Bangalore', stateCode: 'IN-KA', pincode: '560001' },
 ];
 
 const COUPON_CODES = ['WELCOME10', 'FLAT50', 'SAVE20'];

@@ -3,7 +3,19 @@ import bcrypt from 'bcryptjs';
 import { cookies } from 'next/headers';
 import { User, connectDB } from '@swago/database';
 
-const ADMIN_JWT_SECRET = process.env.ADMIN_JWT_SECRET || 'fallback-secret-change-me';
+/**
+ * Admin JWT secret. In production there is NO fallback: without ADMIN_JWT_SECRET,
+ * sign-in fails and every token is rejected (fail closed). The dev fallback only
+ * applies when NODE_ENV !== 'production'. Resolved lazily so `next build` works.
+ */
+function adminJwtSecret(): string {
+  const s = process.env.ADMIN_JWT_SECRET;
+  if (s) return s;
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('ADMIN_JWT_SECRET is not configured');
+  }
+  return 'dev-only-admin-secret';
+}
 const COOKIE_NAME = 'admin_token';
 
 export interface AdminSession {
@@ -36,7 +48,7 @@ export async function createAdminSession(user: any) {
       email: user.email,
       name: user.name,
     },
-    ADMIN_JWT_SECRET,
+    adminJwtSecret(),
     { expiresIn: '24h' }
   );
 
@@ -60,7 +72,7 @@ export async function getAdminSession(): Promise<AdminSession | null> {
 
     if (!token) return null;
 
-    const decoded = jwt.verify(token, ADMIN_JWT_SECRET) as AdminSession;
+    const decoded = jwt.verify(token, adminJwtSecret()) as AdminSession;
     
     // Verify user still exists and is admin
     await connectDB();

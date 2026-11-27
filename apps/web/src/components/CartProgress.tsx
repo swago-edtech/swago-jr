@@ -19,7 +19,7 @@ export default function CartProgress({
   total,
   promotionData: promotion,
 }: CartProgressProps) {
-  const { isInternational } = useCountry();
+  const { country } = useCountry();
   const shippingThreshold = promotion?.shippingThreshold || 1450;
   
   // Sort bonus items by threshold to ensure correct progress display
@@ -48,7 +48,9 @@ export default function CartProgress({
 
   if (!promotion) return null;
   if (promotion.isActive === false) return null;
-  if (isInternational) return null;
+  // ₹ shipping/bonus milestones apply to INR (India) pricing only — also hidden for
+  // browse-only USD visitors and once a non-India address switches the checkout currency.
+  if (country.currency !== "INR") return null;
 
   return (
     <div className="bg-white rounded-[1.5rem] px-4 pt-3 pb-4 border border-slate-100 shadow-sm mb-4">

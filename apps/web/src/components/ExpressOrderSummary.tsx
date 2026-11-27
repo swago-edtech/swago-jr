@@ -31,6 +31,8 @@ interface ExpressOrderSummaryProps {
   paymentMethod: "razorpay" | "cod";
   hideItems?: boolean;
   hideBreakdown?: boolean;
+  /** Server-quoted total in the charge currency (overrides the client estimate). */
+  chargedTotal?: number | null;
 }
 
 export default function ExpressOrderSummary({
@@ -46,6 +48,7 @@ export default function ExpressOrderSummary({
   paymentMethod,
   hideItems,
   hideBreakdown,
+  chargedTotal,
 }: ExpressOrderSummaryProps) {
   const {
     formatLocalPrice,
@@ -163,7 +166,7 @@ export default function ExpressOrderSummary({
                 {currency}
               </span>
               <span className="text-2xl font-black text-[#0f172a]">
-                {formatLocalPrice(localTotal || toLocalAmount(total))}
+                {formatLocalPrice(typeof chargedTotal === "number" ? chargedTotal : localTotal || toLocalAmount(total))}
               </span>
             </div>
           </div>

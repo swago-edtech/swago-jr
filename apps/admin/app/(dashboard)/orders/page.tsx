@@ -169,7 +169,7 @@ async function getOrders(searchParams: { [key: string]: string | undefined }) {
       .sort(sortConfig)
       .skip(skip)
       .limit(limit)
-      .select('orderId name phone email total status items createdAt razorpay_payment_id paymentMethod couponCode discount referralSource createdVia utm_source utm_medium utm_campaign invoiceUrl country currency currencySymbol exchangeRateUsed displayTotal internationalShippingFee internationalShippingBreakdown swagoMoneyRedeemed')
+      .select('orderId name phone email total status items createdAt razorpay_payment_id paymentMethod couponCode discount referralSource createdVia utm_source utm_medium utm_campaign invoiceUrl country currency currencySymbol exchangeRateUsed displayTotal internationalShippingFee internationalShippingBreakdown swagoMoneyRedeemed stateCode addressFlags paymentMismatch walletDebitFailed')
       .lean(),
     Order.countDocuments(query)
   ]);
@@ -330,6 +330,21 @@ export default async function OrdersPage(props: { searchParams?: Promise<{ [key:
                           </div>
                         ) : null;
                       })()}
+                      {order.paymentMismatch && (
+                        <div className="text-xs text-red-700 mt-1 font-semibold bg-red-50 inline-block px-1.5 py-0.5 rounded border border-red-200" title="Captured payment did not match the order amount/currency — order was NOT confirmed">
+                          PAYMENT MISMATCH
+                        </div>
+                      )}
+                      {order.walletDebitFailed && (
+                        <div className="text-xs text-red-700 mt-1 font-semibold bg-red-50 inline-block px-1.5 py-0.5 rounded border border-red-200" title="Swago Money could not be debited (balance spent concurrently) — review before shipping">
+                          WALLET DEBIT FAILED
+                        </div>
+                      )}
+                      {Array.isArray(order.addressFlags) && order.addressFlags.length > 0 && (
+                        <div className="text-xs text-amber-700 mt-1 bg-amber-50 inline-block px-1.5 py-0.5 rounded border border-amber-200" title={order.addressFlags.join(', ')}>
+                          ⚑ {order.addressFlags.length} address flag{order.addressFlags.length > 1 ? 's' : ''}
+                        </div>
+                      )}
                       {order.couponCode && (
                         <div className="text-xs text-green-700 mt-1 font-semibold bg-green-50 inline-block px-1.5 py-0.5 rounded border border-green-200">
                           {order.couponCode}

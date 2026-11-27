@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 import { connectDB, Order, User } from "@swago/database";
 import { getLoginSession } from "@/lib/auth";
 import { z } from "zod";
+import { resolveOrderAddress } from "@/lib/address-server";
+import { testRouteGuard } from "@/lib/test-routes";
 
 
 // Only for testing - bypasses payment
@@ -12,8 +14,9 @@ const testOrderSchema = z.object({
   email: z.string().email(),
   address: z.string(),
   city: z.string(),
-  state: z.string(),
-  pincode: z.string().regex(/^\d{6}$/),
+  // ISO 3166-2 code (e.g. IN-MH); validated with the same rules as real checkout.
+  stateCode: z.string(),
+  pincode: z.string().optional().default(""),
   cart: z.array(z.object({
     id: z.number(),
     name: z.string(),
@@ -26,13 +29,10 @@ const testOrderSchema = z.object({
 
 
 export async function POST(req: Request) {
-  // Only allow in development/test
-  if (process.env.NODE_ENV === "production") {
-    return NextResponse.json(
-      { error: "Test orders not available in production" },
-      { status: 403 }
-    );
-  } 
+  const blocked = testRouteGuard();
+  if (blocked) return blocked;
+
+
 
 
   try {
@@ -53,6 +53,13 @@ export async function POST(req: Request) {
 
 
     const orderData = validation.data;
+    const addr = resolveOrderAddress(
+      { address: orderData.address, city: orderData.city, stateCode: orderData.stateCode, pincode: orderData.pincode },
+      "test-order"
+    );
+    if (!addr.ok) {
+      return NextResponse.json(addr.body, { status: addr.status });
+    }
 
 
     // Find user
@@ -74,9 +81,13 @@ export async function POST(req: Request) {
       name: orderData.name,
       age: orderData.age,
       address: orderData.address,
-      city: orderData.city,
-      state: orderData.state,
-      pincode: orderData.pincode,
+      city: addr.address.city,
+      state: addr.address.stateName,
+      stateCode: addr.address.stateCode,
+      pincode: addr.address.postalCode,
+      country: addr.address.country,
+      addressFlags: addr.address.flags,
+      addressDataVersion: addr.address.dataVersion,
       status: "Paid",
       items: cart.map(item => ({
         productId: item.id,

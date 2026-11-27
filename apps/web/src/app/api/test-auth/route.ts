@@ -2,8 +2,10 @@
 import { NextResponse } from "next/server";
 import { SignJWT } from "jose";
 import { connectDB, User } from "@swago/database";
+import { testRouteGuard } from "@/lib/test-routes";
 
-const secret = new TextEncoder().encode(process.env.JWT_SECRET || "test-secret");
+// No fallback secret: without JWT_SECRET the route refuses to mint sessions (fail closed).
+const JWT_SECRET = process.env.JWT_SECRET;
 const cookieName = "session";
 
 // Demo credentials
@@ -11,13 +13,13 @@ const DEMO_PHONE = "+919876543210";
 const DEMO_OTP = "123456";
 
 export async function POST(req: Request) {
-  // Only allow in development/test mode
-  if (process.env.NODE_ENV === "production") {
-    return NextResponse.json(
-      { error: "Test auth not available in production" },
-      { status: 403 }
-    );
-  } 
+  const blocked = testRouteGuard();
+  if (blocked) return blocked;
+
+  if (!JWT_SECRET) {
+    return NextResponse.json({ error: "JWT_SECRET is not configured" }, { status: 500 });
+  }
+  const secret = new TextEncoder().encode(JWT_SECRET);
 
   try {
     const body = await req.json();

@@ -15,7 +15,7 @@ export default function RelatedProductsCompact({ currentProductId }: RelatedProd
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const { addToCart } = useSharedContext();
-  const { formatLocalPrice, getLocalPrice, canShip } = useCountry();
+  const { formatLocalPrice, getLocalPrice } = useCountry();
 
   useEffect(() => {
     const fetchRelatedProducts = async () => {
@@ -62,14 +62,9 @@ export default function RelatedProductsCompact({ currentProductId }: RelatedProd
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  if (!canShip) return;
                   addToCart(product);
                 }}
-                disabled={!canShip}
-                className={`bg-white border rounded-md p-0.5 transition-all transform active:scale-90 ${canShip
-                  ? 'border-[#61498C] text-[#61498C] hover:bg-[#61498C] hover:text-white'
-                  : 'border-slate-200 text-slate-300 cursor-not-allowed'
-                  }`}
+                className="bg-white border rounded-md p-0.5 transition-all transform active:scale-90 border-[#61498C] text-[#61498C] hover:bg-[#61498C] hover:text-white"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-2 h-2">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />

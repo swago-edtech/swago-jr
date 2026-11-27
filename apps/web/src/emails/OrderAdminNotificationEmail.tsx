@@ -36,6 +36,12 @@ export type AdminOrderEmailProps = {
   adminUrl: string;
   /** International orders only: extra lines (country, charged amount/currency, rate). */
   internationalLines?: string[];
+  /** Amount actually charged/collected, in the charged currency (e.g. "USD 24.00"). Shown first. */
+  chargedAmount?: string;
+  /** Validated ship-to summary, e.g. "Chennai, Tamil Nadu (IN-TN) 600001, India". */
+  shipTo?: string;
+  /** Accepted-with-warning address flags (POSTAL_UNKNOWN, PO_BOX, ...). */
+  addressFlags?: string[];
 };
 
 export const OrderAdminNotificationEmail = ({
@@ -61,6 +67,9 @@ export const OrderAdminNotificationEmail = ({
   ],
   adminUrl = "https://admin.swagojr.com",
   internationalLines,
+  chargedAmount,
+  shipTo,
+  addressFlags,
 }: AdminOrderEmailProps) => {
   const previewText = `New Order on Swago! - Order ID: ${orderNumber}`;
 
@@ -113,9 +122,25 @@ export const OrderAdminNotificationEmail = ({
             </Text>
 
             <Text style={detailText}>
+              <strong>Charged:</strong> {chargedAmount || `INR ${totalAmount}`}
+              {shipTo ? (
+                <>
+                  <br />
+                  <strong>Ship to:</strong> {shipTo}
+                </>
+              ) : null}
+              {addressFlags && addressFlags.length > 0 ? (
+                <>
+                  <br />
+                  <strong>Address flags:</strong> {addressFlags.join(", ")}
+                </>
+              ) : null}
+            </Text>
+
+            <Text style={detailText}>
               <strong>Payment Method:</strong> {paymentMethod}
               <br />
-              <strong>Subtotal:</strong> INR {subtotal}
+              <strong>Ledger (INR) — Subtotal:</strong> INR {subtotal}
               <br />
               <strong>Discount{couponCode ? ` (${couponCode})` : ''}:</strong> -INR {discount}
               <br />

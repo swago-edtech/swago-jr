@@ -2,12 +2,14 @@ import { NextResponse } from "next/server";
 import { connectDB, User } from "@swago/database";
 import { validateCoupon } from "@/lib/coupon";
 import { getLoginSession } from "@/lib/auth";
+import { getSubdivision } from "@swago/utils/address";
+import { resolvePricingCountry } from "@/lib/address-server";
 
 export async function POST(req: Request) {
   try {
-    const { couponCode, orderAmount, cartItems, isExpress } = await req.json();
+    const { couponCode, orderAmount, cartItems, isExpress, stateCode } = await req.json();
 
-    if (!couponCode || !orderAmount) {
+    if (!couponCode || typeof couponCode !== "string" || !orderAmount || typeof orderAmount !== "number") {
       return NextResponse.json(
         { success: false, error: "Coupon code and order amount are required" },
         { status: 400 }
@@ -27,8 +29,24 @@ export async function POST(req: Request) {
       }
     }
 
+    // Messages in the currency the address will be charged in (display only;
+    // the real discount is recomputed server-side at order creation).
+    let display: { currency: string; exchangeRate: number; currencySymbol?: string } | undefined;
+    const sub = getSubdivision(stateCode);
+    if (sub && sub.country !== "IN") {
+      const pc = await resolvePricingCountry(sub.country);
+      if (pc.ok) display = pc.country;
+    }
+
     try {
-      const { coupon, discountAmount, finalAmount } = await validateCoupon(couponCode, orderAmount, cartItems, userId, isExpress);
+      const { coupon, discountAmount, finalAmount } = await validateCoupon(
+        couponCode,
+        orderAmount,
+        Array.isArray(cartItems) ? cartItems : [],
+        userId,
+        !!isExpress,
+        display
+      );
 
       return NextResponse.json({
         success: true,

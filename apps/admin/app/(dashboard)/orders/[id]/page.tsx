@@ -120,10 +120,40 @@ export default async function OrderDetailPage({
                 <p className="text-sm font-medium text-gray-900">{order.state}</p>
               </div>
             )}
+            {order.stateCode && (
+              <div>
+                <p className="text-sm text-gray-500">State code (validated)</p>
+                <p className="text-sm font-medium text-gray-900">{order.stateCode}</p>
+              </div>
+            )}
             {order.pincode && (
               <div>
-                <p className="text-sm text-gray-500">Pincode</p>
+                <p className="text-sm text-gray-500">{order.country === 'US' ? 'ZIP code' : order.country === 'CA' ? 'Postal code' : 'Pincode'}</p>
                 <p className="text-sm font-medium text-gray-900">{order.pincode}</p>
+              </div>
+            )}
+            <div>
+              <p className="text-sm text-gray-500">Country</p>
+              <p className="text-sm font-medium text-gray-900">{order.country || 'IN'}</p>
+            </div>
+            {Array.isArray(order.addressFlags) && order.addressFlags.length > 0 && (
+              <div className="rounded-md bg-amber-50 border border-amber-200 p-2">
+                <p className="text-xs font-semibold text-amber-800">Address flags (review before shipping)</p>
+                <p className="text-xs text-amber-800 mt-1">{order.addressFlags.join(', ')}</p>
+                {order.addressDataVersion && (
+                  <p className="text-[11px] text-amber-700 mt-1">Data: {order.addressDataVersion}</p>
+                )}
+              </div>
+            )}
+            {order.walletDebitFailed && (
+              <div className="rounded-md bg-red-50 border border-red-200 p-2">
+                <p className="text-xs font-semibold text-red-800">Swago Money debit failed — the wallet balance was spent elsewhere before this order committed. Review before shipping.</p>
+              </div>
+            )}
+            {order.paymentMismatch && (
+              <div className="rounded-md bg-red-50 border border-red-200 p-2">
+                <p className="text-xs font-semibold text-red-800">Payment mismatch — order not confirmed</p>
+                <pre className="text-[11px] text-red-800 mt-1 whitespace-pre-wrap">{JSON.stringify(order.paymentMismatch, null, 2)}</pre>
               </div>
             )}
           </div>

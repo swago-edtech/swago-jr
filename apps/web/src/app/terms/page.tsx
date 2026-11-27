@@ -104,7 +104,9 @@ export default function TermsPage() {
                 <ul className="list-disc pl-6 space-y-2">
                   <li>Payment is required in full at the time of order placement</li>
                   <li>We accept major credit cards, debit cards, and digital payment methods</li>
-                  <li>All prices are in Indian Rupees (INR) and include applicable taxes</li>
+                  <li>Orders delivered in India are charged in Indian Rupees (INR) and include applicable taxes</li>
+                  <li>Orders delivered to the United States, Canada or the United Arab Emirates are charged in the local currency of the delivery address (USD, CAD or AED); the amount shown at checkout is the amount charged</li>
+                  <li>The currency, price and shipping are determined by the delivery address you enter at checkout, not by your location or network; we may cancel and refund orders whose address is invalid or inconsistent</li>
                   <li>Payment processing is handled by secure third-party providers</li>
                 </ul>
 

@@ -22,7 +22,10 @@
     "lint": "pnpm --recursive run lint",
     "clean": "pnpm --recursive run clean && rm -rf node_modules",
     "type-check": "pnpm --recursive run type-check",
-    "worker:channel-email": "node scripts/workers/channel-email-sync.js"
+    "worker:channel-email": "node scripts/workers/channel-email-sync.js",
+    "test:address": "npx tsx --test packages/utils/tests/address.test.ts scripts/migrations/address-hardening.test.ts",
+    "test:checkout": "pnpm --filter web test:checkout",
+    "test": "pnpm test:address && pnpm test:checkout"
   },
   "devDependencies": {
     "@types/node": "^20.19.19",

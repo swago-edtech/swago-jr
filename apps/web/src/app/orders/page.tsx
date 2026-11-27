@@ -204,14 +204,18 @@ export default function OrdersPage() {
             }),
           });
 
+          const verification = await verificationRes.json().catch(() => null);
           if (verificationRes.ok) {
-            setPaymentMessage("✅ Payment successful!");
+            // 202 = payment received, amount is being confirmed via the gateway webhook.
+            setPaymentMessage(verification?.pending ? "⏳ Payment received — confirming…" : "✅ Payment successful!");
             // Refresh orders
             const refreshRes = await fetch('/api/orders');
             if (refreshRes.ok) {
               const data = await refreshRes.json();
               setOrders(data.orders || []);
             }
+          } else if (verification?.code === "PAYMENT_MISMATCH") {
+            setPaymentMessage("❌ Payment amount didn't match this order. Our team will contact you.");
           } else {
             setPaymentMessage("❌ Payment verification failed");
           }

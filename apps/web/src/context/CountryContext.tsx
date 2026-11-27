@@ -37,7 +37,21 @@ export type IntlShippingCartLine = {
 };
 
 type CountryContextType = {
+  /**
+   * Active pricing country. On checkout pages this is the country derived from
+   * the address the customer entered (see setCheckoutCountry); elsewhere it is
+   * the IP-detected browse country (display only — the server never trusts it).
+   */
   country: CountryConfig;
+  /** IP-detected browse country (ipwho.is), display only. */
+  browseCountry: CountryConfig;
+  /**
+   * Checkout pages call this with the country implied by the selected state
+   * (ISO 3166-2 prefix) so prices switch live to the currency that will be
+   * charged. Pass null when leaving checkout or when the state is cleared.
+   */
+  setCheckoutCountry: (code: string | null) => void;
+  checkoutCountryCode: string | null;
   /** Formats an INR amount into the active country currency (exchange-rate path). */
   formatPrice: (amountINR: number) => string;
   /** Formats an amount already in the active country currency (no conversion). */
@@ -186,9 +200,23 @@ const getInitialSession = (): StoredCountrySession => {
 export function CountryProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<StoredCountrySession>(getInitialSession);
   const [isLoading, setIsLoading] = useState(true);
+  const [countries, setCountries] = useState<CountryConfig[]>([]);
+  const [checkoutCountryCode, setCheckoutCountryCode] = useState<string | null>(null);
 
-  const country = session.country;
-  const canShip = session.canShip;
+  // Address-derived checkout country wins over the IP country (never persisted).
+  const checkoutCountry = useMemo<CountryConfig | null>(() => {
+    if (!checkoutCountryCode || !canShipToCountry(checkoutCountryCode)) return null;
+    if (checkoutCountryCode === "IN") return countries.find((c) => c.code === "IN") || DEFAULT_INDIA;
+    return countries.find((c) => c.code === checkoutCountryCode && c.isActive !== false) || null;
+  }, [checkoutCountryCode, countries]);
+
+  const browseCountry = session.country;
+  const country = checkoutCountry || session.country;
+  const canShip = checkoutCountry ? true : session.canShip;
+
+  const setCheckoutCountry = useCallback((code: string | null) => {
+    setCheckoutCountryCode(code ? String(code).trim().toUpperCase() : null);
+  }, []);
 
   useEffect(() => {
     const init = async () => {
@@ -196,6 +224,7 @@ export function CountryProvider({ children }: { children: React.ReactNode }) {
         const res = await fetch("/api/geo");
         const data = await res.json();
         const countries: CountryConfig[] = data.countries || [];
+        setCountries(countries);
 
         const existing = readStoredSession();
         const isStale =
@@ -339,6 +368,9 @@ export function CountryProvider({ children }: { children: React.ReactNode }) {
     <CountryContext.Provider
       value={{
         country,
+        browseCountry,
+        setCheckoutCountry,
+        checkoutCountryCode,
         formatPrice,
         formatLocalPrice,
         toLocalAmount,

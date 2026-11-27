@@ -8,6 +8,16 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { USER_EVENTS } from "@/context/SharedContext";
 import CartProgress from "@/components/CartProgress";
+import AddressFields, {
+  EMPTY_ADDRESS,
+  countryFromState,
+  fieldErrorsFromResponse,
+  validateAddressClient,
+  type AddressFieldErrors,
+  type AddressValue,
+} from "@/components/checkout/AddressFields";
+import { useServerQuote } from "@/components/checkout/useServerQuote";
+import { ADDRESS_COUNTRY_NAMES, getSubdivision } from "@swago/utils/address";
 import ExpressOrderSummary from "@/components/ExpressOrderSummary";
 import ExpressCrossSell from "@/components/ExpressCrossSell";
 import { Feedback } from "@/lib/feedback";
@@ -21,13 +31,6 @@ import {
   isCodOverUnitLimit,
 } from "@/lib/cod-limits";
 
-const INDIAN_STATES = [
-  "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa", "Gujarat", "Haryana",
-  "Himachal Pradesh", "Jharkhand", "Karnataka", "Kerala", "Madhya Pradesh", "Maharashtra", "Manipur",
-  "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana",
-  "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal", "Andaman and Nicobar Islands", "Chandigarh",
-  "Dadra and Nagar Haveli and Daman and Diu", "Delhi", "Jammu and Kashmir", "Ladakh", "Lakshadweep", "Puducherry"
-];
 
 
 interface ExpressCartItem {
@@ -46,7 +49,7 @@ function ExpressCheckoutContent() {
   const utmSource = searchParams.get("utm_source") || "";
   const utmMedium = searchParams.get("utm_medium") || "";
   const utmCampaign = searchParams.get("utm_campaign") || "";
-  const { formatPrice, formatLocalPrice, getLocalPrice, toLocalAmount, country, isInternational, resolveIntlShipping, canShip, shippingRestrictionMessage } = useCountry();
+  const { formatPrice, formatLocalPrice, getLocalPrice, toLocalAmount, country, isInternational, resolveIntlShipping, setCheckoutCountry } = useCountry();
 
   // Page state
   const [loading, setLoading] = useState(true);
@@ -69,10 +72,12 @@ function ExpressCheckoutContent() {
   const [email, setEmail] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
-  const [address, setAddress] = useState("");
-  const [city, setCity] = useState("");
-  const [state, setState] = useState("Tamil Nadu");
-  const [pincode, setPincode] = useState("");
+  // Delivery address: the selected ISO state decides the country + currency (no country picker)
+  const [addr, setAddr] = useState<AddressValue>(EMPTY_ADDRESS);
+  const [addrErrors, setAddrErrors] = useState<AddressFieldErrors>({});
+  const { address, city, stateCode, pincode } = addr;
+  const addressCountry = countryFromState(stateCode);
+  const addressCountryUnavailable = !!addressCountry && addressCountry !== country?.code;
   const [paymentMethod, setPaymentMethod] = useState<"razorpay" | "cod">("razorpay");
   const [couponCode, setCouponCode] = useState(couponParam);
   const [showCouponModal, setShowCouponModal] = useState(false);
@@ -83,46 +88,12 @@ function ExpressCheckoutContent() {
   // MSG91 Widget State
   const [scriptLoaded, setScriptLoaded] = useState(false);
   const [widgetReady, setWidgetReady] = useState(false);
-  const [fetchingPincode, setFetchingPincode] = useState(false);
 
-  // International addresses must be typed in; India keeps its default for the locked state dropdown
+  // Live currency switch: price the checkout in the country implied by the address.
   useEffect(() => {
-    setState(isInternational ? "" : "Tamil Nadu");
-  }, [isInternational]);
-
-  // Auto-fetch City and State from Pincode (India only)
-  useEffect(() => {
-    if (!isInternational && pincode && pincode.length === 6) {
-      const fetchPincodeData = async () => {
-        setFetchingPincode(true);
-        try {
-          const res = await fetch(`https://api.postalpincode.in/pincode/${pincode}`);
-          const data = await res.json();
-          if (data && data[0] && data[0].Status === "Success") {
-            const postOffice = data[0].PostOffice[0];
-            if (postOffice) {
-              if (postOffice.State) {
-                const matchedState = INDIAN_STATES.find(s => s.toLowerCase() === postOffice.State.toLowerCase());
-                setState(matchedState || postOffice.State);
-              }
-              let cityVal = "";
-              if (postOffice.Block && postOffice.Block !== "NA") cityVal = postOffice.Block;
-              else if (postOffice.District && postOffice.District !== "NA") cityVal = postOffice.District;
-              else if (postOffice.Region && postOffice.Region !== "NA") cityVal = postOffice.Region;
-              else if (postOffice.Name && postOffice.Name !== "NA") cityVal = postOffice.Name;
-              if (cityVal) setCity(cityVal);
-              setErrors((prev) => prev.filter(e => e !== 'city' && e !== 'state' && e !== 'pincode'));
-            }
-          }
-        } catch (err) {
-          console.error("Failed to fetch pincode details:", err);
-        } finally {
-          setFetchingPincode(false);
-        }
-      };
-      fetchPincodeData();
-    }
-  }, [pincode, isInternational]);
+    setCheckoutCountry(addressCountry);
+  }, [addressCountry, setCheckoutCountry]);
+  useEffect(() => () => setCheckoutCountry(null), [setCheckoutCountry]);
   
   useEffect(() => {
     if (!scriptLoaded) return;
@@ -238,7 +209,7 @@ function ExpressCheckoutContent() {
     try {
       const res = await fetch("/api/coupon/validate", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ couponCode, orderAmount: subtotal, cartItems: cart.map(i => ({ productId: i._id, price: i.price, quantity: i.quantity, name: i.name })), isExpress: true }),
+        body: JSON.stringify({ couponCode, orderAmount: subtotal, cartItems: cart.map(i => ({ productId: i._id, price: i.price, quantity: i.quantity, name: i.name })), isExpress: true, stateCode }),
       });
       const data = await res.json();
       if (data.success) {
@@ -302,11 +273,15 @@ function ExpressCheckoutContent() {
   const isCodOverLimit = useMemo(() => isCodOverUnitLimit(cart), [cart]);
 
   const isCodBlockedByLocation = useMemo(() => {
-    if (isInternational) return true;
-    const stateBlocked = promotion?.blockedCodStates?.some((blockedState: string) => blockedState.toLowerCase() === state.toLowerCase()) || false;
+    if (isInternational || (addressCountry && addressCountry !== "IN")) return true;
+    const stateName = getSubdivision(stateCode)?.name?.toLowerCase() || "";
+    const stateBlocked = promotion?.blockedCodStates?.some((blocked: string) => {
+      const b = String(blocked).toLowerCase();
+      return b === stateCode.toLowerCase() || (!!stateName && b === stateName);
+    }) || false;
     const pincodeBlocked = promotion?.blockedCodPincodes?.includes(pincode) || false;
     return stateBlocked || pincodeBlocked;
-  }, [promotion, state, pincode, isInternational]);
+  }, [promotion, stateCode, pincode, isInternational, addressCountry]);
 
   const isCodBlocked = isCodBlockedByLocation || isCodOverLimit;
 
@@ -339,6 +314,21 @@ function ExpressCheckoutContent() {
     return Math.max(0, localSub - localDisc + localShip);
   }, [cart, getLocalPrice, toLocalAmount, discount, isInternational, intlShipping, shippingFee]);
 
+  // Server price for this address (same pricing as create-order): shown and sent as expectedTotal.
+  const quoteCart = useMemo(() => cart.map((i) => ({ productId: i._id, quantity: i.quantity })), [cart]);
+  const { quote: serverQuote } = useServerQuote({
+    mode: "express",
+    paymentMethod,
+    addr,
+    phone: phone || undefined,
+    cart: quoteCart,
+    couponCode: couponData?.valid ? couponData.code : null,
+    enabled: !!addressCountry && !addressCountryUnavailable,
+  });
+  const chargeTotal =
+    serverQuote && serverQuote.currency === country?.currency ? serverQuote.total : localFinalTotal;
+  const quotedTotal = serverQuote && serverQuote.currency === country?.currency ? serverQuote.total : null;
+
   // ========================================
   // FORM VALIDATION
   // ========================================
@@ -348,12 +338,9 @@ function ExpressCheckoutContent() {
     if (!email || !email.includes("@")) errs.push("email");
     if (!firstName) errs.push("firstName");
     if (!lastName) errs.push("lastName");
-    if (!address) errs.push("address");
-    if (!city.trim()) errs.push("city");
-    if (!state.trim()) errs.push("state");
-    // UAE postal code is optional in practice; keep required for IN/US/CA
-    const postalRequired = !(isInternational && country?.code === "AE");
-    if (postalRequired && (!pincode || pincode.length < 5)) errs.push("pincode");
+    const addressIssues = validateAddressClient(addr);
+    setAddrErrors(addressIssues);
+    if (Object.keys(addressIssues).length > 0) errs.push("address");
     setErrors(errs);
     if (errs.length > 0) { setMessage("Please fill in all required fields."); return false; }
     return true;
@@ -363,8 +350,11 @@ function ExpressCheckoutContent() {
   // PAYMENT HANDLER
   // ========================================
   const handlePayNow = async () => {
-    if (!canShip) { setMessage(shippingRestrictionMessage); return; }
     if (!validateForm()) return;
+    if (addressCountryUnavailable && addressCountry) {
+      setMessage(`Checkout isn't available for ${ADDRESS_COUNTRY_NAMES[addressCountry]} right now.`);
+      return;
+    }
     if (cart.length === 0) { setMessage("Your cart is empty."); return; }
 
     if (paymentMethod === "cod") {
@@ -404,11 +394,11 @@ function ExpressCheckoutContent() {
     try {
       const payload = {
         items: cart.map(i => ({ productId: i._id, quantity: i.quantity })),
-        customer: { phone, email, name: `${firstName} ${lastName}`.trim(), address, city, state, pincode },
+        customer: { phone, email, name: `${firstName} ${lastName}`.trim(), address, city, stateCode, pincode },
         paymentMethod,
-        country: country?.code || "IN",
-        currency: country?.currency || "INR",
-        exchangeRate: country?.exchangeRate || 1,
+        // Server re-derives country/currency from stateCode and refuses (409) if this total drifted.
+        expectedTotal: chargeTotal,
+        expectedCurrency: country?.currency,
         ...(couponData?.valid && { couponCode: couponData.code }),
         ...(accessToken && { accessToken }),
         utm: { source: utmSource || undefined, medium: utmMedium || undefined, campaign: utmCampaign || undefined },
@@ -418,7 +408,24 @@ function ExpressCheckoutContent() {
         method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
       });
       const data = await res.json();
-      if (!data.success) throw new Error(data.error || data.details || "Order creation failed");
+      if (!data.success) {
+        const fieldErrs = fieldErrorsFromResponse(data);
+        if (fieldErrs) {
+          setAddrErrors(fieldErrs);
+          setShowOtpModal(false);
+          throw new Error(data.error);
+        }
+        if (res.status === 409 && data.code === "PRICE_CHANGED" && data.quote) {
+          throw new Error(`Your total is now ${formatLocalPrice(data.quote.total)} (${data.quote.currency}). Please review and try again.`);
+        }
+        throw new Error(data.error || "Order creation failed");
+      }
+
+      if (data.zeroTotal) {
+        window.dispatchEvent(new Event(USER_EVENTS.LOGIN));
+        router.push(`/checkout/express/thank-you?orderId=${data.order.orderId}&method=razorpay`);
+        return;
+      }
 
       if (paymentMethod === "cod") {
         setShowOtpModal(false);
@@ -429,7 +436,7 @@ function ExpressCheckoutContent() {
 
       // Razorpay flow
       const options = {
-        key: data.razorpay.key, amount: data.razorpay.amount, currency: data.razorpay.currency || country?.currency || "INR",
+        key: data.razorpay.key, amount: data.razorpay.amount, currency: data.razorpay.currency,
         name: "Swago Jr", description: `Order ${data.order.orderId}`, order_id: data.razorpay.orderId,
         handler: async (response: any) => {
           setMessage("Verifying payment...");
@@ -439,9 +446,10 @@ function ExpressCheckoutContent() {
               body: JSON.stringify({ razorpay_payment_id: response.razorpay_payment_id, razorpay_order_id: response.razorpay_order_id, razorpay_signature: response.razorpay_signature, orderId: data.order.orderId }),
             });
             const verifyData = await verifyRes.json();
+            // 202 pending = payment received; the webhook confirms the amount and finalizes.
             if (verifyData.success) {
-              window.dispatchEvent(new Event(USER_EVENTS.LOGIN));
-              router.push(`/checkout/express/thank-you?orderId=${verifyData.orderId}&method=razorpay`);
+              if (!verifyData.pending) window.dispatchEvent(new Event(USER_EVENTS.LOGIN));
+              router.push(`/checkout/express/thank-you?orderId=${verifyData.orderId}&method=razorpay${verifyData.pending ? "&pending=1" : ""}`);
             } else { setMessage("Payment verification failed. Please contact support."); setProcessing(false); }
           } catch { setMessage("Verification error. Your payment is safe — please contact support."); setProcessing(false); }
         },
@@ -635,35 +643,17 @@ function ExpressCheckoutContent() {
                       {errors.includes("lastName") && <p className="text-[10px] text-red-500 font-bold mt-1">Required</p>}
                     </div>
                   </div>
-                  <div>
-                    <input value={address} onChange={e => { setAddress(e.target.value); setErrors(p => p.filter(f => f !== "address")); setMessage(""); }} placeholder="Address" autoComplete="street-address" className={inputClass("address")} />
-                    {errors.includes("address") && <p className="text-[10px] text-red-500 font-bold mt-1">Required</p>}
-                  </div>
-                  <div className="relative">
-                    <input value={pincode} maxLength={isInternational ? 10 : 6} onChange={e => { const val = isInternational ? e.target.value.slice(0, 10) : e.target.value.replace(/\D/g, '').slice(0, 6); setPincode(val); setErrors(p => p.filter(f => f !== "pincode")); setMessage(""); }} placeholder={isInternational ? 'Postal / ZIP code' : 'PIN code'} autoComplete="postal-code" className={`${inputClass("pincode")} ${fetchingPincode ? 'pr-10' : ''}`} />
-                    {fetchingPincode && (
-                      <div className="absolute right-3 top-[20px] -translate-y-1/2">
-                        <div className="w-4 h-4 border-2 border-[hsl(var(--swago-purple))] border-t-transparent rounded-full animate-spin" />
-                      </div>
-                    )}
-                    {errors.includes("pincode") && <p className="text-[10px] text-red-500 font-bold mt-1">Required</p>}
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <input value={city} onChange={e => { setCity(e.target.value); setErrors(p => p.filter(f => f !== "city")); setMessage(""); }} placeholder="City" autoComplete="address-level2" className={inputClass("city")} />
-                      {errors.includes("city") && <p className="text-[10px] text-red-500 font-bold mt-1">Required</p>}
-                    </div>
-                    {isInternational ? (
-                      <div>
-                        <input value={state} onChange={e => { setState(e.target.value); setErrors(p => p.filter(f => f !== "state")); setMessage(""); }} placeholder="State / Province" autoComplete="address-level1" className={inputClass("state")} />
-                        {errors.includes("state") && <p className="text-[10px] text-red-500 font-bold mt-1">Required</p>}
-                      </div>
-                    ) : (
-                      <select value={state} onChange={e => setState(e.target.value)} disabled={true} autoComplete="address-level1" className="w-full h-10 px-3 border rounded-xl text-[13px] font-medium focus:outline-none transition shadow-inner appearance-none bg-slate-100 opacity-70 cursor-not-allowed border-[#e2e8f0] text-slate-500">
-                        {INDIAN_STATES.map(s => <option key={s} value={s}>{s}</option>)}
-                      </select>
-                    )}
-                  </div>
+                  <AddressFields
+                    value={addr}
+                    onChange={(next) => { setAddr(next); setErrors(p => p.filter(f => f !== "address")); setMessage(""); }}
+                    errors={addrErrors}
+                    onErrorsChange={setAddrErrors}
+                  />
+                  {addressCountryUnavailable && addressCountry && (
+                    <p className="text-xs font-bold text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+                      Checkout isn&apos;t available for {ADDRESS_COUNTRY_NAMES[addressCountry]} right now.
+                    </p>
+                  )}
                 </div>
               </section>
 
@@ -739,19 +729,13 @@ function ExpressCheckoutContent() {
 
               {/* Mobile: Order Summary Breakdown */}
               <div className="md:hidden pt-4 border-t border-[#e2e8f0]/80">
-                <ExpressOrderSummary items={cart} subtotal={subtotal} discount={discount} couponCode={dynamicCoupon.valid ? couponData.code : null} shippingFee={shippingFee} total={finalTotal} onIncreaseQty={increaseQty} onDecreaseQty={decreaseQty} onRemoveItem={removeItem} paymentMethod={paymentMethod} hideItems={true} />
+                <ExpressOrderSummary items={cart} subtotal={subtotal} discount={discount} couponCode={dynamicCoupon.valid ? couponData.code : null} shippingFee={shippingFee} total={finalTotal} onIncreaseQty={increaseQty} onDecreaseQty={decreaseQty} onRemoveItem={removeItem} paymentMethod={paymentMethod} hideItems={true} chargedTotal={quotedTotal} />
               </div>
 
-              {!canShip && (
-                <div className="text-center p-3 rounded-lg text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200">
-                  {shippingRestrictionMessage}
-                </div>
-              )}
-
               {/* Pay Button */}
-              <button onClick={handlePayNow} disabled={processing || !canShip}
+              <button onClick={handlePayNow} disabled={processing || addressCountryUnavailable}
                 className="w-full py-3.5 bg-[hsl(var(--swago-purple))] hover:opacity-90 text-white shadow-sm shadow-[hsl(var(--swago-purple))] hover:shadow-md hover:shadow-[hsl(var(--swago-purple))] text-[13px] font-bold rounded-xl transition flex justify-center items-center tracking-widest disabled:opacity-50 disabled:cursor-not-allowed">
-                {processing ? "Processing..." : paymentMethod === "cod" ? `Place Order — ${formatLocalPrice(localFinalTotal)}` : `Pay ${formatLocalPrice(localFinalTotal)}`}
+                {processing ? "Processing..." : paymentMethod === "cod" ? `Place Order — ${formatLocalPrice(chargeTotal)}` : `Pay ${formatLocalPrice(chargeTotal)}`}
               </button>
 
               <footer className="pt-5 border-t border-[#e2e8f0]/80 flex flex-wrap justify-center gap-x-6 gap-y-2 text-[10px] text-[#94a3b8] tracking-widest font-bold">
@@ -768,7 +752,7 @@ function ExpressCheckoutContent() {
           <div className="max-w-[400px] space-y-6">
             {promotion && <CartProgress total={subtotal} promotionData={promotion} />}
 
-            <ExpressOrderSummary items={cart} subtotal={subtotal} discount={discount} couponCode={dynamicCoupon.valid ? couponData.code : null} shippingFee={shippingFee} total={finalTotal} onIncreaseQty={increaseQty} onDecreaseQty={decreaseQty} onRemoveItem={removeItem} paymentMethod={paymentMethod} />
+            <ExpressOrderSummary items={cart} subtotal={subtotal} discount={discount} couponCode={dynamicCoupon.valid ? couponData.code : null} shippingFee={shippingFee} total={finalTotal} onIncreaseQty={increaseQty} onDecreaseQty={decreaseQty} onRemoveItem={removeItem} paymentMethod={paymentMethod} chargedTotal={quotedTotal} />
 
             {/* Coupon Input */}
             {couponSection}

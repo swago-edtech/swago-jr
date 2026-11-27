@@ -4,6 +4,7 @@ import { PassThrough } from 'stream';
 import fs from 'fs';
 import path from 'path';
 import { getInternationalOrderDisplay } from '@swago/utils';
+import { ADDRESS_COUNTRY_NAMES, POSTAL_LABEL, isAddressCountry } from '@swago/utils/address';
 
 function numberToWords(num: number): string {
   if (num === 0) return 'ZERO RUPEES ONLY';
@@ -128,6 +129,11 @@ export async function generateAndUploadInvoice(order: any): Promise<void> {
     const invDate = new Date().toLocaleString('en-US', { day: '2-digit', month: 'short', year: 'numeric' });
     const orderDateFormatted = new Date(order.createdAt || new Date()).toLocaleString('en-US', { day: '2-digit', month: 'short', year: 'numeric' });
     const paymentStr = order.paymentMethod === 'cod' ? 'Cash on Delivery' : 'Prepaid (Razorpay)';
+    // Ship-to country comes from the validated address (order.country, derived from stateCode).
+    const countryCode = String(order.country || 'IN').toUpperCase();
+    const countryName = isAddressCountry(countryCode) ? ADDRESS_COUNTRY_NAMES[countryCode] : countryCode;
+    const postalLabel = isAddressCountry(countryCode) ? POSTAL_LABEL[countryCode] : 'Postal code';
+    const addressBlock = `${order.address || 'N/A'}\nCity: ${order.city || 'N/A'}\nState: ${order.state || 'N/A'}, ${postalLabel}: ${order.pincode || '—'}\nCountry: ${countryName}`;
     // International orders only: amounts in the charged currency. null for India (unchanged).
     const intl = getInternationalOrderDisplay(order);
     const cur = (n: number) => (intl ? intl.formatCode(n) : `Rs. ${n.toFixed(2)}`);
@@ -140,7 +146,7 @@ export async function generateAndUploadInvoice(order: any): Promise<void> {
     
     doc.font('Helvetica-Bold').text('Place of Supply', 300, infoY);
     doc.text(`City: `, 300, infoY + 15, { continued: true }).font('Helvetica').text(`${order.city || 'N/A'}, `, { continued: true }).font('Helvetica-Bold').text('State: ', { continued: true }).font('Helvetica').text(order.state || 'N/A');
-    doc.font('Helvetica-Bold').text(`Pincode: `, 300, infoY + 30, { continued: true }).font('Helvetica').text(order.pincode || 'N/A');
+    doc.font('Helvetica-Bold').text(`${postalLabel}: `, 300, infoY + 30, { continued: true }).font('Helvetica').text(`${order.pincode || 'N/A'} (${countryName})`);
     doc.font('Helvetica-Bold').text(`Order Date: `, 300, infoY + 45, { continued: true }).font('Helvetica').text(orderDateFormatted);
     
     // Grid
@@ -162,22 +168,22 @@ export async function generateAndUploadInvoice(order: any): Promise<void> {
     doc.fontSize(9);
     
     doc.font('Helvetica-Bold').text(order.name || 'N/A', 40, detailsY, { width: 158 });
-    doc.font('Helvetica').text(`${order.address || 'N/A'}\nCity: ${order.city || 'N/A'}\nState: ${order.state || 'N/A'}, Pincode: ${order.pincode || 'N/A'}`, 40, detailsY + 15, { width: 158 });
-    doc.font('Helvetica-Bold').text('Tel: ', 40, detailsY + 65, { continued: true }).font('Helvetica').text(order.phone || 'N/A');
-    doc.font('Helvetica-Bold').text('Email: ', 40, detailsY + 80);
-    doc.font('Helvetica').text(order.email || 'N/A', 75, detailsY + 80, { width: 120 });
+    doc.font('Helvetica').text(addressBlock, 40, detailsY + 15, { width: 158 });
+    doc.font('Helvetica-Bold').text('Tel: ', 40, detailsY + 77, { continued: true }).font('Helvetica').text(order.phone || 'N/A');
+    doc.font('Helvetica-Bold').text('Email: ', 40, detailsY + 92);
+    doc.font('Helvetica').text(order.email || 'N/A', 75, detailsY + 92, { width: 120 });
     
     doc.font('Helvetica-Bold').text(order.name || 'N/A', 218, detailsY, { width: 158 });
-    doc.font('Helvetica').text(`${order.address || 'N/A'}\nCity: ${order.city || 'N/A'}\nState: ${order.state || 'N/A'}, Pincode: ${order.pincode || 'N/A'}`, 218, detailsY + 15, { width: 158 });
-    doc.font('Helvetica-Bold').text('Tel: ', 218, detailsY + 65, { continued: true }).font('Helvetica').text(order.phone || 'N/A');
-    doc.font('Helvetica-Bold').text('Email: ', 218, detailsY + 80);
-    doc.font('Helvetica').text(order.email || 'N/A', 253, detailsY + 80, { width: 120 });
+    doc.font('Helvetica').text(addressBlock, 218, detailsY + 15, { width: 158 });
+    doc.font('Helvetica-Bold').text('Tel: ', 218, detailsY + 77, { continued: true }).font('Helvetica').text(order.phone || 'N/A');
+    doc.font('Helvetica-Bold').text('Email: ', 218, detailsY + 92);
+    doc.font('Helvetica').text(order.email || 'N/A', 253, detailsY + 92, { width: 120 });
     
     doc.font('Helvetica-Bold').text('Brand: SWAGO', 396, detailsY, { width: 158 });
     doc.font('Helvetica').text('3, Basant Avenue Near BCM School dugri Ludhiana\nLUDHIANA, Pin: 141013, Punjab, India', 396, detailsY + 15, { width: 158 });
-    doc.font('Helvetica-Bold').text('Tel: ', 396, detailsY + 65, { continued: true }).font('Helvetica').text('+91 62838 83397');
-    doc.font('Helvetica-Bold').text('Email: ', 396, detailsY + 80);
-    doc.font('Helvetica').text('support@swagojr.com', 431, detailsY + 80, { width: 120 });
+    doc.font('Helvetica-Bold').text('Tel: ', 396, detailsY + 77, { continued: true }).font('Helvetica').text('+91 62838 83397');
+    doc.font('Helvetica-Bold').text('Email: ', 396, detailsY + 92);
+    doc.font('Helvetica').text('support@swagojr.com', 431, detailsY + 92, { width: 120 });
     
     doc.moveTo(30, gridY + 140).lineTo(565, gridY + 140).stroke('#000000');
     

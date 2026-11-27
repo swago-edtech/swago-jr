@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB, User } from "@swago/database";
+import { testRouteGuard } from "@/lib/test-routes";
 
 export async function POST(request: NextRequest) {
+  const blocked = testRouteGuard();
+  if (blocked) return blocked;
+
     try {
         const { identifier, amount } = await request.json();
 

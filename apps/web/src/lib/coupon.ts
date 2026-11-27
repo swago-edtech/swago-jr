@@ -2,7 +2,26 @@
 
 import { Coupon, User, ExpressConfig } from "@swago/database";
 
-export async function validateCoupon(couponCode: string, orderAmount: number, cartItems: any[] = [], userId?: string, isExpressCheckout: boolean = false) {
+export interface CouponDisplayCurrency {
+    currency: string;
+    exchangeRate: number;
+    currencySymbol?: string;
+}
+
+/** Formats an INR amount in the currency the customer is charged in (messages only). */
+export function formatCouponAmount(amountINR: number, display?: CouponDisplayCurrency): string {
+    if (!display || display.currency === "INR" || !(display.exchangeRate > 0)) return `₹${amountINR}`;
+    const local = Math.round(amountINR * display.exchangeRate * 100) / 100;
+    const symbol = display.currencySymbol || `${display.currency} `;
+    return `${symbol}${local.toFixed(2)}`;
+}
+
+/**
+ * Validates a coupon against an INR amount. `cartItems` must carry server-verified
+ * INR prices (order-pricing passes DB prices). `display` only changes the currency
+ * used in error messages; all coupon maths stays in INR.
+ */
+export async function validateCoupon(couponCode: string, orderAmount: number, cartItems: any[] = [], userId?: string, isExpressCheckout: boolean = false, display?: CouponDisplayCurrency) {
     const coupon = await Coupon.findOne({
         code: couponCode.toUpperCase(),
         active: true,
@@ -73,15 +92,17 @@ export async function validateCoupon(couponCode: string, orderAmount: number, ca
             throw new Error("This coupon is not applicable to any products in your cart");
         }
 
-        applicableAmount = applicableItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        applicableAmount = applicableItems.reduce((sum, item) => sum + ((Number(item.price) || 0) * (Number(item.quantity) || 0)), 0);
+        // Never let client-supplied cart prices exceed the verified order amount.
+        applicableAmount = Math.min(applicableAmount, orderAmount);
     }
 
     // Check minimum amount (based on applicable amount if restricted, else order amount)
     if (applicableAmount < coupon.minAmount) {
         if (isRestricted) {
-            throw new Error(`Minimum amount of ₹${coupon.minAmount} for applicable products required for this coupon`);
+            throw new Error(`Minimum amount of ${formatCouponAmount(coupon.minAmount, display)} for applicable products required for this coupon`);
         } else {
-            throw new Error(`Minimum order amount of ₹${coupon.minAmount} required for this coupon`);
+            throw new Error(`Minimum order amount of ${formatCouponAmount(coupon.minAmount, display)} required for this coupon`);
         }
     }
 
@@ -96,6 +117,7 @@ export async function validateCoupon(couponCode: string, orderAmount: number, ca
     } else if (coupon.type === "fixed") {
         discountAmount = coupon.value;
     }
+    discountAmount = Math.max(0, Math.min(discountAmount, orderAmount));
 
     return {
         coupon,

@@ -27,9 +27,12 @@ function InternationalPolicy() {
             after dispatch, depending on the destination and customs clearance.
           </p>
           <p>
-            International shipping charges are included in the product price shown on our website.
-            However, any customs duties, import taxes, VAT, or other charges imposed by the
-            destination country must be paid by the customer.
+            We currently deliver to India, the United States, Canada and the United Arab Emirates.
+            Prices, currency and international shipping charges are based on your delivery address and
+            are shown separately at checkout before you pay. Any customs duties, import taxes, VAT, or
+            other charges imposed by the destination country must be paid by the customer. We can&apos;t
+            deliver to PO boxes or APO/FPO/DPO military addresses in the US or Canada, or to US
+            territories.
           </p>
           <p>
             Once your order is dispatched, tracking details will be shared with you via the email

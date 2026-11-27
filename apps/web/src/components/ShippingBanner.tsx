@@ -12,18 +12,19 @@ export default function ShippingBanner({ cart }: ShippingBannerProps) {
     country,
     isInternational,
     canShip,
-    shippingRestrictionMessage,
     formatPrice,
     formatLocalPrice,
     resolveIntlShipping,
   } = useCountry();
   const { lastCartRefreshAt } = useSharedContext();
 
+  // Browse-only geo (IP outside IN/US/CA/AE): informational only. Shopping is never
+  // blocked by IP; the delivery address decides the country, currency and price.
   if (!canShip) {
     return (
       <div className="bg-amber-500 py-3 text-center">
         <p className="text-white text-[10px] font-[1000] tracking-widest leading-tight">
-          {shippingRestrictionMessage}
+          We deliver to India, the US, Canada and the UAE. Your final price is set by your delivery address.
         </p>
       </div>
     );

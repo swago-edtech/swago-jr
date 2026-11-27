@@ -14,7 +14,7 @@ import { RiShareForwardFill } from "react-icons/ri";
 export default function ProductCard({ product }: { product: Product }) {
   const router = useRouter();
   const { cart, addToCart, addToWishlist, removeFromWishlist, isWishlisted, openCartSidebar, increaseQty, decreaseQty } = useSharedContext();
-  const { getLocalPrice, formatLocalPrice, canShip, shippingRestrictionMessage, country } = useCountry();
+  const { getLocalPrice, formatLocalPrice, country } = useCountry();
 
   // Use MongoDB _id or slug for routing
   const productIdentifier = product._id || product.slug || '';
@@ -98,14 +98,13 @@ export default function ProductCard({ product }: { product: Product }) {
     e.preventDefault();
     e.stopPropagation();
 
-    if (!canShip) return;
-
     console.log('🛒 Adding to cart:', product.name);
     addToCart(product);
     router.push("/cart");
   };
 
-  const cartDisabled = !canShip;
+  // Shipping eligibility is decided by the delivery address at checkout, not the IP.
+  const cartDisabled = false;
 
   // Handle quantity increase
   const handleIncrease = (e: React.MouseEvent) => {
@@ -244,17 +243,9 @@ export default function ProductCard({ product }: { product: Product }) {
                 </div>
               )}
 
-              {!canShip && (
-                <div className="mb-3 px-2 py-1.5 bg-amber-50 border border-amber-200 rounded-lg text-center">
-                  <span className="text-[10px] sm:text-xs font-bold text-amber-800 block leading-snug">
-                    {shippingRestrictionMessage}
-                  </span>
-                </div>
-              )}
-
               {/* Show Add to Cart OR Quantity Controls */}
-              {!isInCart || !canShip ? (
-                // Show "Add to Cart" button when item is NOT in cart (or shipping locked)
+              {!isInCart ? (
+                // Show "Add to Cart" button when item is NOT in cart
                 <motion.button
                   onClick={handleAddToCart}
                   disabled={cartDisabled}
@@ -282,7 +273,6 @@ export default function ProductCard({ product }: { product: Product }) {
                     onClick={handleIncrease}
                     className="px-3 py-2 hover:bg-purple-100 transition text-[hsl(var(--swago-purple))] font-bold text-lg"
                     aria-label="Increase quantity"
-                    disabled={!canShip}
                   >
                     +
                   </button>

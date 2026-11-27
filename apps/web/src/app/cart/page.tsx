@@ -13,7 +13,7 @@ import { useCountry } from "@/context/CountryContext";
 
 export default function CartPage() {
   const { cart, total, removeFromCart, increaseQty, decreaseQty, appliedCoupon, setAppliedCoupon, appliedSwagoMoney, setAppliedSwagoMoney, walletBalance, refreshCartPrices, isRefreshingCart } = useSharedContext();
-  const { formatPrice, formatLocalPrice, getLocalPrice, toLocalAmount, isInternational, resolveIntlShipping, canShip, shippingRestrictionMessage } = useCountry();
+  const { formatPrice, formatLocalPrice, getLocalPrice, toLocalAmount, isInternational, resolveIntlShipping } = useCountry();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -122,7 +122,6 @@ export default function CartPage() {
 
 
   const handleCheckout = () => {
-    if (!canShip) return;
     setLoading(true);
     router.push("/checkout");
   };
@@ -448,15 +447,9 @@ export default function CartPage() {
                 </div>
               </div>
 
-              {!canShip && (
-                <p className="text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 mt-2 leading-snug">
-                  {shippingRestrictionMessage}
-                </p>
-              )}
-
               <button
                 onClick={handleCheckout}
-                disabled={loading || !canShip}
+                disabled={loading}
                 className="w-full bg-[hsl(var(--swago-purple))] text-white font-black py-4 px-6 rounded-xl text-sm hover:opacity-90 transition-opacity transform active:scale-[0.98] tracking-[0.15em] mt-3 flex items-center justify-between group disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <span className="ml-1 tracking-widest">Proceed</span>
@@ -494,7 +487,7 @@ export default function CartPage() {
           </div>
           <button
             onClick={handleCheckout}
-            disabled={loading || !canShip}
+            disabled={loading}
             className="flex-[1.5] bg-[hsl(var(--swago-purple))] text-white font-black h-12 rounded-xl active:scale-[0.98] transition-transform text-xs tracking-[0.1em] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Checkout

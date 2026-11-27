@@ -31,9 +31,12 @@ const PromotionSchema = new mongoose.Schema(
             type: Number,
             default: 1450
         },
+        // ISO 3166-2 codes (e.g. "IN-MN"). Legacy entries may still be state names;
+        // the storefront matches both until scripts/convert-promotion-states.ts is applied.
         blockedCodStates: [{
             type: String
         }],
+        // 6-digit Indian PIN codes (validated by the admin promotion API)
         blockedCodPincodes: [{
             type: String
         }]

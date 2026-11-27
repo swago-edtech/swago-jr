@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getLoginSession } from "@/lib/auth";
-import { finalizeOrder } from "@/lib/payment-service";
+import { finalizeOrder, PaymentMismatchError } from "@/lib/payment-service";
+import { fetchCapturedPayment } from "@/lib/razorpay-payment";
+import { safeEqualHex } from "@/lib/payment-assert";
 import { connectDB, Order } from "@swago/database";
 import crypto from "crypto";
 import { z } from "zod";
@@ -33,14 +35,17 @@ export async function POST(req: Request) {
 
 
     // Verify signature
-    const secret = process.env.RAZORPAY_KEY_SECRET!;
+    const secret = process.env.RAZORPAY_KEY_SECRET;
+    if (!secret) {
+      return NextResponse.json({ error: "Payment gateway not configured" }, { status: 500 });
+    }
     const generated_signature = crypto
       .createHmac("sha256", secret)
       .update(razorpay_order_id + "|" + razorpay_payment_id)
       .digest("hex");
 
 
-    if (generated_signature !== razorpay_signature) {
+    if (!safeEqualHex(generated_signature, razorpay_signature)) {
       return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
     }
 
@@ -78,11 +83,29 @@ export async function POST(req: Request) {
     // ========================================
     // ✅ FINALIZE ORDER USING SHARED SERVICE
     // ========================================
-    const result = await finalizeOrder({
-      orderIdOrMongoId: order.orderId || order._id.toString(),
-      razorpayPaymentId: razorpay_payment_id,
-      source: 'frontend'
-    });
+    // Assert the captured amount/currency equals the order's server price.
+    const fetched = await fetchCapturedPayment(razorpay_payment_id);
+    if (!fetched.ok) {
+      // Can't confirm the amount right now: leave Pending; the webhook carries the
+      // amount and will finalize. The client shows "confirming payment".
+      console.warn('⏳ Could not fetch payment for verification, deferring to webhook:', fetched.error);
+      return NextResponse.json({ success: true, pending: true, orderId: order.orderId }, { status: 202 });
+    }
+
+    let result;
+    try {
+      result = await finalizeOrder({
+        orderIdOrMongoId: order.orderId || order._id.toString(),
+        razorpayPaymentId: razorpay_payment_id,
+        source: 'frontend',
+        payment: fetched.payment,
+      });
+    } catch (error) {
+      if (error instanceof PaymentMismatchError) {
+        return NextResponse.json({ error: "Payment amount does not match the order. Our team will contact you.", code: "PAYMENT_MISMATCH" }, { status: 409 });
+      }
+      throw error;
+    }
 
     return NextResponse.json({
       success: true,

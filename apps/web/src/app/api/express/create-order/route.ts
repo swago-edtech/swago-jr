@@ -1,120 +1,77 @@
 // apps/web/src/app/api/express/create-order/route.ts
 // PUBLIC endpoint — no authentication required.
-// Handles: Shadow Account creation + Stock validation + Order creation + Razorpay order.
-// This is the core Express Checkout backend logic.
+// Handles: address validation + Shadow Account + server pricing + Order + Razorpay order.
+//
+// Security order of operations: body → address (country from ISO state + postal)
+// → cart → COD rules / OTP → InternationalConfig → DB prices → drift check →
+// shadow account → order → Razorpay (charged in the address currency).
+// Client-sent country / currency / exchangeRate are ignored.
 
 import { NextResponse } from "next/server";
 import Razorpay from "razorpay";
 import mongoose from "mongoose";
 import { SignJWT } from "jose";
 import { connectDB, Product, Order, User, Coupon as CouponModel, Promotion } from "@swago/database";
-import { isValidObjectId } from "mongoose";
 import { generateOrderId } from "@/lib/generateOrderId";
 import { cleanupExpiredOrders } from "@/lib/cleanupExpiredOrders";
-import { validateCoupon } from "@/lib/coupon";
 import { sendOrderConfirmationEmail } from "@/lib/msg91-email";
 import { formatPhoneForStorage, verifyAccessToken } from "@/lib/msg91";
 import { z } from "zod";
-import { getProductPrice, convertToINR, convertToLocal } from "@/lib/currency";
-import {
-  resolveInternationalShipping,
-  computeInternationalDisplayTotal,
-  type InternationalShippingResult,
-} from "@swago/utils";
-import {
-  normalizeCountryCode,
-  resolveServerIntlCountry,
-  type ServerIntlCountry,
-} from "@/lib/international-server";
 import {
   allocateInventoryForOrder,
   releaseInventoryAllocation,
   InsufficientInventoryError,
 } from "@/lib/inventory-service";
-import { findProductWithAvailability } from "@/lib/product-stock";
 import {
   COD_MAX_UNITS,
   COD_UNIT_LIMIT_MESSAGE,
   SWAGO_CONTACT,
   cartUnitCount,
 } from "@/lib/cod-limits";
+import { isCodBlocked, isIndianPhone, resolveOrderAddress, resolvePricingCountry } from "@/lib/address-server";
+import { clientTotalDrifted, orderPricingFields, parseCartLines, priceOrder, type PromotionLike } from "@/lib/order-pricing";
+import { defaultPricingDeps, orderAddressFields, quoteView } from "@/lib/checkout/order-request";
+import { finalizeOrder } from "@/lib/payment-service";
+import { intlConfirmationEmailOverrides } from "@/lib/international-order-notify";
 
 // ✅ JWT secret for session creation
 const secret = new TextEncoder().encode(process.env.JWT_SECRET);
 const cookieName = "session";
 
-// ✅ Type definitions
-interface ProductDocument {
-  _id: string;
-  name: string;
-  slug: string;
-  price: number;
-  stock: number;
-  reservedStock?: number;
-  totalSold?: number;
-  isActive: boolean;
-  save: () => Promise<void>;
-  [key: string]: unknown;
-}
-
-interface OrderItem {
-  productId: string;
-  name: string;
-  price: number;
-  quantity: number;
-  image: string;
-  localPrice?: number; // international orders only
-}
-
 // ✅ Input validation schema
 const expressOrderSchema = z.object({
   items: z.array(z.object({
-    productId: z.string().min(1),
-    quantity: z.number().int().min(1),
-  })).min(1),
+    productId: z.string().min(1).max(100),
+    quantity: z.number().int().min(1).max(99),
+  })).min(1).max(50),
   customer: z.object({
-    phone: z.string().min(10, "Phone number must be at least 10 digits"),
-    email: z.string().email("Valid email is required"),
-    name: z.string().min(1, "Name is required"),
-    address: z.string().min(1, "Address is required"),
-    city: z.string().min(1, "City is required"),
-    state: z.string().min(1, "State is required"),
-    pincode: z.string().optional(),
-    age: z.string().optional(),
-  }),
-  couponCode: z.string().optional(),
+    phone: z.string().trim().min(10, "Phone number must be at least 10 digits").max(20),
+    email: z.string().trim().email("Valid email is required").max(200),
+    name: z.string().trim().min(1, "Name is required").max(100),
+    address: z.string().max(400),
+    city: z.string().max(150),
+    /** ISO 3166-2 code from the grouped state select, e.g. "IN-TN". */
+    stateCode: z.string().max(10).optional(),
+    pincode: z.string().max(12).optional(),
+    age: z.string().max(20).optional(),
+  }).passthrough(),
+  couponCode: z.string().max(64).optional(),
   paymentMethod: z.enum(["razorpay", "cod"]),
-  country: z.string().optional(),
-  currency: z.string().optional(),
-  exchangeRate: z.number().optional(),
+  /** Charged total the customer saw (in expectedCurrency). Mismatch → 409 PRICE_CHANGED. */
+  expectedTotal: z.number().finite().nonnegative().optional(),
+  expectedCurrency: z.string().length(3).optional(),
   otp: z.string().optional(),
   accessToken: z.string().optional(),
   utm: z.object({
-    source: z.string().optional(),
-    medium: z.string().optional(),
-    campaign: z.string().optional(),
+    source: z.string().max(100).optional(),
+    medium: z.string().max(100).optional(),
+    campaign: z.string().max(100).optional(),
   }).optional(),
-});
-
-/**
- * Fetch a product by slug or MongoDB _id
- */
-async function getProductById(id: string) {
-  return findProductWithAvailability(id);
-}
-
-/**
- * Check if phone is Indian (+91)
- */
-function isIndianPhone(phone: string): boolean {
-  if (!phone) return false;
-  return phone.startsWith("+91") || (phone.startsWith("91") && phone.length >= 12);
-}
-
+}).passthrough(); // legacy country/currency/exchangeRate fields are accepted and ignored
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
+    const body = await req.json().catch(() => null);
 
     // ========================================
     // 1. VALIDATE INPUT
@@ -127,89 +84,31 @@ export async function POST(req: Request) {
       );
     }
 
-    const { items, customer, couponCode, paymentMethod, country, currency, exchangeRate, utm, otp, accessToken } = validation.data;
+    const { items, customer, couponCode, paymentMethod, utm, accessToken } = validation.data;
     const formattedPhone = formatPhoneForStorage(customer.phone);
 
-    const countryCode = normalizeCountryCode(country);
+    // ========================================
+    // 2. ADDRESS → COUNTRY (no DB yet)
+    // ========================================
+    const addr = resolveOrderAddress(
+      { address: customer.address, city: customer.city, stateCode: customer.stateCode, pincode: customer.pincode, phone: formattedPhone },
+      "express/create-order"
+    );
+    if (!addr.ok) return NextResponse.json(addr.body, { status: addr.status });
+    const address = addr.address;
 
-    // UAE postal code is optional in practice; require a valid one elsewhere
-    if (countryCode !== "AE" && (!customer.pincode || customer.pincode.trim().length < 5)) {
+    const cart = parseCartLines(items);
+    if (!cart.ok) return NextResponse.json({ success: false, error: cart.error, code: cart.code }, { status: 400 });
+
+    // ✅ COD India-only check (country from the validated address)
+    if (paymentMethod === "cod" && (address.country !== "IN" || !isIndianPhone(formattedPhone))) {
       return NextResponse.json(
-        { success: false, error: "Valid pincode is required" },
+        { success: false, error: "COD is only available for India and Indian phone numbers (+91)", code: "INDIA_ONLY" },
         { status: 400 }
       );
     }
 
-    // Domestic (IN): always INR @ 1. International: overwritten below from InternationalConfig
-    // (server-trusted); client-sent currency/exchangeRate are only used for a mismatch log.
-    let finalCurrency = 'INR';
-    let exchangeRateUsed = 1;
-    let intlCountry: ServerIntlCountry | null = null;
-
-    // ✅ COD India-only check
-    if (paymentMethod === "cod" && (countryCode !== 'IN' || !isIndianPhone(formattedPhone))) {
-      return NextResponse.json(
-        { success: false, error: "COD is only available for India and Indian phone numbers (+91)" },
-        { status: 400 }
-      );
-    }
-
-    // ✅ COD OTP Verification
-    if (paymentMethod === "cod") {
-      if (!accessToken) {
-        return NextResponse.json(
-          { success: false, error: "OTP verification required for COD orders" },
-          { status: 400 }
-        );
-      }
-
-      const verifyResult = await verifyAccessToken(accessToken);
-      if (!verifyResult.success) {
-        return NextResponse.json(
-          { success: false, error: verifyResult.error || "Invalid Access Token" },
-          { status: 400 }
-        );
-      }
-    }
-
-    // ========================================
-    // 2. CONNECT DB & CLEANUP
-    // ========================================
-    await connectDB();
-
-    // ✅ International only: resolve country settings server-side (before any DB mutation)
-    if (countryCode !== 'IN') {
-      const resolvedCountry = await resolveServerIntlCountry(countryCode);
-      if (!resolvedCountry.ok) {
-        return NextResponse.json(
-          { success: false, error: resolvedCountry.error, code: "COUNTRY_NOT_SUPPORTED" },
-          { status: 400 }
-        );
-      }
-      intlCountry = resolvedCountry.country;
-      finalCurrency = intlCountry.currency;
-      exchangeRateUsed = intlCountry.exchangeRate;
-      if (
-        (currency && currency.toUpperCase() !== finalCurrency) ||
-        (exchangeRate && exchangeRate !== exchangeRateUsed)
-      ) {
-        console.warn(
-          `⚠️ [Express] Client currency/rate mismatch for ${countryCode}: client=${currency}@${exchangeRate}, server=${finalCurrency}@${exchangeRateUsed}. Using server values.`
-        );
-      }
-    }
-
-    // ✅ Fetch active promotion for validation and price calculation
-    const activePromotion = await Promotion.findOne().lean() as any;
-    
-    // ✅ Check COD Blocked States & Pincodes
-    const isBlockedState = activePromotion?.blockedCodStates?.some((blockedState: string) => blockedState.toLowerCase() === customer.state.toLowerCase());
-    const isBlockedPincode = activePromotion?.blockedCodPincodes?.includes(customer.pincode);
-    if (paymentMethod === "cod" && (isBlockedState || isBlockedPincode)) {
-      return NextResponse.json({ success: false, error: "COD is not available in your location" }, { status: 400 });
-    }
-
-    // ✅ COD unit limit — same guard as /api/payment/cod (before stock/order mutation)
+    // ✅ COD unit limit
     if (paymentMethod === "cod") {
       const units = cartUnitCount(items);
       if (units > COD_MAX_UNITS) {
@@ -226,30 +125,54 @@ export async function POST(req: Request) {
       }
     }
 
+    // ✅ COD OTP Verification
+    if (paymentMethod === "cod") {
+      if (!accessToken) {
+        return NextResponse.json(
+          { success: false, error: "OTP verification required for COD orders" },
+          { status: 400 }
+        );
+      }
+      const verifyResult = await verifyAccessToken(accessToken);
+      if (!verifyResult.success) {
+        return NextResponse.json(
+          { success: false, error: verifyResult.error || "Invalid Access Token" },
+          { status: 400 }
+        );
+      }
+    }
+
+    // ========================================
+    // 3. CONNECT DB, COUNTRY CONFIG, PROMOTION RULES
+    // ========================================
+    await connectDB();
+
+    const pc = await resolvePricingCountry(address.country);
+    if (!pc.ok) {
+      return NextResponse.json({ success: false, error: pc.error, code: pc.code }, { status: 400 });
+    }
+
+    const activePromotion = (await Promotion.findOne().lean()) as unknown as PromotionLike | null;
+    if (paymentMethod === "cod" && isCodBlocked(activePromotion, address)) {
+      return NextResponse.json({ success: false, error: "COD is not available in your location", code: "COD_BLOCKED" }, { status: 400 });
+    }
+
     await cleanupExpiredOrders();
 
     // ========================================
-    // 3. SHADOW ACCOUNT LOGIC
+    // 4. SHADOW ACCOUNT (only after address + cart + COD checks pass)
     // ========================================
-    console.log("🔍 [Express] Shadow Account lookup for:", formattedPhone);
-
     let user = await User.findOne({ phone: formattedPhone });
-    let isNewUser = false;
-
     if (!user) {
-      // Create Shadow Account
       user = await User.create({
         phone: formattedPhone,
         email: customer.email,
         name: customer.name,
         authMethod: "phone",
-        address: customer.address,
+        address: address.address,
       });
-      isNewUser = true;
-      console.log("✅ [Express] Shadow Account created:", formattedPhone);
+      console.log("✅ [Express] Shadow Account created");
     } else {
-      console.log("✅ [Express] Existing user found:", formattedPhone);
-      // Update email/name if not set
       let userUpdated = false;
       if (!user.email && customer.email) {
         user.email = customer.email;
@@ -259,174 +182,50 @@ export async function POST(req: Request) {
         user.name = customer.name;
         userUpdated = true;
       }
-      if (userUpdated) {
-        await user.save();
-      }
+      if (userUpdated) await user.save();
     }
 
     // ========================================
-    // 4. STOCK VALIDATION & RESERVATION
+    // 5. SERVER-SIDE PRICE CALCULATION (shared with checkout)
     // ========================================
-    console.log("🔍 [Express] Stock validation for", items.length, "items");
-
-    const stockErrors: string[] = [];
-    const reservations: Array<{ product: ProductDocument; quantity: number }> = [];
-
-    for (const item of items) {
-      const product = await getProductById(item.productId);
-
-      if (!product) {
-        stockErrors.push(`Product ${item.productId} is no longer available`);
-        continue;
-      }
-
-      const availableStock = product.availableStock ?? 0;
-
-      if (availableStock <= 0) {
-        console.log(`⚠️ [Express] ${product.name}: negative/zero stock (${availableStock}), order still accepted`);
-      }
-      reservations.push({ product, quantity: item.quantity });
-    }
-
-    if (stockErrors.length > 0) {
-      console.log("❌ [Express] Stock validation failed:", stockErrors);
-      return NextResponse.json(
-        { success: false, error: "Stock unavailable", stockErrors, details: stockErrors.join("; ") },
-        { status: 400 }
-      );
-    }
-
-    // ========================================
-    // 5. SERVER-SIDE PRICE CALCULATION
-    // ========================================
-    // ✅ activePromotion is already fetched above
-
-    const BONUS_THRESHOLDS: Record<string, number> = {};
-    if (activePromotion?.isActive && activePromotion?.bonusItems) {
-      activePromotion.bonusItems.forEach((item: any) => {
-        BONUS_THRESHOLDS[item.slug] = item.threshold;
-      });
-    } else {
-      BONUS_THRESHOLDS["mini-swago-game-card"] = 999;
-      BONUS_THRESHOLDS["special-edition-item"] = 1999;
-    }
-
-    // Build order items using DB-verified prices (fixed intl price → INR ledger)
-    let localMerchandiseTotal = 0;
-    const orderItems: OrderItem[] = reservations.map(({ product, quantity }) => {
-      const resolvedLocal = getProductPrice(
-        {
-          price: (product as any).price,
-          originalPrice: (product as any).originalPrice,
-          internationalPricing: (product as any).internationalPricing,
-        },
-        finalCurrency,
-        exchangeRateUsed
-      );
-      localMerchandiseTotal += resolvedLocal.price * quantity;
-      const ledgerPrice =
-        finalCurrency === "INR"
-          ? (product as any).price
-          : convertToINR(resolvedLocal.price, exchangeRateUsed);
-      return {
-        productId: product._id.toString(),
-        name: product.name,
-        price: ledgerPrice,
-        quantity,
-        image: (product as any).images?.[0] || "",
-        ...(intlCountry ? { localPrice: resolvedLocal.price } : {}),
-      };
-    });
-
-    const subtotal = orderItems.reduce(
-      (sum, item) => sum + item.price * item.quantity,
-      0
+    const priced = await priceOrder(
+      {
+        lines: cart.lines,
+        country: pc.country,
+        paymentMethod,
+        couponCode: couponCode || null,
+        swagoMoneyRedeemed: 0,
+        userId: user._id.toString(),
+        isExpress: true,
+        promotion: activePromotion,
+      },
+      defaultPricingDeps
     );
-
-    // ========================================
-    // 6. COUPON VALIDATION
-    // ========================================
-    let discountAmount = 0;
-    let validatedCoupon = null;
-
-    if (couponCode) {
-      try {
-        const cartItemsForCoupon = orderItems.map((item) => ({
-          productId: item.productId,
-          price: item.price,
-          quantity: item.quantity,
-          name: item.name,
-        }));
-
-        const { coupon, discountAmount: validated } = await validateCoupon(
-          couponCode,
-          subtotal,
-          cartItemsForCoupon,
-          user._id.toString(),
-          true // isExpressCheckout
-        );
-        discountAmount = validated;
-        validatedCoupon = coupon;
-      } catch (couponError: any) {
-        console.error("[Express] Coupon validation failed:", couponError.message);
-        return NextResponse.json(
-          { success: false, error: `Coupon Error: ${couponError.message}` },
-          { status: 400 }
-        );
-      }
-    }
-
-    // ========================================
-    // 7. CALCULATE TOTAL
-    // ========================================
-    const calculatedAmountAfterCoupon = Math.max(0, subtotal - discountAmount);
-
-    // Shipping / COD fee calculation
-    let shippingFee = 0;
-    let intlShipping: InternationalShippingResult | null = null;
-    if (intlCountry) {
-      // International only: product fixed shipping (once per line, local currency)
-      // + config weight tiers / flat fee on the weight of lines without a fixed fee.
-      intlShipping = resolveInternationalShipping(
-        reservations.map(({ product, quantity }) => ({
-          productId: product._id.toString(),
-          name: product.name,
-          quantity,
-          weight: (product as any).weight || 0,
-          internationalShipping: (product as any).internationalShipping,
-        })),
-        intlCountry,
-        finalCurrency
+    if (!priced.ok) {
+      return NextResponse.json(
+        { success: false, error: priced.error, code: priced.code, ...(priced.details ? { details: priced.details } : {}) },
+        { status: priced.status }
       );
-      shippingFee = intlShipping.feeINR; // INR ledger
-    } else {
-      if (paymentMethod === "razorpay") {
-        shippingFee = 0;
-      } else {
-        const shippingThreshold = activePromotion?.shippingThreshold || 1450;
-        shippingFee = calculatedAmountAfterCoupon >= shippingThreshold ? 0 : 50;
-      }
     }
+    const pricing = priced.pricing;
 
-    const calculatedTotal = Math.max(0, calculatedAmountAfterCoupon + shippingFee);
-
-    const localDiscount =
-      finalCurrency === "INR" ? discountAmount : convertToLocal(discountAmount, exchangeRateUsed);
-    const localShipping = intlShipping ? intlShipping.feeLocal : shippingFee;
-    const displayTotal = intlCountry
-      ? // International: coupon never eats into shipping; never negative (mirrors INR ledger)
-        computeInternationalDisplayTotal({
-          localMerchandise: localMerchandiseTotal,
-          localDiscount,
-          localShipping,
-        })
-      : Math.max(0, localMerchandiseTotal - localDiscount + localShipping);
+    if (clientTotalDrifted(pricing, { total: validation.data.expectedTotal, currency: validation.data.expectedCurrency })) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Your order total changed. Please review the updated total and try again.",
+          code: "PRICE_CHANGED",
+          quote: quoteView(pricing, address),
+        },
+        { status: 409 }
+      );
+    }
+    const reservations = pricing.lines;
 
     // ========================================
-    // 8. CREATE ORDER (inventory allocated after creation)
+    // 6. CREATE ORDER (inventory allocated after creation)
     // ========================================
     const orderId = await generateOrderId();
-    console.log("✅ [Express] Generated Order ID:", orderId);
 
     const newOrder = await Order.create({
       orderId,
@@ -437,38 +236,15 @@ export async function POST(req: Request) {
       name: customer.name,
       age: customer.age || "",
       referralSource: utm?.source || "express_checkout",
-      address: customer.address,
-      city: customer.city,
-      state: customer.state,
-      pincode: customer.pincode,
+      ...orderAddressFields(address),
       status: "Pending",
-      items: orderItems,
-      subtotal,
-      discount: discountAmount,
-      shippingFee: countryCode === 'IN' ? shippingFee : 0,
-      internationalShippingFee: countryCode !== 'IN' ? shippingFee : 0,
-      ...(intlShipping && {
-        internationalShippingBreakdown: { feeLocal: intlShipping.feeLocal, ...intlShipping.breakdown },
-      }),
-      total: calculatedTotal,
-      country: countryCode,
-      currency: finalCurrency,
-      exchangeRateUsed: exchangeRateUsed,
-      displayTotal: displayTotal,
-      ...(intlCountry?.currencySymbol && { currencySymbol: intlCountry.currencySymbol }),
+      ...orderPricingFields(pricing),
       stockReservedAt: new Date(),
       createdVia: "express",
-      // ✅ UTM Tracking
       utm_source: utm?.source || null,
       utm_medium: utm?.medium || null,
       utm_campaign: utm?.campaign || null,
-      ...(validatedCoupon && {
-        couponCode: validatedCoupon.code,
-        couponDetails: validatedCoupon,
-      }),
     });
-
-    console.log("✅ [Express] Order created:", orderId);
 
     try {
       await allocateInventoryForOrder(newOrder, {
@@ -478,12 +254,7 @@ export async function POST(req: Request) {
       await Order.findByIdAndDelete(newOrder._id);
       if (allocError instanceof InsufficientInventoryError) {
         return NextResponse.json(
-          {
-            success: false,
-            error: "Stock unavailable",
-            stockErrors: [allocError.message],
-            details: allocError.message,
-          },
+          { success: false, error: "Stock unavailable", stockErrors: [allocError.message], details: allocError.message },
           { status: 400 }
         );
       }
@@ -496,23 +267,48 @@ export async function POST(req: Request) {
       }
     }
 
-    // Link order to user
     try {
       user.orders.push(newOrder._id);
       await user.save();
-      console.log("✅ [Express] Order linked to user:", user._id);
     } catch (linkError) {
       console.error("⚠️ [Express] Could not link order to user:", linkError);
     }
 
     // ========================================
-    // 10. PAYMENT METHOD ROUTING
+    // 7. PAYMENT METHOD ROUTING
     // ========================================
+    if (paymentMethod === "razorpay" && pricing.amountMinor === 0) {
+      // Fully discounted: nothing to charge. Finalize without Razorpay.
+      await finalizeOrder({
+        orderIdOrMongoId: orderId,
+        razorpayPaymentId: `zero_total_${orderId}`,
+        source: "zero_total",
+        payment: { zeroTotal: true },
+      });
+      const token = await new SignJWT({ phone: formattedPhone })
+        .setProtectedHeader({ alg: "HS256" })
+        .setExpirationTime("7d")
+        .sign(secret);
+      const response = NextResponse.json({
+        success: true,
+        paymentMethod: "razorpay",
+        zeroTotal: true,
+        order: { orderId, mongoOrderId: newOrder._id.toString(), total: pricing.total },
+        quote: quoteView(pricing, address),
+        userId: user._id.toString(),
+      });
+      response.cookies.set(cookieName, token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+        maxAge: 60 * 60 * 24 * 7,
+      });
+      return response;
+    }
 
     if (paymentMethod === "razorpay") {
-      // ── RAZORPAY FLOW ──
       if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
-        // Rollback: mark order failed, release stock
         newOrder.status = "Failed";
         await newOrder.save();
         await releaseInventoryAllocation(newOrder);
@@ -528,16 +324,18 @@ export async function POST(req: Request) {
       });
 
       const razorpayOptions = {
-        amount: Math.round((finalCurrency === "INR" ? calculatedTotal : displayTotal) * 100),
-        currency: finalCurrency,
+        amount: pricing.amountMinor,
+        currency: pricing.currency,
         receipt: orderId,
         notes: {
           orderId,
           mongoOrderId: newOrder._id.toString(),
           phone: formattedPhone,
-          email: customer.email,
-          name: customer.name,
+          email: customer.email.slice(0, 120),
+          name: customer.name.slice(0, 100),
           source: "express_checkout",
+          country: address.country,
+          stateCode: address.stateCode,
           utm_source: utm?.source || "",
           utm_campaign: utm?.campaign || "",
         },
@@ -545,9 +343,6 @@ export async function POST(req: Request) {
 
       try {
         const razorpayOrder = await razorpay.orders.create(razorpayOptions);
-        console.log("✅ [Express] Razorpay order created:", razorpayOrder.id);
-
-        // Update our order with Razorpay reference
         newOrder.razorpay_order_id = razorpayOrder.id;
         await newOrder.save();
 
@@ -558,13 +353,14 @@ export async function POST(req: Request) {
             key: process.env.RAZORPAY_KEY_ID,
             orderId: razorpayOrder.id,
             amount: razorpayOrder.amount,
-            currency: finalCurrency,
+            currency: pricing.currency,
           },
           order: {
             orderId,
             mongoOrderId: newOrder._id.toString(),
-            total: calculatedTotal,
+            total: pricing.total,
           },
+          quote: quoteView(pricing, address),
           userId: user._id.toString(),
         });
       } catch (razorpayError) {
@@ -605,6 +401,8 @@ export async function POST(req: Request) {
           city: orderObject.city,
           state: orderObject.state,
           pincode: orderObject.pincode,
+          // No-op for India (COD is India-only); kept so the email can never show INR for a foreign order.
+          ...intlConfirmationEmailOverrides(orderObject),
         });
       } catch (emailError) {
         console.error("[Express] Email failed:", emailError);
@@ -624,7 +422,7 @@ export async function POST(req: Request) {
         order: {
           orderId,
           mongoOrderId: newOrder._id.toString(),
-          total: calculatedTotal,
+          total: pricing.total,
         },
         userId: user._id.toString(),
       });

@@ -8,9 +8,17 @@
         "jose": "^6.1.0",
         "jsonwebtoken": "^9.0.2"
     },
-
     "devDependencies": {
         "@types/jsonwebtoken": "^9.0.10",
         "typescript": "^5"
+    },
+    "exports": {
+        ".": "./src/index.ts",
+        "./address": "./src/address-client.ts",
+        "./address-server": "./src/address-server.ts",
+        "./package.json": "./package.json"
+    },
+    "scripts": {
+        "test": "npx tsx --test tests/address.test.ts"
     }
 }

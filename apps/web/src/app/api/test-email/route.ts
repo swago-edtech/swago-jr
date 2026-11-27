@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server';
 import { sendOrderConfirmationEmail } from '@/lib/msg91-email';
+import { testRouteGuard } from "@/lib/test-routes";
 
 export async function POST(req: Request) {
+  const blocked = testRouteGuard();
+  if (blocked) return blocked;
+
   // Force hot reload
   try {
     const body = await req.json();

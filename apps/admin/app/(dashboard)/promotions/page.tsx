@@ -15,14 +15,12 @@ import {
   Hash,
   X,
 } from "lucide-react";
+import { findSubdivisionLegacy, getSubdivisionsByCountry } from "@swago/utils/address";
 
-const INDIAN_STATES = [
-  "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa", "Gujarat", "Haryana",
-  "Himachal Pradesh", "Jharkhand", "Karnataka", "Kerala", "Madhya Pradesh", "Maharashtra", "Manipur",
-  "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana",
-  "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal", "Andaman and Nicobar Islands", "Chandigarh",
-  "Dadra and Nagar Haveli and Daman and Diu", "Delhi", "Lakshadweep", "Puducherry",
-];
+// ISO 3166-2 codes (stored) with display names — all 28 states + 8 UTs.
+const INDIAN_STATES = getSubdivisionsByCountry("IN")
+  .map((s) => ({ code: s.code, name: s.name }))
+  .sort((a, b) => a.name.localeCompare(b.name));
 
 interface RedemptionTier {
   target: number;
@@ -73,7 +71,11 @@ export default function PromotionsPage() {
           setRedemptionTiers(data.promotion.redemptionTiers || []);
           setBonusItems(data.promotion.bonusItems || []);
           setIsActive(data.promotion.isActive ?? true);
-          setBlockedCodStates(data.promotion.blockedCodStates || []);
+          // Legacy entries were state names; normalise to ISO codes (saved on next Save).
+          const codes = (data.promotion.blockedCodStates || [])
+            .map((v: string) => findSubdivisionLegacy(v, "IN")?.code)
+            .filter((c: string | undefined): c is string => !!c);
+          setBlockedCodStates(Array.from(new Set(codes)));
           setBlockedCodPincodes(data.promotion.blockedCodPincodes || []);
         }
       }
@@ -159,8 +161,8 @@ export default function PromotionsPage() {
       const val = pincodeInput.trim().replace(/,/g, "");
       if (!val) return;
 
-      if (!/^\d{6}$/.test(val)) {
-        showMessage("error", "Pin code must be exactly 6 digits");
+      if (!/^[1-9]\d{5}$/.test(val)) {
+        showMessage("error", "PIN code must be 6 digits and can't start with 0");
         return;
       }
 
@@ -596,7 +598,7 @@ export default function PromotionsPage() {
               </p>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-72 overflow-y-auto pr-1 bg-gray-50/50 p-3 rounded-lg border border-gray-100">
-                {INDIAN_STATES.sort().map((state) => {
+                {INDIAN_STATES.map(({ code: state, name: stateName }) => {
                   const isBlocked = blockedCodStates.includes(state);
                   return (
                     <label
@@ -613,8 +615,8 @@ export default function PromotionsPage() {
                         checked={isBlocked}
                         onChange={() => toggleBlockedState(state)}
                       />
-                      <span className="truncate" title={state}>
-                        {state}
+                      <span className="truncate" title={`${stateName} (${state})`}>
+                        {stateName} <span className="text-gray-400">{state.replace("IN-", "")}</span>
                       </span>
                     </label>
                   );

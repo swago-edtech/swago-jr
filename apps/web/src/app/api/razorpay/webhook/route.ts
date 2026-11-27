@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
-import { finalizeOrder, handleFailedOrder } from '@/lib/payment-service';
+import { finalizeOrder, handleFailedOrder, PaymentMismatchError } from '@/lib/payment-service';
 import type { RazorpayWebhookPayload } from '@swago/types';
 
 // ✅ Extended notes type
@@ -85,11 +85,27 @@ async function handlePaymentCaptured(payload: RazorpayWebhookPayload) {
     return;
   }
 
-  await finalizeOrder({
-    orderIdOrMongoId: lookupId,
-    razorpayPaymentId: payment.id,
-    source: 'webhook'
-  });
+  try {
+    await finalizeOrder({
+      orderIdOrMongoId: lookupId,
+      razorpayPaymentId: payment.id,
+      source: 'webhook',
+      // Captured amount/currency must equal the order's server-computed charge.
+      payment: {
+        amount: payment.amount,
+        currency: payment.currency,
+        order_id: payment.order_id,
+        status: payment.status,
+      },
+    });
+  } catch (error) {
+    if (error instanceof PaymentMismatchError) {
+      // Recorded on the order (paymentMismatch); acknowledge so Razorpay does not retry forever.
+      console.error('🚨 Webhook payment mismatch — order left Pending for review:', error.message);
+      return;
+    }
+    throw error;
+  }
 }
 
 async function handlePaymentFailed(payload: RazorpayWebhookPayload) {
