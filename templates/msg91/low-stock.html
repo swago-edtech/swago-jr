@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="x-apple-disable-message-reformatting" />
+  <title>Low Stock Alert</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f2f4f7;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#101828;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f2f4f7;padding:24px 12px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="620" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:620px;">
+          <!-- Header -->
+          <tr>
+            <td style="background:#ffffff;border:1px solid #e5e7eb;border-radius:16px;padding:14px 16px;text-align:center;">
+              <a href="https://swagojr.com" style="text-decoration:none;display:inline-block;">
+                <img src="https://swagojr.com/Swago_logo.png" width="140" alt="Swago Jr." style="display:block;width:140px;height:auto;border:0;margin:0 auto;" />
+              </a>
+            </td>
+          </tr>
+          <tr><td style="height:16px;font-size:0;line-height:0;">&nbsp;</td></tr>
+
+          <!-- Alert card -->
+          <tr>
+            <td style="background:#ffffff;border:1px solid #fecaca;border-radius:16px;overflow:hidden;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td align="center" style="background-color:#d92d20;padding:24px 20px;color:#ffffff;">
+                    <div style="font-size:22px;font-weight:700;margin-bottom:6px;">⚠️ Low Stock Alert</div>
+                    <p style="margin:0;font-size:13px;color:rgba(255,255,255,0.95);">Inventory items have fallen below their low-stock threshold</p>
+                  </td>
+                </tr>
+                <tr>
+                  <td align="center" style="background:#fef2f2;border-top:1px solid #fecaca;border-bottom:1px solid #fecaca;padding:10px 16px;font-size:13px;color:#7f1d1d;">
+                    <strong style="display:inline-block;background:#d92d20;color:#ffffff;padding:2px 8px;border-radius:4px;margin-right:6px;">{{item_count}}</strong>
+                    items need replenishment attention
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:16px 18px;">
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;">
+                      <tr style="background:#f9fafb;">
+                        <th align="left" style="padding:10px 12px;font-size:11px;font-weight:700;color:#6b7280;letter-spacing:0.06em;text-transform:uppercase;">Item</th>
+                        <th align="left" style="padding:10px 12px;font-size:11px;font-weight:700;color:#6b7280;letter-spacing:0.06em;text-transform:uppercase;">SKU</th>
+                        <th align="center" style="padding:10px 12px;font-size:11px;font-weight:700;color:#6b7280;letter-spacing:0.06em;text-transform:uppercase;">Stock</th>
+                        <th align="center" style="padding:10px 12px;font-size:11px;font-weight:700;color:#6b7280;letter-spacing:0.06em;text-transform:uppercase;">Threshold</th>
+                        <th align="right" style="padding:10px 12px;font-size:11px;font-weight:700;color:#6b7280;letter-spacing:0.06em;text-transform:uppercase;">Unit</th>
+                      </tr>
+                      {{stock_rows_html}}
+                    </table>
+
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f5f3ff;border:1px solid #ede9fe;border-radius:12px;margin-top:14px;">
+                      <tr>
+                        <td style="padding:14px 16px;font-size:13px;color:#374151;font-weight:500;">
+                          Please review and arrange replenishment at the earliest convenience.
+                        </td>
+                        <td align="right" style="padding:14px 16px;white-space:nowrap;">
+                          <a href="https://admin.swagojr.com/inventory" style="display:inline-block;background:#8859ee;color:#ffffff;font-size:12px;font-weight:600;text-decoration:none;padding:10px 14px;border-radius:8px;">
+                            Review Inventory in Portal →
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr><td style="height:16px;font-size:0;line-height:0;">&nbsp;</td></tr>
+
+          <tr>
+            <td align="center" style="padding:8px 12px;color:#6b7280;font-size:12px;">
+              <div style="margin-bottom:4px;font-weight:500;">Admin Portal • Fulfillment Desk • Ops Support</div>
+              <div style="font-size:11px;color:#9ca3af;">Swago Operations System • Automated Internal Alert</div>
+              <div style="font-size:11px;color:#9ca3af;margin-top:2px;">© 2026 Swago Jr. Internal Operations. Do not reply.</div>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

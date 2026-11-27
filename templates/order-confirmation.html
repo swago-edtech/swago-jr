@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+        name="viewport">
+    <meta content="mobile_blank" name="shell-type">
+    <link href="https://fonts.googleapis.com" rel="preconnect">
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@600;700;800;900&amp;display=swap"
+        rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet">
+    <style>
+        @layer base {
+
+            html,
+            body {
+                width: 100%;
+                margin: 0;
+                padding: 0;
+            }
+
+            body {
+                overscroll-behavior: none;
+            }
+
+            .pb-safe {
+                padding-bottom: env(safe-area-inset-bottom, 0px);
+            }
+
+            .pt-safe {
+                padding-top: env(safe-area-inset-top, 0px);
+            }
+
+            main>:first-child {
+                margin-top: 0 !important;
+            }
+
+            main>:last-child {
+                margin-bottom: 0 !important;
+            }
+        }
+
+        ::-webkit-scrollbar {
+            display: none;
+        }
+    </style>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script
+        id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { "colors": { "surface-container-highest": "#e2e2e3", "surface-container": "#eeeeef", "on-background": "#1a1c1d", "secondary": "#006a61", "on-primary-fixed": "#24005b", "on-error": "#ffffff", "on-primary-container": "#fffbff", "background": "#f9f9fa", "tertiary-fixed": "#ffdbca", "surface-tint": "#6e3cd3", "secondary-container": "#5cf7e5", "surface-container-lowest": "#ffffff", "primary-container": "#8556eb", "secondary-fixed": "#60f9e8", "primary-fixed-dim": "#d1bcff", "surface": "#f9f9fa", "primary-fixed": "#e9ddff", "on-tertiary-fixed": "#331100", "surface-dim": "#dadadb", "inverse-on-surface": "#f0f1f2", "surface-container-low": "#f3f3f4", "on-primary-fixed-variant": "#561aba", "on-primary": "#ffffff", "inverse-primary": "#d1bcff", "primary": "#6c39d0", "brand-purple": "#8859ee", "on-secondary-container": "#006f66", "outline-variant": "#cbc3d6", "surface-container-high": "#e8e8e9", "on-surface": "#1a1c1d", "on-secondary-fixed-variant": "#005049", "surface-bright": "#f9f9fa", "inverse-surface": "#2f3132", "on-secondary": "#ffffff", "on-tertiary": "#ffffff", "tertiary-container": "#b65b22", "on-secondary-fixed": "#00201d", "error": "#ba1a1a", "on-error-container": "#93000a", "error-container": "#ffdad6", "tertiary": "#974308", "tertiary-fixed-dim": "#ffb690", "secondary-fixed-dim": "#39ddcc", "on-tertiary-container": "#fffbff", "outline": "#7b7485", "surface-variant": "#e2e2e3", "on-tertiary-fixed-variant": "#783200", "on-surface-variant": "#4a4454" }, "borderRadius": { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, "spacing": { "gutter": "1rem", "space-sm": "0.5rem", "space-xl": "2rem", "margin": "1.5rem", "space-xs": "0.25rem", "space-md": "1rem", "space-lg": "1.5rem" }, "fontFamily": { "title-md": ["Plus Jakarta Sans"], "body-md": ["Inter"], "body-sm": ["Inter"], "label-md": ["Inter"], "headline-md": ["Plus Jakarta Sans"], "label-sm": ["Inter"], "headline-sm": ["Plus Jakarta Sans"], "label-lg": ["Inter"], "body-lg": ["Inter"], "headline-lg": ["Plus Jakarta Sans"] }, "fontSize": { "title-md": ["16px", { "lineHeight": "22px", "fontWeight": "600" }], "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }], "body-sm": ["12px", { "lineHeight": "18px", "fontWeight": "400" }], "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "600" }], "headline-md": ["22px", { "lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "700" }], "label-sm": ["11px", { "lineHeight": "14px", "letterSpacing": "0.04em", "fontWeight": "600" }], "headline-sm": ["18px", { "lineHeight": "24px", "fontWeight": "600" }], "label-lg": ["14px", { "lineHeight": "20px", "fontWeight": "600" }], "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }], "headline-lg": ["28px", { "lineHeight": "36px", "letterSpacing": "-0.02em", "fontWeight": "700" }] } } } };</script>
+    <style>
+        body {
+            min-height: max(884px, 100dvh);
+            background-color: #f5f5f7;
+        }
+    </style>
+    <style>
+        @media print {
+
+            .gr_no_print,
+            :host(.gr_no_print),
+            [data-grammarly-part] {
+                display: none !important
+            }
+        }
+
+        .f1l1o3bf {
+            font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif, Arial;
+            font-style: normal;
+            font-weight: 400
+        }
+
+        .f1l1o3bf button,
+        .f1l1o3bf input,
+        .f1l1o3bf textarea {
+            font-family: inherit
+        }
+
+        .f1i95ii3 {
+            border-top: 0.5px solid var(--origin-color-border-base-subdued)
+        }
+
+        .f1a8rywe {
+            min-width: 0
+        }
+
+        .f1mpvv25 {
+            min-width: 100%;
+            width: 0
+        }
+
+        .fjz5tje {
+            -moz-appearance: none;
+            -webkit-appearance: none;
+            appearance: none;
+            background: none;
+            border: none;
+            color: var(--origin-color-text-base-default);
+            cursor: pointer;
+            font: inherit;
+            letter-spacing: inherit;
+            padding: 0;
+            text-decoration: underline;
+            text-underline-position: from-font
+        }
+
+        .f1h70aqx {
+            background-color: var(--origin-color-background-base-default);
+            border: 1px solid var(--origin-color-border-base-subdued);
+            border-radius: 20px;
+            box-shadow: var(--origin-elevation-base-low);
+            overflow: hidden;
+            width: 200px
+        }
+
+        .f1lwxb0v {
+            aspect-ratio: 176 / 132;
+            background: var(--origin-color-background-base-subdued) url("chrome-extension://kbfnbcaeplbcioakkpcpgfkobkghlhen/src/images/573410b5b74f0e2b/inline-go-onboarding-welcoming-card.svg") center / contain no-repeat;
+            border-radius: var(--origin-radius-3);
+            width: 100%
+        }
+
+        .fmq2x1j {
+            align-items: center;
+            align-self: stretch;
+            background-color: var(--origin-color-background-base-default);
+            box-sizing: border-box;
+            justify-content: flex-start;
+            padding: 8px 8px 8px 16px;
+            transition: min-width 150ms cubic-bezier(0.05, 0.6, 0, 1), max-width 150ms cubic-bezier(0.05, 0.6, 0, 1), height 150ms cubic-bezier(0.05, 0.6, 0, 1)
+        }
+
+        .fmq2x1j .origin-text-field {
+            min-width: 60px !important
+        }
+
+        .fmq2x1j .origin-text-field-container {
+            outline: unset !important
+        }
+
+        .f1l341kl {
+            flex-grow: 1;
+            min-width: 0;
+            overflow: hidden;
+            transition: width 0.2s ease, opacity 0.15s ease
+        }
+
+        .f16j9z5c {
+            flex-shrink: 0
+        }
+
+        .fqfe0y8 {
+            align-items: center;
+            display: flex;
+            flex-shrink: 0;
+            justify-content: center
+        }
+
+        .f6s1ra9 {
+            color: var(--origin-color-text-base-subdued);
+            font-size: 12px;
+            line-height: 30px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap
+        }
+
+        .fsdve5q {
+            border: unset !important;
+            font-size: 12px !important;
+            height: 30px !important;
+            padding: 0 !important
+        }
+
+        .f1y7tzm9 {
+            border-radius: 50%;
+            flex-shrink: 0;
+            height: 30px;
+            width: 30px
+        }
+
+        .fkqitdh {
+            font-size: 12px;
+            padding-right: 16px;
+            pointer-events: none;
+            position: absolute;
+            visibility: hidden;
+            white-space: pre
+        }
+
+        .fa7ohrq {
+            background: transparent;
+            border: none;
+            border-top-left-radius: 20px;
+            border-top-right-radius: 20px;
+            display: block;
+            overflow: hidden;
+            vertical-align: top
+        }
+
+        .f1lzxbh5 {
+            transform: none
+        }
+
+        .f2iyhnc {
+            --ease-out: cubic-bezier(0, 0.8, 0.2, 1)
+        }
+
+        .f1c6kbrm {
+            height: 0;
+            overflow: hidden;
+            pointer-events: none;
+            width: 0
+        }
+
+        .fkiiwe1 {
+            background-color: var(--origin-color-background-base-default);
+            border: 1px solid var(--origin-color-border-base-subdued);
+            border-radius: 20px;
+            box-shadow: var(--origin-elevation-base-low);
+            box-sizing: content-box;
+            display: flex;
+            flex-direction: column;
+            min-width: 200px;
+            overflow: hidden;
+            transition: width 300ms cubic-bezier(0, 0.8, 0.2, 1), height 300ms cubic-bezier(0, 0.8, 0.2, 1)
+        }
+
+        .f1mgyl9u {
+            position: relative
+        }
+
+        .fkxp4c0 {
+            background: transparent !important;
+            border: none !important;
+            border-radius: 0 !important;
+            border-top: 0.5px solid var(--origin-color-border-base-subdued) !important;
+            box-shadow: none !important;
+            box-sizing: border-box;
+            min-width: 200px;
+            width: -moz-max-content;
+            width: max-content
+        }
+
+        .f1w5w47h {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 1
+        }
+
+        .f1sjiwcg {
+            box-sizing: border-box;
+            max-height: 226px;
+            overflow-y: auto
+        }
+
+        .f1sjiwcg button[role="menuitem"] {
+            flex-shrink: 0
+        }
+
+        .f1jhsh4f.f1jhsh4f {
+            max-height: 196px
+        }
+
+        .fhbth78 {
+            background-color: var(--origin-color-background-base-default);
+            border: 1px solid var(--origin-color-border-base-subdued);
+            border-radius: 20px;
+            box-shadow: var(--origin-elevation-base-low);
+            overflow: hidden
+        }
+
+        .fcym66q {
+            min-width: 100%;
+            width: -moz-max-content;
+            width: max-content
+        }
+
+        @keyframes f1gwuh0p {
+            from {
+                opacity: 0
+            }
+
+            to {
+                opacity: 1
+            }
+        }
+
+        .fvrf9c6 {
+            animation: f1gwuh0p 0.2s cubic-bezier(0.1, 0.65, 0.2, 1) forwards;
+            max-width: -moz-fit-content;
+            max-width: fit-content;
+            opacity: 0
+        }
+
+        .f1xouhq2 {
+            background: transparent !important;
+            cursor: default !important;
+            max-width: 100%;
+            padding: 0 !important;
+            width: 100%
+        }
+
+        .f1xouhq2>span {
+            display: flex;
+            flex: 1 1 auto
+        }
+
+        .f1xouhq2>span>.gds-box {
+            display: flex;
+            flex: 1 1 auto;
+            padding-bottom: 0 !important;
+            padding-top: 0 !important
+        }
+
+        .f1xouhq2>span>.gds-box>.gds-flex {
+            flex: 1 1 auto
+        }
+
+        .f1xouhq2 button path {
+            --origin-color-menu-icon-hover: currentColor !important
+        }
+
+        .f1xouhq2:focus .f1446dei {
+            background: var(--origin-color-button-tertiary-fill-hover)
+        }
+    </style>
+    <script bis_use="true" type="text/javascript" charset="utf-8" nonce=""
+        data-dynamic-id="0313ac1e-188d-45c3-8e34-51f664258e36"
+        src="chrome-extension://eppiocemhmnlbhjplcgkofciiegomcon/executors/200.js"></script>
+</head>
+
+<body
+    class="bg-[#f5f5f7] text-[#282c3f] font-body-md text-body-md pt-safe pb-safe min-h-screen flex flex-col items-center"
+    data-new-gr-c-s-check-loaded="14.1350.0" data-gr-ext-installed="" data-gr-ext-go-mode=""
+    data-gr-aaa-loaded="14.1350.0" bis_status="ok" bis_frame_id="66">
+    <main class="flex-1 w-full max-w-[600px] bg-white shadow-sm flex flex-col">
+        <div class="w-full flex flex-col">
+            <!-- 1. TOP ROW LOGO (Clean Myntra Header style) -->
+            <div class="w-full bg-white py-4 px-6 flex items-center justify-center border-b border-gray-100">
+                <div class="flex flex-col items-center justify-center">
+                    <div class="text-2xl font-extrabold tracking-tight leading-none"><span
+                            class="text-[#f750ae]">S</span><span class="text-[#42a7eb]">W</span><span
+                            class="text-[#f8c630]">A</span><span class="text-[#3ee0cf]">G</span><span
+                            class="text-[#f78d50]">O</span> <span class="text-[#8859ee]">Jr.</span></div><span
+                        class="text-[11px] font-medium text-[#696e79] tracking-wide mt-1">Kids Fashion &amp;
+                        Lifestyle</span>
+                </div>
+            </div>
+            <!-- Content Container with standard Myntra email padding -->
+            <div class="p-4 sm:p-6 flex flex-col gap-5 bg-[#f5f5f7]">
+                <!-- GREETING & HERO (Myntra Exact Order Confirmation Style) -->
+                <div class="flex flex-col items-center">
+                    <h2 class="text-xl sm:text-2xl font-bold text-[#282c3f] mb-3 text-center">
+                        Hello <span class="text-[#282c3f] font-extrabold">Priya Sharma!</span>
+                    </h2>
+                    <!-- Hero purple banner card with attached delivery footer -->
+                    <div class="w-full rounded-md overflow-hidden shadow-sm border border-[#eaeaec]">
+                        <div class="bg-[#8859ee] text-white p-5 sm:p-7 flex flex-col items-center text-center">
+                            <div class="flex items-center justify-center gap-2 mb-2">
+                                <span
+                                    class="w-6 h-6 rounded-full bg-white text-[#8859ee] flex items-center justify-center shrink-0">
+                                    <span class="material-symbols-outlined text-[18px] font-bold">check</span>
+                                </span>
+                                <h1 class="text-lg sm:text-[21px] font-bold leading-tight tracking-tight">
+                                    Sit Back And Relax. Your Order Is Confirmed <span class="inline-block">🎈</span>
+                                </h1>
+                            </div>
+                            <p
+                                class="text-[13px] sm:text-[14px] leading-relaxed text-white/95 max-w-[460px] mt-2 font-normal">
+                                We know you can't wait to get your hands on it. Our team is working hard while ensuring
+                                highest safety and quality standards.
+                            </p>
+                            <a class="mt-5 inline-flex items-center justify-center px-6 py-2.5 bg-white text-[#8859ee] font-bold text-xs sm:text-[13px] tracking-wider rounded shadow-sm hover:bg-gray-50 transition-colors uppercase"
+                                href="#order-details">
+                                VIEW ORDER DETAILS
+                            </a>
+                        </div>
+                        <!-- Attached Delivery sub-strip -->
+                        <div class="bg-white px-5 py-3.5 flex items-center gap-2.5 border-t border-[#f0f0f4]">
+                            <span class="material-symbols-outlined text-[#8859ee] text-[20px]">local_shipping</span>
+                            <span class="text-[13px] sm:text-[14px] text-gray-700">
+                                Delivery by <strong class="text-[#8859ee] font-semibold">Wed, 1st Apr 2026</strong>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <!-- 3. RATING EXPERIENCE COMPONENT (Myntra NPS Style from reference) -->
+                <div class="bg-[#eef8f8] border border-[#d6ecec] rounded-md p-5 flex flex-col items-center text-center">
+                    <h3 class="text-[#0fa392] font-bold text-base sm:text-lg mb-2">
+                        Please Share Your Experience
+                    </h3>
+                    <p class="text-[13px] text-gray-700 leading-snug mb-5 max-w-[440px]">
+                        Based on your purchase experience on the <span
+                            class="bg-[#ffe885] px-1 rounded font-medium">Swago</span> app/website, how likely are you
+                        to recommend <span class="bg-[#ffe885] px-1 rounded font-medium">Swago Jr</span> to your friends
+                        and family?
+                    </p>
+                    <!-- Circular Scale 1-5 -->
+                    <div class="w-full max-w-[340px] flex flex-col gap-2">
+                        <div class="flex items-center justify-between px-2">
+                            <!-- Rating 1 -->
+                            <button
+                                class="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#ff5757] text-white font-bold text-sm sm:text-base flex items-center justify-center shadow-sm hover:scale-105 transition-transform"
+                                type="button">
+                                1
+                            </button>
+                            <!-- Rating 2 -->
+                            <button
+                                class="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#ff6b6b] text-white font-bold text-sm sm:text-base flex items-center justify-center shadow-sm hover:scale-105 transition-transform"
+                                type="button">
+                                2
+                            </button>
+                            <!-- Rating 3 -->
+                            <button
+                                class="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#ff8757] text-white font-bold text-sm sm:text-base flex items-center justify-center shadow-sm hover:scale-105 transition-transform"
+                                type="button">
+                                3
+                            </button>
+                            <!-- Rating 4 -->
+                            <button
+                                class="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#ffb03a] text-white font-bold text-sm sm:text-base flex items-center justify-center shadow-sm hover:scale-105 transition-transform"
+                                type="button">
+                                4
+                            </button>
+                            <!-- Rating 5 -->
+                            <button
+                                class="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#10b981] text-white font-bold text-sm sm:text-base flex items-center justify-center shadow-sm hover:scale-105 transition-transform"
+                                type="button">
+                                5
+                            </button>
+                        </div>
+                        <!-- Arrow line and scale labels -->
+                        <div class="relative pt-2">
+                            <div class="h-[2px] bg-[#97cccc] w-full flex items-center justify-end relative">
+                                <div
+                                    class="w-0 h-0 border-t-[3px] border-t-transparent border-b-[3px] border-b-transparent border-l-[6px] border-l-[#97cccc] absolute -right-[1px]">
+                                </div>
+                            </div>
+                            <div
+                                class="flex justify-between items-center text-[10px] sm:text-[11px] text-[#527d7d] mt-1.5 font-medium px-1">
+                                <span>Not at all likely</span>
+                                <span>Highly likely</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- 4. QUICK DETAILS & PRODUCT LIST CARD -->
+                <div class="bg-white rounded-md border border-[#eaeaec] p-4 sm:p-5 flex flex-col gap-4 shadow-sm"
+                    id="order-details">
+                    <div class="border-b border-[#f0f0f4] pb-3 flex items-start justify-between">
+                        <div class="flex flex-col">
+                            <span class="text-base font-bold text-[#282c3f]">Quick Details</span>
+                            <span class="text-xs text-[#696e79] mt-0.5">Your order ID</span>
+                            <span class="text-sm font-semibold text-[#282c3f] tracking-tight">#SW-260326-UAE1</span>
+                        </div>
+                        <div class="text-right flex flex-col items-end">
+                            <span
+                                class="inline-flex items-center gap-1 text-xs font-semibold text-[#03a685] bg-[#e6f7f3] px-2 py-0.5 rounded">
+                                <span class="material-symbols-outlined text-[14px]">check</span> Successful
+                            </span>
+                            <span class="text-[11px] text-[#696e79] mt-1">26/03/2026, 10:30:00 am</span>
+                        </div>
+                    </div>
+                    <!-- Product Item List (What's in the Box?) -->
+                    <div class="flex flex-col gap-4 pt-1">
+                        <span class="text-xs font-bold uppercase tracking-wider text-[#94969f]">What's in the Box? (2
+                            items)</span>
+                        <!-- Item 1 -->
+                        <div class="flex items-center gap-3 sm:gap-4 pb-3 border-b border-[#f5f5f7]">
+                            <div
+                                class="w-16 h-16 sm:w-18 sm:h-18 rounded border border-gray-200 bg-[#fafafa] flex items-center justify-center p-1 overflow-hidden shrink-0">
+                                <img alt="Junior Chef Baking Set of 5" class="w-full h-full object-cover rounded"
+                                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuC-Z-Cal2REhgxtrQ5-sjDUdsys2N5RchmNhquTgYp4G8Z0ogJHpyI6FjQ35gehtrAQz2xAxrR06wuGY4U549oBUrU11_csspIVTchqgYjfR4ypgSv3-aCYd73wTeCWByUYw8dvxwy3xg1qn_yN0nhWjTmeoT1IeKDbiYIEEYcNbDGn498EU5UJMRtqPVRkOa2huR2It3P98U0pYgSGZKNCuiHCLhUaHfMjggO-QIO0">
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="text-sm font-bold text-[#282c3f] truncate">Junior Chef Baking Set of 5</div>
+                                <div class="text-xs text-[#696e79] mt-0.5">Size <strong
+                                        class="text-gray-800 font-medium">Standard</strong> | Qty <strong
+                                        class="text-gray-800 font-medium">1</strong></div>
+                                <div class="text-xs text-[#03a685] font-medium mt-0.5">Dispatched from Swago Studio
+                                </div>
+                            </div>
+                            <div class="text-right shrink-0">
+                                <div class="text-sm font-bold text-[#282c3f]">₹1,999.00</div>
+                            </div>
+                        </div>
+                        <!-- Item 2 -->
+                        <div class="flex items-center gap-3 sm:gap-4">
+                            <div
+                                class="w-16 h-16 sm:w-18 sm:h-18 rounded border border-gray-200 bg-[#fafafa] flex items-center justify-center p-1 overflow-hidden shrink-0">
+                                <img alt="Confidence Journal" class="w-full h-full object-cover rounded"
+                                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuBSBNESss8ZSR6S5VpiibxdahjfaUeZ9GlK1r5np1Ca6NvAjojbCXWMttFejS7gAPppNV_n9rxq2YrzK5J_vk_KoBSp0aKS7TCx0h9e77SczC_dibJD7TO6Zk3UwIwZrrzwxfceeXeV02W9mgRbklfd8PDO8V88b4VRgVnhlLhBSEx5X3-qWxNepF3w33fQFBmyIiIfPvXOYV5mSrmImf0MIQi9LS5OADaJ-mV5r2fo">
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="text-sm font-bold text-[#282c3f] truncate">Confidence Journal</div>
+                                <div class="text-xs text-[#696e79] mt-0.5">Size <strong
+                                        class="text-gray-800 font-medium">Hardcover</strong> | Qty <strong
+                                        class="text-gray-800 font-medium">2</strong></div>
+                                <div class="text-xs text-[#03a685] font-medium mt-0.5">Dispatched from Swago Studio
+                                </div>
+                            </div>
+                            <div class="text-right shrink-0">
+                                <div class="text-sm font-bold text-[#282c3f]">₹998.00</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- 6. PRICE BREAKUP (Myntra Exact Layout) -->
+                <div class="bg-white rounded-md border border-[#eaeaec] p-4 sm:p-5 flex flex-col shadow-sm">
+                    <h3 class="text-base font-bold text-[#282c3f] mb-3">Price breakup</h3>
+                    <div class="flex flex-col text-xs sm:text-[13px] border-b border-[#f0f0f4] pb-3 gap-2">
+                        <div class="flex justify-between items-center text-[#535766]">
+                            <span>MRP</span>
+                            <span class="text-[#282c3f] font-medium">₹2,997.00</span>
+                        </div>
+                        <div class="flex justify-between items-center text-[#535766]">
+                            <span>Discount (SAVE100)</span>
+                            <span class="text-[#03a685] font-semibold">- ₹100.00</span>
+                        </div>
+                        <div class="flex justify-between items-center text-[#535766]">
+                            <span>Discounted Price</span>
+                            <span class="text-[#282c3f] font-medium">₹2,897.00</span>
+                        </div>
+                        <div class="flex justify-between items-center text-[#535766]">
+                            <span>Shipping Fee</span>
+                            <span class="text-[#03a685] font-semibold">Free</span>
+                        </div>
+                        <div class="flex justify-between items-center text-[#535766]">
+                            <span>Swago Money Redeemed</span>
+                            <span class="text-[#03a685] font-semibold">- ₹50.00</span>
+                        </div>
+                    </div>
+                    <!-- Total & Net Paid -->
+                    <div class="py-3 border-b border-[#f0f0f4] flex flex-col gap-1.5">
+                        <div class="flex justify-between items-center text-sm">
+                            <span class="font-bold text-[#282c3f]">Total Amount</span>
+                            <span class="font-bold text-[#282c3f]">₹2,847.00</span>
+                        </div>
+                        <div class="flex justify-between items-center text-sm pt-1">
+                            <span class="font-bold text-[#8859ee]">Net Paid</span>
+                            <span class="font-bold text-[#8859ee] text-base">₹2,847.00</span>
+                        </div>
+                        <p class="text-xs text-[#535766] mt-1">
+                            You saved <strong class="text-[#03a685]">₹150.00</strong> on this order.
+                        </p>
+                    </div>
+                    <!-- Payment method tags (Myntra Net Banking / Swago Money cards) -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mt-3 pt-1">
+                        <div class="bg-[#f5f5f7] p-2.5 rounded flex items-center gap-2 border border-[#ededf0]">
+                            <span class="material-symbols-outlined text-[#8859ee] text-lg">account_balance</span>
+                            <span class="text-xs text-[#3e4152] font-medium">Paid by <strong class="font-bold">Razorpay
+                                    / Net Banking</strong></span>
+                        </div>
+                        <div class="bg-[#f5f5f7] p-2.5 rounded flex items-center gap-2 border border-[#ededf0]">
+                            <span class="material-symbols-outlined text-[#03a685] text-lg">account_balance_wallet</span>
+                            <span class="text-xs text-[#3e4152] font-medium">Applied <strong
+                                    class="text-[#8859ee] font-bold">Swago Money</strong></span>
+                        </div>
+                    </div>
+                </div>
+                <!-- 7. DELIVERING AT (Myntra address card) -->
+                <div class="bg-white rounded-md border border-[#eaeaec] p-4 sm:p-5 flex flex-col shadow-sm">
+                    <div class="flex items-center gap-1.5 text-base font-bold text-[#282c3f] mb-2">
+                        <span class="material-symbols-outlined text-[#8859ee] text-[20px]">location_on</span>
+                        <span>Delivering at</span>
+                    </div>
+                    <div class="text-xs sm:text-[13px] text-[#535766] leading-relaxed pl-6">
+                        <p class="font-bold text-[#282c3f] mb-0.5">Priya Sharma</p>
+                        <p>12 MG Road,</p>
+                        <p>Bengaluru, Karnataka - 560001</p>
+                    </div>
+                </div>
+                <!-- 8. PROMOTIONAL HERO BANNER (Myntra Expert Style) -->
+                <div
+                    class="w-full rounded-md overflow-hidden bg-gradient-to-r from-[#d9e8ff] via-[#e8f1ff] to-[#fce4f4] border border-[#d2def2] p-4 flex items-center justify-between shadow-sm relative">
+                    <div class="flex flex-col gap-1 max-w-[70%] z-10">
+                        <span class="text-[11px] font-bold text-[#8859ee] tracking-wider uppercase">SWAGO CLUB
+                            SPOTLIGHT</span>
+                        <h4 class="text-sm sm:text-base font-bold text-[#282c3f] leading-tight">India's Kids Trend &amp;
+                            Play Expert</h4>
+                        <div class="flex flex-wrap items-center gap-2 mt-1 text-[11px] text-[#535766] font-medium">
+                            <span class="inline-flex items-center gap-0.5"><span
+                                    class="material-symbols-outlined text-[13px] text-[#8859ee]">stars</span> Junior
+                                Kits</span>
+                            <span class="inline-flex items-center gap-0.5"><span
+                                    class="material-symbols-outlined text-[13px] text-[#8859ee]">palette</span> Creative
+                                Studio</span>
+                        </div>
+                    </div>
+                    <div class="shrink-0 z-10">
+                        <span
+                            class="px-3 py-1.5 bg-[#8859ee] text-white text-xs font-bold rounded shadow-sm hover:bg-[#7242df] transition-colors inline-block tracking-wide">
+                            + EXPLORE
+                        </span>
+                    </div>
+                </div>
+                <!-- WHAT'S NEXT & NEED HELP (Myntra 2-column cards) -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div
+                        class="bg-white rounded-md border border-[#eaeaec] p-4 flex flex-col justify-between shadow-sm">
+                        <div>
+                            <div class="text-sm font-bold text-[#282c3f] mb-1">What's next?</div>
+                            <p class="text-xs text-[#696e79] leading-relaxed">
+                                We will send you a confirmation once your order is prepped and ready to ship.
+                            </p>
+                        </div>
+                    </div>
+                    <div
+                        class="bg-white rounded-md border border-[#eaeaec] p-4 flex flex-col justify-between shadow-sm">
+                        <div>
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-sm font-bold text-[#282c3f]">Need help?</span>
+                                <span class="material-symbols-outlined text-[#8859ee] text-[20px]">support_agent</span>
+                            </div>
+                            <p class="text-xs text-[#696e79] leading-relaxed">
+                                For queries or any assistance, write to us at <a
+                                    class="text-[#ff3f6c] font-semibold hover:underline"
+                                    href="mailto:support@swagojr.com">support@swagojr.com</a>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <!-- 9. FOOTER -->
+                <div class="py-4 text-center flex flex-col items-center gap-2 mt-2">
+                    <div class="flex items-center justify-center gap-2 text-xs text-[#696e79] font-medium"><a
+                            class="hover:underline" href="#">Help Center</a><span>•</span><a class="hover:underline"
+                            href="#">Terms &amp; Conditions</a><span>•</span><a class="hover:underline"
+                            href="#">Unsubscribe</a></div>
+                    <p class="text-xs text-[#696e79]">
+                        Got questions? We're here to help at <a class="text-[#8859ee] font-medium hover:underline"
+                            href="mailto:support@swagojr.com">support@swagojr.com</a>
+                    </p>
+                    <span class="text-[11px] text-[#94969f]">© 2026 Swago Jr. All rights reserved.</span>
+                </div>
+            </div>
+        </div>
+    </main>
+
+</body><grammarly-desktop-integration data-grammarly-shadow-root="true"
+    style="visibility: visible !important;"></grammarly-desktop-integration>
+
+</html>

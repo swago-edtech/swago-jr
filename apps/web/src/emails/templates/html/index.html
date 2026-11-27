@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Swago email templates</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8fafc; margin: 0; padding: 40px 20px; color: #0f172a; }
+    .wrap { max-width: 720px; margin: 0 auto; }
+    h1 { font-size: 28px; margin: 0 0 8px; }
+    .sub { color: #64748b; font-size: 14px; margin-bottom: 28px; }
+    code { background: #e2e8f0; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+    a.card { display: block; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px 18px; margin-bottom: 12px; text-decoration: none; color: inherit; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
+    a.card:hover { border-color: #cbd5e1; }
+    .title { font-weight: 700; font-size: 16px; }
+    .meta { font-size: 13px; color: #64748b; margin-top: 4px; }
+    .badge { display: inline-block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; padding: 2px 8px; border-radius: 999px; margin-left: 8px; vertical-align: middle; }
+    .active { background: #ecfdf5; color: #065f46; }
+    .disabled { background: #fffbeb; color: #92400e; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Swago email templates</h1>
+    <p class="sub">
+      Plain HTML previews. Open any file in a browser.<br />
+      MSG91 template id: <code>swagojr_order_confirmation2</code>
+      · from <code>no-reply@support.swagojr.com</code>
+    </p>
+
+    <a class="card" href="./order-confirmation.html">
+      <span class="title">Order confirmation (prepaid)</span><span class="badge active">active</span>
+      <div class="meta">Customer receipt after Razorpay / paid finalize</div>
+    </a>
+    <a class="card" href="./order-confirmation-cod.html">
+      <span class="title">Order confirmation (COD)</span><span class="badge active">active</span>
+      <div class="meta">Customer receipt for Cash on Delivery</div>
+    </a>
+    <a class="card" href="./order-confirmation-intl.html">
+      <span class="title">Order confirmation (international)</span><span class="badge active">active</span>
+      <div class="meta">Local currency + international shipping label</div>
+    </a>
+    <a class="card" href="./order-admin-notification.html">
+      <span class="title">Admin new-order alert</span><span class="badge active">active</span>
+      <div class="meta">Ops alert when a website order is placed</div>
+    </a>
+    <a class="card" href="./order-admin-notification-intl.html">
+      <span class="title">Admin new-order alert (international)</span><span class="badge active">active</span>
+      <div class="meta">Ops alert with country / charged FX lines</div>
+    </a>
+    <a class="card" href="./low-stock-alert.html">
+      <span class="title">Low stock alert</span><span class="badge active">active</span>
+      <div class="meta">Admin inventory below-threshold alert</div>
+    </a>
+    <a class="card" href="./lottery-winner.html">
+      <span class="title">Lottery winner</span><span class="badge disabled">disabled</span>
+      <div class="meta">Lottery win → Swago Money credit (not sending today)</div>
+    </a>
+    <a class="card" href="./swago-money-deposit.html">
+      <span class="title">Swago Money deposit</span><span class="badge disabled">disabled</span>
+      <div class="meta">Manual Swago Money credit (not sending today)</div>
+    </a>
+  </div>
+</body>
+</html>

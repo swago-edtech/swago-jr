@@ -1,7 +1,15 @@
 import { getInternationalOrderDisplay, type InternationalOrderLike } from "@swago/utils";
 
-type OrderWithItems = InternationalOrderLike & {
-  items?: Array<{ name?: string; quantity?: number; price?: number; localPrice?: number; image?: string }>;
+type OrderItemLike = {
+  name?: string;
+  quantity?: number | null;
+  price?: number | null;
+  localPrice?: number | null;
+  image?: string;
+};
+
+type OrderWithItems = Omit<InternationalOrderLike, "items"> & {
+  items?: OrderItemLike[] | null;
 };
 
 /**
@@ -24,18 +32,27 @@ export function intlConfirmationEmailOverrides(order: OrderWithItems) {
 }
 
 /**
- * Overrides for the admin notification email (ledger stays INR). Returns {} for domestic orders.
+ * Overrides for the admin notification email.
+ * International: charged local amounts + currency symbol; country code only (no FX rate).
+ * Returns {} for domestic orders.
  */
 export function intlAdminEmailOverrides(order: OrderWithItems) {
   const intl = getInternationalOrderDisplay(order);
   if (!intl) return {};
   return {
     shippingMethod: "International Shipping",
-    shippingFee: intl.shippingINR.toFixed(2),
-    internationalLines: [
-      `Country: ${intl.country}`,
-      `Charged: ${intl.formatCode(intl.totalLocal)} (items ${intl.formatCode(intl.subtotalLocal)}, shipping ${intl.formatCode(intl.shippingLocal)})`,
-      `Exchange rate used: 1 INR = ${intl.rate} ${intl.currency}`,
-    ],
+    shippingFee: intl.shippingLocal.toFixed(2),
+    subtotal: intl.subtotalLocal.toFixed(2),
+    discount: intl.discountLocal.toFixed(2),
+    swagoMoneyRedeemed: intl.swagoLocal.toFixed(2),
+    totalAmount: intl.totalLocal.toFixed(2),
+    currencySymbol: intl.symbol,
+    countryCode: intl.country,
+    items: (order.items || []).map((item, i) => ({
+      name: item.name || "Item",
+      quantity: item.quantity || 0,
+      price: (intl.items[i]?.localPrice ?? 0).toFixed(2),
+      image: item.image,
+    })),
   };
 }

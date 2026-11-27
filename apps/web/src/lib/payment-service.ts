@@ -159,15 +159,19 @@ export async function finalizeOrder({ orderIdOrMongoId, razorpayPaymentId, sourc
       city: orderObject.city,
       state: orderObject.state,
       pincode: orderObject.pincode,
+      couponCode: orderObject.couponCode,
       // International orders only (no-op {} for India): local-currency amounts + symbol
       ...intlConfirmationEmailOverrides(orderObject),
     });
 
-    const adminItems = orderObject.items.map((item: { name: string; quantity: number; price: number }) => ({
-      name: item.name,
-      quantity: item.quantity,
-      price: item.price.toFixed(2),
-    }));
+    const adminItems = orderObject.items.map(
+      (item: { name: string; quantity: number; price: number; image?: string }) => ({
+        name: item.name,
+        quantity: item.quantity,
+        price: item.price.toFixed(2),
+        image: item.image,
+      })
+    );
 
     sendAdminOrderNotificationEmail({
       orderNumber: orderObject.orderId || orderObject._id.toString().slice(-6),
@@ -185,7 +189,7 @@ export async function finalizeOrder({ orderIdOrMongoId, razorpayPaymentId, sourc
       shippingFee: (orderObject.shippingFee || 0).toFixed(2),
       items: adminItems,
       adminUrl: `https://admin.swagojr.com/orders/${orderObject._id}`,
-      // International orders only (no-op {} for India): intl shipping + charged currency
+      // International orders only (no-op {} for India): local charged amounts + country
       ...intlAdminEmailOverrides(orderObject),
     }).catch(console.error);
   } catch (error) {

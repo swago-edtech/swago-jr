@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "cross-env NODE_OPTIONS=--max-old-space-size=2560 next build --webpack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "email:dev": "email dev --dir src/emails/templates"
   },
   "dependencies": {
     "@next/third-parties": "^16.1.1",

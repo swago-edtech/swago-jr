@@ -413,6 +413,7 @@ export async function POST(req: Request) {
                 city: orderObject.city,
                 state: orderObject.state,
                 pincode: orderObject.pincode,
+                couponCode: orderObject.couponCode,
             });
 
             // ✅ Fire Admin Email Asynchronously
@@ -420,6 +421,7 @@ export async function POST(req: Request) {
                 name: item.name,
                 quantity: item.quantity,
                 price: item.price.toFixed(2),
+                image: item.image,
             }));
 
             sendAdminOrderNotificationEmail({

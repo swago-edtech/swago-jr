@@ -642,6 +642,7 @@ if (!user) {
           city: orderObject.city,
           state: orderObject.state,
           pincode: orderObject.pincode,
+          couponCode: orderObject.couponCode,
         });
       } catch (emailError) {
         console.error("[Express] Email failed:", emailError);
